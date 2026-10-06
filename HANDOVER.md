@@ -97,6 +97,7 @@ Rules:
    - A third screen saver kind alongside The time and In words: time as data – minutes left in the year, seconds through the day, percentages.
    - Lazaar looks wrong in In words (clipping, uneven). Next round; needs the font file to reproduce.
    - Preload a few fonts that pick out the different parts, grounded by a plain Swiss face in the spirit of ABC Diatype (Diatype is commercial – check the licence covers outlines in a distributed screen saver).
+   - Third Show option (Steve's reference, 6 Oct – the "Ensemble Summer Social" posters): a plain Swiss face (ABC Diatype, Steve holds a commercial licence) carrying the time and date, with one line swapped into a retro display face (Lazaar Soft / Block and others to come). Steve likes the pale grey with acid-yellow pairing; ignore the all caps for now. Diatype and Lazaar files were supplied in the Tempo chat – ask for them again in a new chat.
    **Steve to come back to: fonts for the screen saver.** Which faces ship, and whether their licences allow their outlines inside a distributed screen saver (Steve's own faces avoid the question; Adobe Fonts faces such as Aktiv Grotesk can't be loaded into Tempo as files anyway).
 7. A website version of In words that uses the browser's location (place, sun, weather) and the Accuracy and Personality dials – its own project. Code for place, sun and weather is in commit `c0cc72c`.
 5. Tutti onto the shared tokens and UI kit (see `tutti/HANDOVER.md`).
