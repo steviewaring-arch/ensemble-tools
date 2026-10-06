@@ -1,6 +1,12 @@
-# Parity report – split apps vs Rubato v0.8.1
+# Parity report – Rubato 0.9 and Tempo 0.2 vs Rubato v0.8.1
 
-Run on 6 October 2026 against docs/ as committed. 87 results: 85 byte-identical to two runs of the reference; two live-preview frames vary slightly between runs of the reference itself (timing-sensitive), and the new build matched the first reference run pixel for pixel on both.
+Run on 6 October 2026 against docs/ as committed (Tempo 0.2). 87 results:
+
+- 77 byte-identical to two runs of the reference.
+- 9 differ only by Tempo 0.2's intended changes. `tempo02()` in `parity.py` undoes them – the Rubato → Tempo renames, the 0.2 screen saver runtime inside each export, the rebuilt Windows host, the extra Show option, and the Mac re-signing that follows from the page changing (only code-signature bytes differ in the binary) – and the result then matches 0.8.1 byte for byte.
+- 1 (roll at 150 ms, a live-preview frame mid-roll) lands on one of two frames depending on timing. Across two full runs today, both the reference and Tempo 0.2 produced both frames (sha256 384d50207557 and de0eb35f5350), and the 0.1 report recorded the same variation between reference runs. Not a behaviour change.
+
+`tests/tempo_check.py` (23 checks) covers what's new in 0.2; `tests/split_check.py` (13 checks) passes; it now reads the export's settings from `window.__TEMPO__`.
 
 ## t1 – Fonts: styles, variable axes, instances, axis animation, SVG, picker, reload.
 
@@ -61,10 +67,10 @@ Run on 6 October 2026 against docs/ as committed. 87 results: 85 byte-identical 
 - same: migrated styles – ["Poppins Regular", "Poppins Bold"]
 - same: migrated settings – {"fit": "block", "stretch": true, "baseSlot is 2nd style": true, "picks": {"a": ["200",...
 - same: default style – [["Default"], "Poppins Bold"]
-- same within run-to-run variation: screen saver preview – ref vs ref: 1136 px differ by up to 10/255; ref vs new: 0 px by up to 0/255
-- same: screen saver HTML – 73458 bytes, sha256 8730b2d083c8
+- same: screen saver preview – 81249 bytes, sha256 a71e2418067f
+- same apart from Tempo 0.2 changes: screen saver HTML – export renamed to Tempo and carries the 0.2 runtime
 - same: screen saver HTML (file name) – lazaar-screensaver.html
-- same: Mac zip – 717138 bytes, sha256 1d6b6c74d8ee
+- same apart from Tempo 0.2 changes: Mac zip – only signature bytes differ in the binary; page and read-me renamed to Tempo; re-signed over the new page
 - same: Mac zip (file name) – Poppins screen saver for Mac.zip
 - same: GIF – 943987 bytes, sha256 32d695e39775
 - same: GIF (file name) – lazaar-fluid.gif
@@ -75,23 +81,23 @@ Run on 6 October 2026 against docs/ as committed. 87 results: 85 byte-identical 
 ## t4 – Screen saver panels, digit roll timing, looks mode, Windows + Mac exports.
 
 - same: saver cards – ["Fonts", "Screensaver", "Clock", "Numerals", "Change", "Position", "Colour", "Export"]
-- same: Screensaver panel – Fonts / – / Poppins Regular / Alternates for 28 characters / Default / Remove / Use in ...
-- same within run-to-run variation: roll at 150 ms – ref vs ref: 1845 px differ by up to 208/255; ref vs new: 0 px by up to 0/255
+- same apart from Tempo 0.2 changes: Screensaver panel – Show now also offers In words
+- **DIFFERENT** roll at 150 ms: ref 89876 bytes, sha256 de0eb35f5350 | new 89954 bytes, sha256 384d50207557 
 - same: roll at 450 ms – 94219 bytes, sha256 a5fb685ba7b0
 - same: roll at 750 ms – 93996 bytes, sha256 ff11d4c2a495
 - same: roll at 880 ms – 93996 bytes, sha256 ff11d4c2a495
 - same: roll at 930 ms – 93996 bytes, sha256 ff11d4c2a495
 - same: looks cards – ["Fonts", "Screensaver", "Position", "Export"]
 - same: drift visible in looks – True
-- same: Screensaver panel, saved looks – Fonts / – / Poppins Regular / Alternates for 28 characters / Default / Remove / Use in ...
-- same: Windows zip – 139644 bytes, sha256 ddaa70c635ce
+- same apart from Tempo 0.2 changes: Screensaver panel, saved looks – Show now also offers In words
+- same apart from Tempo 0.2 changes: Windows zip – Windows host rebuilt with Tempo wording; page and read-me renamed to Tempo
 - same: Windows zip (file name) – Poppins screen saver for Windows.zip
-- same: Mac zip – 717058 bytes, sha256 f98417c2e7b4
+- same apart from Tempo 0.2 changes: Mac zip – only signature bytes differ in the binary; page and read-me renamed to Tempo; re-signed over the new page
 - same: Mac zip (file name) – Poppins screen saver for Mac.zip
 
 ## t5 – The exported screen saver page renders the same frames.
 
-- same: screen saver HTML – 73384 bytes, sha256 b5f123f96346
+- same apart from Tempo 0.2 changes: screen saver HTML – export renamed to Tempo and carries the 0.2 runtime
 - same: screen saver HTML (file name) – lazaar-screensaver.html
 - same: engine frame 0 – 84847 bytes, sha256 a8c1d23b4bf1
 - same: engine frame 1 – 84767 bytes, sha256 ba9a238ade55
@@ -102,9 +108,9 @@ Run on 6 October 2026 against docs/ as committed. 87 results: 85 byte-identical 
 
 ## t6 – Mac and Windows exports with a single font.
 
-- same: Mac zip – 698034 bytes, sha256 91052323351b
+- same apart from Tempo 0.2 changes: Mac zip – only signature bytes differ in the binary; page and read-me renamed to Tempo; re-signed over the new page
 - same: Mac zip (file name) – Poppins screen saver for Mac.zip
-- same: Windows zip – 120620 bytes, sha256 b7972c2e20c8
+- same apart from Tempo 0.2 changes: Windows zip – Windows host rebuilt with Tempo wording; page and read-me renamed to Tempo
 - same: Windows zip (file name) – Poppins screen saver for Windows.zip
 
-**All results match.**
+**1 differences or errors.**

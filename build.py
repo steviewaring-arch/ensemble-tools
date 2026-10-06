@@ -37,7 +37,7 @@ APPS = {
         parts=['rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo — by Ensemble', version='0.1',
+        title='Tempo — by Ensemble', version='0.2',
         body='tempo/app.html',
         tagged=[('rubato-engine', 'shared/engine.js'), ('rubato-saver', 'tempo/saver.js'),
                 ('rubato-mac', 'tempo/mac/packager.js'), ('rubato-win', 'tempo/win/host.js')],

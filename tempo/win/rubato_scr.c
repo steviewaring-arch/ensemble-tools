@@ -1,4 +1,4 @@
-/* Rubato screen saver host for Windows.
+/* Tempo screen saver host for Windows.
    The exported page is appended to this executable:
    [name utf8][html utf8][footer: "RBTOSCR1" u32 nameLen u32 htmlLen u32 bgRGB u32 0]
    /s  : run full screen (page shown by Microsoft Edge in kiosk mode, other displays covered)
@@ -12,7 +12,7 @@
 #include <stdint.h>
 
 typedef struct { char *name; uint32_t nameLen; char *html; uint32_t htmlLen; uint32_t bg; } Payload;
-static Payload P; static wchar_t gName[256]=L"Rubato";
+static Payload P; static wchar_t gName[256]=L"Tempo";
 static COLORREF gBg=RGB(0,0,0); static HBRUSH gBrush;
 
 static int readPayload(void){
@@ -73,14 +73,14 @@ static int runSaver(void){
   wchar_t local[MAX_PATH],dir[MAX_PATH],prof[MAX_PATH],page[MAX_PATH],nm[128],edge[MAX_PATH],url[4096];
   safeName(nm,128);
   if(!GetEnvironmentVariableW(L"LOCALAPPDATA",local,MAX_PATH))GetTempPathW(MAX_PATH,local);
-  wsprintfW(dir,L"%s\\Rubato Screen Savers",local);CreateDirectoryW(dir,NULL);
-  wsprintfW(dir,L"%s\\Rubato Screen Savers\\%s",local,nm);CreateDirectoryW(dir,NULL);
+  wsprintfW(dir,L"%s\\Tempo Screen Savers",local);CreateDirectoryW(dir,NULL);
+  wsprintfW(dir,L"%s\\Tempo Screen Savers\\%s",local,nm);CreateDirectoryW(dir,NULL);
   wsprintfW(prof,L"%s\\browser",dir);wsprintfW(page,L"%s\\index.html",dir);
   int havePage=P.html&&writeFileW(page,P.html,P.htmlLen);
 
-  WNDCLASSW wc={0};wc.lpfnWndProc=coverProc;wc.hInstance=GetModuleHandleW(NULL);wc.lpszClassName=L"RubatoCover";wc.hbrBackground=gBrush;RegisterClassW(&wc);
+  WNDCLASSW wc={0};wc.lpfnWndProc=coverProc;wc.hInstance=GetModuleHandleW(NULL);wc.lpszClassName=L"TempoCover";wc.hbrBackground=gBrush;RegisterClassW(&wc);
   int vx=GetSystemMetrics(SM_XVIRTUALSCREEN),vy=GetSystemMetrics(SM_YVIRTUALSCREEN),vw=GetSystemMetrics(SM_CXVIRTUALSCREEN),vh=GetSystemMetrics(SM_CYVIRTUALSCREEN);
-  HWND cover=CreateWindowExW(WS_EX_TOOLWINDOW,L"RubatoCover",gName,WS_POPUP|WS_VISIBLE,vx,vy,vw,vh,NULL,NULL,wc.hInstance,NULL);
+  HWND cover=CreateWindowExW(WS_EX_TOOLWINDOW,L"TempoCover",gName,WS_POPUP|WS_VISIBLE,vx,vy,vw,vh,NULL,NULL,wc.hInstance,NULL);
   ShowCursor(FALSE);UpdateWindow(cover);
 
   HANDLE job=NULL;PROCESS_INFORMATION pi={0};
@@ -129,12 +129,12 @@ static LRESULT CALLBACK prevProc(HWND h,UINT m,WPARAM w,LPARAM l){
   return DefWindowProcW(h,m,w,l);}
 static int runPreview(HWND parent){
   if(!IsWindow(parent))return 0;RECT r;GetClientRect(parent,&r);
-  WNDCLASSW wc={0};wc.lpfnWndProc=prevProc;wc.hInstance=GetModuleHandleW(NULL);wc.lpszClassName=L"RubatoPreview";wc.hbrBackground=gBrush;RegisterClassW(&wc);
-  HWND h=CreateWindowExW(0,L"RubatoPreview",L"",WS_CHILD|WS_VISIBLE,0,0,r.right,r.bottom,parent,NULL,wc.hInstance,NULL);if(!h)return 0;
+  WNDCLASSW wc={0};wc.lpfnWndProc=prevProc;wc.hInstance=GetModuleHandleW(NULL);wc.lpszClassName=L"TempoPreview";wc.hbrBackground=gBrush;RegisterClassW(&wc);
+  HWND h=CreateWindowExW(0,L"TempoPreview",L"",WS_CHILD|WS_VISIBLE,0,0,r.right,r.bottom,parent,NULL,wc.hInstance,NULL);if(!h)return 0;
   MSG m;while(GetMessageW(&m,NULL,0,0)>0){TranslateMessage(&m);DispatchMessageW(&m);}return 0;}
 
 static int runConfig(HWND owner){
-  wchar_t t[600];wsprintfW(t,L"%s screen saver\n\nMade with Rubato by Ensemble. It shows full screen using Microsoft Edge, which is built into Windows.\n\nTo change how it looks, export a new one from Rubato.",gName);
+  wchar_t t[600];wsprintfW(t,L"%s screen saver\n\nMade with Tempo by Ensemble. It shows full screen using Microsoft Edge, which is built into Windows.\n\nTo change how it looks, export a new one from Tempo.",gName);
   MessageBoxW(owner,t,gName,MB_OK|MB_ICONINFORMATION);return 0;}
 
 int WINAPI WinMain(HINSTANCE hi,HINSTANCE hp,LPSTR cl,int show){

@@ -68,7 +68,8 @@ def main():
         with pg.expect_download() as d:
             pg.get_by_role('button', name='Download HTML file').click()
         html = open(d.value.path(), encoding='utf-8').read()
-        cfg = json.loads(html.split('window.__RUBATO__=')[1].split(';</script>')[0].replace('\\u003c', '<'))
+        marker = 'window.__TEMPO__=' if 'window.__TEMPO__=' in html else 'window.__RUBATO__='  # renamed in Tempo 0.2
+        cfg = json.loads(html.split(marker)[1].split(';</script>')[0].replace('\\u003c', '<'))
         check("Clock's second line uses Rubato's text", cfg['clock']['text'] == 'Hello there' and cfg['clock']['line2'] == 'text')
         check('Export carries baked outlines, not font files', len(cfg['fonts']) == 2 and all('glyphs' in f and 'buf' not in f for f in cfg['fonts']))
 

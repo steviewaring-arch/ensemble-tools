@@ -294,7 +294,7 @@ def t5(r):
     p2 = r.ctx.new_page()
     p2.route('**/*', lambda rt: rt.abort() if rt.request.url.startswith('http') else rt.continue_())
     p2.set_content(r.results['screen saver HTML'].decode()); time.sleep(.6)
-    res = p2.evaluate("""()=>{const C=window.__RUBATO__,e=createEngine();
+    res = p2.evaluate("""()=>{const C=window.__TEMPO__||window.__RUBATO__,e=createEngine();
       e.setFaces(C.fonts.map(d=>({id:d.id,face:e.makeBaked(d),swap:true})));
       const S=Object.assign({},C.base,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:false,fit:'cap',size:62,align:'left',valign:'top',margin:8,tabular:true,
         qStyle:'roll',qEase:'snappy',qStagger:.3,qDir:'up',texts:['12,08,05'],mode:'none',vMode:'off',axOn:false,dur:60,bg:'#5B23F0',ink:'#FFF35C',transparent:false,leading:1,tracking:0});
@@ -313,6 +313,101 @@ def t6(r):
     r.download('Windows zip', lambda: pg.get_by_role('button', name='Download for Windows').click())
 
 SCENARIOS = {'t1': t1, 't2': t2, 't3': t3, 't4': t4, 't5': t5, 't6': t6}
+
+# ---------------------------------------------------------------- Tempo 0.2
+# Tempo 0.2 changes a few things on purpose: "Rubato" becomes "Tempo" in what it
+# exports, the screen saver runtime inside every export gains the time in words,
+# the Windows host is rebuilt with the new wording, and Show gains "In words".
+# To keep proving everything else still matches 0.8.1, the new build's result is
+# mapped back – those changes undone – and must then match exactly. The report
+# names the change each such result carried.
+import plistlib, re as _re, struct
+
+def _saver_src(html):
+    m = _re.search(rb'<script id="rubato-saver">\n(.*?)\n</script>', html, _re.S)
+    return m.group(1) if m else None
+REF_SAVER = _saver_src(open(os.path.join(ROOT, 'reference/rubato-0.8.1.html'), 'rb').read())
+NEW_SAVER = open(os.path.join(ROOT, 'tempo/saver.js'), 'rb').read().rstrip(b'\n')
+BACK = [(b'window.__TEMPO__', b'window.__RUBATO__'), (b'Made with Tempo by Ensemble', b'Made with Rubato by Ensemble'),
+        (b'<title>Tempo \xe2\x80\x93 screensaver</title>', b'<title>Rubato \xe2\x80\x93 screensaver</title>')]
+PANEL_BACK = [('The time\nIn words\nSaved looks', 'The time\nSaved looks')]
+
+def _back(b):
+    b = b.replace(NEW_SAVER, REF_SAVER)
+    for x, y in BACK:
+        b = b.replace(x, y)
+    return b
+
+def _codesig_ranges(x):
+    """Byte ranges of the code signatures in a (fat) Mach-O file."""
+    out, slices = [], []
+    if struct.unpack('>I', x[:4])[0] == 0xcafebabe:
+        for i in range(struct.unpack('>I', x[4:8])[0]):
+            _, _, off, size, _ = struct.unpack('>5I', x[8 + 20 * i:28 + 20 * i]); slices.append(off)
+    else:
+        slices = [0]
+    for off in slices:
+        ncmds, p = struct.unpack('<I', x[off + 16:off + 20])[0], off + 32
+        for _ in range(ncmds):
+            cmd, cs = struct.unpack('<II', x[p:p + 8])
+            if cmd == 0x1d:
+                so, ss = struct.unpack('<II', x[p + 8:p + 16]); out.append((off + so, off + so + ss))
+            p += cs
+    return out
+
+def _no_page(plist):
+    d = plistlib.loads(plist)
+    for k in ('files', 'files2'):
+        for f in list(d.get(k, {})):
+            if f.endswith('index.html'):
+                del d[k][f]
+    return d
+
+def tempo02(k, a, b):
+    """A note naming the intended change if b is a mapped onto 0.2, else None."""
+    if isinstance(a, str) and isinstance(b, str):
+        for x, y in PANEL_BACK:
+            b = b.replace(x, y)
+        return 'Show now also offers In words' if a == b else None
+    if not (isinstance(a, bytes) and isinstance(b, bytes)):
+        return None
+    if a[:15].lower() == b'<!doctype html>':
+        return 'export renamed to Tempo and carries the 0.2 runtime' if _back(b) == a else None
+    try:
+        za, zb = zipfile.ZipFile(io.BytesIO(a)), zipfile.ZipFile(io.BytesIO(b))
+    except zipfile.BadZipFile:
+        return None
+    if za.namelist() != zb.namelist():
+        return None
+    notes = set()
+    for n in za.namelist():
+        x, y = za.read(n), zb.read(n)
+        if x == y:
+            continue
+        if n.endswith('.html') or n.endswith('.txt'):
+            if _back(y) != x: return None
+            notes.add('page and read-me renamed to Tempo')
+        elif n.endswith('_CodeSignature/CodeResources'):
+            if _no_page(x) != _no_page(y): return None
+            notes.add('re-signed over the new page')
+        elif '/Contents/MacOS/' in n:
+            rs = _codesig_ranges(y)
+            if len(x) != len(y) or rs != _codesig_ranges(x) or any(x[i] != y[i] and not any(s <= i < e for s, e in rs) for i in range(len(x))):
+                return None
+            notes.add('only signature bytes differ in the binary')
+        elif n.endswith('.scr'):
+            # [host .exe][name][page][24-byte footer]: rebuilt host, page mapped back
+            def split(s):
+                nl, hl = struct.unpack('<II', s[-16:-8])
+                cut = len(s) - 24 - hl - nl
+                return s[:cut], s[cut:cut + nl], s[cut + nl:cut + nl + hl], s[-8:]
+            hx, nx, px, fx = split(x); hy, ny, py, fy = split(y)
+            host = base64.b64decode(_re.search(rb'SAVER_WIN="([^"]+)"', open(os.path.join(ROOT, 'tempo/win/host.js'), 'rb').read()).group(1))
+            if hy != host or nx != ny or _back(py) != px or fx != fy: return None
+            notes.add('Windows host rebuilt with Tempo wording')
+        else:
+            return None
+    return '; '.join(sorted(notes)) if notes else None
 
 # ---------------------------------------------------------------- comparing
 
@@ -394,6 +489,10 @@ def main():
                 else:
                     same = a == b
                     status = 'same' if same else 'DIFFERENT'
+                    note = None if same else tempo02(k, a, b)
+                    if note:
+                        report.append(f'- same apart from Tempo 0.2 changes: {k} – {note}')
+                        continue
                 if same is False:
                     failed += 1
                     extra = zip_diff(a, b) if isinstance(a, bytes) and isinstance(b, bytes) else ''
