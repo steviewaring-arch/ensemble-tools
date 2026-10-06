@@ -1,6 +1,6 @@
 # Parity report – split apps vs Rubato v0.8.1
 
-Run on 6 October 2026 against docs/ as committed. 87 results: 85 byte-identical to two runs of the reference; two live-preview frames vary slightly between runs of the reference itself (timing-sensitive), and the new build matched the first reference run pixel for pixel on both.
+Run on 6 October 2026 (second run, from a fresh clone) against docs/ as committed. 87 of 87 results byte-identical to v0.8.1, including the two live-preview frames that varied slightly between reference runs last time.
 
 ## t1 – Fonts: styles, variable axes, instances, axis animation, SVG, picker, reload.
 
@@ -61,7 +61,7 @@ Run on 6 October 2026 against docs/ as committed. 87 results: 85 byte-identical 
 - same: migrated styles – ["Poppins Regular", "Poppins Bold"]
 - same: migrated settings – {"fit": "block", "stretch": true, "baseSlot is 2nd style": true, "picks": {"a": ["200",...
 - same: default style – [["Default"], "Poppins Bold"]
-- same within run-to-run variation: screen saver preview – ref vs ref: 1136 px differ by up to 10/255; ref vs new: 0 px by up to 0/255
+- same: screen saver preview – 81249 bytes, sha256 a71e2418067f
 - same: screen saver HTML – 73458 bytes, sha256 8730b2d083c8
 - same: screen saver HTML (file name) – lazaar-screensaver.html
 - same: Mac zip – 717138 bytes, sha256 1d6b6c74d8ee
@@ -76,7 +76,7 @@ Run on 6 October 2026 against docs/ as committed. 87 results: 85 byte-identical 
 
 - same: saver cards – ["Fonts", "Screensaver", "Clock", "Numerals", "Change", "Position", "Colour", "Export"]
 - same: Screensaver panel – Fonts / – / Poppins Regular / Alternates for 28 characters / Default / Remove / Use in ...
-- same within run-to-run variation: roll at 150 ms – ref vs ref: 1845 px differ by up to 208/255; ref vs new: 0 px by up to 0/255
+- same: roll at 150 ms – 89876 bytes, sha256 de0eb35f5350
 - same: roll at 450 ms – 94219 bytes, sha256 a5fb685ba7b0
 - same: roll at 750 ms – 93996 bytes, sha256 ff11d4c2a495
 - same: roll at 880 ms – 93996 bytes, sha256 ff11d4c2a495

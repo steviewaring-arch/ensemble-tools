@@ -2,11 +2,13 @@
 
 Ensemble's in-house creative tools. Each one is a single HTML file that runs in the browser – no install, no server, fonts stay on your computer.
 
-| Tool | What it does | Live (once Pages is on) |
+| Tool | What it does | Live |
 |---|---|---|
-| **Tutti** 6.0 | Halftones from images, video, your camera or type | `/tutti/` |
-| **Rubato** 0.9 | Type in motion – alternates, styles and variable axes, out as PNG, SVG, GIF or video | `/rubato/` |
-| **Tempo** 0.1 | A clock screen saver for Mac and Windows, set in your own typeface | `/tempo/` |
+| **Tutti** 6.0 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
+| **Rubato** 0.9 | Type in motion – alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) |
+| **Tempo** 0.1 | A clock screen saver for Mac and Windows, set in your own typeface | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
+
+All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
 Rubato and Tempo share one core (type engine, font loading, controls, design system). Tutti is copied in as it is, and moves onto the shared core later.
 
@@ -63,9 +65,11 @@ The parity tests drive the v0.8.1 reference and the new apps through the same st
 
 ## Publish on GitHub Pages
 
-1. Push this repo to GitHub as `ensemble-tools`.
-2. On GitHub: **Settings › Pages**. Under *Build and deployment*, choose **Deploy from a branch**, branch **main**, folder **/docs**, then **Save**.
-3. After a minute or two the tools are live at `https://<your-username>.github.io/ensemble-tools/` – with `/tutti/`, `/rubato/` and `/tempo/` after it.
+Pages is on: **Settings › Pages** deploys branch **main**, folder **/docs**. So publishing is just:
+
+1. Change the sources, run `python3 build.py`, run the tests.
+2. Commit `docs/` with the sources and push to `main`.
+3. A minute or two later it's live at https://steviewaring-arch.github.io/ensemble-tools/ (the *pages build and deployment* run under **Actions** shows when it's done).
 
 All three live on the same site, so Rubato and Tempo share fonts and saved looks in each browser.
 

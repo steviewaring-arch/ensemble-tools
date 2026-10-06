@@ -4,8 +4,8 @@ Read this and `README.md` before changing anything. Tutti's own notes are in `tu
 
 ## Where things are
 - **Repo:** `ensemble-tools` – source of truth for Rubato, Tempo and Tutti.
-- **Live:** GitHub Pages from `docs/` on `main` (see README for switching it on).
-- **Last combined app:** `reference/rubato-0.8.1.html` – identical to the v0.8.1 Claude artifact (checked line by line). Kept so the parity tests have something to compare against. Don't edit it.
+- **Live:** https://steviewaring-arch.github.io/ensemble-tools/ – GitHub Pages from `docs/` on `main`. Each push to `main` redeploys in a minute or two.
+- **Last combined app:** `reference/rubato-0.8.1.html` – byte-identical to the v0.8.1 Claude artifact (rechecked 6 October against the live artifact). Kept so the parity tests have something to compare against. Don't edit it.
 
 ## What changed in the split
 Rubato 0.8.1 was one app with two tabs. It's now two apps on one shared core:
@@ -61,7 +61,8 @@ Rules:
 3. Once an app deliberately changes behaviour, its parity scenarios against 0.8.1 will start to differ – that's expected. Say which differences are intended in the changelog.
 
 ## Tests
-- `tests/parity.py` – the six v0.8.1 handover tests (`tests/legacy/`), rewritten to drive both the reference and the new apps with randomness and the clock pinned. Compares 87 results: canvas frames, SVG/PNG/GIF, screen saver HTML, Mac and Windows zips, panel text, storage. Last run (`tests/PARITY-REPORT.md`): 85 byte-identical; the other two are live-preview frames that vary a little between runs of 0.8.1 itself, and the new build matched 0.8.1 exactly on both.
+- `tests/parity.py` – the six v0.8.1 handover tests (`tests/legacy/`), rewritten to drive both the reference and the new apps with randomness and the clock pinned. Compares 87 results: canvas frames, SVG/PNG/GIF, screen saver HTML, Mac and Windows zips, panel text, storage. Last run (`tests/PARITY-REPORT.md`, 6 October, fresh clone): 87 of 87 byte-identical. Two live-preview frames are timing-sensitive and can vary a little between runs of 0.8.1 itself – the test allows for that, but this run didn't need it.
+- Script-level check (6 October): the engine, saver runtime and Windows host blocks in the built Tempo and Rubato are byte-identical to 0.8.1's. The Mac packager block is one trailing newline shorter (`build.py` trims it); nothing reads that block as text, and the Mac zips still match byte for byte.
 - `tests/split_check.py` – 13 checks on the new sharing between Rubato and Tempo.
 - Not tested: video recording (real-time MediaRecorder, not comparable byte for byte – the code is unchanged), the Windows `.scr` on a real PC, the Mac `.saver` on a real Mac since the split (bytes match 0.8.1, which Steve confirmed works), Adobe Fonts loading (blocked in the test browser).
 
