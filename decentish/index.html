@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@700&display=swap">
 <style>
-/* Decentish 0.2. One face, one weight. The dial only changes colour: white, amber, red.
+/* Decentish 0.3. One face, one weight. The dial only changes colour: white, amber, red.
    The plan sits top left. Controls and the sober receipts sit at the foot, and the receipts never change colour. */
 @font-face{font-family:"Diatype Bold";src:local("ABC Diatype Bold"),local("ABCDiatype-Bold"),url("ABCDiatype-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
 :root{
@@ -48,7 +48,7 @@ button,input{font:inherit;color:inherit;letter-spacing:inherit}
 .when{display:flex}
 .when .btn{font-size:16px}
 .when .btn+.btn{border-left-width:0}
-.dial{flex:1 1 240px;min-width:0}
+.dial{flex:1 1 200px;min-width:0}
 .dial label{display:block;font-size:18px;margin-bottom:8px}
 input[type=range]{-webkit-appearance:none;appearance:none;display:block;width:100%;height:30px;margin:0;background:transparent;cursor:pointer}
 input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
@@ -95,11 +95,16 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink)
       <input type="range" id="dial" min="0" max="2" step="1" value="1">
       <div class="ends" aria-hidden="true"><span>Culture trip</span><span>Mad one</span></div>
     </div>
+    <div class="dial">
+      <label for="dist" id="distName">Walking distance</label>
+      <input type="range" id="dist" min="0" max="2" step="1" value="1">
+      <div class="ends" aria-hidden="true"><span>Doorstep</span><span>Further</span></div>
+    </div>
     <button class="btn" id="refresh" type="button">Another plan</button>
   </section>
   <footer class="facts">
     <p id="receipts"></p>
-    <p id="facts">Decentish 0.2</p>
+    <p id="facts">Decentish 0.3</p>
     <p class="soft" id="timings"></p>
     <p class="soft">Not wired up yet: film times, gigs, trams, trains, ratings, hygiene. Cinemas and venues stay out of plans until their listings are in.</p>
     <div class="tools">
@@ -129,7 +134,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink)
 <script>
 (()=>{
 'use strict';
-const VERSION='0.2';
+const VERSION='0.3';
 const $=s=>document.querySelector(s);
 
 /* ---------- Settings ---------- */
@@ -148,30 +153,37 @@ const store={
 };
 
 /* ---------- The dial: three profiles ----------
-   Each stop decides what gets picked, how far it'll go, how late, how many steps, and how it talks.
+   Each stop decides what gets picked, how late, how many steps, and how it talks. How far is the distance dial's job.
    Steps are lists of roles in order of preference. Stays are minutes spent at each kind of place.
    Tomorrow starts at [weekday, weekend] hours. */
 const PROFILES=[
-  {key:'blair',name:'Tony Blair on a culture trip',walk:25,town:true,endHour:22.5,tomorrow:[18,11],
+  {key:'blair',name:'Tony Blair on a culture trip',endHour:22.5,tomorrow:[18,11],
    avoid:p=>p.kind==='fast_food',strict:true,
    steps:s=>s.getHours()<16?[['culture'],['cafe','food'],['culture','cafe']]:s.getHours()>=21?[['bar','pub']]:[['food'],['bar','pub']],
    stay:{culture:75,cafe:40,food:75,pub:45,bar:45,club:60,shop:5},
    townBonus:(i,role)=>role==='culture'?6:1},
-  {key:'pints',name:'Three pints and a meal deal',walk:15,town:false,endHour:24.5,tomorrow:[17.5,13],
+  {key:'pints',name:'Three pints and a meal deal',endHour:24.5,tomorrow:[17.5,13],
    steps:s=>s.getHours()>=5&&s.getHours()<11?[['cafe'],['pub','bar'],['food','shop']]:[['pub','bar'],['food','shop'],['pub','bar']],
    stay:{culture:45,cafe:30,food:45,pub:75,bar:60,club:60,shop:5},
    townBonus:()=>0},
-  {key:'mad',name:'Pissed-up uncle on a mad one',walk:20,town:true,endHour:30,tomorrow:[17.5,14],late:true,
+  {key:'mad',name:'Pissed-up uncle on a mad one',endHour:30,tomorrow:[17.5,14],late:true,
    steps:s=>{const h=s.getHours();return h>=1&&h<6?[['club','bar','pub','food']]:[['pub','bar'],['bar','pub'],['bar','pub','club'],['club','bar'],['food']]},
    stay:{culture:20,cafe:15,food:20,pub:50,bar:50,club:120,shop:5},
    foodAfter:23,
    townBonus:(i,role,arrive)=>i>=1&&(arrive.getHours()>=19||arrive.getHours()<5)?10:0}
+];
+/* The distance dial: how far on foot, and whether a trip into town counts */
+const DIST=[
+  {name:'On the doorstep',walk:6,town:false},
+  {name:'Walking distance',walk:15,town:false},
+  {name:'Worth the trip',walk:25,town:true}
 ];
 const MINSTAY={culture:45,cafe:20,food:30,pub:10,bar:10,club:30,shop:5};
 const WHENS=['now','soon','tomorrow'];
 
 /* ---------- State ---------- */
 let dial=(()=>{const n=parseInt(store.get('dial3'),10);return n>=0&&n<=2?n:1})();
+let dist=(()=>{const n=parseInt(store.get('dist'),10);return n>=0&&n<=2?n:1})();
 let when='now';
 let F={mode:'idle'};
 let slots={};
@@ -471,17 +483,17 @@ function startFor(w,prof,now){
   d.setHours(Math.floor(h),Math.round((h%1)*60),0,0);
   return d;
 }
-function travel(from,p,prof){
+function travel(from,p,D){
   if(p.zone==='town'){
     if(from.zone==='town')return{mins:walkMins(metres(from,p)),mode:'walk'};
-    if(!prof.town||!F.townMins)return null;
+    if(!D.town||!F.townMins)return null;
     return{mins:F.townMins,mode:'town'};
   }
   if(from.zone==='town')return null;
   const m=walkMins(metres(from,p));
-  return m>prof.walk?null:{mins:m,mode:'walk'};
+  return m>D.walk?null:{mins:m,mode:'walk'};
 }
-function buildPlan(prof,start,rand){
+function buildPlan(prof,start,rand,D){
   const places=F.places||[];
   const end=new Date(dayStart(start).getTime()+prof.endHour*3600e3);
   let t=start,from={lat:F.pos.lat,lon:F.pos.lon,zone:'local'};
@@ -496,7 +508,7 @@ function buildPlan(prof,start,rand){
       if(!p.oh||used.has(p.name)||(prof.avoid&&prof.avoid(p)))continue;
       const ri=roles.indexOf(p.role);
       if(ri<0)continue;
-      const tr=travel(from,p,prof);
+      const tr=travel(from,p,D);
       if(!tr)continue;
       const arrive=new Date(t.getTime()+tr.mins*6e4);
       if(arrive>end||!isOpen(p,arrive))continue;
@@ -517,121 +529,133 @@ function buildPlan(prof,start,rand){
   }
   return steps.length?steps:null;
 }
+/* Try the chosen distance first, then further. If nothing works today, tomorrow. */
 function makePlan(){
   const prof=PROFILES[dial];
-  const key=seed*7919+dial*101+WHENS.indexOf(when)*13;
-  const rand=rng(key);
+  const key=seed*7919+dial*101+WHENS.indexOf(when)*13+dist*7;
+  const tryAt=s=>{
+    for(let d=dist;d<DIST.length;d++){const st=buildPlan(prof,s,rng(key+d),DIST[d]);if(st)return{steps:st,d}}
+    return null;
+  };
   const start=startFor(when,prof,F.at);
-  let steps=buildPlan(prof,start,rand),rolled=null,s=start;
-  if(!steps&&when!=='tomorrow'){
-    const s2=startFor('tomorrow',prof,F.at),st2=buildPlan(prof,s2,rand);
-    if(st2){steps=st2;rolled=when;s=s2}
+  let r=tryAt(start),rolled=null,s=start;
+  if(!r&&when!=='tomorrow'){
+    const s2=startFor('tomorrow',prof,F.at),r2=tryAt(s2);
+    if(r2){r=r2;rolled=when;s=s2}
   }
+  const steps=r?r.steps:null,widened=r&&!rolled&&r.d>dist?r.d:null;
   const last=steps&&steps[steps.length-1];
   const end=last?new Date(last.arrive.getTime()+Math.min(prof.stay[last.role],last.left)*6e4):new Date(s.getTime()+2*3600e3);
   const local=(F.places||[]).filter(p=>p.zone==='local'&&p.walk<=15&&p.role!=='listing'&&p.role!=='shop');
   const known=local.filter(p=>p.oh),openAsked=known.filter(p=>isOpen(p,start)).length;
-  F.plan={prof,start:s,end,steps,rolled,key,
+  F.plan={prof,start:s,end,steps,rolled,widened,key,
     nLocal:local.length,nKnown:known.length,allShut:known.length>=6&&openAsked/known.length<.3,
     wx:weatherFor(s,end,when==='now'&&!rolled&&F.live)};
 }
 
 /* ---------- Write: the line bank ----------
    Three versions of everything: Tony Blair on a culture trip, Three pints and a meal deal, Pissed-up uncle on a mad one.
-   {word} fills from the facts; {Word} fills and capitalises. Any version can be a list of alternatives. */
+   Plan steps are clauses, not sentences. The stitcher joins them with commas and connectors, so a whole plan
+   reads as one breath. {word} fills from the facts; {Word} fills and capitalises. Any version can be a list. */
 const L3=(a,b,c)=>[a,b,c].map(x=>Array.isArray(x)?x:[x]);
 
 const OPEN={
   now:{
-    small:L3("{Weekday} {date}. {time24}. {place}.","{TimeVague}. {place}. Why are you up?","It's {timeVague} in {place}. What are you doing up?"),
-    friday:L3("{Weekday} {date}. {time24}. {place}.","Friday. {TimeVague}. {place}. You made it.","FRIDAY. {TimeVague}. {place}. Get in."),
-    any:L3("{Weekday} {date}. {time24}. {place}.","{Weekday}. {TimeVague}. {place}.","{TimeVague} on a {weekday}. You're in {place}.")
+    small:L3("It is {time24} on {weekday} {date}, and you are in {place}.","{TimeVague} in {place} – why are you up?","It's {timeVague} in {place} – what are you doing up?"),
+    friday:L3("It is {time24} on {weekday} {date}, and you are in {place}.","Friday, {timeVague}, {place} – you made it.","FRIDAY, {timeVague}, {place} – get in."),
+    any:L3("It is {time24} on {weekday} {date}, and you are in {place}.","{TimeVague} on a {weekday} in {place}.","{TimeVague} on a {weekday} in {place} – right then.")
   },
-  soon:L3("{Part}, from {start}. {place}.","Later. From {start}. {place}.","Later. From {start}. {place}. Pace yourself. You won't."),
-  tomorrow:L3("Tomorrow, {weekday} {date}, from {start}. {place}.","Tomorrow. {Weekday}. From {start}. {place}.","Tomorrow. {Weekday}. From {start}. {place}. Plan ahead, you animal.")
+  soon:L3("{Part} in {place}, from {start}.","Later on in {place}, from {start}.","Later in {place}, from {start} – pace yourself, you won't."),
+  tomorrow:L3("Tomorrow, {weekday} {date}, in {place}, from {start}.","Tomorrow, {weekday}, from {start} in {place}.","Tomorrow, {weekday}, from {start} in {place} – plan ahead, you animal.")
 };
-const OUTSIDE=L3("Decentish covers Greater Manchester. Elsewhere, it does its best.","You're not in Manchester. Doing my best.","You're not in Manchester. Bold. Let's see what we've got.");
+const OUTSIDE=L3("Decentish covers Greater Manchester, so elsewhere it does its best.","You're not in Manchester, so I'm doing my best.","You're not in Manchester – bold – so let's see what we've got.");
 const ROLL={
-  allShut:L3("Plenty nearby, all closed. Here is tomorrow, from {start}.","Plenty about, all shut. Tomorrow, then. From {start}.","Loads round here and all the shit's shut. Tomorrow, then. From {start}."),
-  nothing:L3("Nothing suitable is open. Here is tomorrow, from {start}.","Nowt doing. Tomorrow, then. From {start}.","Nowt. Absolutely nowt. Tomorrow, then. From {start}.")
+  allShut:L3("Everything nearby has closed, so here is tomorrow from {start}.","It's all shut round here, so tomorrow then, from {start}.","Loads round here and all the shit's shut, so tomorrow then, from {start}."),
+  nothing:L3("Nothing suitable is open, so here is tomorrow from {start}.","Nowt doing, so tomorrow then, from {start}.","Nowt, absolutely nowt, so tomorrow then, from {start}.")
+};
+const WIDER={
+  1:L3("Nothing suitable on the doorstep, so a little further afield.","Nowt on the doorstep, so a bit further.","Nowt on your doorstep, so shoes on, we're going further."),
+  2:L3("Nothing suitable within walking distance, so this one is worth the trip.","Nowt within walking distance, so it's worth the trip.","Nowt within walking distance, so into town we go.")
 };
 const TRAVEL={
-  walk:L3("{m} minutes' walk","{m} minutes away","{m} minutes"),
-  walk1:L3("a minute's walk","a minute away","a minute"),
+  walk:L3("{m} minutes' walk away","{m} minutes away","{m} minutes away"),
+  walk1:L3("a minute's walk away","a minute away","a minute away"),
   near:L3("next door, more or less","just round the corner","next door"),
-  town:L3("in town, about {m} minutes away","in town, about {m} minutes away","town, {m} minutes")
+  town:L3("in town, about {m} minutes away","in town, about {m} minutes away","{townWords} into town")
 };
 const T={
   culture:{
-    first:L3("Start at {name}, {travel}. It is open until {closes}.","{Name}'s open till {closes} if you fancy some culture. {Travel}.","{Name}. Culture. Briefly. {Travel}."),
-    next:L3("Then on to {name}, {travel}, open until {closes}.","Then a bit of culture at {name}. You'll survive.","Then {name}. Culture. Briefly.")
+    first:L3("start at {name}, {travel}, which is open until {closes}","a bit of culture at {name} first, {travel} – you'll survive","{name} for some culture, briefly, {travel}"),
+    next:L3("a turn round {name}, open until {closes}","a bit of culture at {name} – you'll survive","{name} for some culture, briefly")
   },
   cafe:{
-    first:L3("Coffee at {name} to begin, {travel}.","Brew at {name} first. {Travel}.","{Name}. Coffee. You'll need it. {Travel}."),
-    next:L3("Then coffee at {name}, {travel}.","Then a brew at {name}, {travel}.","Then {name}. Coffee. Pace yourself.")
+    first:L3("coffee at {name} to begin, {travel}","a brew at {name} first, {travel}","coffee at {name} first – you'll need it"),
+    next:L3("coffee at {name}","a brew at {name}, {travel}","coffee at {name} – pace yourself")
   },
   food:{
-    first:L3("{Meal} at {name}, {travel}{whatClause}. Open until {closes}.","{Meal} at {name} first. {What}, {travel}.","{Name}. {What}. Line the stomach. {Travel}."),
-    next:L3("Then {meal} at {name}, {travel}{whatClause}. Open until {closes}.","Then {what} at {name}, {travel}, open till {closes}.","Then {name}. {What}. Soak it up."),
-    last:L3("{Meal} at {name} to finish{whatClause}. Open until {closes}.","Then {what} at {name} to soak it up. Open till {closes}.","{Name} for {what} after. Till {closes}. Non-negotiable.")
+    first:L3("{meal} at {name}{whatParen}, {travel}","{what} at {name} {mealFor} first, {travel}","{what} at {name} to line the stomach, {travel}"),
+    next:L3("{meal} at {name}{whatParen}, {travel}","{what} at {name}, {travel}","{what} at {name} to soak it up"),
+    last:L3("{meal} at {name}{whatParen} to finish, open until {closes}","{what} at {name} to soak it up, open till {closes}","{what} at {name} to finish – non-negotiable")
   },
   pub:{
-    first:L3("A quiet drink at {name}, {travel}. Open until {closes}.","Pint at {name} first. {Travel}, open till {closes}.","{Name}. {Travel}. Go."),
-    next:L3("Then a drink at {name}, {travel}.","Then one more at {name}, {travel}.","Then {name}."),
-    last:L3("A final drink at {name}, open until {closes}.","One for the road at {name}. Shuts at {closes}.","{Name} till {closes}. Then we'll see.")
+    first:L3("a quiet drink at {name}, {travel}","a pint at {name} first, {travel} and open till {closes}","{name} first, {travel}, GO"),
+    next:L3("a drink at {name}","one more at {name}, {travel}","{name}"),
+    last:L3("a final drink at {name}, which is open until {closes}","one for the road at {name} before it shuts at {closes}","{name} till {closes}")
   },
   bar:{
-    first:L3("A glass of something at {name}, {travel}. Open until {closes}.","{Name} for a pint first. {Travel}, open till {closes}.","{Name}. {Travel}. Go."),
-    next:L3("Then a glass of something at {name}, {travel}, open until {closes}.","Then {name}, {travel}.","Then {name}. Till {closes}."),
-    last:L3("Finish with a glass of something at {name}. It is open until {closes}.","Last one at {name}. Shuts at {closes}.","{Name} till {closes}. Don't text your ex.")
+    first:L3("a glass of something at {name}, {travel}","a pint at {name} first, {travel} and open till {closes}","{name} first, {travel}, GO"),
+    next:L3("a glass of something at {name}, which is open until {closes}","a pint at {name}, {travel}","{name} till {closes}"),
+    last:L3("a glass of something at {name}, which is open until {closes}","a last one at {name} before it shuts at {closes}","{name} till {closes}")
   },
   club:{
-    first:L3("{Name} is open until {closes}, {travel}.","{Name}'s open till {closes} if you've still got it. {Travel}.","{Name}. {Travel}. Till {closes}. Obviously."),
-    next:L3("Then {name}, open until {closes}.","Then {name} till {closes}, if you've still got it.","Then {name}. Till {closes}. OBVIOUSLY.")
+    first:L3("{name}, {travel}, which is open until {closes}","{name} till {closes}, if you've still got it","{name} till {closes}, obviously"),
+    next:L3("{name}, open until {closes}","{name} till {closes}, if you've still got it","{name} till {closes}, OBVIOUSLY")
   },
   shop:{
-    next:L3("{Name} is open until {closes}, should supplies be needed.","{Name}'s open till {closes}. Meal deal it is.","{Name}. Meal deal. Living the dream.")
+    next:L3("supplies from {name}, open until {closes}","a meal deal from {name}, open till {closes}","a meal deal from {name} – living the dream")
   },
-  rushed:L3("{Name} closes at {closes}. It is {m} minutes' walk, so one drink if you leave now.","{Name}'s got {left} minutes left and it's {m} minutes away. That's one if you leg it.","{Name} shuts in {left} minutes. {m} minutes away. RUN."),
-  townHop:L3(null,null,"Then town. {m} minutes. {Name}. Till {closes}."),
-  townHopFirst:L3(null,null,"Town. {m} minutes. {Name}. Till {closes}.")
+  rushed:L3("{name} closes at {closes} and is {m} minutes' walk away, so one drink if you leave now","{name}'s got {left} minutes left and it's {m} minutes away, so that's one if you leg it","{name} shuts in {left} minutes and it's {m} minutes away, so RUN"),
+  townHop:L3(null,null,"{townWords} into town for {name} till {closes}"),
+  townHopFirst:L3(null,null,"straight into town – {townWords} – for {name} till {closes}")
 };
+/* How steps join: second step, middle steps, last step */
+const JOIN=[[', followed by ',[', then '],', and finally '],[', then ',[', then '],', and '],[', then ',[', then ',', on to '],', and ']];
 const WEATHER={
-  rainNow:L3("It is raining, so keep it indoors.","It's raining. Brolly.","It's pissing down. Coat. Go anyway."),
-  rainLater:L3("Take an umbrella: rain from {rainAt}.","Brolly – it turns at {rainAt}.","Pissing down from {rainAt}. Who cares."),
-  cold:L3("Wrap up. It will feel like {minFeels}°C.","Big coat. Feels like {minFeels} degrees.","Big coat or you'll freeze your bollocks off."),
-  sunny:L3("Sunglasses would not go amiss.","Aviators. Beer garden weather.","Aviators on. Beer garden. Sorted."),
-  sunnyEarlier:L3("It was sunny earlier. A jacket now.","Cracking flags earlier. Jacket now.","Cracking flags earlier. Jacket. Go."),
-  mild:L3("A light jacket will do: {temp}°C.","Mild. {temp} degrees. No coat needed.","{temp} degrees. Coat's optional. So's dignity."),
-  any:L3("Jacket weather: {temp}°C.","{temp} degrees. Jacket.","{temp} degrees. Jacket. No arguments.")
+  rainNow:L3("It is raining, so best keep it indoors.","It's raining, so take a brolly.","It's pissing down, so coat on and go anyway."),
+  rainLater:L3("Take an umbrella – rain is due from {rainAt}.","Take a brolly, mind – it turns at {rainAt}.","It's pissing down from {rainAt}, so who cares."),
+  cold:L3("Wrap up warm; it will feel like {minFeels}°C.","Big coat – it'll feel like {minFeels} degrees.","Big coat, or you'll freeze your bollocks off."),
+  sunny:L3("Sunglasses would not go amiss.","Grab your aviators – it's beer garden weather.","Aviators on, beer garden, sorted."),
+  sunnyEarlier:L3("It was sunny earlier, but you will want a jacket now.","It was cracking flags earlier, but you'll want a jacket now.","It was cracking flags earlier but the sun's buggered off, so jacket on."),
+  mild:L3("A light jacket will do – it is {temp}°C.","Mild enough at {temp} degrees, so no need for a coat.","{temp} degrees, so the coat's optional – and so is dignity."),
+  any:L3("It is {temp}°C, so a jacket would be wise.","{temp} degrees, so bring a jacket.","{temp} degrees – jacket, no arguments.")
 };
 const SIGN={
-  small:L3("And then bed.","Then bed.","Then bed. You animal."),
+  small:L3("And then, bed.","Then bed.","Then bed, you animal."),
   tomorrow:L3("Something to look forward to.","Diary it.","Hydrate tonight."),
-  day:L3("A thoroughly civilised afternoon.","Sorted.","Back by teatime. You won't be."),
+  day:L3("A thoroughly civilised day.","Sorted.","Back by teatime – you won't be."),
   evening:L3("A thoroughly civilised evening.",["Sorted.","Decent-ish."],["Don't text your ex.","Phone charged? Go."])
 };
 const NOPLAN={
-  remote:L3("Nothing within walking distance. Nearest: {nearest}{nearestIn}, {nearestMiles} miles away.","Nowt round here. Nearest is {nearest}{nearestIn}. {nearestMiles} miles. That's a taxi and a half.","You live in the arse end of nowhere. Nearest thing's {nearest}{nearestIn}. {nearestMiles} miles. Several sheep rides away."),
-  remoteNone:L3("Nothing open within ten miles.","Nowt within ten miles. Impressive.","You live in the arse end of nowhere. I've looked ten miles out and found nowt. Respect."),
-  unknown:L3("{nLocal} places nearby, but their opening hours aren't on the map.","Plenty about. No idea what's open – the map doesn't say.","Loads about. Is any of it open? Nobody's told the map. Go and look."),
-  nothing:L3("Nothing suitable is open today or tomorrow.","Nowt doing. Not today, not tomorrow.","Nowt. Not even tomorrow. Respect."),
-  remoteSign:L3("Staying in is the realistic option.","Make your own fun.","Make your own fun. Or get a horse.")
+  remote:L3("There is nothing within walking distance; the nearest place is {nearest}{nearestIn}, {nearestMiles} miles away.","There's nowt round here – nearest is {nearest}{nearestIn}, {nearestMiles} miles off, which is a taxi and a half.","You live in the arse end of nowhere – nearest thing's {nearest}{nearestIn}, {nearestMiles} miles away, so several sheep rides."),
+  remoteNone:L3("There is nothing open within ten miles.","There's nowt within ten miles, which is impressive.","You live in the arse end of nowhere – I've looked ten miles out and found nowt, so respect."),
+  unknown:L3("There are {nLocal} places nearby, but their opening hours are not on the map.","Plenty about, but no idea what's open – the map doesn't say.","Loads about, but is any of it open? Nobody's told the map, so go and look."),
+  nothing:L3("Nothing suitable is open today or tomorrow.","Nowt doing, not today and not tomorrow.","Nowt, not even tomorrow – respect."),
+  remoteSign:L3("Staying in is the realistic option.","Make your own fun.","Make your own fun, or get a horse.")
 };
 const LOADING={
   when:L3("Finding your location.","Where are you? Hang on.","Where the bloody hell are you? Hang on."),
   plan:L3("Checking what's open nearby.","Scouting about for owt.","Having a proper root around."),
-  town:L3("Checking town as well.","Having a look in town.","Checking town. Obviously."),
-  remote:L3("Nothing nearby. Widening the search.","Nowt round here. Scouting further out.","Christ. Scouting the next county."),
+  town:L3("Checking town as well.","Having a look in town.","Checking town, obviously."),
+  remote:L3("Nothing nearby, so widening the search.","Nowt round here, so scouting further out.","Christ, scouting the next county."),
   weather:L3("Checking the weather.","Sticking a hand out the window.","Sticking me head out the window.")
 };
 const FAILED={
-  badPostcode:L3("That postcode wasn't found. Try another.","That's not a postcode. Try again.","That's not a real postcode, is it? Try again."),
-  plan:L3("Local listings are unavailable right now. Try again shortly.","Map's having a lie-down. Try again in a minute.","The map's pissed. Try again in a minute."),
-  weather:L3("Weather is unavailable.","Weather's down. Stick your head out.","Weather's broke. Lick your finger and hold it up.")
+  badPostcode:L3("That postcode wasn't found – please try another.","That's not a postcode – try again.","That's not a real postcode, is it? Try again."),
+  plan:L3("Local listings are unavailable right now, so try again shortly.","Map's having a lie-down, so try again in a minute.","The map's pissed, so try again in a minute."),
+  weather:L3("The weather is unavailable.","Weather's down, so stick your head out.","Weather's broke, so lick your finger and hold it up.")
 };
-const START=L3("To begin, share your location or enter a postcode.","Right. Where are you? Location or postcode.","Where the hell are you? Location or postcode, sharpish.");
-const DENIED=L3("Location not shared. Enter a postcode instead.","Fair enough. Postcode, then?","Suit yourself. Postcode, then, you secretive sod.");
+const START=L3("To begin, share your location or enter a postcode.","Right then, where are you – location or postcode?","Where the hell are you – location or postcode, sharpish.");
+const DENIED=L3("Location not shared, so enter a postcode instead.","Fair enough – postcode, then?","Suit yourself – postcode, then, you secretive sod.");
 
 /* ---------- Fill ---------- */
 const FOOD={pizza:['pizza','pizza'],indian:['Indian','a curry'],italian:['Italian','an Italian'],chinese:['Chinese','a Chinese'],
@@ -643,7 +667,7 @@ function whatFood(p){
   const k=FOOD[p.cuisine];
   if(k)return dial===0?k[0]:k[1];
   if(p.kind==='fast_food')return 'a takeaway';
-  return dial===0?'a proper sit-down':'food';
+  return ['a proper sit-down','some food','scran'][dial];
 }
 function mealWord(d){
   const h=d.getHours();
@@ -666,7 +690,7 @@ const say=(set,v)=>{const opts=set[dial];return opts&&opts[0]!==null?fill(pick(o
 const prec=()=>dial===0?0:1;
 function baseVars(){
   const at=F.at,v={};
-  v.place=F.placeName||'your bit of the world';
+  v.place=F.placeName?(/^(Northern Quarter|Green Quarter|Gay Village|Village)$/.test(F.placeName)?'the ':'')+F.placeName:'your bit of the world';
   v.weekday=DAYS[at.getDay()];
   v.date=at.getDate()+' '+MONTHS[at.getMonth()];
   v.time24=t24(at);
@@ -681,14 +705,19 @@ function baseVars(){
   if(F.nearest){v.nearest=F.nearest.name;v.nearestMiles=miles(F.nearest.dist);v.nearestIn=F.nearestTown?' in '+F.nearestTown:''}
   return v;
 }
-function stepLine(s,i,n){
+function stepClause(s,i,n){
   const total=F.plan.steps.length;
   const pos=i===0?'first':i===total-1?'last':'next';
-  const v={name:s.p.name,m:s.tr.mins,left:s.left,closes:s.closes?clockSay(s.closes,prec(),s.arrive):(dial===0?'late':'all hours'),
-    what:whatFood(s.p),meal:mealWord(s.arrive)};
+  const meal=mealWord(s.arrive);
+  const v={name:s.p.name,m:s.tr.mins,left:s.left,
+    closes:s.closes?clockSay(s.closes,prec(),s.arrive):(dial===0?'late':'all hours'),
+    what:whatFood(s.p),meal,mealFor:meal==='breakfast'?'for breakfast':'for your '+meal,
+    townWords:s.tr.mins===30?'half an hour':s.tr.mins===60?'an hour':s.tr.mins+' minutes'};
   /* Blair names the cuisine, unless the name already does ("Eden Italian Restaurant") */
-  const cw=(FOOD[s.p.cuisine]||[''])[0].toLowerCase();
-  v.whatClause=s.p.cuisine&&cw&&!s.p.name.toLowerCase().includes(cw)?': '+v.what:'';
+  const cw=(FOOD[s.p.cuisine]||[''])[0].toLowerCase(),named=!!cw&&s.p.name.toLowerCase().includes(cw);
+  v.whatParen=s.p.cuisine&&cw&&!named?' ('+v.what+')':'';
+  /* "an Italian at Eden Italian Restaurant" says it twice: say the meal instead */
+  if(named&&n>0&&/^an? /.test(v.what))v.what=meal==='breakfast'?'breakfast':'your '+meal;
   let tset=TRAVEL.walk;
   if(s.tr.mode==='town')tset=TRAVEL.town;
   else if(i>0&&s.tr.mins<=2)tset=TRAVEL.near;
@@ -702,7 +731,13 @@ function stepLine(s,i,n){
   else{const r=T[s.role]||T.bar;set=r[pos]||r.next||r.first}
   return fill(pick(set[n],R),v);
 }
-function weatherLine(v){
+function stitch(steps,n){
+  const parts=steps.map((s,i)=>stepClause(s,i,n)),j=JOIN[n];
+  let out=parts[0];
+  for(let i=1;i<parts.length;i++)out+=(i===1?j[0]:i===parts.length-1?j[2]:pick(j[1],R))+parts[i];
+  return cap(out)+'.';
+}
+function weatherSentence(v){
   const ctx=F.plan||{start:F.at,rolled:null,wx:weatherFor(F.at,new Date(F.at.getTime()+2*3600e3),F.live)};
   const w=ctx.wx;if(!w)return null;
   if(!F.plan){v.temp=Math.round(w.temp);v.minFeels=Math.round(w.minFeels);v.rainAt=clockSay(w.rainAt,prec(),F.at)}
@@ -744,31 +779,32 @@ function linesWanted(){
     openSet=F.tb==='small'?OPEN.now.small:F.isFri&&(F.tb==='teatime'||F.tb==='evening')?OPEN.now.friday:OPEN.now.any;
   }else{
     openSet=OPEN[when];
-    const s=startFor(when,PROFILES[dial],F.at);
+    const s=startFor(when,PROFILES[dial],F.at),h=s.getHours();
     vOpen.start=clockSay(s,prec(),null);vOpen.weekday=DAYS[s.getDay()];vOpen.date=s.getDate()+' '+MONTHS[s.getMonth()];
-    const h=s.getHours();
     vOpen.part=h<5?'later tonight':h<12?'this morning':h<17?'this afternoon':'this evening';
   }
-  want.push({k:'when',text:fill(openSet[n][0],vOpen)});
+  want.push({k:'when',text:fill(pick(openSet[n],R),vOpen)});
   if(F.inGM===false)want.push({k:'outside',text:say(OUTSIDE,v)});
+  const wxReady=slots.weather==='ready';
   if(slots.plan==='loading'||slots.plan==='town'||slots.plan==='remote'){
     want.push({k:'plan',text:LOADING[slots.plan==='loading'?'plan':slots.plan][n][0],cls:'loading'});
   }else if(slots.plan==='failed'){
     want.push({k:'plan',text:FAILED.plan[n][0],cls:'failed'});
+    if(wxReady){const w=weatherSentence(v);if(w)want.push({k:'weather',text:w})}
   }else if(slots.plan==='ready'){
-    const P=F.plan;
-    if(F.remote){
-      want.push({k:'plan',text:say(F.nearest?NOPLAN.remote:NOPLAN.remoteNone,v)});
-    }else if(P.steps){
-      if(P.rolled)want.push({k:'roll',text:say(P.allShut?ROLL.allShut:ROLL.nothing,v)});
-      want.push({k:'plan',text:P.steps.map((s,i)=>stepLine(s,i,n)).join(' ')});
-    }else if(P.nLocal>=3&&P.nKnown<3){
-      want.push({k:'plan',text:say(NOPLAN.unknown,v)});
-    }else want.push({k:'plan',text:say(NOPLAN.nothing,v)});
+    const P=F.plan;let para='';
+    if(F.remote)para=say(F.nearest?NOPLAN.remote:NOPLAN.remoteNone,v);
+    else if(P.steps){
+      if(P.rolled)para=say(P.allShut?ROLL.allShut:ROLL.nothing,v)+' ';
+      else if(P.widened)para=say(WIDER[P.widened],v)+' ';
+      para+=stitch(P.steps,n);
+    }else if(P.nLocal>=3&&P.nKnown<3)para=say(NOPLAN.unknown,v);
+    else para=say(NOPLAN.nothing,v);
+    if(wxReady){const w=weatherSentence(v);if(w)para+=' '+w}
+    want.push({k:'plan',text:para});
   }
   if(slots.weather==='loading')want.push({k:'weather',text:LOADING.weather[n][0],cls:'loading'});
   else if(slots.weather==='failed')want.push({k:'weather',text:FAILED.weather[n][0],cls:'failed'});
-  else if(slots.weather==='ready'&&(slots.plan==='ready'||slots.plan==='failed')){const w=weatherLine(v);if(w)want.push({k:'weather',text:w})}
   if(slots.plan==='ready'&&slots.weather!=='loading'){
     const P=F.plan;
     const sign=F.remote?say(NOPLAN.remoteSign,v):P.steps?signLine(v):null;
@@ -781,6 +817,9 @@ function render(){
   $('#dialName').textContent=PROFILES[dial].name;
   $('#dial').value=dial;
   $('#dial').setAttribute('aria-valuetext',PROFILES[dial].name);
+  $('#distName').textContent=DIST[dist].name;
+  $('#dist').value=dist;
+  $('#dist').setAttribute('aria-valuetext',DIST[dist].name);
   document.querySelectorAll('[data-when]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.when===when)));
   const want=linesWanted();
   const box=$('#lines');
@@ -848,7 +887,7 @@ function renderWorkings(){
   if(!F.places){box.textContent='Nothing loaded yet.';return}
   const P=F.plan;
   const head=document.createElement('p');
-  head.textContent=`Profile: ${PROFILES[dial].name} · When: ${when}${P&&P.rolled?' (rolled to tomorrow)':''} · Plan starts ${P?t24(P.start)+' '+DAYS[P.start.getDay()]:'–'} · In Greater Manchester: ${F.inGM===null?'unknown':F.inGM?'yes':'no'} · Places: ${F.places.filter(p=>p.zone==='local').length} local, ${F.places.filter(p=>p.zone==='town').length} in town`;
+  head.textContent=`Profile: ${PROFILES[dial].name} · Distance: ${DIST[dist].name}${P&&P.widened?' (widened to '+DIST[P.widened].name+')':''} · When: ${when}${P&&P.rolled?' (rolled to tomorrow)':''} · Plan starts ${P?t24(P.start)+' '+DAYS[P.start.getDay()]:'–'} · In Greater Manchester: ${F.inGM===null?'unknown':F.inGM?'yes':'no'} · Places: ${F.places.filter(p=>p.zone==='local').length} local, ${F.places.filter(p=>p.zone==='town').length} in town`;
   const ol=document.createElement('ol');
   const at=P?P.start:F.at;
   for(const p of F.places.slice(0,150)){
@@ -952,6 +991,7 @@ function replan(){if(F.mode==='run'){F.plan=null;render()}}
 
 /* ---------- Controls ---------- */
 $('#dial').addEventListener('input',e=>{dial=+e.target.value;store.set('dial3',dial);replan()});
+$('#dist').addEventListener('input',e=>{dist=+e.target.value;store.set('dist',dist);replan()});
 document.querySelectorAll('[data-when]').forEach(b=>b.addEventListener('click',()=>{when=b.dataset.when;replan()}));
 /* Another plan: a fresh pick from the same data. After five minutes it fetches everything again. */
 $('#refresh').addEventListener('click',()=>{

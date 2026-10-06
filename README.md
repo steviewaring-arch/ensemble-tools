@@ -10,7 +10,7 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
-**Decentish** 0.2 is also in here, unlisted: a prototype website that gives you a plan for where you are – now, soon or tomorrow – in a voice you set with a dial. Greater Manchester first. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
+**Decentish** 0.3 is also in here, unlisted: a prototype website that gives you a plan for where you are – now, soon or tomorrow – in a voice you set with a dial. Greater Manchester first. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
 
 Rubato and Tempo share one core (font loading, controls, design system). From 1.0 Rubato has its own copy of the type engine, so its new features never reach Tempo; Tempo keeps `shared/engine.js`. Tutti is copied in as it is, and moves onto the shared core later.
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 7 October 2026 – Decentish 0.3
+
+**Decentish 0.3** – a distance dial, and a voice that flows. No changes to Rubato, Tempo or Tutti.
+- **How far:** On the doorstep · Walking distance · Worth the trip (the only setting that goes into town). If nothing fits, it widens and says so before rolling to tomorrow.
+- **The voice, rewritten:** plan steps are now clauses stitched into one sentence with each stop's own connectors, instead of a run of full stops. Three lines on screen: opener, plan paragraph (reason, plan, weather), sign-off. "A pint at MaltDog Monton first, 9 minutes away and open till eleven, then a curry at The Naz, just round the corner, and one for the road at The Park before it shuts at midnight."
+- Small fixes to the words: no "an Italian at Eden Italian Restaurant", "scran" when the map doesn't say what's served, "the Northern Quarter".
+- Tested: `tests/decentish_check.py`, 42 of 42, all sources faked. `tests/out/decentish.md` now also shows each scenario across the distance dial.
+
 ## 7 October 2026 – Decentish 0.2
 
 **Decentish 0.2** – from a status report to a plan. No changes to Rubato, Tempo or Tutti.
