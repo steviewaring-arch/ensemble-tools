@@ -20,7 +20,7 @@ Changed
 - Exports from Jitter and Assemble are named after the trick. Settings files are version 3 (they load in the same way; 0.9 ignores the new parts).
 
 Under the hood
-- Rubato has its own copy of the type engine (`rubato/engine.js`), so none of this reaches Tempo. `shared/` is untouched; Tempo's build is byte-identical.
+- Rubato has its own copy of the type engine (`rubato/engine.js`), so none of this reaches Tempo. The only change in `shared/` is Rubato's one-line description on the index page (`shared/home.html`); Tempo's build is byte-identical.
 - 0.9 stays live at /rubato/0.9/ (from `archive/rubato-0.9.html`). It keeps its own settings (`rubato-0.9:…`), reading 1.0's the first time, so opening it never overwrites 1.0's blocks or kerning.
 
 Tests
