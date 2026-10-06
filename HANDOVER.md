@@ -89,6 +89,14 @@ Rules:
 2. Steve to curate Rubato's built-in presets (the current seven are placeholders).
 3. Test the Windows `.scr` on a real PC.
 4. Tempo: Steve to curate the In words looks and themes that ship as pre-made screen savers. Six starter looks are in place.
+   **Steve's next list for Tempo (6 Oct, noted, not started):**
+   - Take Rubato out of Tempo: no Saved looks from Rubato, no "Rubato text" second line, no "Add Rubato motion", no reading Rubato's settings.
+   - Preview shapes: drop Portrait if it isn't needed. Laptop (16:10) and Display (16:9) are nearly the same, so consider dropping the toggle and previewing at the shape of the screen Tempo is open on.
+   - Clock, second line: weekday and date together; the ordinal ending (6th) on or off; time, day and date over several lines; an optional GMT / time zone label.
+   - In words looks: only Reference is liked so far – rework the rest.
+   - A third screen saver kind alongside The time and In words: time as data – minutes left in the year, seconds through the day, percentages.
+   - Lazaar looks wrong in In words (clipping, uneven). Next round; needs the font file to reproduce.
+   - Preload a few fonts that pick out the different parts, grounded by a plain Swiss face in the spirit of ABC Diatype (Diatype is commercial – check the licence covers outlines in a distributed screen saver).
    **Steve to come back to: fonts for the screen saver.** Which faces ship, and whether their licences allow their outlines inside a distributed screen saver (Steve's own faces avoid the question; Adobe Fonts faces such as Aktiv Grotesk can't be loaded into Tempo as files anyway).
 7. A website version of In words that uses the browser's location (place, sun, weather) and the Accuracy and Personality dials – its own project. Code for place, sun and weather is in commit `c0cc72c`.
 5. Tutti onto the shared tokens and UI kit (see `tutti/HANDOVER.md`).
