@@ -597,7 +597,7 @@ function hooksOn(){
   });
 }
 /* ---------------- the time in words ---------------- */
-const isWords=()=>C.show==='words';
+const isWords=()=>C.show==='words'||C.show==='mixed';
 const ONES=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
 const TENS=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
 const ORDS={one:'first',two:'second',three:'third',five:'fifth',eight:'eighth',nine:'ninth',twelve:'twelfth'};
@@ -654,13 +654,63 @@ function sentence(z,o){
   return out;
 }
 let wBuilt=0,wMemo=['',[]],wErr=0,wCur=null,wPrev=null,wSig=null,wT0=-1e9,wLatest=new Set(),wPrevLatest=new Set(),wCache=new Map(),wFit=new Map(),wPal=null;
+/* ---- Mixed type: a plain base face carries the sentence and display faces come
+   in and out of it. Three ways to feature them: each part set to a face of its
+   own or shuffled (parts), whatever just changed (latest), or one part at a time
+   (one). The little words (on, the, of, in, and) can stay in the base face. ---- */
+const faceById=id=>{if(!id)return null;const x=eng.faceList().find(q=>q.id===id);if(x)return x.face;return!eng.anyLoaded()&&(id==='d1'||id==='d2')?eng.F(id):null;};
+const baseFace=()=>{const M=C.words.mixed;return(M&&faceById(M.base))||eng.F(eng.baseSlot());};
+const baseId=()=>{const M=C.words.mixed;return M&&faceById(M.base)?M.base:eng.baseSlot();};
+const MPART=t=>t.grp==='lead'?'lead':t.grp==='time'?'time':t.grp==='sec'?'sec':t.grp==='dw'?'weekday':t.grp==='dd'?'day':t.grp==='dm'?'month':'year';
+const LITTLE=new Set(['sec.and','date.on','date.the','date.of','date.in']);
+/* The display faces: every style ticked "Use in style swaps" except the base. */
+const mPool=()=>{const b=baseId();return eng.anyLoaded()?eng.faceList().filter(x=>x.swap&&x.id!==b).map(x=>x.id):['d1','d2'].filter(x=>x!==b);};
+let mS={},mSeed=1,mCfg='';
+const mReset=()=>{mS={fid:{},seen:{},slot:null,sig:null,feat:{},last:null,one:null,oneFace:null,oneEach:{}};};mReset();
+/* a new face, never the one it replaces */
+function pickFace(pool,avoid,salt){if(!pool.length)return null;let i=Math.floor(rnd(mSeed++*7919+salt)*pool.length);if(pool.length>1&&pool[i]===avoid)i=(i+1)%pool.length;return pool[i];}
+function assignFaces(toks){const M=C.words.mixed;toks.forEach(t=>{t.fid=null;});if(!M)return;
+  const pool=mPool(),now=Date.now(),mode=M.mode||'parts',each=!!M.each,P=M.parts||{},salt=now%100003;
+  const slot=M.when==='minute'?Math.floor(now/6e4):M.when==='hour'?Math.floor(now/36e5):null,newSlot=slot!=null&&slot!==mS.slot;
+  const plain=t=>M.little!==false&&LITTLE.has(t.k),grpOf=t=>each?t.k:MPART(t);
+  const sig=toks.map(t=>t.k+'='+t.w).join('|');
+  if(mode==='latest'){
+    /* the words that changed take a display face and keep it until the next change */
+    if(sig!==mS.sig){const prev=mS.words,ch=toks.filter(t=>t.grp!=='lead'&&!plain(t)&&(prev?prev.get(t.k)!==t.w:t.part==='time'));
+      const one=pickFace(pool,mS.last,salt);mS.feat={};ch.forEach(t=>{mS.feat[t.k]=each?pickFace(pool,null,salt+ORD[t.k]):one;});mS.last=one;
+      mS.words=new Map(toks.map(t=>[t.k,t.w]));}
+    toks.forEach(t=>{t.fid=mS.feat[t.k]||null;});}
+  else if(mode==='one'){
+    /* one part at a time, moving on when the sentence changes, or every minute or hour */
+    const ps=[...new Set(toks.map(MPART))].filter(p=>p!=='lead');
+    if(ps.length&&(mS.one==null||!ps.includes(mS.one)||(slot!=null?newSlot:sig!==mS.sig))){
+      let i=Math.floor(rnd(mSeed++*104729+salt)*ps.length);if(ps.length>1&&ps[i]===mS.one)i=(i+1)%ps.length;
+      mS.one=ps[i];mS.oneFace=pickFace(pool,mS.oneFace,salt);mS.oneEach={};}
+    toks.forEach(t=>{if(MPART(t)!==mS.one||plain(t))return;t.fid=each?(mS.oneEach[t.k]||(mS.oneEach[t.k]=pickFace(pool,null,salt+ORD[t.k]))):mS.oneFace;});}
+  else{
+    /* each part: the base face, a face of its own, or shuffled when its words change (or every minute or hour) */
+    const txt={};toks.forEach(t=>{if(P[MPART(t)]==='shuffle'&&!plain(t)){const g=grpOf(t);txt[g]=(txt[g]||'')+' '+t.w;}});
+    for(const g in txt){if(!(g in mS.fid)||(slot!=null?newSlot:txt[g]!==mS.seen[g]))mS.fid[g]=pickFace(pool,mS.fid[g],salt+(ORD[g]||g.length*31));mS.seen[g]=txt[g];}
+    toks.forEach(t=>{if(plain(t))return;const set=P[MPART(t)]||'base';t.fid=set==='shuffle'?mS.fid[grpOf(t)]||null:set==='base'?null:(faceById(set)?set:null);});}
+  mS.sig=sig;if(slot!=null)mS.slot=slot;}
+/* Fit, with display faces: try the sentence with each word in the widest face it
+   could take, so the type never outgrows the screen whichever face comes in. */
+const capScale=(face,f,match)=>match&&face!==f&&face.cap>0?Math.max(.5,Math.min(2,(f.cap/f.upm)/(face.cap/face.upm))):1;
+function fitVariants(toks,o){const M=o.mixed;if(!M)return[toks];
+  const pool=mPool(),f=baseFace(),match=M.match!==false,mode=M.mode||'parts',P=M.parts||{},plain=t=>M.little!==false&&LITTLE.has(t.k);
+  const uw=(id,str)=>{const face=faceById(id)||f;let x=0,prev=null;for(const ch of Array.from(str)){const g=glyphOf(face,ch);if(prev!==null)x+=face.kern(prev,g);x+=face.adv(g);prev=g;}return x/face.upm*capScale(face,f,match);};
+  const widest=t=>pool.reduce((b,id)=>uw(id,t.w)>uw(b,t.w)?id:b,null);
+  const v=fn=>toks.map(t=>Object.assign({},t,{fid:fn(t)}));
+  if(mode==='one')return[...new Set(toks.map(MPART))].filter(p=>p!=='lead').map(p=>v(t=>MPART(t)===p&&!plain(t)?widest(t):null));
+  if(mode==='latest')return[v(t=>t.grp!=='lead'&&!plain(t)?widest(t):null)];
+  return[v(t=>{if(plain(t))return null;const s=P[MPART(t)]||'base';return s==='shuffle'?widest(t):s==='base'?null:(faceById(s)?s:null);})];}
 const wPalette=()=>{const o=C.words;if(o.rotate&&o.themes&&o.themes.length)return o.themes[new Date().getHours()%o.themes.length];return{bg:o.bg,ink:o.ink,soft:o.soft,date:o.dateCol};};
 function hiFaceOf(){const id=C.words.hiFace;if(!id||id==='same')return null;
   if(eng.faceList().some(x=>x.id===id))return eng.F(id);if(!eng.anyLoaded()&&(id==='d1'||id==='d2'))return eng.F(id);return null;}
 const glyphOf=(f,ch)=>{let g=f.base(ch);if(!g&&ch==='’')g=f.base("'");return g;};
 /* what colour a word takes: hi (the highlight), rest, or the date's own colour */
 function roleOf(t,latest){const h=C.words.hi;
-  return h==='time'?(t.part==='time'?'hi':'rest'):h==='latest'?(latest.has(t.k)?'hi':'rest'):h==='parts'?(t.part==='time'?'hi':t.part==='date'?'date':'rest'):'rest';}
+  return h==='faces'?(t.fid?'hi':'rest'):h==='time'?(t.part==='time'?'hi':'rest'):h==='latest'?(latest.has(t.k)?'hi':'rest'):h==='parts'?(t.part==='time'?'hi':t.part==='date'?'date':'rest'):'rest';}
 const isHi=(t,latest)=>roleOf(t,latest)==='hi';
 /* Side bearings, so a flush edge lines up on the ink rather than the glyph box
    (an I and an O sit on the same vertical). From the outline where there is one. */
@@ -674,15 +724,17 @@ function bearings(f,id){const key=(f.name||'')+'|'+(f.weight||'')+'|'+id;let r=S
    phrases, and a lone short phrase on the last line pulls a neighbour down to
    keep it company. Stacked: one phrase to a line. */
 function wSet(toks,latest,W,H,size){
-  const o=C.words,f=eng.F(eng.baseSlot()),hf=hiFaceOf()||f;
+  const o=C.words,f=baseFace(),hf=o.mixed?f:(hiFaceOf()||f),match=o.mixed&&o.mixed.match!==false;
   const m=o.margin/100*Math.min(W,H),availW=Math.max(1,(W-2*m)*o.measure/100),trk=o.tracking/1000*size;
   let top=0,bot=0;
-  const shape=(face,str)=>{const k=size/face.upm,gl=[];let x=0,prev=null,wb=0;
-    for(const ch of Array.from(str)){const id=glyphOf(face,ch);if(prev!==null)x+=face.kern(prev,id)*k+trk;gl.push({id,x,ch,w:face.adv(id)*k});x+=face.adv(id)*k;prev=id;
+  const scOf=face=>capScale(face,f,match);
+  /* in Mixed type, tracking tightens the base face; display faces keep the spacing they were drawn with */
+  const shape=(face,str,sc)=>{const k=size*sc/face.upm,gl=[],tk=o.mixed&&face!==f?0:trk;let x=0,prev=null,wb=0;
+    for(const ch of Array.from(str)){const id=glyphOf(face,ch);if(prev!==null)x+=face.kern(prev,id)*k+tk;gl.push({id,x,ch,w:face.adv(id)*k});x+=face.adv(id)*k;prev=id;
       const b=face.bbox&&face.bbox(id);if(b){top=Math.max(top,b[0]*k);bot=Math.max(bot,b[1]*k);wb=Math.max(wb,b[1]*k);}}
     return{gl,w:x,bot:wb};};
   const sp=f.adv(glyphOf(f,' '))*size/f.upm*(o.space/100)+trk;
-  const words=toks.map(t=>{const role=roleOf(t,latest),face=role==='hi'?hf:f,s=shape(face,t.w);return{t,hl:role,face,gl:s.gl,w:s.w,bot:s.bot};});
+  const words=toks.map(t=>{const role=roleOf(t,latest),face=(t.fid&&faceById(t.fid))||(role==='hi'?hf:f),sc=scOf(face),s=shape(face,t.w,sc);return{t,hl:role,face,sc,gl:s.gl,w:s.w,bot:s.bot};});
   /* units: runs of words that hold together. A phrase too wide for the line is
      split at its weaker joins, and only then, as a last resort, between words. */
   const runs=(ws,min)=>{const out=[];let u=null;ws.forEach(w=>{if(!u){u={ws:[],w:0};out.push(u);}u.w+=(u.ws.length?sp:0)+w.w;u.ws.push(w);if(w.t.glue<min)u=null;});return out;};
@@ -709,8 +761,8 @@ function wSet(toks,latest,W,H,size){
   const map=new Map();let wide=0;
   lines.forEach((l,li)=>{const ws=l.us.flatMap(x=>x.ws),first=ws[0],last=ws[ws.length-1];wide=Math.max(wide,l.w);
     let x=o.align==='left'?m:o.align==='right'?W-m-l.w:(W-l.w)/2;
-    if(o.optical&&o.align==='left'&&first)x-=bearings(first.face,first.gl[0].id)[0]*size/first.face.upm;
-    if(o.optical&&o.align==='right'&&last)x+=bearings(last.face,last.gl[last.gl.length-1].id)[1]*size/last.face.upm;
+    if(o.optical&&o.align==='left'&&first)x-=bearings(first.face,first.gl[0].id)[0]*size*first.sc/first.face.upm;
+    if(o.optical&&o.align==='right'&&last)x+=bearings(last.face,last.gl[last.gl.length-1].id)[1]*size*last.sc/last.face.upm;
     const y=y0+capPx+li*lead;
     for(const w of ws){Object.assign(w,{x,y,li,size});map.set(w.t.k,w);x+=w.w+sp;}});
   if(!top){top=capPx;bot=.22*size;}
@@ -721,14 +773,14 @@ function wSet(toks,latest,W,H,size){
    seven seconds) still fits without breaking a phrase that never breaks, so the
    type never changes size as the time does. */
 function fitSize(W,H){const o=C.words,y=new Date().getFullYear(),key=W+'x'+H+'|'+wBuilt+'|'+y;let s=wFit.get(key);if(s)return s;
-  const worst=[sentence({y,mo:8,d:27,wd:3,h:o.h24?23:12,mi:57,s:57},o),sentence({y,mo:8,d:23,wd:3,h:o.h24?23:0,mi:37,s:37},o)].filter(t=>t.length);
+  const worst=[sentence({y,mo:8,d:27,wd:3,h:o.h24?23:12,mi:57,s:57},o),sentence({y,mo:8,d:23,wd:3,h:o.h24?23:0,mi:37,s:37},o)].filter(t=>t.length).flatMap(t=>fitVariants(t,o));
   let lo=.002*W,hi=.6*W;
   for(let i=0;i<22;i++){const mid=(lo+hi)/2;
     if(worst.every(t=>{const L=wSet(t,new Set(),W,H,mid);return L.blockH<=L.availH&&L.wide<=L.availW+.5&&!L.forced;}))lo=mid;else hi=mid;}
   if(wFit.size>20)wFit.clear();wFit.set(key,lo);return lo;}
 function wLayout(toks,latest,W,H){
   const o=C.words,size=o.fit?fitSize(W,H):o.size/100*W;
-  const key=W+'x'+H+'|'+size.toFixed(3)+'|'+toks.map(t=>t.k+'='+t.w+'*'+roleOf(t,latest)).join('|');let L=wCache.get(key);if(L)return L;
+  const key=W+'x'+H+'|'+size.toFixed(3)+'|'+toks.map(t=>t.k+'='+t.w+'*'+roleOf(t,latest)+'@'+(t.fid||'')).join('|');let L=wCache.get(key);if(L)return L;
   L=wSet(toks,latest,W,H,size);
   if(wCache.size>40)wCache.clear();wCache.set(key,L);return L;
 }
@@ -739,7 +791,7 @@ function wGlyphs(ctx,K,w,x,y,col,alpha,dy,clip,from,to){
   if(alpha<=.002)return;
   ctx.save();ctx.globalAlpha=Math.min(1,alpha);ctx.fillStyle=col;
   if(clip){ctx.setTransform(K);ctx.beginPath();ctx.rect(clip[0],clip[1],clip[2],clip[3]);ctx.clip();}
-  const k=w.size/w.face.upm,a=from||0,b=to==null?w.gl.length:to;
+  const k=w.size*(w.sc||1)/w.face.upm,a=from||0,b=to==null?w.gl.length:to;
   for(let i=a;i<b;i++){const g=w.gl[i];ctx.setTransform(K.multiply(new DOMMatrix([k,0,0,k,x+g.x,y+dy])));w.face.draw(ctx,g.id,false);}
   ctx.restore();
 }
@@ -768,8 +820,8 @@ function typed(t){
 }
 function wordsFrame(ctx,W,H,now,K){
   const o=C.words,ms=Date.now(),mk=Math.floor(ms/1000)+'|'+wBuilt;
-  if(mk!==wMemo[0])wMemo=[mk,sentence(parts(ms),o)];
-  const toks=wMemo[1],sig=toks.map(t=>t.k+'='+t.w).join('|');
+  if(mk!==wMemo[0]){wMemo=[mk,sentence(parts(ms),o)];assignFaces(wMemo[1]);}
+  const toks=wMemo[1],sig=toks.map(t=>t.k+'='+t.w+'@'+(t.fid||'')).join('|');
   if(sig!==wSig){
     if(wCur){const prev=new Map(wCur.map(t=>[t.k,t.w]));wPrev=wCur;wT0=now;wPrevLatest=wLatest;
       wLatest=new Set(toks.filter(t=>prev.get(t.k)!==t.w).map(t=>t.k));}
@@ -816,7 +868,8 @@ function wordsFrame(ctx,W,H,now,K){
     wGlyphs(ctx,K,b,x,y,mix(colOf(a.hl),colOf(b.hl),e),1,0,null,gi,end);}
 }
 /* Preview only: replay the last change, or the one a minute (or second) ago */
-function replay(){if(!isWords())return;const o=C.words;wCur=sentence(parts(Date.now()-(o.time&&o.secs?1000:60000)),o);wSig=wCur.map(t=>t.k+'='+t.w).join('|');wPrev=null;}
+function replay(){if(!isWords())return;const o=C.words;wCur=sentence(parts(Date.now()-(o.time&&o.secs?1000:60000)),o);
+  assignFaces(wCur);wSig=wCur.map(t=>t.k+'='+t.w+'@'+(t.fid||'')).join('|');wPrev=null;wMemo=['',[]];}
 
 const slotNow=()=>Math.floor(Date.now()/(Math.max(.5,C.every)*60000));
 function lookIndex(sl){const n=C.looks.length,o=C.looks.map((_,i)=>i);
@@ -824,6 +877,7 @@ function lookIndex(sl){const n=C.looks.length,o=C.looks.map((_,i)=>i);
   return o[((sl%n)+n)%n];}
 function build(){
   wCache.clear();wFit.clear();wBuilt++;
+  {const k=JSON.stringify((C.words||{}).mixed||null);if(k!==mCfg){mCfg=k;mReset();}}
   if(isWords()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
   if(isClock()){
     const c=C.clock;S=JSON.parse(JSON.stringify(C.base||{}));
@@ -876,7 +930,7 @@ setConfig(C);
 /* read-outs for tests and the preview */
 const lines=(W,H)=>{if(!wCur||!isWords())return{size:0,lines:[],x:[]};const L=wLayout(wCur,wLatest,W,H),out=[],xs=[];
   for(const w of L.words){if(!out[w.li]){out[w.li]=[];xs[w.li]=w.x;}out[w.li].push(w.t.w);}return{size:L.size,lines:out.map(a=>a.join(' ')),x:xs,forced:L.forced};};
-return{frame,setConfig,bg:()=>S&&S.bg,replay,words:()=>(wCur||[]).map(t=>t.w).join(' '),lines};
+return{frame,setConfig,bg:()=>S&&S.bg,replay,words:()=>(wCur||[]).map(t=>t.w).join(' '),faces:()=>(wCur||[]).map(t=>[t.w,t.fid||'']),lines};
 }
 </script>
 <script id="rubato-mac">
@@ -1362,7 +1416,10 @@ function wordsDefaults(){return{ssWLead:true,ssWH24:false,ssWTime:true,ssWSecs:t
   ssWCase:'sentence',ssWNum:'words',ssWSep:'stop',ssWHi:'time',ssWHiFace:'same',
   ssWLayout:'para',ssWFit:false,ssWSize:5,ssWLeading:1,ssWTracking:-20,ssWSpace:100,ssWMeasure:100,ssWOptical:true,ssWAlign:'left',ssWVAlign:'top',ssWMargin:2.5,
   ssWChange:'roll',ssWBy:'word',ssWFeel:'smooth',ssWLen:.6,ssWGlide:true,
-  ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWDateCol:'#F7C6AA',ssWRotate:false,ssName:''};}
+  ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWDateCol:'#F7C6AA',ssWRotate:false,ssName:'',
+  /* Mixed type: the base face, how display faces come in, and each part's face */
+  ssMBase:'',ssMMode:'parts',ssMLead:'base',ssMTime:'shuffle',ssMSec:'base',ssMWeekday:'base',ssMDay:'base',ssMMonth:'base',ssMYear:'base',
+  ssMWhen:'change',ssMEach:false,ssMLittle:true,ssMMatch:true};}
 function loadSettings(){
   Object.assign(D,wordsDefaults());
   const s=Object.assign(fresh(),sanitise(RLS.get('settings')||{}));
@@ -1377,7 +1434,7 @@ function refreshNotes(){$('#note').textContent=anyLoaded()?'':'Demo face. Load y
 
 /* ---------------- tooltips ---------------- */
 Object.assign(TIPS,{
-  ssShow:'Show the local time, the time written out in words, or rotate through looks you’ve saved in Rubato.',ssH24:'24-hour or 12-hour time.',ssSep:'What sits between hours and minutes.',
+  ssShow:'Show the local time, the time written out in words, the time in words with display faces mixed in, or rotate through looks you’ve saved in Rubato.',ssH24:'24-hour or 12-hour time.',ssSep:'What sits between hours and minutes.',
   ssSecs:'Adds seconds, so something changes every second.',ssZero:'Shows 09,05 rather than 9,05.',ssPulse:'The separator gently pulses once a second.',
   ssLine2:'An optional second line: the weekday, the date, or the first line of your Rubato text.',ssCaps:'Sets the second line in capitals.',
   ssTracking:'Space between letters in the clock.',ssLeading:'Distance between the time and the second line.',
@@ -1397,11 +1454,17 @@ Object.assign(TIPS,{
   ssWCase:'Sentence case capitalises the first word, the day and the month.',ssWNum:'Write numbers out in words, or set them as figures.',
   ssWSep:'What sits between hours and minutes when they’re figures.',ssWHi:'Which words stand out. Latest change follows whatever changed last. Each part gives the time and the date their own colours.',
   ssWHiFace:'Sets the highlighted words in another of your loaded styles, such as a bold.',
-  ssWSize:'Type size, as a share of the screen width.',ssWLeading:'Distance between lines, as a multiple of the type size.',ssWTracking:'Space between letters.',
+  ssWSize:'Type size, as a share of the screen width.',ssWLeading:'Distance between lines, as a multiple of the type size.',ssWTracking:'Space between letters. In Mixed type it tightens the base face; display faces keep the spacing they were drawn with.',
   ssWMeasure:'How far across the screen a line can run before it breaks.',ssWMargin:'Space kept clear around the edge.',
   ssWChange:'How a word changes. Type backspaces and retypes only the letters that differ.',ssWBy:'Change whole words, or only the letters that differ when a word keeps its length.',
   ssWFeel:'Snappy is fast with a crisp stop. Smooth eases. Elastic overshoots.',ssWLen:'How long each change takes.',
   ssWGlide:'Words that stay slide to their new place as the line reflows. Off: they jump.',ssWRotate:'Changes theme on the hour.',
+  ssMBase:'The plain face that carries the sentence. A simple Swiss face (Diatype, say) grounds the display faces.',
+  ssMMode:'How the display faces come in. Each part: set every part of the sentence to the base, a face of its own, or Shuffle. Latest change: whatever just changed arrives in a display face and goes back to the base at the next change. One part at a time: a single part is featured, moving on as set below.',
+  ssMWhen:'When a shuffled part (or the featured part) takes a new face: whenever its words change, or on the minute or the hour.',
+  ssMEach:'Gives every word its own display face, rather than one face for the whole part.',
+  ssMLittle:'Keeps on, the, of, in and and in the base face, so only the words that carry the time and date change face.',
+  ssMMatch:'Sizes each display face so its capitals are as tall as the base face’s. Off: every face at the same point size.',
 });
 
 /* ================= Screensaver ================= */
@@ -1416,10 +1479,11 @@ const PALETTES=[
   {name:'Signal',bg:'#FF4F1F',p:['#000000','#FFFFFF','#FFF35C','#000000']},
 ];
 const SHAPES={laptop:[1680,1050],display:[1920,1080],portrait:[1080,1920]};
-const clk=s=>s.ssShow==='clock',lk=s=>s.ssShow==='looks',wd=s=>s.ssShow==='words';
+const clk=s=>s.ssShow==='clock',lk=s=>s.ssShow==='looks',wd=s=>s.ssShow==='words'||s.ssShow==='mixed',mx=s=>s.ssShow==='mixed';
 /* Show */
 {const b=card('ss-show','Screensaver',null,'saver');
-  build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['looks','Saved looks']]}]);
+  build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['mixed','Mixed type'],['looks','Saved looks']]}]);
+  b.querySelector('.seg').style.cssText='display:grid;grid-template-columns:1fr 1fr';/* four options sit two by two */
   const list=el('div','ctl btn-row');addCustom(b,lk,list);
   const ssNote=el('p','hint');addCustom(b,lk,ssNote);
   window.ssRefresh=()=>{list.textContent='';const ps=getPresets();
@@ -1445,7 +1509,8 @@ const W_SET={ssWCase:'sentence',ssWNum:'words',ssWSep:'stop',ssWH24:false,ssWHi:
   ssWMeasure:100,ssWOptical:true,ssWAlign:'left',ssWVAlign:'top',ssWMargin:2.5,ssWChange:'roll',ssWBy:'word',ssWFeel:'smooth',ssWLen:.6,ssWGlide:true,ssWRotate:false};
 const C_APRICOT={ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWDateCol:'#F7C6AA'},C_RED={ssWBg:'#FFFFFF',ssWInk:'#FF3B1F',ssWSoft:'#181818',ssWDateCol:'#8C8C8C'},
   C_PAPER={ssWBg:'#F2F2F2',ssWInk:'#000000',ssWSoft:'#B4B4B4',ssWDateCol:'#6E6E6E'},C_NIGHT={ssWBg:'#000000',ssWInk:'#FFFFFF',ssWSoft:'#4D4D4D',ssWDateCol:'#8C8C8C'},
-  C_SIGNAL={ssWBg:'#FF4F1F',ssWInk:'#000000',ssWSoft:'#FFFFFF',ssWDateCol:'#FFD3C4'},C_UV={ssWBg:'#5B23F0',ssWInk:'#FFF35C',ssWSoft:'#A98BFF',ssWDateCol:'#FFFFFF'};
+  C_SIGNAL={ssWBg:'#FF4F1F',ssWInk:'#000000',ssWSoft:'#FFFFFF',ssWDateCol:'#FFD3C4'},C_UV={ssWBg:'#5B23F0',ssWInk:'#FFF35C',ssWSoft:'#A98BFF',ssWDateCol:'#FFFFFF'},
+  C_ACID={ssWBg:'#D5D7D6',ssWInk:'#F7FD70',ssWSoft:'#F7FD70',ssWDateCol:'#F7FD70'};
 const WORD_LOOKS=[
   {name:'Reference',s:Object.assign({},W_PARTS,W_SET,C_APRICOT)},
   {name:'Stack',s:Object.assign({},W_PARTS,W_SET,C_RED,{ssWLayout:'stack',ssWFit:true,ssWLeading:.92,ssWTracking:-30,ssWSpace:85,ssWMargin:4,ssWFeel:'snappy',ssWLen:.5})},
@@ -1455,12 +1520,28 @@ const WORD_LOOKS=[
   {name:'Hours',s:Object.assign({},W_PARTS,W_SET,C_UV,{ssWLead:false,ssWSecs:false,ssWWeekday:false,ssWDayNum:false,ssWMonth:false,ssWYear:false,ssWCase:'lower',ssWHi:'none',
     ssWFit:true,ssWLeading:.9,ssWTracking:-40,ssWSpace:80,ssWMargin:4,ssWVAlign:'bottom',ssWBy:'letter',ssWLen:.9})},
 ];
-const currentLook=()=>WORD_LOOKS.find(L=>Object.keys(L.s).every(k=>String(S[k]).toLowerCase()===String(L.s[k]).toLowerCase()));
+/* Mixed type: a plain base face with display faces coming in and out. The looks
+   say how the faces are used; which faces is up to what's loaded in Fonts. */
+const M_SET={ssMMode:'parts',ssMLead:'base',ssMTime:'base',ssMSec:'base',ssMWeekday:'base',ssMDay:'base',ssMMonth:'base',ssMYear:'base',ssMWhen:'change',ssMEach:false,ssMLittle:true,ssMMatch:true};
+const MIXED_LOOKS=[
+  {name:'Social',s:Object.assign({},W_PARTS,W_SET,C_ACID,M_SET,{ssWSecs:false,ssWHi:'none',ssWLayout:'stack',ssWFit:true,ssWLeading:.9,ssWTracking:-10,ssWSpace:90,ssWMargin:3,ssWFeel:'snappy',ssWLen:.5,
+    ssMTime:'shuffle',ssMWeekday:'shuffle'})},
+  {name:'Latest',s:Object.assign({},W_PARTS,W_SET,C_RED,M_SET,{ssWHi:'faces',ssWFit:true,ssWLeading:1.02,ssWMargin:3,ssWFeel:'snappy',ssWLen:.45,ssMMode:'latest'})},
+  {name:'Spotlight',s:Object.assign({},W_PARTS,W_SET,C_NIGHT,M_SET,{ssWSecs:false,ssWHi:'faces',ssWSoft:'#8C8C8C',ssWFit:true,ssWLeading:1.04,ssWMargin:4,ssWVAlign:'bottom',ssWChange:'fade',ssWLen:1.2,
+    ssMMode:'one',ssMWhen:'minute'})},
+  {name:'Medley',s:Object.assign({},W_PARTS,W_SET,C_UV,M_SET,{ssWSecs:false,ssWHi:'none',ssWLayout:'stack',ssWFit:true,ssWLeading:.92,ssWTracking:-10,ssWSpace:90,ssWMargin:4,ssWBy:'word',ssWLen:.7,
+    ssMLead:'shuffle',ssMTime:'shuffle',ssMWeekday:'shuffle',ssMDay:'shuffle',ssMMonth:'shuffle',ssMYear:'shuffle',ssMEach:true,ssMWhen:'minute'})},
+];
+const lookSet=s=>mx(s)?MIXED_LOOKS:WORD_LOOKS;
+const currentLook=()=>lookSet(S).find(L=>Object.keys(L.s).every(k=>String(S[k]).toLowerCase()===String(L.s[k]).toLowerCase()));
 {const b=card('ss-wlooks','Looks',wd,'saver');
-  addHint(b,'Starting points for the screen savers you ship. Change anything afterwards.');
+  addHint(b,'Starting points for the screen savers you ship. Change anything afterwards.',s=>!mx(s));
+  addHint(b,'Starting points. The base face and the display faces come from Fonts – see Typefaces below.',mx);
   const row=el('div','ctl btn-row');row.setAttribute('role','group');row.setAttribute('aria-label','Looks');addCustom(b,null,row);
-  const ps=WORD_LOOKS.map(L=>{const p=el('button','pill small',L.name);p.onclick=()=>{const ks=Object.keys(L.s);ks.forEach(k=>{S[k]=L.s[k];});set(ks[0],L.s[ks[0]]);};row.append(p);return[L,p];});
-  controls.push({d:{},w:row,update(){const c=currentLook();ps.forEach(([L,p])=>p.setAttribute('aria-pressed',c===L));}});
+  let shown=null,ps=[];
+  controls.push({d:{},w:row,update(){const set_=lookSet(S);
+    if(set_!==shown){shown=set_;row.textContent='';ps=set_.map(L=>{const p=el('button','pill small',L.name);p.onclick=()=>{const ks=Object.keys(L.s);ks.forEach(k=>{S[k]=L.s[k];});set(ks[0],L.s[ks[0]]);};row.append(p);return[L,p];});}
+    const c=currentLook();ps.forEach(([L,p])=>p.setAttribute('aria-pressed',c===L));}});
 }
 /* In words: what the sentence says */
 {const b=card('ss-wsay','Sentence',wd,'saver');
@@ -1476,14 +1557,47 @@ const currentLook=()=>WORD_LOOKS.find(L=>Object.keys(L.s).every(k=>String(S[k]).
     {t:'hint',text:'Always this computer’s own time and date, wherever the screen saver is installed.'},
   ]);
 }
+/* Mixed type: which face carries the sentence, and how the display faces come in */
+function addSelect(parent,d){
+  const w=el('div',d.wide?'ctl':'colour-row'),lb=el('label',null,d.label),sel=el('select');sel.id='c_'+d.k;lb.htmlFor=sel.id;d.group=d.group||curGroup;
+  if(d.wide){const hd=el('div','ctl-head');hd.append(lb);const q=qMark(d);if(q)hd.append(q);w.append(hd,sel);}
+  else{sel.style.cssText='width:auto;max-width:64%;margin-left:auto;padding:7px 12px';w.append(lb);const q=qMark(d);if(q)w.append(q);w.append(sel);}
+  parent.append(w);let sig='';
+  sel.onchange=()=>set(d.k,sel.value);
+  const c={d,w,update(){const opts=d.optsFn();const ns=JSON.stringify(opts);if(ns!==sig){sig=ns;sel.textContent='';opts.forEach(([v,t])=>{const o=el('option',null,t);o.value=v;sel.append(o);});}
+    const v=d.cur?d.cur(S):S[d.k];sel.value=opts.some(o=>o[0]===v)?v:(opts[0]||[])[0];}};controls.push(c);return c;}
+const faceOpts=()=>anyLoaded()?eng.faceList().map(({id,face})=>[id,face.name]):[['d1','Demo regular'],['d2','Demo heavy']];
+const mBase=s=>{const ids=faceOpts().map(o=>o[0]);return ids.includes(s.ssMBase)?s.ssMBase:anyLoaded()?baseSlot():'d1';};
+const mPoolN=()=>{const b=mBase(S);return anyLoaded()?eng.faceList().filter(x=>x.swap!==false&&x.id!==b).length:1;};
+const M_PARTS=[['ssMLead','It is','ssWLead'],['ssMTime','Time','ssWTime'],['ssMSec','Seconds','ssWSecs'],['ssMWeekday','Day','ssWWeekday'],['ssMDay','Date','ssWDayNum'],['ssMMonth','Month','ssWMonth'],['ssMYear','Year','ssWYear']];
+const mShuffles=s=>M_PARTS.some(([k,,on])=>s[on]&&s[k]==='shuffle');
+{const b=card('ss-mtype','Typefaces',mx,'saver');
+  addSelect(b,{k:'ssMBase',label:'Base face',optsFn:faceOpts,cur:mBase,wide:true});
+  build(b,[{t:'seg',k:'ssMMode',label:'Display faces',opts:[['parts','Each part'],['latest','Latest change'],['one','One part at a time']]}]);
+  const parts=s=>s.ssMMode==='parts';
+  addHint(b,'Set each part in the base face, a face of its own, or Shuffle.',parts);
+  for(const [k,label,on] of M_PARTS){const c=addSelect(b,{k,label,optsFn:()=>[['base','Base face']].concat(faceOpts().filter(o=>o[0]!==mBase(S))).concat([['shuffle','Shuffle']])});
+    c.d.show=s=>parts(s)&&s[on]&&(k!=='ssMSec'||s.ssWTime);}
+  build(b,[
+    {t:'seg',k:'ssMWhen',label:'New face',opts:[['change','When it changes'],['minute','Every minute'],['hour','Every hour']],show:s=>parts(s)&&mShuffles(s)},
+    {t:'seg',k:'ssMWhen',label:'Move on',opts:[['change','Each change'],['minute','Every minute'],['hour','Every hour']],show:s=>s.ssMMode==='one'},
+    {t:'toggle',k:'ssMEach',label:'A face for each word',show:s=>!parts(s)||mShuffles(s)},
+    {t:'toggle',k:'ssMLittle',label:'Little words stay in the base face'},
+    {t:'toggle',k:'ssMMatch',label:'Match cap heights'},
+    {t:'hint',text:'Display faces are the styles ticked “Use in style swaps” in Fonts, apart from the base face. Load two or three to mix in.',show:()=>anyLoaded()&&mPoolN()>0},
+    {t:'hint',text:'No display faces yet: load one or two in Fonts (or tick “Use in style swaps” on a style).',show:()=>anyLoaded()&&mPoolN()===0},
+    {t:'hint',text:'Showing the demo faces. Load a plain base face and a few display faces in Fonts.',show:()=>!anyLoaded()},
+  ]);
+}
 /* In words: how it's set */
 {const b=card('ss-wtype','Type',wd,'saver');
   build(b,[
     {t:'seg',k:'ssWCase',label:'Case',opts:[['sentence','Sentence case'],['lower','lower case'],['upper','CAPITALS']]},
     {t:'seg',k:'ssWNum',label:'Numbers',opts:[['words','Words'],['figures','Figures']]},
     {t:'seg',k:'ssWSep',label:'Separator',opts:[['stop','Full stop'],['colon','Colon']],show:s=>s.ssWNum==='figures'},
-    {t:'seg',k:'ssWHi',label:'Highlight',opts:[['time','The time'],['latest','Latest change'],['parts','Each part'],['none','Nothing']]},
-    {t:'segdyn',k:'ssWHiFace',label:'Highlight style',show:s=>s.ssWHi!=='none',
+    {t:'seg',k:'ssWHi',label:'Highlight',opts:[['time','The time'],['latest','Latest change'],['parts','Each part'],['none','Nothing']],show:s=>!mx(s)},
+    {t:'seg',k:'ssWHi',label:'Highlight',opts:[['faces','Display faces'],['time','The time'],['latest','Latest change'],['parts','Each part'],['none','Nothing']],show:mx},
+    {t:'segdyn',k:'ssWHiFace',label:'Highlight style',show:s=>!mx(s)&&s.ssWHi!=='none',
       optsFn:()=>[['same','Same style']].concat(anyLoaded()?eng.faceList().map(({id,face})=>[id,face.name]):[['d2','Demo heavy']])},
     {t:'seg',k:'ssWLayout',label:'Layout',opts:[['para','Paragraph'],['stack','Stacked']]},
     {t:'seg',k:'ssWFit',label:'Size',opts:[[true,'Fit the screen'],[false,'Set size']]},
@@ -1590,6 +1704,7 @@ const WORD_THEMES=[
   {name:'Night',bg:'#000000',ink:'#FFFFFF',soft:'#4D4D4D',date:'#8C8C8C'},
   {name:'Signal',bg:'#FF4F1F',ink:'#000000',soft:'#FFFFFF',date:'#FFD3C4'},
   {name:'Ultraviolet',bg:'#5B23F0',ink:'#FFF35C',soft:'#A98BFF',date:'#FFFFFF'},
+  {name:'Acid',bg:'#D5D7D6',ink:'#F7FD70',soft:'#F7FD70',date:'#F7FD70'},
 ];
 const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','date']];
 {const b=card('ss-wcolour','Colour',wd,'saver');
@@ -1598,7 +1713,7 @@ const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','
   const fixed=s=>!s.ssWRotate;
   build(b,[
     {t:'colour',k:'ssWBg',label:'Background',show:fixed},
-    {t:'colour',k:'ssWInk',label:'Highlight',labelFn:s=>s.ssWHi==='time'||s.ssWHi==='parts'?'The time':s.ssWHi==='latest'?'Latest change':'Type',show:fixed},
+    {t:'colour',k:'ssWInk',label:'Highlight',labelFn:s=>s.ssWHi==='faces'?'Display faces':s.ssWHi==='time'||s.ssWHi==='parts'?'The time':s.ssWHi==='latest'?'Latest change':'Type',show:fixed},
     {t:'colour',k:'ssWDateCol',label:'The date',show:s=>fixed(s)&&s.ssWHi==='parts'},
     {t:'colour',k:'ssWSoft',label:'Everything else',show:s=>fixed(s)&&s.ssWHi!=='none'},
     {t:'toggle',k:'ssWRotate',label:'Change theme every hour'},
@@ -1637,7 +1752,7 @@ const exportName=()=>(S.ssName||'').trim()||defaultName();
 function saverConfig(){
   const ps=getPresets();
   /* the words settings travel in their own block below, not inside each look */
-  const noW=o=>{for(const k in o)if(/^ssW/.test(k)||k==='ssName')delete o[k];return o;};
+  const noW=o=>{for(const k in o)if(/^ssW|^ssM[A-Z]/.test(k)||k==='ssName')delete o[k];return o;};
   const looks=[...ssPicked].map(k=>k==='__current'?S:(ps.find(p=>p.name===k)||{}).settings).filter(Boolean).map(o=>{const l=noW(Object.assign(fresh(),sanitise(o)));l.transparent=false;return l;});
   const base=noW(Object.assign(fresh(),sanitise(S)));base.transparent=false;
   const pals=S.ssRotate==='mine'?getThemes():[...PALETTES,...getThemes()];
@@ -1649,8 +1764,11 @@ function saverConfig(){
     /* only when showing words, so clock and looks exports stay as they were */
     ...(wd(S)?{words:{lead:S.ssWLead,h24:S.ssWH24,time:S.ssWTime,secs:S.ssWSecs,weekday:S.ssWWeekday,daynum:S.ssWDayNum,month:S.ssWMonth,year:S.ssWYear,
       stop:S.ssWStop,case:S.ssWCase,num:S.ssWNum,sep:S.ssWSep,layout:S.ssWLayout,fit:S.ssWFit,space:S.ssWSpace,optical:S.ssWOptical,dateCol:S.ssWDateCol,
-      hi:S.ssWHi,hiFace:S.ssWHiFace,size:S.ssWSize,leading:S.ssWLeading,tracking:S.ssWTracking,measure:S.ssWMeasure,align:S.ssWAlign,valign:S.ssWVAlign,margin:S.ssWMargin,
-      change:S.ssWChange,by:S.ssWBy,feel:S.ssWFeel,len:S.ssWLen,glide:S.ssWGlide,bg:S.ssWBg,ink:S.ssWInk,soft:S.ssWSoft,rotate:S.ssWRotate,themes:WORD_THEMES}}:{})};
+      hi:!mx(S)&&S.ssWHi==='faces'?'time':S.ssWHi,hiFace:S.ssWHiFace,size:S.ssWSize,leading:S.ssWLeading,tracking:S.ssWTracking,measure:S.ssWMeasure,align:S.ssWAlign,valign:S.ssWVAlign,margin:S.ssWMargin,
+      change:S.ssWChange,by:S.ssWBy,feel:S.ssWFeel,len:S.ssWLen,glide:S.ssWGlide,bg:S.ssWBg,ink:S.ssWInk,soft:S.ssWSoft,rotate:S.ssWRotate,themes:WORD_THEMES,
+      /* Mixed type only */
+      ...(mx(S)?{mixed:{base:mBase(S),mode:S.ssMMode,parts:{lead:S.ssMLead,time:S.ssMTime,sec:S.ssMSec,weekday:S.ssMWeekday,day:S.ssMDay,month:S.ssMMonth,year:S.ssMYear},
+        when:S.ssMWhen,each:S.ssMEach,little:S.ssMLittle,match:S.ssMMatch}}:{})}}:{})};
 }
 
 function saverChars(cfg){

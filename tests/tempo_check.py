@@ -11,7 +11,7 @@ from playwright.sync_api import sync_playwright
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from serve import start
-from parity import POP, OPENTYPE
+from parity import POP, OPENTYPE, FONTS
 
 T0 = 1793231279000  # Wed 28 Oct 2026 23:47:59 in London (GMT)
 results = []
@@ -24,6 +24,11 @@ SAY = """([ms,o,W,H])=>{const C=Object.assign({},window.__cfg,{show:'words',word
   const RealDate=Date;let out=null;const D=function(...a){return a.length?new RealDate(...a):new RealDate(ms)};D.now=()=>ms;D.prototype=RealDate.prototype;
   window.Date=D;try{const e=createEngine();if(window.__faces)e.setFaces(window.__faces);const sv=createSaver(e,C);const cv=document.createElement('canvas');cv.width=W||1680;cv.height=H||1050;
   sv.frame(cv.getContext('2d'),W||1680,H||1050,0,0);out=Object.assign({words:sv.words()},sv.lines(W||1680,H||1050));}finally{window.Date=RealDate;}return out;}"""
+# Mixed type: run a saver from an exported config across several moments; return each moment's words, faces and layout.
+MIX = """([C,times,W,H])=>{const RealDate=Date;let ms=times[0];const D=function(...a){return a.length?new RealDate(...a):new RealDate(ms)};D.now=()=>ms;D.prototype=RealDate.prototype;
+  window.Date=D;const out=[];try{const e=createEngine();e.setFaces(C.fonts.map(d=>({id:d.id,face:e.makeBaked(d),swap:d.swap!==false})));const sv=createSaver(e,C);const cv=document.createElement('canvas');cv.width=W;cv.height=H;
+  for(const t of times){ms=t;sv.frame(cv.getContext('2d'),W,H,0,0);out.push(Object.assign({faces:sv.faces()},sv.lines(W,H)));}}finally{window.Date=RealDate;}return out;}"""
+THIRD = f'{FONTS}/Poppins-LightItalic.ttf'  # a third style, to shuffle between two display faces
 utc = lambda y, mo, d, hh, mm, ss: calendar.timegm((y, mo, d, hh, mm, ss, 0, 0, 0)) * 1000  # London is on GMT for every date used here
 
 def main():
@@ -223,6 +228,77 @@ def main():
                 pg.get_by_role('button', name='Play a change').click(); wait(150)
             okc = okc and len(canvas()) > 5000
         check('Every change style draws (Roll, Fade, Type, Cut)', okc and not errs, '; '.join(errs[:3]))
+
+        # 4. Mixed type: a base face with display faces coming in and out
+        pg.set_input_files('#fontfile', [THIRD])
+        for _ in range(30): wait(50); time.sleep(.02)
+        pg.evaluate(expand); wait(200)
+        show = pg.get_by_role('group', name='Show').get_by_role('button').all_inner_texts()
+        check('Show has a fourth option, Mixed type', show == ['The time', 'In words', 'Mixed type', 'Saved looks'], json.dumps(show))
+        pg.get_by_role('group', name='Show').get_by_role('button', name='Mixed type').click(); wait(400)
+        pg.evaluate(expand); wait(100)
+        cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]
+        check('Mixed type adds a Typefaces card', cards == ['Fonts', 'Screensaver', 'Looks', 'Sentence', 'Typefaces', 'Type', 'Change', 'Position', 'Colour', 'Export'], json.dumps(cards))
+        mlooks = pg.get_by_role('group', name='Looks').get_by_role('button').all_inner_texts()
+        check('Mixed type has its own looks', mlooks == ['Social', 'Latest', 'Spotlight', 'Medley'], json.dumps(mlooks))
+        okl = True; seen = set()
+        for name in mlooks:
+            pg.get_by_role('group', name='Looks').get_by_role('button', name=name).click(); wait(300)
+            okl = okl and pg.get_by_role('group', name='Looks').locator('button[aria-pressed=true]').all_inner_texts() == [name]
+            seen.add(canvas())
+        check('Each Mixed look applies and draws differently', okl and len(seen) == 4, f'{len(seen)} different frames')
+        pg.get_by_role('group', name='Looks').get_by_role('button', name='Social').click(); wait(300)
+        opts = lambda sel: pg.evaluate("s=>[...document.querySelector(s).options].map(o=>o.text)", sel)
+        check('Base face lists the loaded styles', opts('#c_ssMBase') == ['Poppins Regular', 'Poppins Bold', 'Poppins Light Italic'], json.dumps(opts('#c_ssMBase')))
+        check('Each part offers the base, every other style, or Shuffle', opts('#c_ssMTime') == ['Base face', 'Poppins Bold', 'Poppins Light Italic', 'Shuffle'], json.dumps(opts('#c_ssMTime')))
+        vis = [l for l in pg.locator('section.card:visible').filter(has=pg.locator('h2', has_text='Typefaces')).locator('.colour-row:visible label').all_inner_texts()]
+        check('Only the parts in the sentence get a face (Social has no seconds)', vis == ['It is', 'Time', 'Day', 'Date', 'Month', 'Year'], json.dumps(vis))
+        mhtml, mfn = download(lambda: pg.get_by_role('button', name='Download HTML file').click())
+        mcfg = config(mhtml); M = mcfg['words'].get('mixed') or {}
+        ids = {f['id']: f['name'] for f in mcfg['fonts']}
+        check('Mixed export carries its faces and settings', mcfg['show'] == 'mixed' and ids.get(M.get('base')) == 'Poppins Regular' and M['parts']['time'] == 'shuffle' and M['parts']['weekday'] == 'shuffle'
+              and len(mcfg['fonts']) == 3 and mfn == 'tempo-social-screensaver.html' and not re.search(r'"ssM[A-Z]', json.dumps(mcfg['base'])) and mcfg['base'].get('ssMargin') is not None, mfn)
+        p3 = ctx.new_page(); e3 = []
+        p3.on('pageerror', lambda e: e3.append(str(e)))
+        p3.route('**/*', lambda rt: rt.abort() if rt.request.url.startswith('http') else rt.continue_())
+        p3.set_content(mhtml.decode()); time.sleep(.6)
+        a = p3.evaluate(frame_js, mcfg); b2 = pg.evaluate(frame_js, mcfg)
+        check('Exported Mixed page draws the same frame as Tempo does from that file', a == b2 and len(a) > 5000 and not e3, '; '.join(e3[:3]))
+        p3.close()
+
+        def mixed(over, times, W=1680, H=1050, words=None):
+            c = json.loads(json.dumps(mcfg)); c['words']['mixed'].update(over); c['words'].update(words or {})
+            return pg.evaluate(MIX, [c, times, W, H])
+        name = lambda fid: ids.get(fid, 'base') if fid else 'base'
+        t0, t1 = utc(2026, 10, 28, 23, 47, 59), utc(2026, 10, 28, 23, 48, 0)
+        r = mixed({}, [t0])[0]
+        got = ' '.join(w if f == '' else f'[{w}]' for w, f in r['faces'])
+        check('Each part: the shuffled parts take a display face, little words stay plain', got == 'It is [eleven] [forty] [seven] on [Wednesday] the twenty eighth of October twenty twenty six', got)
+        r = mixed({}, [t0], words={'secs': True})[0]
+        check('Shuffle picks from the display faces, never the base', all(name(f) in ('base', 'Poppins Bold', 'Poppins Light Italic') for w, f in r['faces']) and any(f for w, f in r['faces']))
+        r = mixed({'parts': dict(M['parts'], time='shuffle', weekday='base')}, [t0 + i * 60000 for i in range(8)])
+        seq = [next(f for w, f in x['faces'] if f) for x in r]
+        check('A shuffled part takes a new face each time its words change, never the same twice running', all(a != b for a, b in zip(seq, seq[1:])), ' → '.join(map(name, seq)))
+        r = mixed({'parts': dict(M['parts'], time='shuffle'), 'when': 'hour'}, [t0 + i * 60000 for i in range(5)])
+        seq = [next(f for w, f in x['faces'] if f) for x in r]
+        check('Every hour: the face holds as the minutes change', len(set(seq[1:])) == 1, ' → '.join(map(name, seq)))
+        r = mixed({'mode': 'latest'}, [t0, t1], words={'secs': True})
+        got = ' '.join(w if f == '' else f'[{w}]' for w, f in r[1]['faces'])
+        check('Latest change: whatever just changed arrives in a display face', got.startswith('It is eleven forty [eight] [exactly] on Wednesday'), got)
+        r = mixed({'mode': 'one', 'when': 'minute'}, [t0 + i * 60000 for i in range(6)])
+        ones = [sorted({w for w, f in x['faces'] if f}) for x in r]
+        check('One part at a time: a single part is featured, and it moves on', all(ones) and all(len({f for w, f in x['faces'] if f}) == 1 for x in r) and len({' '.join(o) for o in ones}) > 1
+              and all(not (set(o) & {'on', 'the', 'of', 'It', 'is'}) for o in ones), ' / '.join(' '.join(o) for o in ones))
+        r = mixed({'each': True, 'parts': {k: 'shuffle' for k in M['parts']}}, [t0])[0]
+        check('A face for each word: words within a part can differ', len({f for w, f in r['faces'] if f}) == 2, json.dumps(r['faces']))
+        plain_fit = mixed({'parts': {k: 'base' for k in M['parts']}}, [t0])[0]['size']
+        wide_fit = mixed({'parts': {k: 'shuffle' for k in M['parts']}}, [t0])[0]['size']
+        check('Fit leaves room for the widest display face', wide_fit <= plain_fit + .01, f'{plain_fit:.1f} → {wide_fit:.1f}px')
+        nomatch = mixed({'match': False}, [t0])[0]
+        check('No overflowing lines with display faces in', not mixed({}, [t0])[0]['forced'] and not nomatch['forced'])
+        pg.get_by_role('group', name='Show').get_by_role('button', name='In words').click(); wait(300)
+        whtml, _ = download(lambda: pg.get_by_role('button', name='Download HTML file').click())
+        check('In words exports carry nothing of Mixed type', 'mixed' not in config(whtml)['words'] and not re.search(r'"ssM[A-Z]', json.dumps(config(whtml))))
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     failed = [r for r in results if not r[0]]

@@ -6,7 +6,7 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 |---|---|---|
 | **Tutti** 6.0 | Halftones from images, video, your camera or type | `/tutti/` |
 | **Rubato** 0.9 | Type in motion – alternates, styles and variable axes, out as PNG, SVG, GIF or video | `/rubato/` |
-| **Tempo** 0.2 | A clock screen saver for Mac and Windows, set in your own typeface – as figures, or the time written out in words | `/tempo/` |
+| **Tempo** 0.2 | A clock screen saver for Mac and Windows, set in your own typeface – as figures, or the time written out in words, with display faces mixed in if you like | `/tempo/` |
 
 Rubato and Tempo share one core (type engine, font loading, controls, design system). Tutti is copied in as it is, and moves onto the shared core later.
 
@@ -57,7 +57,7 @@ Then:
 ```
 python3 tests/parity.py        # Rubato and Tempo against v0.8.1 – writes tests/out/report.md
 python3 tests/split_check.py   # Rubato and Tempo sharing fonts and looks
-python3 tests/tempo_check.py   # Tempo 0.2: the time in words, preview shapes, Tempo naming in exports
+python3 tests/tempo_check.py   # Tempo 0.2: the time in words, Mixed type, preview shapes, Tempo naming in exports
 ```
 
 The parity tests drive the v0.8.1 reference and the new apps through the same steps, with randomness and the clock pinned, and compare every frame, download and panel read-out byte for byte. They need Chromium (via Playwright) and the Poppins and Lora fonts – set `FONTS=/path/to/folder` if they're not in `/usr/share/fonts/truetype/google-fonts`.

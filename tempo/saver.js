@@ -34,7 +34,7 @@ function hooksOn(){
   });
 }
 /* ---------------- the time in words ---------------- */
-const isWords=()=>C.show==='words';
+const isWords=()=>C.show==='words'||C.show==='mixed';
 const ONES=['zero','one','two','three','four','five','six','seven','eight','nine','ten','eleven','twelve','thirteen','fourteen','fifteen','sixteen','seventeen','eighteen','nineteen'];
 const TENS=['','','twenty','thirty','forty','fifty','sixty','seventy','eighty','ninety'];
 const ORDS={one:'first',two:'second',three:'third',five:'fifth',eight:'eighth',nine:'ninth',twelve:'twelfth'};
@@ -91,13 +91,63 @@ function sentence(z,o){
   return out;
 }
 let wBuilt=0,wMemo=['',[]],wErr=0,wCur=null,wPrev=null,wSig=null,wT0=-1e9,wLatest=new Set(),wPrevLatest=new Set(),wCache=new Map(),wFit=new Map(),wPal=null;
+/* ---- Mixed type: a plain base face carries the sentence and display faces come
+   in and out of it. Three ways to feature them: each part set to a face of its
+   own or shuffled (parts), whatever just changed (latest), or one part at a time
+   (one). The little words (on, the, of, in, and) can stay in the base face. ---- */
+const faceById=id=>{if(!id)return null;const x=eng.faceList().find(q=>q.id===id);if(x)return x.face;return!eng.anyLoaded()&&(id==='d1'||id==='d2')?eng.F(id):null;};
+const baseFace=()=>{const M=C.words.mixed;return(M&&faceById(M.base))||eng.F(eng.baseSlot());};
+const baseId=()=>{const M=C.words.mixed;return M&&faceById(M.base)?M.base:eng.baseSlot();};
+const MPART=t=>t.grp==='lead'?'lead':t.grp==='time'?'time':t.grp==='sec'?'sec':t.grp==='dw'?'weekday':t.grp==='dd'?'day':t.grp==='dm'?'month':'year';
+const LITTLE=new Set(['sec.and','date.on','date.the','date.of','date.in']);
+/* The display faces: every style ticked "Use in style swaps" except the base. */
+const mPool=()=>{const b=baseId();return eng.anyLoaded()?eng.faceList().filter(x=>x.swap&&x.id!==b).map(x=>x.id):['d1','d2'].filter(x=>x!==b);};
+let mS={},mSeed=1,mCfg='';
+const mReset=()=>{mS={fid:{},seen:{},slot:null,sig:null,feat:{},last:null,one:null,oneFace:null,oneEach:{}};};mReset();
+/* a new face, never the one it replaces */
+function pickFace(pool,avoid,salt){if(!pool.length)return null;let i=Math.floor(rnd(mSeed++*7919+salt)*pool.length);if(pool.length>1&&pool[i]===avoid)i=(i+1)%pool.length;return pool[i];}
+function assignFaces(toks){const M=C.words.mixed;toks.forEach(t=>{t.fid=null;});if(!M)return;
+  const pool=mPool(),now=Date.now(),mode=M.mode||'parts',each=!!M.each,P=M.parts||{},salt=now%100003;
+  const slot=M.when==='minute'?Math.floor(now/6e4):M.when==='hour'?Math.floor(now/36e5):null,newSlot=slot!=null&&slot!==mS.slot;
+  const plain=t=>M.little!==false&&LITTLE.has(t.k),grpOf=t=>each?t.k:MPART(t);
+  const sig=toks.map(t=>t.k+'='+t.w).join('|');
+  if(mode==='latest'){
+    /* the words that changed take a display face and keep it until the next change */
+    if(sig!==mS.sig){const prev=mS.words,ch=toks.filter(t=>t.grp!=='lead'&&!plain(t)&&(prev?prev.get(t.k)!==t.w:t.part==='time'));
+      const one=pickFace(pool,mS.last,salt);mS.feat={};ch.forEach(t=>{mS.feat[t.k]=each?pickFace(pool,null,salt+ORD[t.k]):one;});mS.last=one;
+      mS.words=new Map(toks.map(t=>[t.k,t.w]));}
+    toks.forEach(t=>{t.fid=mS.feat[t.k]||null;});}
+  else if(mode==='one'){
+    /* one part at a time, moving on when the sentence changes, or every minute or hour */
+    const ps=[...new Set(toks.map(MPART))].filter(p=>p!=='lead');
+    if(ps.length&&(mS.one==null||!ps.includes(mS.one)||(slot!=null?newSlot:sig!==mS.sig))){
+      let i=Math.floor(rnd(mSeed++*104729+salt)*ps.length);if(ps.length>1&&ps[i]===mS.one)i=(i+1)%ps.length;
+      mS.one=ps[i];mS.oneFace=pickFace(pool,mS.oneFace,salt);mS.oneEach={};}
+    toks.forEach(t=>{if(MPART(t)!==mS.one||plain(t))return;t.fid=each?(mS.oneEach[t.k]||(mS.oneEach[t.k]=pickFace(pool,null,salt+ORD[t.k]))):mS.oneFace;});}
+  else{
+    /* each part: the base face, a face of its own, or shuffled when its words change (or every minute or hour) */
+    const txt={};toks.forEach(t=>{if(P[MPART(t)]==='shuffle'&&!plain(t)){const g=grpOf(t);txt[g]=(txt[g]||'')+' '+t.w;}});
+    for(const g in txt){if(!(g in mS.fid)||(slot!=null?newSlot:txt[g]!==mS.seen[g]))mS.fid[g]=pickFace(pool,mS.fid[g],salt+(ORD[g]||g.length*31));mS.seen[g]=txt[g];}
+    toks.forEach(t=>{if(plain(t))return;const set=P[MPART(t)]||'base';t.fid=set==='shuffle'?mS.fid[grpOf(t)]||null:set==='base'?null:(faceById(set)?set:null);});}
+  mS.sig=sig;if(slot!=null)mS.slot=slot;}
+/* Fit, with display faces: try the sentence with each word in the widest face it
+   could take, so the type never outgrows the screen whichever face comes in. */
+const capScale=(face,f,match)=>match&&face!==f&&face.cap>0?Math.max(.5,Math.min(2,(f.cap/f.upm)/(face.cap/face.upm))):1;
+function fitVariants(toks,o){const M=o.mixed;if(!M)return[toks];
+  const pool=mPool(),f=baseFace(),match=M.match!==false,mode=M.mode||'parts',P=M.parts||{},plain=t=>M.little!==false&&LITTLE.has(t.k);
+  const uw=(id,str)=>{const face=faceById(id)||f;let x=0,prev=null;for(const ch of Array.from(str)){const g=glyphOf(face,ch);if(prev!==null)x+=face.kern(prev,g);x+=face.adv(g);prev=g;}return x/face.upm*capScale(face,f,match);};
+  const widest=t=>pool.reduce((b,id)=>uw(id,t.w)>uw(b,t.w)?id:b,null);
+  const v=fn=>toks.map(t=>Object.assign({},t,{fid:fn(t)}));
+  if(mode==='one')return[...new Set(toks.map(MPART))].filter(p=>p!=='lead').map(p=>v(t=>MPART(t)===p&&!plain(t)?widest(t):null));
+  if(mode==='latest')return[v(t=>t.grp!=='lead'&&!plain(t)?widest(t):null)];
+  return[v(t=>{if(plain(t))return null;const s=P[MPART(t)]||'base';return s==='shuffle'?widest(t):s==='base'?null:(faceById(s)?s:null);})];}
 const wPalette=()=>{const o=C.words;if(o.rotate&&o.themes&&o.themes.length)return o.themes[new Date().getHours()%o.themes.length];return{bg:o.bg,ink:o.ink,soft:o.soft,date:o.dateCol};};
 function hiFaceOf(){const id=C.words.hiFace;if(!id||id==='same')return null;
   if(eng.faceList().some(x=>x.id===id))return eng.F(id);if(!eng.anyLoaded()&&(id==='d1'||id==='d2'))return eng.F(id);return null;}
 const glyphOf=(f,ch)=>{let g=f.base(ch);if(!g&&ch==='’')g=f.base("'");return g;};
 /* what colour a word takes: hi (the highlight), rest, or the date's own colour */
 function roleOf(t,latest){const h=C.words.hi;
-  return h==='time'?(t.part==='time'?'hi':'rest'):h==='latest'?(latest.has(t.k)?'hi':'rest'):h==='parts'?(t.part==='time'?'hi':t.part==='date'?'date':'rest'):'rest';}
+  return h==='faces'?(t.fid?'hi':'rest'):h==='time'?(t.part==='time'?'hi':'rest'):h==='latest'?(latest.has(t.k)?'hi':'rest'):h==='parts'?(t.part==='time'?'hi':t.part==='date'?'date':'rest'):'rest';}
 const isHi=(t,latest)=>roleOf(t,latest)==='hi';
 /* Side bearings, so a flush edge lines up on the ink rather than the glyph box
    (an I and an O sit on the same vertical). From the outline where there is one. */
@@ -111,15 +161,17 @@ function bearings(f,id){const key=(f.name||'')+'|'+(f.weight||'')+'|'+id;let r=S
    phrases, and a lone short phrase on the last line pulls a neighbour down to
    keep it company. Stacked: one phrase to a line. */
 function wSet(toks,latest,W,H,size){
-  const o=C.words,f=eng.F(eng.baseSlot()),hf=hiFaceOf()||f;
+  const o=C.words,f=baseFace(),hf=o.mixed?f:(hiFaceOf()||f),match=o.mixed&&o.mixed.match!==false;
   const m=o.margin/100*Math.min(W,H),availW=Math.max(1,(W-2*m)*o.measure/100),trk=o.tracking/1000*size;
   let top=0,bot=0;
-  const shape=(face,str)=>{const k=size/face.upm,gl=[];let x=0,prev=null,wb=0;
-    for(const ch of Array.from(str)){const id=glyphOf(face,ch);if(prev!==null)x+=face.kern(prev,id)*k+trk;gl.push({id,x,ch,w:face.adv(id)*k});x+=face.adv(id)*k;prev=id;
+  const scOf=face=>capScale(face,f,match);
+  /* in Mixed type, tracking tightens the base face; display faces keep the spacing they were drawn with */
+  const shape=(face,str,sc)=>{const k=size*sc/face.upm,gl=[],tk=o.mixed&&face!==f?0:trk;let x=0,prev=null,wb=0;
+    for(const ch of Array.from(str)){const id=glyphOf(face,ch);if(prev!==null)x+=face.kern(prev,id)*k+tk;gl.push({id,x,ch,w:face.adv(id)*k});x+=face.adv(id)*k;prev=id;
       const b=face.bbox&&face.bbox(id);if(b){top=Math.max(top,b[0]*k);bot=Math.max(bot,b[1]*k);wb=Math.max(wb,b[1]*k);}}
     return{gl,w:x,bot:wb};};
   const sp=f.adv(glyphOf(f,' '))*size/f.upm*(o.space/100)+trk;
-  const words=toks.map(t=>{const role=roleOf(t,latest),face=role==='hi'?hf:f,s=shape(face,t.w);return{t,hl:role,face,gl:s.gl,w:s.w,bot:s.bot};});
+  const words=toks.map(t=>{const role=roleOf(t,latest),face=(t.fid&&faceById(t.fid))||(role==='hi'?hf:f),sc=scOf(face),s=shape(face,t.w,sc);return{t,hl:role,face,sc,gl:s.gl,w:s.w,bot:s.bot};});
   /* units: runs of words that hold together. A phrase too wide for the line is
      split at its weaker joins, and only then, as a last resort, between words. */
   const runs=(ws,min)=>{const out=[];let u=null;ws.forEach(w=>{if(!u){u={ws:[],w:0};out.push(u);}u.w+=(u.ws.length?sp:0)+w.w;u.ws.push(w);if(w.t.glue<min)u=null;});return out;};
@@ -146,8 +198,8 @@ function wSet(toks,latest,W,H,size){
   const map=new Map();let wide=0;
   lines.forEach((l,li)=>{const ws=l.us.flatMap(x=>x.ws),first=ws[0],last=ws[ws.length-1];wide=Math.max(wide,l.w);
     let x=o.align==='left'?m:o.align==='right'?W-m-l.w:(W-l.w)/2;
-    if(o.optical&&o.align==='left'&&first)x-=bearings(first.face,first.gl[0].id)[0]*size/first.face.upm;
-    if(o.optical&&o.align==='right'&&last)x+=bearings(last.face,last.gl[last.gl.length-1].id)[1]*size/last.face.upm;
+    if(o.optical&&o.align==='left'&&first)x-=bearings(first.face,first.gl[0].id)[0]*size*first.sc/first.face.upm;
+    if(o.optical&&o.align==='right'&&last)x+=bearings(last.face,last.gl[last.gl.length-1].id)[1]*size*last.sc/last.face.upm;
     const y=y0+capPx+li*lead;
     for(const w of ws){Object.assign(w,{x,y,li,size});map.set(w.t.k,w);x+=w.w+sp;}});
   if(!top){top=capPx;bot=.22*size;}
@@ -158,14 +210,14 @@ function wSet(toks,latest,W,H,size){
    seven seconds) still fits without breaking a phrase that never breaks, so the
    type never changes size as the time does. */
 function fitSize(W,H){const o=C.words,y=new Date().getFullYear(),key=W+'x'+H+'|'+wBuilt+'|'+y;let s=wFit.get(key);if(s)return s;
-  const worst=[sentence({y,mo:8,d:27,wd:3,h:o.h24?23:12,mi:57,s:57},o),sentence({y,mo:8,d:23,wd:3,h:o.h24?23:0,mi:37,s:37},o)].filter(t=>t.length);
+  const worst=[sentence({y,mo:8,d:27,wd:3,h:o.h24?23:12,mi:57,s:57},o),sentence({y,mo:8,d:23,wd:3,h:o.h24?23:0,mi:37,s:37},o)].filter(t=>t.length).flatMap(t=>fitVariants(t,o));
   let lo=.002*W,hi=.6*W;
   for(let i=0;i<22;i++){const mid=(lo+hi)/2;
     if(worst.every(t=>{const L=wSet(t,new Set(),W,H,mid);return L.blockH<=L.availH&&L.wide<=L.availW+.5&&!L.forced;}))lo=mid;else hi=mid;}
   if(wFit.size>20)wFit.clear();wFit.set(key,lo);return lo;}
 function wLayout(toks,latest,W,H){
   const o=C.words,size=o.fit?fitSize(W,H):o.size/100*W;
-  const key=W+'x'+H+'|'+size.toFixed(3)+'|'+toks.map(t=>t.k+'='+t.w+'*'+roleOf(t,latest)).join('|');let L=wCache.get(key);if(L)return L;
+  const key=W+'x'+H+'|'+size.toFixed(3)+'|'+toks.map(t=>t.k+'='+t.w+'*'+roleOf(t,latest)+'@'+(t.fid||'')).join('|');let L=wCache.get(key);if(L)return L;
   L=wSet(toks,latest,W,H,size);
   if(wCache.size>40)wCache.clear();wCache.set(key,L);return L;
 }
@@ -176,7 +228,7 @@ function wGlyphs(ctx,K,w,x,y,col,alpha,dy,clip,from,to){
   if(alpha<=.002)return;
   ctx.save();ctx.globalAlpha=Math.min(1,alpha);ctx.fillStyle=col;
   if(clip){ctx.setTransform(K);ctx.beginPath();ctx.rect(clip[0],clip[1],clip[2],clip[3]);ctx.clip();}
-  const k=w.size/w.face.upm,a=from||0,b=to==null?w.gl.length:to;
+  const k=w.size*(w.sc||1)/w.face.upm,a=from||0,b=to==null?w.gl.length:to;
   for(let i=a;i<b;i++){const g=w.gl[i];ctx.setTransform(K.multiply(new DOMMatrix([k,0,0,k,x+g.x,y+dy])));w.face.draw(ctx,g.id,false);}
   ctx.restore();
 }
@@ -205,8 +257,8 @@ function typed(t){
 }
 function wordsFrame(ctx,W,H,now,K){
   const o=C.words,ms=Date.now(),mk=Math.floor(ms/1000)+'|'+wBuilt;
-  if(mk!==wMemo[0])wMemo=[mk,sentence(parts(ms),o)];
-  const toks=wMemo[1],sig=toks.map(t=>t.k+'='+t.w).join('|');
+  if(mk!==wMemo[0]){wMemo=[mk,sentence(parts(ms),o)];assignFaces(wMemo[1]);}
+  const toks=wMemo[1],sig=toks.map(t=>t.k+'='+t.w+'@'+(t.fid||'')).join('|');
   if(sig!==wSig){
     if(wCur){const prev=new Map(wCur.map(t=>[t.k,t.w]));wPrev=wCur;wT0=now;wPrevLatest=wLatest;
       wLatest=new Set(toks.filter(t=>prev.get(t.k)!==t.w).map(t=>t.k));}
@@ -253,7 +305,8 @@ function wordsFrame(ctx,W,H,now,K){
     wGlyphs(ctx,K,b,x,y,mix(colOf(a.hl),colOf(b.hl),e),1,0,null,gi,end);}
 }
 /* Preview only: replay the last change, or the one a minute (or second) ago */
-function replay(){if(!isWords())return;const o=C.words;wCur=sentence(parts(Date.now()-(o.time&&o.secs?1000:60000)),o);wSig=wCur.map(t=>t.k+'='+t.w).join('|');wPrev=null;}
+function replay(){if(!isWords())return;const o=C.words;wCur=sentence(parts(Date.now()-(o.time&&o.secs?1000:60000)),o);
+  assignFaces(wCur);wSig=wCur.map(t=>t.k+'='+t.w+'@'+(t.fid||'')).join('|');wPrev=null;wMemo=['',[]];}
 
 const slotNow=()=>Math.floor(Date.now()/(Math.max(.5,C.every)*60000));
 function lookIndex(sl){const n=C.looks.length,o=C.looks.map((_,i)=>i);
@@ -261,6 +314,7 @@ function lookIndex(sl){const n=C.looks.length,o=C.looks.map((_,i)=>i);
   return o[((sl%n)+n)%n];}
 function build(){
   wCache.clear();wFit.clear();wBuilt++;
+  {const k=JSON.stringify((C.words||{}).mixed||null);if(k!==mCfg){mCfg=k;mReset();}}
   if(isWords()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
   if(isClock()){
     const c=C.clock;S=JSON.parse(JSON.stringify(C.base||{}));
@@ -313,5 +367,5 @@ setConfig(C);
 /* read-outs for tests and the preview */
 const lines=(W,H)=>{if(!wCur||!isWords())return{size:0,lines:[],x:[]};const L=wLayout(wCur,wLatest,W,H),out=[],xs=[];
   for(const w of L.words){if(!out[w.li]){out[w.li]=[];xs[w.li]=w.x;}out[w.li].push(w.t.w);}return{size:L.size,lines:out.map(a=>a.join(' ')),x:xs,forced:L.forced};};
-return{frame,setConfig,bg:()=>S&&S.bg,replay,words:()=>(wCur||[]).map(t=>t.w).join(' '),lines};
+return{frame,setConfig,bg:()=>S&&S.bg,replay,words:()=>(wCur||[]).map(t=>t.w).join(' '),faces:()=>(wCur||[]).map(t=>[t.w,t.fid||'']),lines};
 }
