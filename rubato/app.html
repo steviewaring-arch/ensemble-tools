@@ -1,0 +1,32 @@
+<body data-theme="dark">
+<div class="app">
+  <aside class="panel" id="panelBox">
+    <div class="brand">
+      <div class="bline"><span class="mark">Rubato</span><span class="ver">{{version}}</span></div>
+      <div class="bline caps">By ENSEMBLE</div>
+    </div>
+    <div class="scroll" id="panel" aria-label="Controls"></div>
+  </aside>
+  <div class="resizer" id="resizer" aria-hidden="true"></div>
+  <main class="stage" id="stage">
+    <div class="view" id="view"><canvas id="cv" width="1080" height="1080" aria-label="Animated type preview"></canvas></div>
+    <div class="stage-foot"><span id="dims"></span><span id="note"></span></div>
+    <div class="appearance" id="appearance">
+      <button data-t="light" title="Light mode" aria-label="Light mode"><svg viewBox="0 0 16 16" width="15" height="15"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
+      <button data-t="dark" title="Dark mode" aria-label="Dark mode"><svg viewBox="0 0 16 16" width="15" height="15"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2.4 A5.6 5.6 0 0 1 8 13.6 Z" fill="currentColor"/></svg></button>
+    </div>
+    <div class="capsule" id="transport">
+      <button class="ebtn studio-only" id="play" aria-label="Pause">Pause</button>
+      <input class="studio-only" id="scrub" type="range" min="0" max="1000" step="1" value="0" aria-label="Position in loop">
+      <span class="act-main studio-only" id="time">0.00 / 3.00 s</span>
+      <span class="ep-div studio-only"></span>
+      <button class="ebtn studio-only" id="rand" title="Randomise (R)">Randomise</button><button class="ebtn icon studio-only" id="randOpt" aria-label="Randomise options" aria-expanded="false" title="Randomise options"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="ebtn studio-only" id="undo" title="Undo (Ctrl/Cmd+Z)" disabled>Undo</button>
+    </div>
+    <div class="drop" id="drop">Drop fonts or an image</div>
+    <div class="status" id="toast" role="status" aria-live="polite"></div>
+  </main>
+</div>
+<input type="file" id="fontfile" accept=".otf,.ttf,.woff,font/otf,font/ttf,font/woff" multiple class="vh" tabindex="-1">
+<input type="file" id="imgfile" accept="image/png,image/jpeg,image/webp,image/gif" class="vh" tabindex="-1">
+<input type="file" id="jsonfile" accept=".json,application/json" class="vh" tabindex="-1">

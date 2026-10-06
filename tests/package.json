@@ -1,0 +1,8 @@
+{
+  "name": "ensemble-tools-tests",
+  "private": true,
+  "description": "Only here to fetch opentype.js 2.0.0 for the tests (the apps load the same version from jsDelivr).",
+  "devDependencies": {
+    "opentype.js": "2.0.0"
+  }
+}

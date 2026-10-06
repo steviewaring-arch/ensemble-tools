@@ -1,0 +1,20 @@
+  /* Ensemble tool system – shared tokens with Tutti */
+  :root{
+    --app:#ffffff; --ground:transparent; --card:#f7f7f5;
+    --btn:#ffffff; --btn-hover:#f1f1ef; --seg:#ecebe8;
+    --ink:#2b2b2b; --ink-strong:#111111; --muted:#89878e;
+    --keyline:rgba(43,43,43,.10); --hair:rgba(43,43,43,.14);
+    --fill-ink:#2b2b2b; --on-ink:#ffffff; --focus:#4a7dff;
+    --shadow:0 4px 16px rgba(0,0,0,.08);
+    --face:"aktiv-grotesk","Aktiv Grotesk","Helvetica Neue",Arial,sans-serif;
+    box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+    color-scheme:light;
+  }
+  body[data-theme="dark"]{
+    --app:#1c1c1e; --card:#2a2a2e;
+    --btn:#34343a; --btn-hover:#3e3e45; --seg:#1e1e22;
+    --ink:#f2f1ee; --ink-strong:#ffffff; --muted:#97959c;
+    --keyline:rgba(255,255,255,.12); --hair:rgba(255,255,255,.17);
+    --fill-ink:#f2f1ee; --on-ink:#1c1c1e;
+    --shadow:0 4px 18px rgba(0,0,0,.5); color-scheme:dark;
+  }
