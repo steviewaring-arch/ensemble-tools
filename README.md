@@ -5,12 +5,12 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 | Tool | What it does | Live |
 |---|---|---|
 | **Tutti** 6.0 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
-| **Rubato** 0.9 | Type in motion – alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) |
+| **Rubato** 1.0 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
 | **Tempo** 0.1 | A clock screen saver for Mac and Windows, set in your own typeface | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
-Rubato and Tempo share one core (type engine, font loading, controls, design system). Tutti is copied in as it is, and moves onto the shared core later.
+Rubato and Tempo share one core (font loading, controls, design system). From 1.0 Rubato has its own copy of the type engine, so its new features never reach Tempo; Tempo keeps `shared/engine.js`. Tutti is copied in as it is, and moves onto the shared core later.
 
 ## How the repo is laid out
 
@@ -19,18 +19,22 @@ shared/        used by more than one app
   tokens.css       colours, type, shadows – light and dark
   components.css   cards, pill sliders, toggles, segmented buttons, tooltips, capsule
   page.html        the page shell every app is poured into
-  engine.js        the type engine – createEngine()
+  engine.js        the type engine – createEngine() (Tempo's; Rubato has its own from 1.0)
   core.js          settings, storage, font loading, image layer, control builders, tooltips, Fonts card
   core-end.js      downloads, toasts, drag and drop, light/dark, panel resizing, start-up
   gif.js           GIF encoder
   home.html        the index page that links to all three tools
-rubato/        app.html (markup), app.js (Studio cards, picker, randomise, presets), export.js
+rubato/        engine.js (Rubato's type engine: blocks, physics, kerning, Jitter/Assemble/Scramble)
+               controls.js (steppers, dials, range pair, loop bar, path pad, More folds)
+               stage.js (kerning on the preview, physics guides, preset tiles)
+               app.js (cards, picker, randomise, presets), export.js, app.html, app.css
 tempo/         app.html, app.js (screen saver cards and exports), saver.js (clock runtime)
   mac/             Mac .saver packager (WebViewScreenSaver, Apache 2.0)
   win/             Windows .scr host – C source, built .exe, and its base64 copy (host.js)
 tutti/         index.html – Tutti 6.0, unchanged
 reference/     rubato-0.8.1.html – the last combined app, kept for the parity tests
-tests/         parity.py, split_check.py, legacy/ (the v0.8.1 handover tests)
+archive/       earlier versions still served live – rubato-0.9.html → docs/rubato/0.9/
+tests/         parity.py, split_check.py, rubato_regress.py, rubato_features.py, legacy/ (the v0.8.1 handover tests)
 docs/          the built apps – what GitHub Pages serves. Don't edit by hand.
 build.py       stitches each app into one file in docs/
 ```
@@ -43,7 +47,7 @@ build.py       stitches each app into one file in docs/
 python3 build.py
 ```
 
-Writes `docs/rubato/index.html`, `docs/tempo/index.html`, `docs/tutti/index.html` and `docs/index.html`, and checks every script for syntax errors. Commit `docs/` along with the source – it's what gets published.
+Writes `docs/rubato/index.html`, `docs/tempo/index.html`, `docs/tutti/index.html`, `docs/index.html` and the archived `docs/rubato/0.9/`, and checks every script for syntax errors. Commit `docs/` along with the source – it's what gets published.
 
 ## Test
 
@@ -59,6 +63,8 @@ Then:
 ```
 python3 tests/parity.py        # Rubato and Tempo against v0.8.1 – writes tests/out/report.md
 python3 tests/split_check.py   # Rubato and Tempo sharing fonts and looks
+python3 tests/rubato_regress.py   # Rubato 1.0 draws exactly what 0.9 drew, for 0.9's settings
+python3 tests/rubato_features.py  # Rubato 1.0's new features
 ```
 
 The parity tests drive the v0.8.1 reference and the new apps through the same steps, with randomness and the clock pinned, and compare every frame, download and panel read-out byte for byte. They need Chromium (via Playwright) and the Poppins and Lora fonts – set `FONTS=/path/to/folder` if they're not in `/usr/share/fonts/truetype/google-fonts`.

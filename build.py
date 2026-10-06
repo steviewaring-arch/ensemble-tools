@@ -9,6 +9,10 @@ Google Fonts and opentype.js links it has always had):
     docs/tempo/index.html    Tempo – clock screen saver
     docs/tutti/index.html    Tutti – copied from tutti/index.html unchanged
     docs/index.html          a small page linking to all three
+    docs/rubato/0.9/         earlier versions kept live, from archive/
+
+Rubato has its own copy of the type engine (rubato/engine.js) from 1.0 on;
+Tempo keeps shared/engine.js, so Rubato changes never reach Tempo's exports.
 
 Never edit docs/ by hand – change the sources and run this again.
 """
@@ -25,16 +29,21 @@ def strip1(s):
     # files end with one newline; the script tags add their own
     return s[:-1] if s.endswith('\n') else s
 
+# Earlier versions kept live next to the current one. Each archived file keeps
+# its own settings (it reads the current app's the first time, then saves under
+# its own prefix), so opening an old version never overwrites newer settings.
+ARCHIVE = [('rubato', '0.9', 'archive/rubato-0.9.html', "const APP='rubato';", "const APP='rubato-0.9';")]
+
 # Each app: page title, version, its markup, extra scripts that must keep their
 # ids (Tempo's screen saver export copies #rubato-engine and #rubato-saver into
 # the exported page), and the app files that go inside the shared wrapper.
 APPS = {
     'rubato': dict(
-        title='Rubato — by Ensemble', version='0.9',
-        body='rubato/app.html',
-        tagged=[('rubato-engine', 'shared/engine.js')],
+        title='Rubato — by Ensemble', version='1.0',
+        body='rubato/app.html', css='rubato/app.css',
+        tagged=[('rubato-engine', 'rubato/engine.js')],
         before='shared/gif.js',
-        parts=['rubato/app.js', 'rubato/export.js'],
+        parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
         title='Tempo — by Ensemble', version='0.1',
@@ -48,6 +57,8 @@ APPS = {
 
 def build_app(name, cfg):
     css = read('shared/tokens.css') + read('shared/components.css')
+    if cfg.get('css'):
+        css += read(cfg['css'])
     body = read(cfg['body']).replace('{{version}}', cfg['version'])
     scripts = ''
     for sid, path in cfg['tagged']:
@@ -97,6 +108,12 @@ def main():
     os.makedirs(os.path.join(DOCS, 'tutti'), exist_ok=True)
     shutil.copyfile(os.path.join(ROOT, 'tutti/index.html'), os.path.join(DOCS, 'tutti/index.html'))
     print('tutti: docs/tutti/index.html (copied unchanged)')
+    for app, ver, src, a, b in ARCHIVE:
+        html = read(src)
+        if html.count(a) != 1:
+            print(f'  archive {src}: storage line not found'); ok = False
+        write(f'{app}/{ver}/index.html', html.replace(a, b))
+        print(f'{app} {ver}: docs/{app}/{ver}/index.html (archived)')
     shutil.copyfile(os.path.join(ROOT, 'shared/home.html'), os.path.join(DOCS, 'index.html'))
     open(os.path.join(DOCS, '.nojekyll'), 'w').close()
     if not ok:
