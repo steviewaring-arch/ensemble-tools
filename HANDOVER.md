@@ -41,6 +41,25 @@ Everything is per browser and per site, so on GitHub Pages Rubato and Tempo shar
 - Exports still say "Rubato" in a few places (the read-mes' "Made with Rubato", the fallback name when no font is loaded, the Windows folder `Rubato Screen Savers`, `window.__RUBATO__` inside the HTML). Left alone so Tempo's exports match 0.8.1 exactly. Rename in Tempo 0.2.
 - Found while testing, present in 0.8.1 too: Tempo's Laptop/Display/Portrait buttons don't move their highlight when clicked (the preview does change). In 0.8.1 switching tabs repainted them; now only a reload does. One-line fix – worth doing first in Tempo 0.2.
 
+## Working in separate chats
+One chat per stream: **Tutti**, **Rubato**, **Tempo**. Each starts by cloning this repo and reading this file.
+
+What's linked:
+
+| Change made in… | Affects |
+|---|---|
+| `rubato/` | Rubato only |
+| `tempo/` (incl. `saver.js`, `mac/`, `win/`) | Tempo only |
+| `tutti/` | Tutti only – it shares nothing yet |
+| `shared/engine.js` | Rubato **and** Tempo – and every screen saver Tempo exports from then on |
+| `shared/core.js`, `core-end.js`, `tokens.css`, `components.css`, `page.html` | Rubato **and** Tempo (controls, font loading, look and feel) |
+| Rubato's settings (`D` in `core.js`, e.g. renaming a setting) | Tempo too – it reads Rubato's texts, glyph picks, motion and saved looks |
+
+Rules:
+1. Pull before you start; push when you finish. Don't have two chats editing `shared/` at the same time.
+2. Any change to `shared/` means running both `tests/parity.py` and `tests/split_check.py`, rebuilding both apps, and noting it in `CHANGELOG.md` under both apps.
+3. Once an app deliberately changes behaviour, its parity scenarios against 0.8.1 will start to differ – that's expected. Say which differences are intended in the changelog.
+
 ## Tests
 - `tests/parity.py` – the six v0.8.1 handover tests (`tests/legacy/`), rewritten to drive both the reference and the new apps with randomness and the clock pinned. Compares 87 results: canvas frames, SVG/PNG/GIF, screen saver HTML, Mac and Windows zips, panel text, storage. Last run (`tests/PARITY-REPORT.md`): 85 byte-identical; the other two are live-preview frames that vary a little between runs of 0.8.1 itself, and the new build matched 0.8.1 exactly on both.
 - `tests/split_check.py` – 13 checks on the new sharing between Rubato and Tempo.
