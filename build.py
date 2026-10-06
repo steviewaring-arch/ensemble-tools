@@ -118,7 +118,8 @@ def main():
     html = read('decentish/index.html')
     ok = check_scripts('decentish', html) and ok
     write('decentish/index.html', html)
-    print(f'decentish 0.1: docs/decentish/index.html ({len(html.encode()) // 1024} KB, copied after a syntax check)')
+    ver = re.search(r"const VERSION='([0-9.]+)'", html).group(1)
+    print(f'decentish {ver}: docs/decentish/index.html ({len(html.encode()) // 1024} KB, copied after a syntax check)')
     shutil.copyfile(os.path.join(ROOT, 'shared/home.html'), os.path.join(DOCS, 'index.html'))
     open(os.path.join(DOCS, '.nojekyll'), 'w').close()
     if not ok:

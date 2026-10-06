@@ -1,4 +1,4 @@
-"""Checks for Decentish – the logic and the voice, with every outside source
+"""Checks for Decentish 0.2 – the planner and the voice, with every outside source
 faked so it runs offline and gives the same answer every time.
 
     python3 tests/decentish_check.py
@@ -27,7 +27,6 @@ SUNCALC = open(os.path.join(NM, 'suncalc', 'suncalc.js')).read()
 OH = open(os.path.join(NM, 'opening_hours', 'build', 'opening_hours.js')).read()
 
 MONTON = (53.495079, -2.350899)
-BARRA = (56.9818, -7.4583)
 
 # ---------- fake Overpass ----------
 def node(name, lat, lon, hours=None, **tags):
@@ -42,19 +41,33 @@ MONTON_PLACES = [
     node('MaltDog Monton', 53.4902723, -2.3502318, 'Mo 15:30-22:30; Tu-Th 15:30-23:00; Fr,Sa 14:00-23:00; Su 14:00-22:00', amenity='pub'),
     node('The Monton Tap', 53.4902274, -2.350053, 'Mo-Th 16:00-23:00; Fr 15:00-23:30; Sa 14:00-23:30; Su 14:00-23:00', amenity='bar'),
     node('The Park', 53.4905758, -2.3499938, 'Mo-Th 12:00-23:30; Fr,Sa 12:00-24:00; Su 12:00-23:00', amenity='pub'),
-    node('Pizza Monton', 53.4904333, -2.3505194, 'Mo-Th 15:00-01:00; Fr,Sa 12:00-02:00; Su 12:00-01:00', amenity='fast_food'),
-    node('Zafrani', 53.4918597, -2.3530098, 'Mo-Th 16:00-22:30; Fr,Sa 16:00-23:30; Su 16:00-22:30', amenity='restaurant'),
-    node('Shabna', 53.4905517, -2.350846, 'Mo-Su 16:00-23:00', amenity='fast_food'),
-    node('The Naz', 53.4911464, -2.3515991, 'Mo-Su 16:00-23:00', amenity='restaurant'),
-    node('Vintage Ambiance', 53.4912236, -2.3516491, 'Mo-Th 09:00-19:00; Fr,Sa 09:00-23:00; Su 09:00-19:00', amenity='restaurant'),
-    node('Eden Italian Restaurant', 53.4912418, -2.3523261, 'Mo-Th 16:00-22:00; Fr,Sa 12:00-22:00; Su 13:00-21:00', amenity='restaurant'),
+    node('Pizza Monton', 53.4904333, -2.3505194, 'Mo-Th 15:00-01:00; Fr,Sa 12:00-02:00; Su 12:00-01:00', amenity='fast_food', cuisine='pizza'),
+    node('Zafrani', 53.4918597, -2.3530098, 'Mo-Th 16:00-22:30; Fr,Sa 16:00-23:30; Su 16:00-22:30', amenity='restaurant', cuisine='indian'),
+    node('Shabna', 53.4905517, -2.350846, 'Mo-Su 16:00-23:00', amenity='fast_food', cuisine='indian'),
+    node('The Naz', 53.4911464, -2.3515991, 'Mo-Su 16:00-23:00', amenity='restaurant', cuisine='indian'),
+    node('Vintage Ambiance', 53.4912236, -2.3516491, 'Mo-Th 09:00-19:00; Fr,Sa 09:00-23:00; Su 09:00-19:00', amenity='restaurant', cuisine='british'),
+    node('Eden Italian Restaurant', 53.4912418, -2.3523261, 'Mo-Th 16:00-22:00; Fr,Sa 12:00-22:00; Su 13:00-21:00', amenity='restaurant', cuisine='italian'),
     node('The Garden Bar & Restaurant', 53.4901136, -2.3498639, 'Mo-We 10:00-22:00; Th 09:00-22:00; Fr,Sa 09:00-01:00; Su 09:00-22:00', amenity='restaurant'),
     node('Monton Carlo', 53.4912695, -2.3516846, 'Mo-We 09:00-18:30; Th 09:00-22:30; Fr,Sa 09:00-23:00; Su 09:00-18:30', amenity='cafe'),
-    node('Blossom Bistro', 53.4908037, -2.3508113, 'Mo-Th 11:00-22:00; Fr,Sa 11:00-23:00; Su 11:00-22:00', amenity='restaurant'),
-    node('Chinese Express', 53.4845619, -2.34014, 'Mo off; Tu-Su 16:30-23:00', amenity='fast_food'),
+    node('Blossom Bistro', 53.4908037, -2.3508113, 'Mo-Th 11:00-22:00; Fr,Sa 11:00-23:00; Su 11:00-22:00', amenity='restaurant', cuisine='turkish'),
+    node('Chinese Express', 53.4845619, -2.34014, 'Mo off; Tu-Su 16:30-23:00', amenity='fast_food', cuisine='chinese'),
     node('Corner Shop (test)', 53.4930, -2.3515, 'Mo-Su 07:00-22:00', shop='convenience'),
     node('Hourless Bar (test)', 53.4925, -2.3520, None, amenity='bar'),
 ]
+TOWN = (53.4808, -2.2369)
+TOWN_PLACES = [
+    node('NQ Test Bar', 53.4835, -2.2355, 'Mo-Su 12:00-02:00', amenity='bar'),
+    node('Test Tap', 53.4829, -2.2340, 'Mo-Su 12:00-23:30', amenity='pub'),
+    node('Test Wine Bar', 53.4815, -2.2390, 'Mo-Su 12:00-23:00', amenity='bar'),
+    node('Test Bistro', 53.4822, -2.2378, 'Mo-Su 12:00-22:00', amenity='restaurant', cuisine='french'),
+    node('Test Gallery', 53.4790, -2.2400, 'Tu-Su 10:00-17:00', tourism='gallery'),
+    node('Test Club', 53.4842, -2.2330, 'We-Sa 22:00-04:00', amenity='nightclub'),
+    node('Late Test Kebab', 53.4838, -2.2362, 'Mo-Su 17:00-04:00', amenity='fast_food', cuisine='kebab'),
+    node('Test Cafe', 53.4826, -2.2349, 'Mo-Su 08:00-17:00', amenity='cafe'),
+    node('Test Cinema', 53.4800, -2.2420, None, amenity='cinema'),
+]
+NQ = (53.4840, -2.2338)
+BARRA = (56.9818, -7.4583)
 BARRA_WIDE = [node('The Test Arms', 56.9530, -7.4870, 'Mo-Su 12:00-23:00', amenity='pub')]
 
 # ---------- fake weather ----------
@@ -105,15 +118,19 @@ def install_fakes(page, overpass_down=False):
     page.route('**/suncalc@1.9.0/**', lambda r: r.fulfill(body=SUNCALC, content_type='application/javascript'))
     page.route('**/opening_hours@3.15.0/**', lambda r: r.fulfill(body=OH, content_type='application/javascript'))
 
+    def pc(code, lat, lon, ward, district, country='England'):
+        return {'status': 200, 'result': {'postcode': code, 'latitude': lat, 'longitude': lon,
+                                          'admin_ward': ward, 'admin_district': district, 'country': country}}
     def postcodes(r):
         u = urllib.parse.urlparse(r.request.url); q = urllib.parse.parse_qs(u.query)
-        if u.path == '/postcodes' and q:
-            return r.fulfill(**js({'status': 200, 'result': [{'postcode': 'M30 9LR', 'admin_ward': 'Eccles',
-                                                               'admin_district': 'Salford', 'country': 'England'}]}))
-        if u.path.lower().replace('%20', ' ') in ('/postcodes/m30 9lr',):
-            return r.fulfill(**js({'status': 200, 'result': {'postcode': 'M30 9LR', 'latitude': MONTON[0], 'longitude': MONTON[1],
-                                                              'admin_ward': 'Eccles', 'admin_district': 'Salford', 'country': 'England'}}))
-        if u.path.lower() == '/outcodes/hs9':
+        path = urllib.parse.unquote(u.path).lower()
+        if path == '/postcodes' and q:
+            if near(q, NQ, .01):
+                return r.fulfill(**js({'status': 200, 'result': [pc('M4 1HN', *NQ, 'Piccadilly', 'Manchester')['result']]}))
+            return r.fulfill(**js({'status': 200, 'result': [pc('M30 9LR', *MONTON, 'Eccles', 'Salford')['result']]}))
+        if path == '/postcodes/m30 9lr': return r.fulfill(**js(pc('M30 9LR', *MONTON, 'Eccles', 'Salford')))
+        if path == '/postcodes/m4 1hn': return r.fulfill(**js(pc('M4 1HN', *NQ, 'Piccadilly', 'Manchester')))
+        if path == '/outcodes/hs9':
             return r.fulfill(**js({'status': 200, 'result': {'outcode': 'HS9', 'latitude': BARRA[0], 'longitude': BARRA[1],
                                                               'admin_ward': ['Barraigh, Bhatarsaigh, Eirisgeigh agus Uibhist a Deas'],
                                                               'admin_district': ['Na h-Eileanan Siar'], 'country': ['Scotland']}}))
@@ -123,7 +140,8 @@ def install_fakes(page, overpass_down=False):
 
     def nominatim(r):
         q = urllib.parse.parse_qs(urllib.parse.urlparse(r.request.url).query)
-        if near(q, MONTON): return r.fulfill(**js({'address': {'suburb': 'Monton', 'town': 'Eccles'}}))
+        if near(q, MONTON, .01): return r.fulfill(**js({'address': {'suburb': 'Monton', 'town': 'Eccles'}}))
+        if near(q, NQ, .01): return r.fulfill(**js({'address': {'quarter': 'Northern Quarter', 'city': 'Manchester'}}))
         if q.get('zoom') == ['14']: return r.fulfill(**js({'address': {'village': 'Castlebay'}}))
         return r.fulfill(**js({'address': {'island': 'Barra', 'hamlet': 'Borgh'}}))
     page.route('https://nominatim.openstreetmap.org/**', nominatim)
@@ -135,13 +153,15 @@ def install_fakes(page, overpass_down=False):
         data = urllib.parse.unquote_plus((r.request.post_data or '')[5:])
         m = re.search(r'around:(\d+),([-\d.]+),([-\d.]+)', data)
         radius, lat, lon = int(m.group(1)), float(m.group(2)), float(m.group(3))
-        if abs(lat - MONTON[0]) < .05: els = MONTON_PLACES
+        if abs(lat - TOWN[0]) < .006 and abs(lon - TOWN[1]) < .01: els = TOWN_PLACES
+        elif abs(lat - MONTON[0]) < .01: els = MONTON_PLACES
         else: els = BARRA_WIDE if radius > 5000 else []
         return r.fulfill(**js({'elements': els}))
     for host in ['overpass-api.de', 'overpass.kumi.systems', 'overpass.private.coffee']:
         page.route(f'https://{host}/**', overpass)
 
-STOPS = ['Buttoned up', 'Decentish', 'Three pints and a meal deal', 'Pissed-up uncle on a mad one']
+STOPS = ['Tony Blair on a culture trip', 'Three pints and a meal deal', 'Pissed-up uncle on a mad one']
+WHENS = ['now', 'soon', 'tomorrow']
 
 def wait_done(pg, timeout=20):
     t0 = time.time()
@@ -153,8 +173,18 @@ def wait_done(pg, timeout=20):
 def lines(pg):
     return pg.locator('#lines p').all_inner_texts()
 
+def text(pg):
+    return ' '.join(lines(pg))
+
 def set_dial(pg, n):
     pg.evaluate(f"(()=>{{const d=document.querySelector('#dial');d.value={n};d.dispatchEvent(new Event('input'))}})()")
+
+def set_when(pg, w):
+    pg.click(f'[data-when="{w}"]')
+
+def view(pg, dial, w='now'):
+    set_dial(pg, dial); set_when(pg, w)
+    return lines(pg)
 
 def test_run(pg, at='', postcode=''):
     if pg.locator('#lab').is_hidden(): pg.click('#labToggle')
@@ -164,19 +194,24 @@ def test_run(pg, at='', postcode=''):
     time.sleep(.2)
     return wait_done(pg)
 
-results, report = [], ['# Decentish – test lines', '']
+results, report = [], ['# Decentish 0.2 – test lines', '',
+    'Every scenario at every dial setting and every When. Places are Monton Road as Google listed them on 6 October 2026; '
+    '"Test" places in town and on Barra are made up; the weather is made up but shaped like that week.', '']
 def check(name, ok, detail=''):
     results.append(ok)
     print(('PASS ' if ok else 'FAIL ') + name + (f' – {detail}' if detail else ''))
 
 def record(title, pg):
     report.append(f'## {title}\n')
-    for n in range(4):
-        set_dial(pg, n); time.sleep(.05)
-        report.append(f'**{STOPS[n]}**\n')
-        report.extend('> ' + l + '  ' for l in lines(pg))
-        report.append('')
-    report.append('`' + pg.inner_text('#facts') + '`\n')
+    for w in WHENS:
+        for n in range(3):
+            L = view(pg, n, w)
+            report.append(f'**{STOPS[n]} · {w.capitalize()}**\n')
+            report.extend('> ' + l + '  ' for l in L)
+            rc = pg.inner_text('#receipts')
+            if rc: report.append('\n`' + rc + '`')
+            report.append('')
+    set_when(pg, 'now')
 
 def main():
     os.makedirs(OUT, exist_ok=True)
@@ -192,90 +227,102 @@ def main():
         install_fakes(pg)
         pg.goto(url)
         check('Starts by itself when location is already allowed', wait_done(pg))
-        check('First visit opens on Decentish', pg.inner_text('#dialName') == 'Decentish')
+        check('First visit opens on Three pints, Now', pg.inner_text('#dialName') == 'Three pints and a meal deal'
+              and pg.get_attribute('[data-when="now"]', 'aria-pressed') == 'true')
 
-        # Tuesday, ten past eleven – the night we tested by hand
+        # Tuesday, ten past eleven
         check('Tuesday 23:10 run finishes', test_run(pg, '2026-10-06T23:10'))
-        set_dial(pg, 2); L = lines(pg)
-        check('Place name comes from the neighbourhood, not the ward', 'Monton' in L[0], L[0])
-        check('Mild night after a sunny day', any('Cracking flags earlier' in l for l in L), json.dumps(L))
-        check('Colder tomorrow is flagged', any('colder' in l for l in L))
-        check('All shut, with the two survivors named',
-              any('All shut, bar The Park' in l and 'Pizza Monton' in l for l in L), json.dumps(L))
-        check('Last orders at The Park, 20 minutes left, 8 minutes away',
-              any("The Park's got 20 minutes left and it's 8 minutes away" in l for l in L))
-        check('Pizza Monton not repeated once named', sum('Pizza Monton' in l for l in L) == 1)
-        check('Verdict is leg it', L[-1] == 'Verdict: leg it.', L[-1])
-        check('Location buttons hidden once it has run', pg.locator('#ask').is_hidden())
-        check('Workings hidden until asked for', pg.locator('#workings').is_hidden())
-        set_dial(pg, 0); L0 = lines(pg)
-        check('Buttoned up gives exact times', 'Tuesday 6 October. 23:10. Monton.' == L0[0] and any('23:30' in l for l in L0), json.dumps(L0))
-        facts0 = pg.inner_text('#facts')
-        set_dial(pg, 3); L3 = lines(pg)
-        check('Uncle swears and says gone eleven', L3[0].startswith('Gone eleven on a Tuesday') and any('shit' in l for l in L3), json.dumps(L3))
-        check('The facts strip is the same at every setting', pg.inner_text('#facts') == facts0)
-        time.sleep(.8); bg = pg.evaluate("getComputedStyle(document.body).backgroundColor")
-        check('Uncle is red', bg in ('rgb(255, 74, 46)',), bg)
+        L = view(pg, 1)
+        check('Place name is the neighbourhood', 'Monton' in L[0], L[0])
+        check('Three pints: last orders at The Park, then Pizza Monton',
+              "The Park's got 20 minutes left and it's 8 minutes away" in text(pg) and 'pizza at Pizza Monton' in text(pg), json.dumps(L))
+        check('Three pints never just says bed at 23:10', 'bed' not in text(pg).lower(), json.dumps(L))
+        check('Weather advice after the plan', len(L) >= 4 and any(k in L[-2] for k in ('degrees', 'coat', 'Coat', 'Brolly', 'Jacket', 'Aviators')), json.dumps(L))
+        check('Receipts list the plan exactly', 'The Park, pub, 8 min walk, till 23:30' in pg.inner_text('#receipts'), pg.inner_text('#receipts'))
+        facts1 = pg.inner_text('#facts')
+        L = view(pg, 2)
+        check('Mad one: The Park, then into town, then a kebab',
+              L[1].startswith('The Park shuts in 20 minutes') and 'Then town. 30 minutes.' in text(pg) and 'Late Test Kebab' in text(pg), json.dumps(L))
+        check('The facts strip is the same at every setting', pg.inner_text('#facts') == facts1)
+        time.sleep(.8)
+        check('Mad one is red', pg.evaluate("getComputedStyle(document.body).backgroundColor") == 'rgb(255, 74, 46)')
+        L = view(pg, 0)
+        check('Blair rolls to tomorrow evening: dinner, then a glass of something',
+              'Here is tomorrow, from 18:00' in text(pg) and 'glass of something' in text(pg), json.dumps(L))
+        L = view(pg, 1, 'tomorrow')
+        check('Tomorrow toggle: Wednesday from half five, pint first',
+              L[0].startswith('Tomorrow. Wednesday. From half five.') and 'Pint at' in text(pg) or 'for a pint' in text(pg), json.dumps(L))
+        L = view(pg, 1, 'soon')
+        check('Soon at 23:10 rolls forward, with a reason', any('Tomorrow, then' in l for l in L), json.dumps(L))
+        set_when(pg, 'now'); set_dial(pg, 1)
+        before = pg.inner_text('#timings')
+        pg.click('#refresh'); time.sleep(.3)
+        check('Another plan re-picks without fetching again', pg.inner_text('#timings') == before and len(lines(pg)) >= 3)
         record('Tuesday 6 October, 23:10, Monton', pg)
         set_dial(pg, 1); time.sleep(.7)
-        pg.screenshot(path=os.path.join(OUT, 'decentish-tue-2310-decentish.png'), full_page=True)
-        set_dial(pg, 3); time.sleep(.7)
-        pg.screenshot(path=os.path.join(OUT, 'decentish-tue-2310-uncle.png'), full_page=True)
+        pg.screenshot(path=os.path.join(OUT, 'decentish-tue-2310-pints.png'), full_page=True)
+        set_dial(pg, 2); time.sleep(.7)
+        pg.screenshot(path=os.path.join(OUT, 'decentish-tue-2310-mad.png'), full_page=True)
         width = pg.evaluate('document.documentElement.scrollWidth')
         check('No sideways scroll at phone width', width <= 390, str(width))
+        check('Location buttons hidden once it has run', pg.locator('#ask').is_hidden())
         pg.click('#workingsToggle')
         w = pg.inner_text('#workings')
-        check('Workings list every place with its status', 'The Park · pub · open till 23:30' in w and 'hours' in w)
+        check('Workings list local and town places', 'The Park · pub' in w and 'town · Test Cinema · listing · needs listings' in w, w[:300])
         pg.click('#workingsToggle')
 
         check('Friday 17:30 run finishes', test_run(pg, '2026-10-09T17:30'))
-        set_dial(pg, 2); L = lines(pg)
-        check('Friday teatime is busy and says go out', any('Loads open' in l for l in L) and L[-1] == 'Verdict: out out.', json.dumps(L))
-        check('Friday line', L[0].startswith('Friday.'), L[0])
+        L = view(pg, 1)
+        check('Friday opener', L[0].startswith('Friday.') and 'You made it' in L[0], L[0])
+        check('Three pints Friday: three steps', pg.inner_text('#receipts').count('→') == 2, pg.inner_text('#receipts'))
+        L = view(pg, 0)
+        check('Blair Friday: dinner first, then a glass', L[1].startswith('Dinner at') and 'glass of something' in text(pg), json.dumps(L))
+        check('Blair never picks a takeaway', 'Pizza Monton' not in text(pg) and 'Shabna' not in text(pg), json.dumps(L))
         record('Friday 9 October, 17:30, Monton', pg)
 
         check('Sunday 10:00 run finishes', test_run(pg, '2026-10-11T10:00'))
-        set_dial(pg, 2); L = lines(pg)
-        check('Sunday morning: cafés count as open, brew verdict', any('Brew' in l for l in L), json.dumps(L))
+        L = view(pg, 0)
+        check('Blair Sunday morning: gallery in town first', 'Start at Test Gallery, in town' in text(pg), json.dumps(L))
         record('Sunday 11 October, 10:00, Monton', pg)
 
         check('03:00 run finishes', test_run(pg, '2026-10-07T03:00'))
-        set_dial(pg, 3); L = lines(pg)
-        check("Small hours: stupid o'clock and bed", "stupid o'clock" in L[0] and 'bed' in L[-1].lower(), json.dumps(L))
+        L = view(pg, 1)
+        check('Three pints at 03:00: all shut, tomorrow', any('all shut. Tomorrow, then' in l for l in L), json.dumps(L))
+        L = view(pg, 2)
+        check('Mad one at 03:00 still finds the late kebab in town', L[1].startswith('Town. 30 minutes. Late Test Kebab') and 'You animal' in text(pg), json.dumps(L))
         record('Wednesday 7 October, 03:00, Monton', pg)
 
+        check('Northern Quarter Friday run finishes', test_run(pg, '2026-10-09T21:30', 'M4 1HN'))
+        L = view(pg, 2)
+        check('In town, no trip into town', 'Northern Quarter' in L[0] and 'Then town' not in text(pg), json.dumps(L))
+        record('Friday 9 October, 21:30, Northern Quarter (M4 1HN)', pg)
+
         check('Barra run finishes', test_run(pg, '2026-10-06T20:00', 'HS9'))
-        set_dial(pg, 3); L = lines(pg)
-        check('Remote: arse end of nowhere, names the nearest place and village',
+        L = view(pg, 2)
+        check('Outside Greater Manchester says so', any("You're not in Manchester" in l for l in L), json.dumps(L))
+        check('Remote: arse end of nowhere, nearest place and village',
               any('arse end of nowhere' in l and 'The Test Arms in Castlebay' in l for l in L), json.dumps(L))
-        check('Remote verdict', 'horse' in L[-1], L[-1])
+        check('Remote sign-off', 'horse' in L[-1], L[-1])
         record('Tuesday 6 October, 20:00, Barra (HS9)', pg)
-        pg.screenshot(path=os.path.join(OUT, 'decentish-barra-uncle.png'), full_page=True)
+        pg.screenshot(path=os.path.join(OUT, 'decentish-barra-mad.png'), full_page=True)
 
-        check('Bad postcode asks again', test_run(pg, '', 'ZZ1 1ZZ') or True)
-        time.sleep(.5)
-        check('Bad postcode line and form shown', pg.locator('#ask').is_visible() and 'postcode' in lines(pg)[0].lower(), json.dumps(lines(pg)))
-        timings = pg.inner_text('#timings')
-        check('Stopwatch lists each source', all(k in timings for k in ['Postcode', 'Total']), timings)
+        test_run(pg, '', 'ZZ1 1ZZ'); time.sleep(.5)
+        check('Bad postcode asks again', pg.locator('#ask').is_visible() and 'postcode' in lines(pg)[0].lower(), json.dumps(lines(pg)))
 
-        # Map down
         pg2 = ctx.new_page(); install_fakes(pg2, overpass_down=True)
         pg2.on('pageerror', lambda e: errs.append(str(e)))
-        pg2.goto(url); wait_done(pg2, 30)
-        set_dial(pg2, 3); L = lines(pg2)
-        check('Places down: says so in voice, rest still works', any("map's pissed" in l.lower() for l in L) and len(L) >= 3, json.dumps(L))
-        t = pg2.inner_text('#timings')
-        check('Places down shows as failed in the stopwatch', 'Places failed' in t, t)
+        pg2.goto(url); wait_done(pg2, 40)
+        set_dial(pg2, 2); L = lines(pg2)
+        check('Map down: says so in voice, weather still there', any("map's pissed" in l.lower() for l in L) and len(L) >= 3, json.dumps(L))
+        check('Map down shows in the stopwatch', 'Places failed' in pg2.inner_text('#timings'), pg2.inner_text('#timings'))
 
-        # No location permission
         ctx2 = b.new_context(viewport={'width': 390, 'height': 844}, timezone_id='Europe/London', locale='en-GB')
         pg3 = ctx2.new_page(); install_fakes(pg3)
         pg3.on('pageerror', lambda e: errs.append(str(e)))
         pg3.goto(url); time.sleep(.6)
-        check('Without permission it asks first, no prompt on load', pg3.locator('#ask').is_visible() and 'postcode' in lines(pg3)[0].lower(), json.dumps(lines(pg3)))
+        check('Without permission it asks first', pg3.locator('#ask').is_visible() and 'postcode' in lines(pg3)[0].lower(), json.dumps(lines(pg3)))
         pg3.fill('#askPostcode', 'M30 9LR'); pg3.click('#askForm button[type=submit]')
         check('Postcode route works', wait_done(pg3) and 'Monton' in lines(pg3)[0], json.dumps(lines(pg3)))
-        pg3.screenshot(path=os.path.join(OUT, 'decentish-postcode-now.png'), full_page=True)
 
         check('No script errors', not errs, '; '.join(errs))
         b.close()

@@ -1,5 +1,15 @@
 # Changelog
 
+## 7 October 2026 – Decentish 0.2
+
+**Decentish 0.2** – from a status report to a plan. No changes to Rubato, Tempo or Tutti.
+- **When:** Now · Soon · Tomorrow. If nothing fits, it rolls forward to tomorrow and says why.
+- **The dial is now three profiles**, not just three voices: Tony Blair on a culture trip (galleries by day, dinner and a glass of something by night, no takeaways), Three pints and a meal deal (pub, food, pub, on foot), Pissed-up uncle on a mad one (pubs, bars, clubs, into town in the evening, food after 23:00). Each picks different places, goes different distances and stops at a different time – so late at night it's no longer "bed" at every setting.
+- **Stitched plans:** steps chained by time – open when you'd arrive, open long enough to be worth it – written as one paragraph, with last orders ("The Park's got 20 minutes left…"), the trip into town, and a weather line for the plan's hours.
+- **Manchester focus:** Greater Manchester only for the full experience; outside it, the basics and a line saying so. From the suburbs it also looks in town (Piccadilly Gardens), about 30 minutes from Monton.
+- Receipts at the foot: each step's time, place, distance and closing time. *Another plan* re-picks without fetching again.
+- Tested: `tests/decentish_check.py`, 40 of 40, all sources faked (Monton Road's real hours, made-up town venues, the Northern Quarter, Barra, map down, no permission, bad postcode). Every line for every scenario, dial and When is written to `tests/out/decentish.md`. Not tested: the real services from a phone.
+
 ## 6 October 2026 – Decentish 0.1
 
 **Decentish 0.1** – new, unlisted prototype at `/decentish/`. No changes to Rubato, Tempo or Tutti.

@@ -8,8 +8,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@700&display=swap">
 <style>
-/* Decentish 0.1. One face, one weight. The dial only changes colour: white, stone, amber, red.
-   The voice sits top left. The controls and the sober facts sit at the foot, and the facts never change colour. */
+/* Decentish 0.2. One face, one weight. The dial only changes colour: white, amber, red.
+   The plan sits top left. Controls and the sober receipts sit at the foot, and the receipts never change colour. */
 @font-face{font-family:"Diatype Bold";src:local("ABC Diatype Bold"),local("ABCDiatype-Bold"),url("ABCDiatype-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
 :root{
   --face:"Diatype Bold","Hanken Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;
@@ -23,9 +23,8 @@
   color-scheme:light;
 }
 body[data-dial="0"]{--paper:#ffffff}
-body[data-dial="1"]{--paper:#e7e4dc}
-body[data-dial="2"]{--paper:#f3b419}
-body[data-dial="3"]{--paper:#ff4a2e}
+body[data-dial="1"]{--paper:#f3b419}
+body[data-dial="2"]{--paper:#ff4a2e}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -41,12 +40,15 @@ body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--face);f
 .ask form{display:flex;flex-wrap:wrap;gap:8px}
 button,input{font:inherit;color:inherit;letter-spacing:inherit}
 .btn{background:transparent;border:2px solid currentColor;padding:9px 14px;cursor:pointer;border-radius:0}
-.btn:hover{background:var(--ink);color:var(--paper)}
+.btn:hover,.btn[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
 .field{background:transparent;border:2px solid currentColor;padding:9px 12px;border-radius:0;width:9.5em;min-width:0}
 .field::placeholder{color:currentColor;opacity:.45}
 :focus-visible{outline:3px solid currentColor;outline-offset:3px}
 .desk{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 22px;padding-inline:var(--gutter);padding-block:10px 18px;font-size:14px}
-.dial{flex:1 1 260px;min-width:0}
+.when{display:flex}
+.when .btn{font-size:16px}
+.when .btn+.btn{border-left-width:0}
+.dial{flex:1 1 240px;min-width:0}
 .dial label{display:block;font-size:18px;margin-bottom:8px}
 input[type=range]{-webkit-appearance:none;appearance:none;display:block;width:100%;height:30px;margin:0;background:transparent;cursor:pointer}
 input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
@@ -65,7 +67,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink)
 .lab .btn{padding:7px 12px;border-width:1.5px}
 .lab .btn:hover{background:var(--sober-ink);color:var(--sober-paper)}
 .presets{display:flex;flex-wrap:wrap;gap:6px}
-.workings{display:grid;gap:2px;padding-top:6px}
+.workings{display:grid;gap:4px;padding-top:6px}
 .workings ol{margin:0;padding-left:1.4em;display:grid;gap:2px}
 @media (prefers-reduced-motion:reduce){#lines p.in,#lines p.loading{animation:none}body{transition:none}}
 </style>
@@ -83,17 +85,23 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink)
     </div>
   </main>
   <section class="desk" aria-label="Controls">
-    <div class="dial">
-      <label for="dial" id="dialName">Decentish</label>
-      <input type="range" id="dial" min="0" max="3" step="1" value="1">
-      <div class="ends" aria-hidden="true"><span>Buttoned up</span><span>Mad one</span></div>
+    <div class="when" role="group" aria-label="When">
+      <button class="btn" type="button" data-when="now" aria-pressed="true">Now</button>
+      <button class="btn" type="button" data-when="soon" aria-pressed="false">Soon</button>
+      <button class="btn" type="button" data-when="tomorrow" aria-pressed="false">Tomorrow</button>
     </div>
-    <button class="btn" id="refresh" type="button">Refresh</button>
+    <div class="dial">
+      <label for="dial" id="dialName">Three pints and a meal deal</label>
+      <input type="range" id="dial" min="0" max="2" step="1" value="1">
+      <div class="ends" aria-hidden="true"><span>Culture trip</span><span>Mad one</span></div>
+    </div>
+    <button class="btn" id="refresh" type="button">Another plan</button>
   </section>
   <footer class="facts">
-    <p id="facts">Decentish 0.1</p>
+    <p id="receipts"></p>
+    <p id="facts">Decentish 0.2</p>
     <p class="soft" id="timings"></p>
-    <p class="soft">Not wired up yet: trams, trains, gigs, films, ratings, hygiene.</p>
+    <p class="soft">Not wired up yet: film times, gigs, trams, trains, ratings, hygiene. Cinemas and venues stay out of plans until their listings are in.</p>
     <div class="tools">
       <button class="link soft" id="workingsToggle" type="button" aria-expanded="false">Workings</button>
       <button class="link soft" id="labToggle" type="button" aria-expanded="false">Test</button>
@@ -111,23 +119,24 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink)
         <button class="btn" type="button" data-preset="sat">Saturday 23:00</button>
         <button class="btn" type="button" data-preset="sun">Sunday 10:00</button>
         <button class="btn" type="button" data-preset="small">Tonight 03:00</button>
+        <button class="btn" type="button" data-preset="nq">Northern Quarter, M4 1HN</button>
         <button class="btn" type="button" data-preset="remote">Barra, HS9</button>
       </div>
-      <p class="soft" id="labNote">Test runs use real data for that place and time. Weather covers yesterday to a week ahead.</p>
+      <p class="soft">Test runs use real data for that place and time. Weather covers yesterday to a week ahead.</p>
     </div>
   </footer>
 </div>
 <script>
 (()=>{
 'use strict';
-const VERSION='0.1';
+const VERSION='0.2';
 const $=s=>document.querySelector(s);
 
 /* ---------- Settings ---------- */
-const STOPS=['Buttoned up','Decentish','Three pints and a meal deal','Pissed-up uncle on a mad one'];
-const LOCAL_WALK=15;      // minutes on foot that count as local
-const SEARCH_M=1300;      // first look: about a 20-minute walk
-const WIDE_M=16000;       // second look, only when nothing is local
+const SEARCH_M=1300;                          // local look: about a 20-minute walk
+const WIDE_M=16000;                           // only when nothing is local
+const TOWN={lat:53.4808,lon:-2.2369,r:1100};  // Manchester city centre, Piccadilly Gardens
+const GM=['Bolton','Bury','Manchester','Oldham','Rochdale','Salford','Stockport','Tameside','Trafford','Wigan'];
 const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
 const LIBS=[
   ['https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js','https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js'],
@@ -138,14 +147,37 @@ const store={
   set(k,v){try{localStorage.setItem('decentish:'+k,String(v))}catch(e){}}
 };
 
+/* ---------- The dial: three profiles ----------
+   Each stop decides what gets picked, how far it'll go, how late, how many steps, and how it talks.
+   Steps are lists of roles in order of preference. Stays are minutes spent at each kind of place.
+   Tomorrow starts at [weekday, weekend] hours. */
+const PROFILES=[
+  {key:'blair',name:'Tony Blair on a culture trip',walk:25,town:true,endHour:22.5,tomorrow:[18,11],
+   avoid:p=>p.kind==='fast_food',strict:true,
+   steps:s=>s.getHours()<16?[['culture'],['cafe','food'],['culture','cafe']]:s.getHours()>=21?[['bar','pub']]:[['food'],['bar','pub']],
+   stay:{culture:75,cafe:40,food:75,pub:45,bar:45,club:60,shop:5},
+   townBonus:(i,role)=>role==='culture'?6:1},
+  {key:'pints',name:'Three pints and a meal deal',walk:15,town:false,endHour:24.5,tomorrow:[17.5,13],
+   steps:s=>s.getHours()>=5&&s.getHours()<11?[['cafe'],['pub','bar'],['food','shop']]:[['pub','bar'],['food','shop'],['pub','bar']],
+   stay:{culture:45,cafe:30,food:45,pub:75,bar:60,club:60,shop:5},
+   townBonus:()=>0},
+  {key:'mad',name:'Pissed-up uncle on a mad one',walk:20,town:true,endHour:30,tomorrow:[17.5,14],late:true,
+   steps:s=>{const h=s.getHours();return h>=1&&h<6?[['club','bar','pub','food']]:[['pub','bar'],['bar','pub'],['bar','pub','club'],['club','bar'],['food']]},
+   stay:{culture:20,cafe:15,food:20,pub:50,bar:50,club:120,shop:5},
+   foodAfter:23,
+   townBonus:(i,role,arrive)=>i>=1&&(arrive.getHours()>=19||arrive.getHours()<5)?10:0}
+];
+const MINSTAY={culture:45,cafe:20,food:30,pub:10,bar:10,club:30,shop:5};
+const WHENS=['now','soon','tomorrow'];
+
 /* ---------- State ---------- */
-let dial=(()=>{const n=parseInt(store.get('dial'),10);return n>=0&&n<=3?n:1})();
+let dial=(()=>{const n=parseInt(store.get('dial3'),10);return n>=0&&n<=2?n:1})();
+let when='now';
 let F={mode:'idle'};
 let slots={};
 let timings=[];
 let runId=0,runStart=0,runTotal=null;
-let choices={};
-let USED=new Set();
+let seed=1;
 let libsPromise=null;
 let permState='prompt';
 let lastOpts={};
@@ -161,26 +193,8 @@ const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
 const hw=h=>HOURW[h%12];
 const sameDay=(a,b)=>a.toDateString()===b.toDateString();
 const dayStart=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+const pick=(arr,r)=>arr[Math.floor(r()*arr.length)%arr.length];
 
-function timeWords(d){
-  let h=d.getHours(),m=Math.round(d.getMinutes()/5)*5;
-  if(m===60){m=0;h=(h+1)%24}
-  const n=(h+1)%24;
-  switch(m){
-    case 0:return h===0?'midnight':h===12?'midday':hw(h)+" o'clock";
-    case 5:return 'five past '+hw(h);
-    case 10:return 'ten past '+hw(h);
-    case 15:return 'quarter past '+hw(h);
-    case 20:return 'twenty past '+hw(h);
-    case 25:return 'twenty-five past '+hw(h);
-    case 30:return 'half '+hw(h);
-    case 35:return 'twenty-five to '+hw(n);
-    case 40:return 'twenty to '+hw(n);
-    case 45:return 'quarter to '+hw(n);
-    case 50:return 'ten to '+hw(n);
-    default:return 'five to '+hw(n);
-  }
-}
 function vague(d,rowdy){
   const h=d.getHours(),m=d.getMinutes();
   if(rowdy){
@@ -194,11 +208,11 @@ function vague(d,rowdy){
   const n=(h+1)%24;
   return n===0?'nearly midnight':'nearly '+hw(n);
 }
-/* Clock times for useful facts (closing, sunset, rain). Exact at every setting, just said differently. */
+/* Clock times for facts that matter (closing, start, rain). Exact at every setting, said differently. */
 function clockSay(d,n,ref){
   if(!d)return '';
   let s;
-  if(n===0)s=t24(d);
+  if(n===0)s=d.getHours()===0&&d.getMinutes()===0?'midnight':t24(d);
   else{
     const h=d.getHours(),m=d.getMinutes();
     if(m===0)s=h===0?'midnight':h===12?'midday':hw(h);
@@ -207,23 +221,13 @@ function clockSay(d,n,ref){
     else if(m===45)s='quarter to '+hw((h+1)%24);
     else s=(h%12||12)+':'+pad(m)+(h<12?'am':'pm');
   }
-  if(ref&&!sameDay(d,ref)&&!(d-ref<6*3600e3&&d.getHours()<6)){
+  if(ref&&!sameDay(d,ref)){
     const days=Math.round((dayStart(d)-dayStart(ref))/864e5);
-    s+=days===1?' tomorrow':' on '+DAYS[d.getDay()];
+    if(!(days===1&&d.getHours()<6))s+=days===1?' tomorrow':' on '+DAYS[d.getDay()];
   }
   return s;
 }
-function bucket(d){
-  const m=d.getHours()*60+d.getMinutes();
-  if(m<60)return 'late';
-  if(m<300)return 'small';
-  if(m<540)return 'early';
-  if(m<720)return 'morning';
-  if(m<990)return 'afternoon';
-  if(m<1170)return 'teatime';
-  if(m<1350)return 'evening';
-  return 'late';
-}
+function rng(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
 
 /* ---------- Sun (after SunCalc, Vladimir Agafonkin) ---------- */
 const RAD=Math.PI/180,J1970=2440588,J2000=2451545,OBL=RAD*23.4397;
@@ -243,6 +247,7 @@ function sunTimes(date,lat,lng){
   const Jset=J2000+a+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
   return{rise:fromJ(Jnoon-(Jset-Jnoon)),set:fromJ(Jset)};
 }
+const sunFor=d=>F.pos?sunTimes(new Date(d.getFullYear(),d.getMonth(),d.getDate(),12),F.pos.lat,F.pos.lon):null;
 
 /* ---------- Distance ---------- */
 function metres(a,b){
@@ -254,19 +259,19 @@ const walkMins=m=>Math.max(1,Math.round(m*1.3/80));
 const miles=m=>{const x=m/1609.34;return x<10?Math.round(x*10)/10:Math.round(x)};
 
 /* ---------- Weather words ---------- */
-function COND(c,day){
-  if(c===0||c===1)return day?['clear','sunny']:['clear','clear'];
-  if(c===2)return['partly cloudy','cloudy'];
-  if(c===3)return['overcast','grey'];
-  if(c<=48)return['foggy','foggy'];
-  if(c<=57)return['drizzling','drizzly'];
-  if(c<=67)return['raining','wet'];
-  if(c<=77)return['snowing','snowy'];
-  if(c<=82)return['showery','showery'];
-  if(c<=86)return['snow showers','snowy'];
-  return['thundery','stormy'];
-}
 const wetCode=c=>(c>=51&&c<=67)||(c>=80&&c<=82)||c>=95;
+function condWord(c,day){
+  if(c===0||c===1)return day?'sunny':'clear';
+  if(c===2)return 'partly cloudy';
+  if(c===3)return 'overcast';
+  if(c<=48)return 'foggy';
+  if(c<=57)return 'drizzling';
+  if(c<=67)return 'raining';
+  if(c<=77)return 'snowing';
+  if(c<=82)return 'showery';
+  if(c<=86)return 'snow showers';
+  return 'thundery';
+}
 
 /* ---------- Sources ---------- */
 function withTimeout(p,ms){
@@ -318,12 +323,13 @@ function getPosition(){
   return new Promise((res,rej)=>{
     if(!navigator.geolocation)return rej({code:'unsupported'});
     navigator.geolocation.getCurrentPosition(
-      p=>res({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy}),
+      p=>res({lat:p.coords.latitude,lon:p.coords.longitude}),
       e=>rej({code:e.code===1?'denied':'unavailable'}),
       {enableHighAccuracy:false,timeout:15000,maximumAge:300000}
     );
   });
 }
+const first=x=>Array.isArray(x)?x[0]:x;
 async function lookupPostcode(pc){
   const clean=pc.trim().toUpperCase().replace(/\s+/g,' ');
   try{
@@ -334,7 +340,7 @@ async function lookupPostcode(pc){
     const out=clean.split(' ')[0];
     const j=await getJSON('https://api.postcodes.io/outcodes/'+encodeURIComponent(out),6000);
     const r=j.result;
-    return{lat:r.latitude,lon:r.longitude,postcode:r.outcode,ward:(r.admin_ward||[])[0],district:(r.admin_district||[])[0],country:(r.country||[])[0]};
+    return{lat:r.latitude,lon:r.longitude,postcode:r.outcode,ward:first(r.admin_ward),district:first(r.admin_district),country:first(r.country)};
   }
 }
 async function reversePostcode(q){
@@ -348,12 +354,13 @@ async function placeName(q,zoom=16){
   return a.suburb||a.village||a.hamlet||a.neighbourhood||a.quarter||a.town||a.city_district||a.city||null;
 }
 const weatherUrl=q=>`https://api.open-meteo.com/v1/forecast?latitude=${q.lat}&longitude=${q.lon}`+
-  '&current=temperature_2m,apparent_temperature,weather_code,precipitation,wind_speed_10m,is_day'+
+  '&current=temperature_2m,apparent_temperature,weather_code,precipitation,is_day'+
   '&hourly=temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,is_day'+
-  '&daily=temperature_2m_max,temperature_2m_min&timezone=auto&past_days=1&forecast_days=8&wind_speed_unit=mph';
-const placesQuery=q=>`[out:json][timeout:15];(`+
-  `nwr(around:${SEARCH_M},${q.lat},${q.lon})[amenity~"^(pub|bar|biergarten|nightclub|restaurant|fast_food|cafe|ice_cream|cinema|theatre|arts_centre|music_venue)$"][name];`+
-  `nwr(around:${SEARCH_M},${q.lat},${q.lon})[shop~"^(convenience|alcohol|supermarket)$"][name];`+
+  '&daily=temperature_2m_max,temperature_2m_min&timezone=auto&past_days=1&forecast_days=8';
+const venueQuery=(lat,lon,r)=>`[out:json][timeout:20];(`+
+  `nwr(around:${r},${lat},${lon})[amenity~"^(pub|bar|biergarten|nightclub|restaurant|fast_food|cafe|ice_cream|cinema|theatre|arts_centre|music_venue)$"][name];`+
+  `nwr(around:${r},${lat},${lon})[tourism~"^(gallery|museum)$"][name];`+
+  `nwr(around:${r},${lat},${lon})[shop~"^(convenience|alcohol)$"][name];`+
   `);out center tags;`;
 const wideQuery=q=>`[out:json][timeout:20];(`+
   `nwr(around:${WIDE_M},${q.lat},${q.lon})[amenity~"^(pub|bar|restaurant|cafe|fast_food)$"][name];`+
@@ -361,7 +368,7 @@ const wideQuery=q=>`[out:json][timeout:20];(`+
 async function overpass(query){
   let last;
   for(const url of OVERPASS){
-    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),9000);
+    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),12000);
     try{
       const r=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(query),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:ctrl.signal});
       if(!r.ok)throw new Error('HTTP '+r.status);
@@ -372,456 +379,410 @@ async function overpass(query){
   throw last;
 }
 
-/* ---------- Gather: weather ---------- */
-function deriveWeather(w,at,live){
-  if(!w||!w.hourly)return null;
-  const H=w.hourly,off=(w.utc_offset_seconds||0)*1000;
-  const T=H.time.map(s=>Date.parse(s+':00Z')-off);
+/* ---------- Gather ---------- */
+function roleOf(t){
+  const a=t.amenity,tour=t.tourism,s=t.shop;
+  if(tour==='gallery'||tour==='museum'||a==='arts_centre')return 'culture';
+  if(a==='pub'||a==='biergarten')return 'pub';
+  if(a==='bar')return 'bar';
+  if(a==='nightclub')return 'club';
+  if(a==='cafe'||a==='ice_cream')return 'cafe';
+  if(a==='restaurant'||a==='fast_food')return 'food';
+  if(s)return 'shop';
+  if(a==='cinema'||a==='theatre'||a==='music_venue')return 'listing';
+  return null;
+}
+function makePlaces(els,zone,OH,country){
+  const out=[];
+  for(const e of els||[]){
+    const t=e.tags||{},role=roleOf(t);
+    if(!role||!t.name)continue;
+    const lat=e.lat??(e.center&&e.center.lat),lon=e.lon??(e.center&&e.center.lon);
+    if(lat==null||lon==null)continue;
+    const p={name:t.name,role,zone,lat,lon,kind:t.amenity||t.tourism||t.shop,cuisine:(t.cuisine||'').split(';')[0].trim(),
+      raw:t.opening_hours||'',oh:null,town:t['addr:town']||t['addr:city']||t['addr:village']||null};
+    if(p.raw&&OH){
+      try{p.oh=new OH(p.raw,{lat,lon,address:{country_code:'gb',state:country||'England'}},{tag_key:'opening_hours',locale:'en'})}
+      catch(err){p.bad=true}
+    }
+    p.dist=F.pos?metres(F.pos,p):0;
+    p.walk=walkMins(p.dist);
+    out.push(p);
+  }
+  return out;
+}
+function mergePlaces(local,town){
+  const seen=new Set(),out=[];
+  for(const p of [...local,...town]){
+    const k=p.name.toLowerCase()+'|'+p.role;
+    if(seen.has(k))continue;
+    seen.add(k);out.push(p);
+  }
+  return out.sort((a,b)=>a.dist-b.dist);
+}
+function isOpen(p,d){try{return !!p.oh&&!p.oh.getUnknown(d)&&p.oh.getState(d)}catch(e){return false}}
+function nextChange(p,d){try{return p.oh.getNextChange(d)||null}catch(e){return null}}
+
+/* ---------- Weather over a window ---------- */
+function hourIndex(d){
+  const W=F.wxRaw;if(!W)return -1;
+  const off=(W.utc_offset_seconds||0)*1000;
+  if(!W._T)W._T=W.hourly.time.map(s=>Date.parse(s+':00Z')-off);
   let i=-1;
-  for(let k=0;k<T.length;k++){if(T[k]<=at.getTime())i=k;else break}
-  if(i<0||at.getTime()-T[i]>2*3600e3)return null;
-  let temp=H.temperature_2m[i],feels=H.apparent_temperature[i],code=H.weather_code[i],precip=H.precipitation[i]||0,isDay=!!H.is_day[i];
-  if(live&&w.current){
-    const c=w.current;
-    temp=c.temperature_2m??temp;feels=c.apparent_temperature??feels;code=c.weather_code??code;
-    precip=c.precipitation??precip;isDay=c.is_day!=null?!!c.is_day:isDay;
+  for(let k=0;k<W._T.length;k++){if(W._T[k]<=d.getTime())i=k;else break}
+  return i>=0&&d.getTime()-W._T[i]<=2*3600e3?i:-1;
+}
+function weatherFor(start,end,live){
+  const W=F.wxRaw;if(!W)return null;
+  const H=W.hourly,i=hourIndex(start);
+  if(i<0)return null;
+  let temp=H.temperature_2m[i],feels=H.apparent_temperature[i],code=H.weather_code[i],isDay=!!H.is_day[i],precip=H.precipitation[i]||0;
+  if(live&&W.current){const c=W.current;temp=c.temperature_2m??temp;feels=c.apparent_temperature??feels;code=c.weather_code??code;isDay=c.is_day!=null?!!c.is_day:isDay;precip=c.precipitation??precip}
+  const j=Math.max(i,hourIndex(end));
+  let minFeels=feels,rainAt=null;
+  for(let k=i+1;k<=j&&k<H.time.length;k++){
+    minFeels=Math.min(minFeels,H.apparent_temperature[k]);
+    if(!rainAt&&(H.precipitation_probability[k]||0)>=60&&wetCode(H.weather_code[k]))rainAt=new Date(W._T[k]);
   }
   const day=H.time[i].slice(0,10);
-  let sunnyHrs=0,wetMm=0;
+  let sunnyHrs=0;
   for(let k=0;k<i;k++){
     if(H.time[k].slice(0,10)!==day)continue;
     const hr=+H.time[k].slice(11,13);
     if(hr>=10&&hr<=17&&H.weather_code[k]<=1&&H.is_day[k])sunnyHrs++;
-    if(k>=i-6)wetMm+=H.precipitation[k]||0;
   }
-  const rainNow=wetCode(code)||precip>=0.3;
-  let rainAt=null;
-  if(!rainNow)for(let k=i+1;k<=i+6&&k<T.length;k++){
-    if((H.precipitation_probability[k]||0)>=60&&wetCode(H.weather_code[k])){rainAt=new Date(T[k]);break}
-  }
-  const D=w.daily||{time:[]},di=D.time.indexOf(day);
-  const g=(a,j)=>a&&j>=0&&j<a.length?a[j]:null;
-  return{
-    temp,feels,code,isDay,rainNow,rainAt,
-    snowNow:(code>=71&&code<=77)||code===85||code===86,
-    thunder:code>=95,
-    sunnyHrs,wetEarlier:wetMm>=1,
-    todayMax:g(D.temperature_2m_max,di),todayMin:g(D.temperature_2m_min,di),
-    tomMax:g(D.temperature_2m_max,di+1),tomMin:g(D.temperature_2m_min,di+1)
-  };
+  const D=W.daily||{time:[]},di=D.time.indexOf(day);
+  return{temp,feels,code,isDay,minFeels,rainAt,sunnyHrs,
+    rainNow:wetCode(code)||precip>=0.3,
+    tomMax:D.temperature_2m_max?D.temperature_2m_max[di+1]:null,tomMin:D.temperature_2m_min?D.temperature_2m_min[di+1]:null};
 }
 
-/* ---------- Gather: places ---------- */
-function classify(t){
-  const a=t.amenity,s=t.shop;
-  if(['pub','bar','biergarten','nightclub'].includes(a))return 'drink';
-  if(['restaurant','fast_food','cafe','ice_cream'].includes(a))return 'food';
-  if(['convenience','alcohol','supermarket'].includes(s))return 'shop';
-  if(['cinema','theatre','arts_centre','music_venue'].includes(a))return 'culture';
-  return null;
+/* ---------- Plan ---------- */
+function startFor(w,prof,now){
+  if(w==='now')return now;
+  if(w==='soon'){
+    const d=new Date(now);
+    if(now.getHours()<16)d.setHours(17,30,0,0);
+    else{d.setTime(now.getTime()+90*6e4);d.setMinutes(Math.ceil(d.getMinutes()/15)*15,0,0)}
+    return d;
+  }
+  const d=new Date(now);d.setDate(d.getDate()+1);
+  const h=prof.tomorrow[d.getDay()===0||d.getDay()===6?1:0];
+  d.setHours(Math.floor(h),Math.round((h%1)*60),0,0);
+  return d;
 }
-function derivePlaces(els,pos,at,OH,country){
-  const out=[],seen=new Set();
-  for(const e of els||[]){
-    const t=e.tags||{},kind=classify(t);
-    if(!kind||!t.name)continue;
-    const lat=e.lat??(e.center&&e.center.lat),lon=e.lon??(e.center&&e.center.lon);
-    if(lat==null||lon==null)continue;
-    const key=t.name.toLowerCase()+'|'+kind;
-    if(seen.has(key))continue;
-    seen.add(key);
-    const dist=metres(pos,{lat,lon});
-    const p={name:t.name,kind,sub:t.amenity||t.shop,lat,lon,dist,walk:walkMins(dist),raw:t.opening_hours||'',known:false,open:null,next:null,
-      town:t['addr:town']||t['addr:city']||t['addr:village']||t['addr:hamlet']||null};
-    if(p.raw&&OH){
-      try{
-        const oh=new OH(p.raw,{lat,lon,address:{country_code:'gb',state:country||'England'}},{tag_key:'opening_hours',locale:'en'});
-        if(!oh.getUnknown(at)){p.known=true;p.open=oh.getState(at);p.next=oh.getNextChange(at)||null}
-      }catch(err){p.bad=true}
+function travel(from,p,prof){
+  if(p.zone==='town'){
+    if(from.zone==='town')return{mins:walkMins(metres(from,p)),mode:'walk'};
+    if(!prof.town||!F.townMins)return null;
+    return{mins:F.townMins,mode:'town'};
+  }
+  if(from.zone==='town')return null;
+  const m=walkMins(metres(from,p));
+  return m>prof.walk?null:{mins:m,mode:'walk'};
+}
+function buildPlan(prof,start,rand){
+  const places=F.places||[];
+  const end=new Date(dayStart(start).getTime()+prof.endHour*3600e3);
+  let t=start,from={lat:F.pos.lat,lon:F.pos.lon,zone:'local'};
+  const steps=[],used=new Set(),specs=prof.steps(start).slice();
+  const foodAfter=prof.foodAfter?new Date(dayStart(start).getTime()+prof.foodAfter*3600e3):null;
+  let extra=0;
+  for(let i=0;i<specs.length;i++){
+    /* The mad one keeps going until late before it eats */
+    if(foodAfter&&specs[i][0]==='food'&&start<foodAfter&&t<foodAfter&&extra<3){specs.splice(i,0,['club','bar','pub']);extra++}
+    const roles=specs[i];let best=null;
+    for(const p of places){
+      if(!p.oh||used.has(p.name)||(prof.avoid&&prof.avoid(p)))continue;
+      const ri=roles.indexOf(p.role);
+      if(ri<0)continue;
+      const tr=travel(from,p,prof);
+      if(!tr)continue;
+      const arrive=new Date(t.getTime()+tr.mins*6e4);
+      if(arrive>end||!isOpen(p,arrive))continue;
+      if(p.role==='cafe'&&arrive.getHours()>=19)continue;
+      const closes=nextChange(p,arrive);
+      const left=closes?(closes-arrive)/6e4:1e4;
+      if(left<(prof.strict?Math.max(MINSTAY[p.role],prof.stay[p.role]*.8):MINSTAY[p.role]))continue;
+      let score=(roles.length-ri)*4-tr.mins*.25+rand()*6+(p.zone==='town'?prof.townBonus(i,p.role,arrive):0);
+      if(prof.late)score+=Math.min(3,left/60*.6);
+      if(!best||score>best.score)best={p,role:p.role,arrive,tr,closes,left:Math.round(left),score};
     }
-    out.push(p);
+    if(!best){if(i===0)return null;continue}
+    best.rushed=best.left<prof.stay[best.role]*.6;
+    steps.push(best);used.add(best.p.name);
+    t=new Date(best.arrive.getTime()+Math.min(prof.stay[best.role],best.left)*6e4);
+    from=best.p;
+    if(t>=end)break;
   }
-  return out.sort((a,b)=>a.dist-b.dist);
+  return steps.length?steps:null;
 }
-
-/* ---------- Judge ---------- */
-function judge(){
-  const P=F.places,at=F.at;
-  const local=P.filter(p=>p.walk<=LOCAL_WALK&&p.kind!=='culture');
-  const fd=local.filter(p=>p.kind==='drink'||p.kind==='food');
-  const known=local.filter(p=>p.known);
-  const open=local.filter(p=>p.known&&p.open);
-  const openNotShop=open.filter(p=>p.kind!=='shop');
-  const s={local,known,open,openNotShop,nTotal:local.length,nKnown:known.length,nOpen:open.length,nShut:known.length-open.length};
-  s.drink=open.find(p=>p.kind==='drink')||null;
-  s.food=open.find(p=>p.kind==='food'&&p.sub!=='cafe')||open.find(p=>p.kind==='food')||null;
-  s.cafe=open.find(p=>p.sub==='cafe')||null;
-  s.shop=open.find(p=>p.kind==='shop')||null;
-  s.any=openNotShop[0]||open[0]||null;
-  s.culture=P.filter(p=>p.kind==='culture'&&p.walk<=25);
-  if(s.drink&&s.drink.next){
-    const left=Math.round((s.drink.next-at)/6e4);
-    if(left<=45)s.lastOrders={p:s.drink,left,makeIt:left>s.drink.walk+3};
+function makePlan(){
+  const prof=PROFILES[dial];
+  const key=seed*7919+dial*101+WHENS.indexOf(when)*13;
+  const rand=rng(key);
+  const start=startFor(when,prof,F.at);
+  let steps=buildPlan(prof,start,rand),rolled=null,s=start;
+  if(!steps&&when!=='tomorrow'){
+    const s2=startFor('tomorrow',prof,F.at),st2=buildPlan(prof,s2,rand);
+    if(st2){steps=st2;rolled=when;s=s2}
   }
-  const shut=known.filter(p=>!p.open&&p.next&&p.kind!=='shop').sort((a,b)=>a.next-b.next);
-  s.firstOpen=shut[0]||null;
-  if(fd.length===0){
-    const near=P.filter(p=>p.kind==='drink'||p.kind==='food');
-    s.situation=near.length?'far':'remote';
-    s.nearest=near[0]||null;
-  }else if(local.length>=6){
-    if(known.length<3)s.situation='busyUnknown';
-    else if(openNotShop.length>=4||(openNotShop.length>=3&&open.length/known.length>=0.4))s.situation='buzzing';
-    else s.situation='allShut';
-  }else s.situation='quiet';
-  return s;
-}
-function verdict(){
-  const tb=F.tb,s=F.sit,w=F.wx;
-  if(tb==='small')return 'bed';
-  if(s&&s.situation==='remote')return 'remote';
-  if(s&&s.lastOrders&&s.lastOrders.makeIt&&(tb==='late'||tb==='evening'))return 'legIt';
-  if(tb==='late')return s&&s.food?'foodThenBed':'lateBed';
-  if(w&&w.rainNow&&(tb==='evening'||tb==='teatime'))return 'sofa';
-  if(s&&s.situation==='buzzing'&&(tb==='evening'||(tb==='teatime'&&(F.isFri||F.isWeekend))))return 'goOut';
-  if(tb==='teatime'&&!F.isWeekend)return s&&s.drink?'pubHome':'home';
-  if(tb==='early'||tb==='morning')return 'crackOn';
-  if(tb==='afternoon'&&F.isWeekend&&w&&!w.rainNow)return 'outside';
-  return 'decentish';
+  const last=steps&&steps[steps.length-1];
+  const end=last?new Date(last.arrive.getTime()+Math.min(prof.stay[last.role],last.left)*6e4):new Date(s.getTime()+2*3600e3);
+  const local=(F.places||[]).filter(p=>p.zone==='local'&&p.walk<=15&&p.role!=='listing'&&p.role!=='shop');
+  const known=local.filter(p=>p.oh),openAsked=known.filter(p=>isOpen(p,start)).length;
+  F.plan={prof,start:s,end,steps,rolled,key,
+    nLocal:local.length,nKnown:known.length,allShut:known.length>=6&&openAsked/known.length<.3,
+    wx:weatherFor(s,end,when==='now'&&!rolled&&F.live)};
 }
 
 /* ---------- Write: the line bank ----------
-   Each slot is a list of rules, most specific first. The first rule whose test passes
-   writes the line. Every rule has four versions: buttoned up, decentish, three pints, uncle.
-   {curly} words are filled from the facts. A capital first letter capitalises the fill. */
-const R=(id,when,...d)=>({id,when,d:d.map(x=>Array.isArray(x)?x:[x])});
-const tbIn=(...b)=>b.includes(F.tb);
-const dark=()=>F.sunDown;
+   Three versions of everything: Tony Blair on a culture trip, Three pints and a meal deal, Pissed-up uncle on a mad one.
+   {word} fills from the facts; {Word} fills and capitalises. Any version can be a list of alternatives. */
+const L3=(a,b,c)=>[a,b,c].map(x=>Array.isArray(x)?x:[x]);
 
-const BANK={
-when:[
-  R('small',()=>tbIn('small'),
-    "{Weekday} {date}. {time24}. {place}.",
-    "{Weekday}. {TimeWords}. {place}.",
-    "{TimeVague}. {place}. Why are you up?",
-    "It's {timeVague} in {place}. What are you doing up?"),
-  R('friday',()=>F.isFri&&tbIn('teatime','evening'),
-    "{Weekday} {date}. {time24}. {place}.",
-    "Friday. {TimeWords}. {place}.",
-    "Friday. {TimeVague}. {place}. You made it.",
-    "FRIDAY. {TimeVague}. {place}. Get in."),
-  R('monday',()=>F.isMon&&tbIn('early','morning'),
-    "{Weekday} {date}. {time24}. {place}.",
-    "Monday. {TimeWords}. {place}.",
-    "Monday. {TimeVague}. {place}. Brace yourself.",
-    "Monday. {TimeVague}. {place}. Bloody Mondays."),
-  R('any',()=>true,
-    "{Weekday} {date}. {time24}. {place}.",
-    "{Weekday}. {TimeWords}. {place}.",
-    "{Weekday}. {TimeVague}. {place}.",
-    "{TimeVague} on a {weekday}. You're in {place}.")
-],
-weather:[
-  R('snow',()=>F.wx.snowNow,
-    "Snowing. {temp}°C.",
-    "Snow. Actual snow.",
-    "It's snowing. Everything will stop working.",
-    "It's snowing. Britain is now shut."),
-  R('thunder',()=>F.wx.thunder,
-    "Thunderstorms. {temp}°C.",
-    "Thunder about. Stay in.",
-    "Thunder about. Unplug the telly.",
-    "It's thundering. Someone upstairs is moving furniture."),
-  R('rainCold',()=>F.wx.rainNow&&F.wx.feels<7,
-    "Raining. {temp}°C, feels like {feels}°C.",
-    "Raining and cold. Proper coat.",
-    "Raining and nithering.",
-    "It's pissing down and it's bloody freezing."),
-  R('rain',()=>F.wx.rainNow,
-    "Raining. {temp}°C.",
-    "Raining. Brolly.",
-    "Raining. Course it is.",
-    "It's pissing down. Standard."),
-  R('sunnyEarlierCold',()=>F.wx.sunnyHrs>=2&&dark()&&F.wx.feels<9,
-    "Sunny earlier. Now {temp}°C, feels like {feels}°C. A coat is advisable.",
-    "Lovely earlier. Not now. Coat.",
-    "Cracking flags earlier. Sun's gone. Coat on.",
-    "It was cracking flags earlier but the sun's buggered off. Big coat or you'll freeze your bollocks off."),
-  R('sunnyEarlier',()=>F.wx.sunnyHrs>=2&&(dark()||F.wx.code>=2),
-    "Sunny earlier. {temp}°C now and {cond}.",
-    "Nice earlier. Still {temp} degrees.",
-    "Cracking flags earlier. Still mild now.",
-    "Belter of a day. Sun's gone, but it's still warm enough to sit out."),
-  R('rainSoon',()=>!!F.wx.rainAt,
-    "Dry now. Rain likely from {rainAt}.",
-    "Dry till about {rainAt}. Then it isn't.",
-    "Dry for now. Rain at {rainAt}. Don't get comfy.",
-    "Dry for now, but it's chucking it down from {rainAt}. Shift."),
-  R('sunsetSoon',()=>F.sunsetSoon,
-    "{temp}°C. Sunset at {sunset}.",
-    "{temp} degrees. Sun's down at {sunset}.",
-    "Sun's off at {sunset}. Make the most of it.",
-    "Sun clocks off at {sunset}. Get out in it."),
-  R('hot',()=>F.wx.temp>=24,
-    "{temp}°C and {cond}.",
-    "{temp} degrees. Proper warm.",
-    "{temp} degrees. Shorts weather.",
-    "{temp} degrees. Half the street's gone lobster."),
-  R('coldDark',()=>dark()&&F.wx.feels<7,
-    "{temp}°C, feels like {feels}°C. {Cond}.",
-    "Cold. {temp} degrees. Coat.",
-    "Nithering. {temp} degrees, feels like {feels}.",
-    "It's bloody freezing. Coat, hat, the lot."),
-  R('cold',()=>F.wx.feels<7,
-    "{temp}°C, feels like {feels}°C. {Cond}.",
-    "Chilly. {temp} degrees.",
-    "Nippy. {temp} degrees. Coat.",
-    "It's brass monkeys out there. {temp} degrees."),
-  R('mildDark',()=>dark()&&F.wx.feels>=11,
-    "{temp}°C and {cond}. Sunset was {sunset}.",
-    "Mild and {condShort}.",
-    "Mild. {CondShort}. Can't complain.",
-    "{temp} degrees at this time of night? Get out while it lasts."),
-  R('any',()=>true,
-    "{temp}°C and {cond}.",
-    "{temp} degrees and {condShort}.",
-    "{CondShort}. {temp} degrees. Fine.",
-    "{temp} degrees and {condShort}. Could be worse.")
-],
-tomorrow:[
-  R('freezing',()=>tbIn('teatime','evening','late','small')&&F.wx.drop>=3&&F.wx.tomMin<7,
-    "Tomorrow is cooler: {tomMax}°C at best, {tomMin}°C overnight.",
-    "Colder tomorrow. Coat's back on.",
-    "Tomorrow's {drop} degrees colder. Enjoy this.",
-    "Tomorrow you'll freeze your bits off. Enjoy this while it lasts."),
-  R('colder',()=>tbIn('teatime','evening','late','small')&&F.wx.drop>=3,
-    "Tomorrow is cooler: {tomMax}°C at best.",
-    "Bit colder tomorrow.",
-    "Tomorrow's {drop} degrees colder. Coat on.",
-    "Tomorrow's {drop} degrees colder. Don't say I didn't warn you."),
-  R('warmer',()=>tbIn('teatime','evening','late','small')&&F.wx.rise>=3,
-    "Tomorrow is warmer: up to {tomMax}°C.",
-    "Warmer tomorrow.",
-    "Tomorrow's {rise} degrees warmer. Something to look forward to.",
-    "Tomorrow's {rise} degrees warmer. Dig the shorts out.")
-],
-out:[
-  R('remoteNone',()=>F.sit.situation==='remote'&&!F.sit.nearest,
-    "Nothing open within ten miles.",
-    "Nothing for miles. Literally.",
-    "Nowt within ten miles. Impressive.",
-    "You live in the arse end of nowhere. I've looked ten miles out and found nowt. Respect."),
-  R('remote',()=>F.sit.situation==='remote',
-    "Nothing within walking distance. Nearest: {nearest}{nearestIn}, {nearestMiles} miles away.",
-    "Quiet round here. Nearest thing's {nearest}{nearestIn}, {nearestMiles} miles off.",
-    "Nowt round here. Nearest is {nearest}{nearestIn}. {nearestMiles} miles. That's a taxi and a half.",
-    "You live in the arse end of nowhere. Nearest thing's {nearest}{nearestIn}. {nearestMiles} miles. Several sheep rides away."),
-  R('far',()=>F.sit.situation==='far',
-    "Nothing within 15 minutes' walk. Nearest: {nearest}, {nearestWalk} minutes.",
-    "Nothing on the doorstep. {nearest}'s {nearestWalk} minutes away.",
-    "Bit of a trek. {nearest}'s {nearestWalk} minutes away.",
-    "Nowt on your doorstep. {nearest}'s {nearestWalk} minutes away. Pack a sandwich."),
-  R('busyUnknown',()=>F.sit.situation==='busyUnknown',
-    "{nTotal} places nearby. Opening hours unknown for most.",
-    "Plenty about. No idea what's open – the map doesn't say.",
-    "Loads about. Opening hours? Nobody's told the map.",
-    "Loads about. Is any of it open? Nobody's bothered telling the map. Go and look."),
-  R('allShutNone',()=>F.sit.situation==='allShut'&&!F.sit.openNotShop.length,
-    "{nShut} places within 15 minutes' walk. All closed. {FirstOpen} opens at {firstOpenTime}.",
-    "Plenty about. All shut. {FirstOpen} opens at {firstOpenTime}.",
-    "Plenty about, all shut. {FirstOpen}'s first to open, at {firstOpenTime}.",
-    "Loads round here and all the shit's shut. {FirstOpen} opens at {firstOpenTime}. Set an alarm."),
-  R('allShut',()=>F.sit.situation==='allShut',
-    "{nShut} of {nKnown} places nearby are closed. Still open: {openList}.",
-    "Plenty about, mostly shut. Still going: {openList}.",
-    "Plenty about. All shut, bar {openList}.",
-    "Loads round here and all the shit's shut. Survivors: {openList}."),
-  R('buzzingMorning',()=>F.sit.situation==='buzzing'&&tbIn('early','morning'),
-    "{nOpen} places open within 15 minutes' walk.",
-    "Plenty open already.",
-    "Everyone's up. {nOpen} places open.",
-    "Everyone's up and about. {nOpen} places open. Get your shoes on."),
-  R('buzzingDrink',()=>F.sit.situation==='buzzing'&&!!F.sit.drink,
-    "{nOpen} places open within 15 minutes' walk. Nearest pub or bar: {drink}, {drinkWalk} minutes.",
-    "Plenty open. {drink}'s {drinkWalk} minutes away.",
-    "Loads open. {drink}'s {drinkWalk} minutes away. No excuses.",
-    "It's all going off. {nOpen} places open. {drink}'s {drinkWalk} minutes away. Shoes on."),
-  R('buzzing',()=>F.sit.situation==='buzzing',
-    "{nOpen} places open within 15 minutes' walk, including {anyOpen}.",
-    "Plenty open. {anyOpen}'s {anyWalk} minutes away.",
-    "Loads open. {anyOpen}'s {anyWalk} minutes away.",
-    "It's all going on. {nOpen} places open. Start with {anyOpen}."),
-  R('quietDrink',()=>F.sit.situation==='quiet'&&!!F.sit.drink,
-    "{nTotal} places nearby. {drink} is open until {drinkCloses}, {drinkWalk} minutes' walk.",
-    "Not much round here, but {drink}'s open till {drinkCloses}.",
-    "Quiet one. {drink}'s open till {drinkCloses}, though.",
-    "Not exactly Ibiza round here. {drink}'s open till {drinkCloses}. It'll do."),
-  R('quietSome',()=>F.sit.situation==='quiet'&&!!F.sit.any,
-    "{nTotal} places nearby. {anyOpen} is open, {anyWalk} minutes' walk.",
-    "Not much round here. {anyOpen}'s open.",
-    "Quiet one. {anyOpen}'s open, at least.",
-    "Not exactly Ibiza round here. {anyOpen}'s open. Living the dream."),
-  R('quietNone',()=>F.sit.situation==='quiet',
-    "{nTotal} places nearby. None open right now.",
-    "Not much round here, and it's shut.",
-    "Quiet one. Nowt open.",
-    "Not exactly Ibiza round here. And what there is, is shut.")
-],
-last:[
-  R('missed',()=>!!F.sit.lastOrders&&!F.sit.lastOrders.makeIt,
-    "{drink} closes at {drinkCloses}, {drinkWalk} minutes' walk away. Too late to make it.",
-    "{drink} shuts at {drinkCloses}. You won't make it.",
-    "{drink} shuts in {drinkMinsLeft} minutes and it's {drinkWalk} minutes away. Even running, no.",
-    "{drink} shuts in {drinkMinsLeft} minutes. It's {drinkWalk} minutes away. Not even if you sprint. And you won't."),
-  R('lastOrders',()=>!!F.sit.lastOrders,
-    "{drink} closes at {drinkCloses}. It's {drinkWalk} minutes' walk.",
-    "{drink} shuts at {drinkCloses}. {drinkWalk} minutes' walk. Doable.",
-    "{drink}'s got {drinkMinsLeft} minutes left and it's {drinkWalk} minutes away. That's one if you leg it.",
-    "{drink} shuts in {drinkMinsLeft} minutes. {drinkWalk} minutes away. RUN.")
-],
-food:[
-  R('late',()=>tbIn('late','small')&&!!F.sit.food&&!USED.has(F.sit.food.name),
-    "{food} is open until {foodCloses}, {foodWalk} minutes' walk.",
-    "{food}'s open till {foodCloses}. {foodWalk} minutes away.",
-    "{food}'s open till {foodCloses}. Soak it up.",
-    "Soakage: {food}, open till {foodCloses}. You know it."),
-  R('breakfast',()=>tbIn('early','morning')&&!!F.sit.cafe&&!USED.has(F.sit.cafe.name),
-    "{cafe} is open, {cafeWalk} minutes' walk.",
-    "Coffee: {cafe}, {cafeWalk} minutes away.",
-    "Brew: {cafe}, {cafeWalk} minutes.",
-    "Need a brew? {cafe}. {cafeWalk} minutes. Go on."),
-  R('dinner',()=>F.at.getHours()>=12&&F.at.getHours()<14&&!!F.sit.food&&!USED.has(F.sit.food.name),
-    "For lunch, {food} is open, {foodWalk} minutes' walk.",
-    "Dinner: {food}, {foodWalk} minutes away.",
-    "Dinnertime. {food}'s {foodWalk} minutes away.",
-    "Dinner. Not lunch. Dinner. {food}, {foodWalk} minutes."),
-  R('tea',()=>tbIn('teatime','evening')&&!!F.sit.food&&!USED.has(F.sit.food.name),
-    "For food, {food} is open until {foodCloses}.",
-    "Tea: {food}, open till {foodCloses}.",
-    "Tea sorted: {food}, {foodWalk} minutes.",
-    "Can't be arsed cooking? {food}. {foodWalk} minutes."),
-  R('mealDeal',()=>!!F.sit.shop&&!F.sit.food&&!USED.has(F.sit.shop.name),
-    "{shop} is open until {shopCloses}.",
-    "{shop}'s open till {shopCloses}.",
-    "{shop}'s open. Meal deal it is.",
-    "{shop}'s open till {shopCloses}. Meal deal. Living the dream.")
-],
-verdict:[
-  R('bed',()=>F.verdict==='bed',"Sleep is recommended.","Bed.","Verdict: bed.","Go to bed. You animal."),
-  R('remote',()=>F.verdict==='remote',"Staying in is the realistic option.","Make your own fun.","Verdict: make your own fun.","Verdict: make your own fun. Or get a horse."),
-  R('legIt',()=>F.verdict==='legIt',"One drink is possible if you leave now.","Go now or don't bother.","Verdict: leg it.","Shoes. Door. Now."),
-  R('foodThenBed',()=>F.verdict==='foodThenBed',"Food, then bed.","Food, then bed.","Verdict: {foodShort}, then bed.","{FoodShort}. Bed. Sorted."),
-  R('lateBed',()=>F.verdict==='lateBed',"Bed is the sensible option.","Bed, probably.","Verdict: bed. It's shut.","It's all shut. Bed, you lightweight."),
-  R('sofa',()=>F.verdict==='sofa',"Staying in is reasonable.","Stay in.","Verdict: sofa.","Sofa. Telly. Takeaway. Sorted."),
-  R('goOut',()=>F.verdict==='goOut',"Going out is a good option.","Go out.","Verdict: out out.","Get out. Now. Stop reading this."),
-  R('pubHome',()=>F.verdict==='pubHome',"Time to head home.","Home time. Or the pub on the way.","Verdict: pub on the way home.","Pub. On the way home. Obviously."),
-  R('home',()=>F.verdict==='home',"Time to head home.","Home time.","Verdict: home, tea, telly.","Home. Tea. Telly. Living the dream."),
-  R('crackOn',()=>F.verdict==='crackOn',"Have a productive day.","Crack on.","Verdict: brew, then crack on.","Brew. Then crack on. You've got this."),
-  R('outside',()=>F.verdict==='outside',"Getting outside is a good option.","Get outside.","Verdict: get out in it.","Get out in it. The telly will still be there."),
-  R('decentish',()=>true,"Nothing much to report.","Could do worse.","Verdict: decent-ish.","Verdict: decent-ish. Which is more than most days.")
-]
+const OPEN={
+  now:{
+    small:L3("{Weekday} {date}. {time24}. {place}.","{TimeVague}. {place}. Why are you up?","It's {timeVague} in {place}. What are you doing up?"),
+    friday:L3("{Weekday} {date}. {time24}. {place}.","Friday. {TimeVague}. {place}. You made it.","FRIDAY. {TimeVague}. {place}. Get in."),
+    any:L3("{Weekday} {date}. {time24}. {place}.","{Weekday}. {TimeVague}. {place}.","{TimeVague} on a {weekday}. You're in {place}.")
+  },
+  soon:L3("{Part}, from {start}. {place}.","Later. From {start}. {place}.","Later. From {start}. {place}. Pace yourself. You won't."),
+  tomorrow:L3("Tomorrow, {weekday} {date}, from {start}. {place}.","Tomorrow. {Weekday}. From {start}. {place}.","Tomorrow. {Weekday}. From {start}. {place}. Plan ahead, you animal.")
 };
-const ORDER=['when','weather','tomorrow','out','last','food','verdict'];
+const OUTSIDE=L3("Decentish covers Greater Manchester. Elsewhere, it does its best.","You're not in Manchester. Doing my best.","You're not in Manchester. Bold. Let's see what we've got.");
+const ROLL={
+  allShut:L3("Plenty nearby, all closed. Here is tomorrow, from {start}.","Plenty about, all shut. Tomorrow, then. From {start}.","Loads round here and all the shit's shut. Tomorrow, then. From {start}."),
+  nothing:L3("Nothing suitable is open. Here is tomorrow, from {start}.","Nowt doing. Tomorrow, then. From {start}.","Nowt. Absolutely nowt. Tomorrow, then. From {start}.")
+};
+const TRAVEL={
+  walk:L3("{m} minutes' walk","{m} minutes away","{m} minutes"),
+  walk1:L3("a minute's walk","a minute away","a minute"),
+  near:L3("next door, more or less","just round the corner","next door"),
+  town:L3("in town, about {m} minutes away","in town, about {m} minutes away","town, {m} minutes")
+};
+const T={
+  culture:{
+    first:L3("Start at {name}, {travel}. It is open until {closes}.","{Name}'s open till {closes} if you fancy some culture. {Travel}.","{Name}. Culture. Briefly. {Travel}."),
+    next:L3("Then on to {name}, {travel}, open until {closes}.","Then a bit of culture at {name}. You'll survive.","Then {name}. Culture. Briefly.")
+  },
+  cafe:{
+    first:L3("Coffee at {name} to begin, {travel}.","Brew at {name} first. {Travel}.","{Name}. Coffee. You'll need it. {Travel}."),
+    next:L3("Then coffee at {name}, {travel}.","Then a brew at {name}, {travel}.","Then {name}. Coffee. Pace yourself.")
+  },
+  food:{
+    first:L3("{Meal} at {name}, {travel}{whatClause}. Open until {closes}.","{Meal} at {name} first. {What}, {travel}.","{Name}. {What}. Line the stomach. {Travel}."),
+    next:L3("Then {meal} at {name}, {travel}{whatClause}. Open until {closes}.","Then {what} at {name}, {travel}, open till {closes}.","Then {name}. {What}. Soak it up."),
+    last:L3("{Meal} at {name} to finish{whatClause}. Open until {closes}.","Then {what} at {name} to soak it up. Open till {closes}.","{Name} for {what} after. Till {closes}. Non-negotiable.")
+  },
+  pub:{
+    first:L3("A quiet drink at {name}, {travel}. Open until {closes}.","Pint at {name} first. {Travel}, open till {closes}.","{Name}. {Travel}. Go."),
+    next:L3("Then a drink at {name}, {travel}.","Then one more at {name}, {travel}.","Then {name}."),
+    last:L3("A final drink at {name}, open until {closes}.","One for the road at {name}. Shuts at {closes}.","{Name} till {closes}. Then we'll see.")
+  },
+  bar:{
+    first:L3("A glass of something at {name}, {travel}. Open until {closes}.","{Name} for a pint first. {Travel}, open till {closes}.","{Name}. {Travel}. Go."),
+    next:L3("Then a glass of something at {name}, {travel}, open until {closes}.","Then {name}, {travel}.","Then {name}. Till {closes}."),
+    last:L3("Finish with a glass of something at {name}. It is open until {closes}.","Last one at {name}. Shuts at {closes}.","{Name} till {closes}. Don't text your ex.")
+  },
+  club:{
+    first:L3("{Name} is open until {closes}, {travel}.","{Name}'s open till {closes} if you've still got it. {Travel}.","{Name}. {Travel}. Till {closes}. Obviously."),
+    next:L3("Then {name}, open until {closes}.","Then {name} till {closes}, if you've still got it.","Then {name}. Till {closes}. OBVIOUSLY.")
+  },
+  shop:{
+    next:L3("{Name} is open until {closes}, should supplies be needed.","{Name}'s open till {closes}. Meal deal it is.","{Name}. Meal deal. Living the dream.")
+  },
+  rushed:L3("{Name} closes at {closes}. It is {m} minutes' walk, so one drink if you leave now.","{Name}'s got {left} minutes left and it's {m} minutes away. That's one if you leg it.","{Name} shuts in {left} minutes. {m} minutes away. RUN."),
+  townHop:L3(null,null,"Then town. {m} minutes. {Name}. Till {closes}."),
+  townHopFirst:L3(null,null,"Town. {m} minutes. {Name}. Till {closes}.")
+};
+const WEATHER={
+  rainNow:L3("It is raining, so keep it indoors.","It's raining. Brolly.","It's pissing down. Coat. Go anyway."),
+  rainLater:L3("Take an umbrella: rain from {rainAt}.","Brolly – it turns at {rainAt}.","Pissing down from {rainAt}. Who cares."),
+  cold:L3("Wrap up. It will feel like {minFeels}°C.","Big coat. Feels like {minFeels} degrees.","Big coat or you'll freeze your bollocks off."),
+  sunny:L3("Sunglasses would not go amiss.","Aviators. Beer garden weather.","Aviators on. Beer garden. Sorted."),
+  sunnyEarlier:L3("It was sunny earlier. A jacket now.","Cracking flags earlier. Jacket now.","Cracking flags earlier. Jacket. Go."),
+  mild:L3("A light jacket will do: {temp}°C.","Mild. {temp} degrees. No coat needed.","{temp} degrees. Coat's optional. So's dignity."),
+  any:L3("Jacket weather: {temp}°C.","{temp} degrees. Jacket.","{temp} degrees. Jacket. No arguments.")
+};
+const SIGN={
+  small:L3("And then bed.","Then bed.","Then bed. You animal."),
+  tomorrow:L3("Something to look forward to.","Diary it.","Hydrate tonight."),
+  day:L3("A thoroughly civilised afternoon.","Sorted.","Back by teatime. You won't be."),
+  evening:L3("A thoroughly civilised evening.",["Sorted.","Decent-ish."],["Don't text your ex.","Phone charged? Go."])
+};
+const NOPLAN={
+  remote:L3("Nothing within walking distance. Nearest: {nearest}{nearestIn}, {nearestMiles} miles away.","Nowt round here. Nearest is {nearest}{nearestIn}. {nearestMiles} miles. That's a taxi and a half.","You live in the arse end of nowhere. Nearest thing's {nearest}{nearestIn}. {nearestMiles} miles. Several sheep rides away."),
+  remoteNone:L3("Nothing open within ten miles.","Nowt within ten miles. Impressive.","You live in the arse end of nowhere. I've looked ten miles out and found nowt. Respect."),
+  unknown:L3("{nLocal} places nearby, but their opening hours aren't on the map.","Plenty about. No idea what's open – the map doesn't say.","Loads about. Is any of it open? Nobody's told the map. Go and look."),
+  nothing:L3("Nothing suitable is open today or tomorrow.","Nowt doing. Not today, not tomorrow.","Nowt. Not even tomorrow. Respect."),
+  remoteSign:L3("Staying in is the realistic option.","Make your own fun.","Make your own fun. Or get a horse.")
+};
 const LOADING={
-  when:["Finding your location.","Working out where you are.","Where are you? Hang on.","Where the bloody hell are you? Hang on."],
-  weather:["Checking the weather.","Looking out the window.","Sticking a hand out the window.","Sticking me head out the window."],
-  out:["Checking what's open nearby.","Having a look what's about.","Scouting about for owt.","Having a proper root around."],
-  remote:["Nothing nearby. Widening the search.","Nothing close. Looking further afield.","Nowt round here. Scouting further out.","Christ. Scouting the next county."],
-  verdict:["Considering.","Thinking about it.","Weighing it up.","Having a think. Hold me pint."]
+  when:L3("Finding your location.","Where are you? Hang on.","Where the bloody hell are you? Hang on."),
+  plan:L3("Checking what's open nearby.","Scouting about for owt.","Having a proper root around."),
+  town:L3("Checking town as well.","Having a look in town.","Checking town. Obviously."),
+  remote:L3("Nothing nearby. Widening the search.","Nowt round here. Scouting further out.","Christ. Scouting the next county."),
+  weather:L3("Checking the weather.","Sticking a hand out the window.","Sticking me head out the window.")
 };
 const FAILED={
-  when:["That postcode wasn't found. Try another.","Can't find that postcode. Try again.","That's not a postcode. Try again.","That's not a real postcode, is it? Try again."],
-  weather:["Weather unavailable.","Weather's not answering. Look out the window.","Weather's down. Stick your head out.","Weather's broke. Lick your finger and hold it up."],
-  out:["Local listings unavailable right now. Try Refresh.","Couldn't get a look at what's about. Try Refresh.","Map's having a lie-down. Hit Refresh.","The map's pissed. Hit Refresh."]
+  badPostcode:L3("That postcode wasn't found. Try another.","That's not a postcode. Try again.","That's not a real postcode, is it? Try again."),
+  plan:L3("Local listings are unavailable right now. Try again shortly.","Map's having a lie-down. Try again in a minute.","The map's pissed. Try again in a minute."),
+  weather:L3("Weather is unavailable.","Weather's down. Stick your head out.","Weather's broke. Lick your finger and hold it up.")
 };
-const START=["To begin, share your location or enter a postcode.","Where are you? Share your location or type a postcode.","Right. Where are you? Location or postcode.","Where the hell are you? Location or postcode, sharpish."];
-const DENIED=["Location not shared. Enter a postcode instead.","Fair enough. Postcode, then?","Playing hard to get. Postcode?","Suit yourself. Postcode, then, you secretive sod."];
+const START=L3("To begin, share your location or enter a postcode.","Right. Where are you? Location or postcode.","Where the hell are you? Location or postcode, sharpish.");
+const DENIED=L3("Location not shared. Enter a postcode instead.","Fair enough. Postcode, then?","Suit yourself. Postcode, then, you secretive sod.");
 
 /* ---------- Fill ---------- */
-function joinList(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1]}
-function vars(n){
-  const at=F.at,v={_names:{}};
-  v.place=F.placeName||'your bit of the world';
-  v.weekday=DAYS[at.getDay()];
-  v.date=at.getDate()+' '+MONTHS[at.getMonth()];
-  v.time24=t24(at);v.timeWords=timeWords(at);v.timeVague=vague(at,n===3);
-  const w=F.wx;
-  if(w){
-    v.temp=Math.round(w.temp);v.feels=Math.round(w.feels);
-    const c=COND(w.code,w.isDay&&!F.sunDown);v.cond=c[0];v.condShort=c[1];
-    if(w.tomMax!=null){v.tomMax=Math.round(w.tomMax);v.tomMin=Math.round(w.tomMin)}
-    v.drop=w.drop;v.rise=w.rise;
-    v.rainAt=clockSay(w.rainAt,n,at);
-  }
-  if(F.sun){v.sunset=clockSay(F.sun.set,n,null);v.sunrise=clockSay(F.sun.rise,n,null)}
-  const s=F.sit,till=p=>p.next?clockSay(p.next,n,at):(n===0?'late':'all hours');
-  if(s){
-    if(s.drink){v.drink=s.drink.name;v.drinkWalk=s.drink.walk;v.drinkCloses=till(s.drink);v._names.drink=[s.drink.name]}
-    if(s.lastOrders)v.drinkMinsLeft=s.lastOrders.left;
-    if(s.food){v.food=s.food.name;v.foodShort=s.food.name;v.foodWalk=s.food.walk;v.foodCloses=till(s.food);v._names.food=[s.food.name]}
-    if(s.cafe){v.cafe=s.cafe.name;v.cafeWalk=s.cafe.walk;v._names.cafe=[s.cafe.name]}
-    if(s.shop){v.shop=s.shop.name;v.shopCloses=till(s.shop);v._names.shop=[s.shop.name]}
-    if(s.any){v.anyOpen=s.any.name;v.anyWalk=s.any.walk;v._names.anyOpen=[s.any.name]}
-    v.nOpen=s.nOpen;v.nShut=s.nShut;v.nKnown=s.nKnown;v.nTotal=s.nTotal;
-    const list=s.openNotShop.slice(0,3);
-    v.openList=joinList(list.map(p=>n===0?`${p.name} (${p.walk} min walk, closes ${till(p)})`:`${p.name} (${p.walk} min, till ${till(p)})`));
-    v._names.openList=list.map(p=>p.name);
-    if(s.firstOpen){v.firstOpen=s.firstOpen.name;v.firstOpenTime=clockSay(s.firstOpen.next,n,at);v._names.firstOpen=[s.firstOpen.name]}
-    if(s.nearest){
-      v.nearest=s.nearest.name;v.nearestWalk=s.nearest.walk;v.nearestMiles=miles(s.nearest.dist);
-      v.nearestIn=s.nearestTown?' in '+s.nearestTown:'';v._names.nearest=[s.nearest.name];
-    }
-  }
-  return v;
+const FOOD={pizza:['pizza','pizza'],indian:['Indian','a curry'],italian:['Italian','an Italian'],chinese:['Chinese','a Chinese'],
+  kebab:['kebabs','a kebab'],burger:['burgers','a burger'],fish_and_chips:['fish and chips','chippy tea'],turkish:['Turkish','a Turkish'],
+  thai:['Thai','a Thai'],japanese:['Japanese','Japanese'],sushi:['sushi','sushi'],mexican:['Mexican','a Mexican'],chicken:['chicken','chicken'],
+  vietnamese:['Vietnamese','a Vietnamese'],korean:['Korean','a Korean'],lebanese:['Lebanese','a Lebanese'],greek:['Greek','a Greek'],
+  spanish:['tapas','tapas'],french:['French','French'],british:['British','proper British'],vegan:['vegan','vegan'],coffee_shop:['coffee','a brew']};
+function whatFood(p){
+  const k=FOOD[p.cuisine];
+  if(k)return dial===0?k[0]:k[1];
+  if(p.kind==='fast_food')return 'a takeaway';
+  return dial===0?'a proper sit-down':'food';
 }
-/* "{drink}'s" means "is" or "has". After a name that already ends in s (Edison's, Ma Kelly's),
-   spell it out instead: "Edison's is 7 minutes away", "Edison's has got 20 minutes left". */
+function mealWord(d){
+  const h=d.getHours();
+  if(h<11)return 'breakfast';
+  if(h<15)return dial===0?'lunch':'dinner';
+  return dial===0?'dinner':'tea';
+}
 function fill(tpl,v){
   return tpl.replace(/\{(\w+)\}('s(?= \{?(\w+)))?/g,(m,k,poss,nextWord)=>{
     const lk=k[0].toLowerCase()+k.slice(1);
     let x=v[k];
     if(x===undefined&&v[lk]!==undefined)x=cap(String(v[lk]));
-    if(v._names[lk])v._names[lk].forEach(nm=>USED.add(nm));
     x=x===undefined||x===null?'':String(x);
     if(poss)x+=/s$/i.test(x)?(nextWord==='got'?' has':' is'):"'s";
     return x;
   });
 }
-function say(slot,n,v){
-  for(const r of BANK[slot]||[]){
-    let ok=false;
-    try{ok=r.when()}catch(e){ok=false}
-    if(!ok)continue;
-    const opts=r.d[n];
-    const key=slot+':'+r.id+':'+n;
-    if(choices[key]==null)choices[key]=Math.floor(Math.random()*opts.length);
-    return fill(opts[choices[key]],v);
+let R=Math.random;
+const say=(set,v)=>{const opts=set[dial];return opts&&opts[0]!==null?fill(pick(opts,R),v):null};
+const prec=()=>dial===0?0:1;
+function baseVars(){
+  const at=F.at,v={};
+  v.place=F.placeName||'your bit of the world';
+  v.weekday=DAYS[at.getDay()];
+  v.date=at.getDate()+' '+MONTHS[at.getMonth()];
+  v.time24=t24(at);
+  v.timeVague=vague(at,dial===2);
+  if(F.plan){
+    const s=F.plan.start;
+    v.start=clockSay(s,prec(),null);
+    const w=F.plan.wx;
+    if(w){v.temp=Math.round(w.temp);v.minFeels=Math.round(w.minFeels);v.rainAt=clockSay(w.rainAt,prec(),s)}
+    v.nLocal=F.plan.nLocal;
   }
-  return null;
+  if(F.nearest){v.nearest=F.nearest.name;v.nearestMiles=miles(F.nearest.dist);v.nearestIn=F.nearestTown?' in '+F.nearestTown:''}
+  return v;
+}
+function stepLine(s,i,n){
+  const total=F.plan.steps.length;
+  const pos=i===0?'first':i===total-1?'last':'next';
+  const v={name:s.p.name,m:s.tr.mins,left:s.left,closes:s.closes?clockSay(s.closes,prec(),s.arrive):(dial===0?'late':'all hours'),
+    what:whatFood(s.p),meal:mealWord(s.arrive)};
+  /* Blair names the cuisine, unless the name already does ("Eden Italian Restaurant") */
+  const cw=(FOOD[s.p.cuisine]||[''])[0].toLowerCase();
+  v.whatClause=s.p.cuisine&&cw&&!s.p.name.toLowerCase().includes(cw)?': '+v.what:'';
+  let tset=TRAVEL.walk;
+  if(s.tr.mode==='town')tset=TRAVEL.town;
+  else if(i>0&&s.tr.mins<=2)tset=TRAVEL.near;
+  else if(s.tr.mins===1)tset=TRAVEL.walk1;
+  v.travel=fill(tset[n][0],v);
+  let set;
+  if(i===0&&s.rushed&&when==='now'&&!F.plan.rolled&&s.tr.mode==='walk'&&(s.role==='pub'||s.role==='bar')){
+    set=T.rushed;v.left=Math.round((s.closes-F.at)/6e4);
+  }
+  else if(s.tr.mode==='town'&&n===2)set=i===0?T.townHopFirst:T.townHop;
+  else{const r=T[s.role]||T.bar;set=r[pos]||r.next||r.first}
+  return fill(pick(set[n],R),v);
+}
+function weatherLine(v){
+  const ctx=F.plan||{start:F.at,rolled:null,wx:weatherFor(F.at,new Date(F.at.getTime()+2*3600e3),F.live)};
+  const w=ctx.wx;if(!w)return null;
+  if(!F.plan){v.temp=Math.round(w.temp);v.minFeels=Math.round(w.minFeels);v.rainAt=clockSay(w.rainAt,prec(),F.at)}
+  const s=ctx.start,sun=sunFor(s),dark=sun?(s>=sun.set||s<sun.rise):!w.isDay;
+  let k='any';
+  if(w.rainNow)k='rainNow';
+  else if(w.rainAt)k='rainLater';
+  else if(w.minFeels<7)k='cold';
+  else if(!dark&&w.code<=1&&w.temp>=17)k='sunny';
+  else if(when==='now'&&!ctx.rolled&&dark&&w.sunnyHrs>=2)k='sunnyEarlier';
+  else if(w.feels>=12)k='mild';
+  return say(WEATHER[k],v);
+}
+function signLine(v){
+  const p=F.plan,h=p.start.getHours();
+  let k='evening';
+  if(when==='tomorrow'||p.rolled)k='tomorrow';
+  else if(h<6)k='small';
+  else if(h<16)k='day';
+  return say(SIGN[k],v);
 }
 
 /* ---------- Render ---------- */
+function linesWanted(){
+  const n=dial,want=[];
+  if(F.mode==='start'||F.mode==='denied'||F.mode==='badPostcode'){
+    const set=F.mode==='denied'?DENIED:F.mode==='badPostcode'?FAILED.badPostcode:START;
+    want.push({k:'ask',text:set[n][0]});
+    return want;
+  }
+  if(F.mode!=='run')return want;
+  if(slots.when==='loading'){want.push({k:'when',text:LOADING.when[n][0],cls:'loading'});return want}
+  if(slots.plan==='ready'&&!F.plan)makePlan();
+  R=rng((F.plan?F.plan.key:seed)+1);
+  const v=baseVars();
+  const vOpen=Object.assign({},v);
+  let openSet;
+  if(when==='now'){
+    openSet=F.tb==='small'?OPEN.now.small:F.isFri&&(F.tb==='teatime'||F.tb==='evening')?OPEN.now.friday:OPEN.now.any;
+  }else{
+    openSet=OPEN[when];
+    const s=startFor(when,PROFILES[dial],F.at);
+    vOpen.start=clockSay(s,prec(),null);vOpen.weekday=DAYS[s.getDay()];vOpen.date=s.getDate()+' '+MONTHS[s.getMonth()];
+    const h=s.getHours();
+    vOpen.part=h<5?'later tonight':h<12?'this morning':h<17?'this afternoon':'this evening';
+  }
+  want.push({k:'when',text:fill(openSet[n][0],vOpen)});
+  if(F.inGM===false)want.push({k:'outside',text:say(OUTSIDE,v)});
+  if(slots.plan==='loading'||slots.plan==='town'||slots.plan==='remote'){
+    want.push({k:'plan',text:LOADING[slots.plan==='loading'?'plan':slots.plan][n][0],cls:'loading'});
+  }else if(slots.plan==='failed'){
+    want.push({k:'plan',text:FAILED.plan[n][0],cls:'failed'});
+  }else if(slots.plan==='ready'){
+    const P=F.plan;
+    if(F.remote){
+      want.push({k:'plan',text:say(F.nearest?NOPLAN.remote:NOPLAN.remoteNone,v)});
+    }else if(P.steps){
+      if(P.rolled)want.push({k:'roll',text:say(P.allShut?ROLL.allShut:ROLL.nothing,v)});
+      want.push({k:'plan',text:P.steps.map((s,i)=>stepLine(s,i,n)).join(' ')});
+    }else if(P.nLocal>=3&&P.nKnown<3){
+      want.push({k:'plan',text:say(NOPLAN.unknown,v)});
+    }else want.push({k:'plan',text:say(NOPLAN.nothing,v)});
+  }
+  if(slots.weather==='loading')want.push({k:'weather',text:LOADING.weather[n][0],cls:'loading'});
+  else if(slots.weather==='failed')want.push({k:'weather',text:FAILED.weather[n][0],cls:'failed'});
+  else if(slots.weather==='ready'&&(slots.plan==='ready'||slots.plan==='failed')){const w=weatherLine(v);if(w)want.push({k:'weather',text:w})}
+  if(slots.plan==='ready'&&slots.weather!=='loading'){
+    const P=F.plan;
+    const sign=F.remote?say(NOPLAN.remoteSign,v):P.steps?signLine(v):null;
+    if(sign)want.push({k:'sign',text:sign});
+  }
+  return want;
+}
 function render(){
   document.body.dataset.dial=dial;
-  $('#dialName').textContent=STOPS[dial];
+  $('#dialName').textContent=PROFILES[dial].name;
   $('#dial').value=dial;
-  $('#dial').setAttribute('aria-valuetext',STOPS[dial]);
-  const n=dial,want=[];
-  USED=new Set();
-  if(F.mode==='start'||F.mode==='denied'||F.mode==='badPostcode'){
-    want.push({k:'ask',text:(F.mode==='denied'?DENIED:F.mode==='badPostcode'?FAILED.when:START)[n]});
-  }else if(F.mode==='run'){
-    const v=vars(n);
-    for(const s of ORDER){
-      const st=slots[s];
-      if(!st)continue;
-      let text=null,cls='';
-      if(st==='loading'||st==='remote'){text=(st==='remote'?LOADING.remote:LOADING[s])[n];cls='loading'}
-      else if(st==='failed'){text=FAILED[s]?FAILED[s][n]:null;cls='failed'}
-      else if(st==='ready')text=say(s,n,v);
-      if(text)want.push({k:s,text,cls});
-    }
-  }
+  $('#dial').setAttribute('aria-valuetext',PROFILES[dial].name);
+  document.querySelectorAll('[data-when]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.when===when)));
+  const want=linesWanted();
   const box=$('#lines');
   const have=new Map([...box.children].map(el=>[el.dataset.k,el]));
   let prev=null;
@@ -839,7 +800,16 @@ function render(){
   }
   for(const el of have.values())el.remove();
   $('#ask').hidden=!(F.mode==='start'||F.mode==='denied'||F.mode==='badPostcode');
-  renderFacts();renderTimings();renderWorkings();
+  renderReceipts();renderFacts();renderTimings();renderWorkings();
+}
+function renderReceipts(){
+  const el=$('#receipts');
+  const P=F.mode==='run'&&slots.plan==='ready'?F.plan:null;
+  if(!P||!P.steps||F.remote){el.textContent='';return}
+  el.textContent='Plan: '+P.steps.map(s=>{
+    const how=s.tr.mode==='town'?`about ${s.tr.mins} min into town`:`${s.tr.mins} min walk`;
+    return `${t24(s.arrive)} ${s.p.name}, ${s.p.kind.replace('_',' ')}, ${how}, ${s.closes?'till '+t24(s.closes):'open all hours'}`;
+  }).join(' → ');
 }
 function renderFacts(){
   const parts=[];
@@ -847,12 +817,14 @@ function renderFacts(){
     const at=F.at;
     parts.push(`${t24(at)} ${DAYS[at.getDay()].slice(0,3)} ${at.getDate()} ${MONTHS[at.getMonth()].slice(0,3)}`);
     if(F.placeName||F.postcode)parts.push([F.placeName,F.postcode].filter(Boolean).join(', '));
-    if(F.wx){
-      parts.push(`${Math.round(F.wx.temp)}°C, feels ${Math.round(F.wx.feels)}°C, ${COND(F.wx.code,F.wx.isDay&&!F.sunDown)[0]}`);
-      if(F.wx.tomMax!=null)parts.push(`Tomorrow ${Math.round(F.wx.tomMax)}° / ${Math.round(F.wx.tomMin)}°`);
+    const w=F.wxRaw?weatherFor(at,at,F.live):null;
+    if(w){
+      parts.push(`Now ${Math.round(w.temp)}°C, feels ${Math.round(w.feels)}°C, ${condWord(w.code,w.isDay)}`);
+      if(w.tomMax!=null)parts.push(`Tomorrow ${Math.round(w.tomMax)}° / ${Math.round(w.tomMin)}°`);
     }
-    if(F.sun)parts.push((F.at>F.sun.set?'Sunset was ':'Sunset ')+t24(F.sun.set));
-    if(F.sit)parts.push(`${F.sit.nOpen} of ${F.sit.nTotal} places open within ${LOCAL_WALK} min walk, hours known for ${F.sit.nKnown}`);
+    const sun=F.pos?sunFor(at):null;
+    if(sun)parts.push((at>sun.set?'Sunset was ':'Sunset ')+t24(sun.set));
+    if(F.townMins)parts.push(`Town about ${F.townMins} min`);
     if(test.at||test.postcode)parts.push('Test run');
   }
   parts.push('Decentish '+VERSION);
@@ -874,25 +846,35 @@ function renderWorkings(){
   if(box.hidden)return;
   box.textContent='';
   if(!F.places){box.textContent='Nothing loaded yet.';return}
+  const P=F.plan;
   const head=document.createElement('p');
-  head.textContent=`Situation: ${F.sit?F.sit.situation:'–'} · Verdict: ${F.verdict||'–'} · Time of day: ${F.tb}`+(F.wx?` · Sunny hours earlier: ${F.wx.sunnyHrs}`:'');
+  head.textContent=`Profile: ${PROFILES[dial].name} · When: ${when}${P&&P.rolled?' (rolled to tomorrow)':''} · Plan starts ${P?t24(P.start)+' '+DAYS[P.start.getDay()]:'–'} · In Greater Manchester: ${F.inGM===null?'unknown':F.inGM?'yes':'no'} · Places: ${F.places.filter(p=>p.zone==='local').length} local, ${F.places.filter(p=>p.zone==='town').length} in town`;
   const ol=document.createElement('ol');
-  for(const p of F.places){
+  const at=P?P.start:F.at;
+  for(const p of F.places.slice(0,150)){
     const li=document.createElement('li');
-    const st=p.known?(p.open?'open'+(p.next?' till '+clockSay(p.next,0,F.at):', all hours'):'shut'+(p.next?', opens '+clockSay(p.next,0,F.at):'')):(p.raw?'hours unclear: '+p.raw:'no hours on the map');
-    li.textContent=`${p.walk} min · ${p.name} · ${p.sub} · ${st}`;
+    let st;
+    if(p.role==='listing')st='needs listings, left out';
+    else if(!p.oh)st=p.raw?'hours unclear: '+p.raw:'no hours on the map';
+    else{const o=isOpen(p,at),nx=nextChange(p,at);st=o?'open'+(nx?' till '+clockSay(nx,0,at):', all hours'):'shut'+(nx?', opens '+clockSay(nx,0,at):'')}
+    li.textContent=`${p.zone==='town'?'town':p.walk+' min'} · ${p.name} · ${p.role}${p.cuisine?' ('+p.cuisine+')':''} · ${st}`;
     ol.append(li);
   }
   box.append(head,ol);
 }
 
 /* ---------- Run ---------- */
+function bucket(d){
+  const m=d.getHours()*60+d.getMinutes();
+  if(m<60)return 'late';if(m<300)return 'small';if(m<540)return 'early';if(m<720)return 'morning';
+  if(m<990)return 'afternoon';if(m<1170)return 'teatime';if(m<1350)return 'evening';return 'late';
+}
 async function run(opts={}){
   const id=++runId;
-  runStart=performance.now();runTotal=null;timings=[];choices={};
+  runStart=performance.now();runTotal=null;timings=[];seed=Math.floor(Math.random()*1e9);
   const live=!test.at;
   const at=test.at?new Date(test.at):new Date();
-  F={mode:'run',at,live,tb:bucket(at),isFri:at.getDay()===5,isMon:at.getDay()===1,isWeekend:at.getDay()===0||at.getDay()===6};
+  F={mode:'run',at,live,tb:bucket(at),isFri:at.getDay()===5,inGM:null};
   slots={when:'loading'};
   render();
   if(!libsPromise)libsPromise=timed('Hours engine',loadLibs,20000).catch(()=>null);
@@ -910,69 +892,73 @@ async function run(opts={}){
   if(id!==runId)return;
   F.pos=pos;
   const q={lat:+pos.lat.toFixed(3),lon:+pos.lon.toFixed(3)};
-  const noon=new Date(at.getFullYear(),at.getMonth(),at.getDate(),12);
-  F.sun=sunTimes(noon,pos.lat,pos.lon);
-  if(F.sun){
-    F.sunDown=at>=F.sun.set||at<F.sun.rise;
-    F.sunsetSoon=!F.sunDown&&F.sun.set-at<=90*6e4;
-  }
-  slots.weather='loading';slots.out='loading';slots.verdict='loading';
-  render();
   const pPost=pcInfo?Promise.resolve(pcInfo):timed('Postcode',()=>reversePostcode(q),8000).catch(()=>null);
   const pName=timed('Place name',()=>placeName(q),8000).catch(()=>null);
   const pWx=timed('Weather',()=>getJSON(weatherUrl(q),9000),10000).catch(()=>null);
-  const pPl=timed('Places',()=>overpass(placesQuery(q)),28000).catch(()=>null);
-  const whenDone=Promise.all([pPost,pName]).then(([pi,nm])=>{
-    if(id!==runId)return;
-    F.postcode=pi&&pi.postcode;F.country=pi&&pi.country;
-    F.placeName=nm||(pi&&(pi.ward||pi.district))||null;
-    slots.when='ready';render();
-  });
+  const pLocal=timed('Places',()=>overpass(venueQuery(q.lat,q.lon,SEARCH_M)),30000).catch(()=>null);
+  const pi=await pPost;
+  if(id!==runId)return;
+  F.postcode=pi&&pi.postcode;F.country=pi&&pi.country;
+  F.inGM=pi?GM.includes(pi.district):null;
+  const kmToTown=metres(pos,TOWN)/1000;
+  let pTown=Promise.resolve(null);
+  if(F.inGM&&kmToTown>2.5){
+    F.townMins=Math.round((8+kmToTown*2.6)/5)*5;
+    pTown=timed('Town places',()=>overpass(venueQuery(TOWN.lat,TOWN.lon,TOWN.r)),30000).catch(()=>null);
+  }
+  const nm=await pName;
+  if(id!==runId)return;
+  F.placeName=nm||(pi&&(pi.ward||pi.district))||null;
+  slots.when='ready';slots.plan='loading';slots.weather='loading';
+  render();
   const wxDone=pWx.then(w=>{
     if(id!==runId)return;
-    F.wx=deriveWeather(w,at,live);
-    if(F.wx){
-      F.wx.drop=F.wx.todayMax!=null&&F.wx.tomMax!=null?Math.round(F.wx.todayMax-F.wx.tomMax):0;
-      F.wx.rise=-F.wx.drop;
-      slots.weather='ready';slots.tomorrow='ready';
-    }else slots.weather='failed';
-    render();
+    F.wxRaw=w&&w.hourly?w:null;
+    slots.weather=F.wxRaw?'ready':'failed';
+    F.plan=null;render();
   });
-  const plDone=(async()=>{
-    const[res,OH]=await Promise.all([pPl,libsPromise]);
+  const planDone=(async()=>{
+    const[local,OH]=await Promise.all([pLocal,libsPromise]);
     if(id!==runId)return;
-    if(!res){slots.out='failed';render();return}
-    await whenDone;
-    F.places=derivePlaces(res.els,pos,at,OH,F.country);
-    F.sit=judge();
-    if(F.sit.situation==='remote'){
-      slots.out='remote';render();
-      const wide=await timed('Wider search',()=>overpass(wideQuery(q)),28000).catch(()=>null);
+    if(!local){slots.plan='failed';render();return}
+    if(F.townMins){slots.plan='town';render()}
+    const town=await pTown;
+    if(id!==runId)return;
+    F.places=mergePlaces(makePlaces(local.els,'local',OH,F.country),town?makePlaces(town.els,'town',OH,F.country):[]);
+    const near=F.places.filter(p=>p.zone==='local'&&p.walk<=20&&p.role!=='listing'&&p.role!=='shop');
+    F.remote=!near.length&&!F.places.some(p=>p.zone==='town');
+    if(F.remote){
+      slots.plan='remote';render();
+      const wide=await timed('Wider search',()=>overpass(wideQuery(q)),30000).catch(()=>null);
       if(id!==runId)return;
       if(wide){
-        const nn=derivePlaces(wide.els,pos,at,OH,F.country).find(p=>p.kind==='drink'||p.kind==='food');
+        const nn=makePlaces(wide.els,'far',OH,F.country).sort((a,b)=>a.dist-b.dist)[0];
         if(nn){
-          F.sit.nearest=nn;
+          F.nearest=nn;
           let town=nn.town;
           if(!town)town=await timed('Nearest town',()=>placeName({lat:+nn.lat.toFixed(3),lon:+nn.lon.toFixed(3)},14),8000).catch(()=>null);
-          F.sit.nearestTown=town&&town!==F.placeName?town:null;
+          F.nearestTown=town&&town!==F.placeName?town:null;
         }
       }
     }
-    slots.out='ready';slots.last='ready';slots.food='ready';
-    render();
+    slots.plan='ready';F.plan=null;render();
   })();
-  await Promise.all([whenDone,wxDone,plDone]);
+  await Promise.all([wxDone,planDone]);
   if(id!==runId)return;
-  F.verdict=verdict();
-  slots.verdict='ready';
   runTotal=performance.now()-runStart;F.updated=new Date();
   render();
 }
+function replan(){if(F.mode==='run'){F.plan=null;render()}}
 
 /* ---------- Controls ---------- */
-$('#dial').addEventListener('input',e=>{dial=+e.target.value;store.set('dial',dial);render()});
-$('#refresh').addEventListener('click',()=>{if(F.mode==='start'||F.mode==='denied')return askLocation();run(lastOpts)});
+$('#dial').addEventListener('input',e=>{dial=+e.target.value;store.set('dial3',dial);replan()});
+document.querySelectorAll('[data-when]').forEach(b=>b.addEventListener('click',()=>{when=b.dataset.when;replan()}));
+/* Another plan: a fresh pick from the same data. After five minutes it fetches everything again. */
+$('#refresh').addEventListener('click',()=>{
+  if(F.mode==='start'||F.mode==='denied')return askLocation();
+  if(F.mode==='run'&&runTotal!=null&&F.updated&&Date.now()-F.updated<5*60e3&&slots.plan==='ready'){seed=Math.floor(Math.random()*1e9);replan();return}
+  run(lastOpts);
+});
 function askLocation(){lastOpts={};run(lastOpts)}
 $('#useLocation').addEventListener('click',askLocation);
 $('#askForm').addEventListener('submit',e=>{
@@ -1010,6 +996,7 @@ document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click'
   if(p==='sat')$('#tAt').value=toLocalInput(nextDay(6,23,0));
   if(p==='sun')$('#tAt').value=toLocalInput(nextDay(0,10,0));
   if(p==='small'){const d=new Date();if(d.getHours()>=3)d.setDate(d.getDate()+1);d.setHours(3,0,0,0);$('#tAt').value=toLocalInput(d)}
+  if(p==='nq')$('#tPostcode').value='M4 1HN';
   if(p==='remote')$('#tPostcode').value='HS9';
   $('#labForm').requestSubmit();
 }));

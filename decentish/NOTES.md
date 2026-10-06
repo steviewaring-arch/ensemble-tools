@@ -1,59 +1,73 @@
-# Decentish – notes (0.1, 6 October 2026)
+# Decentish – notes (0.2, 7 October 2026)
 
-A website that works out where you are and tells you what's going on round you – the time, the weather, what's open, what's on – in short sentences, in a voice you set with a dial. Fun on the surface, properly useful underneath. Live (unlisted) at https://steviewaring-arch.github.io/ensemble-tools/decentish/.
+A website that works out where you are and gives you a plan – what to do, where, in what order – in short sentences, in a voice you set with a dial. Fun on the surface, properly useful underneath. Live (unlisted) at https://steviewaring-arch.github.io/ensemble-tools/decentish/.
 
-0.1 is a test build: real data from the sources that need no keys, a stopwatch to see how long each takes on a real phone, and a first go at the voice. The lines are placeholders for Steve to rewrite.
+**Who it's for:** office workers and the design crowd in and around Manchester – Northern Quarter, Ancoats, Spinningfields, MediaCity, and the suburbs they go home to. No kids yet. The moments that matter most: home time (weekdays 17:00–19:30), Thursday and Friday after work, dinner breaks, Saturday.
+
+**Where it works:** Greater Manchester. Elsewhere the basics still work and it says so in voice.
+
+## Three controls, never more
+
+- **Where** – your location, or a postcode.
+- **When** – Now · Soon · Tomorrow.
+- **The dial** – three stops. Each is a profile, not just a tone of voice:
+
+| | Tony Blair on a culture trip | Three pints and a meal deal | Pissed-up uncle on a mad one |
+|---|---|---|---|
+| Picks | Galleries and museums by day; a proper sit-down dinner, then a glass of something | Pub, food, pub | Pubs, bars, clubs, then food – as late as it goes |
+| Goes | Up to 25 min on foot, or into town | 15 min on foot | 20 min on foot, or into town (heads there in the evening) |
+| Until | 22:30 | 00:30 | Until it shuts. Won't eat before 23:00 if there's a bar open |
+| Avoids | Takeaways; anything it can't stay at properly | – | – |
+| Precision | 23:30 | half eleven | half eleven / stupid o'clock |
+| Swearing | None | Mild | Yes |
+| Dialect | None | Northern (tea, dinner, a brew, owt) | Broad |
+| Sentences | Full | Short | Shouted fragments |
 
 ## How it works
 
-`index.html` is the whole site – one file, no build step. `build.py` copies it to `docs/decentish/` after a syntax check.
+`index.html` is the whole site – one file. `build.py` copies it to `docs/decentish/` after a syntax check.
 
-1. **Locate.** The phone's location (only once the visitor taps *Use my location*, or straight away if they've allowed it before), or a postcode. Coordinates are rounded to about 100 m before they go to any other service.
-2. **Gather**, all at once:
-   - Postcode – postcodes.io (no key)
-   - Place name – OpenStreetMap's Nominatim, so it says *Monton*, not the ward (*Eccles*)
-   - Weather – Open-Meteo (no key; free for non-commercial use, needs a credit line before launch). Pulls yesterday to a week ahead, so it knows what earlier today was like and what tomorrow brings.
-   - Sunrise and sunset – worked out on the phone, no service
-   - Places – OpenStreetMap via Overpass (no key): pubs, bars, restaurants, cafés, takeaways, shops, cinemas within about a 20-minute walk, with opening hours. Falls back to two mirror servers.
-   - Opening hours are read by the opening_hours library (from jsDelivr) at the visitor's time.
-3. **Judge.** Local means 15 minutes on foot. The moment is one of: *buzzing* (4+ places open), *all shut* (plenty about, little open), *quiet* (under 6 places), *far* (nothing within 15 minutes, something within 20), *remote* (nothing at all – then it searches 10 miles out for the nearest pub or café and the village it's in), or *busy, hours unknown*. Plus: last orders (nearest open pub closing within 45 minutes, and whether you'd make it), the first place to open again, time of day, Friday, weekend.
-4. **Write.** Slots in a fixed order: when and where, weather, tomorrow, what's about, last orders, food, verdict. Each slot is a list of rules, most specific first; the first one that fits writes the line. Every rule has four versions, one per dial setting.
-5. **Show.** Lines appear as their source lands; until then each slot shows a loading line in the dial's voice. The facts strip at the foot is exact and never changes colour.
+1. **Locate.** Location (only after a tap, or straight away if allowed before) or a postcode. Coordinates rounded to about 100 m before they go anywhere.
+2. **Gather**, all at once: postcode and borough (postcodes.io), place name (OpenStreetMap Nominatim – says *Monton*, not the ward), weather from yesterday to a week ahead (Open-Meteo), and every pub, bar, club, restaurant, café, takeaway, gallery, museum and shop within about 20 minutes' walk, with opening hours (OpenStreetMap via Overpass). If you're in Greater Manchester but more than 2.5 km from Piccadilly Gardens, it also fetches the city centre, and reckons the trip in at 8 minutes plus 2.6 a kilometre (Monton: about 30).
+3. **Plan.** The profile's steps, in order. For each step it looks for a place of the right kind that's within reach, open when you'd arrive, and open long enough to be worth it. Scores by preference, distance and a seeded bit of luck; town gets a bonus where the profile likes town. After each step the clock moves on by a typical stay. If nothing works for Now or Soon, it rolls forward to Tomorrow and says why – "all shut" only when most places really are.
+4. **Write.** An opening line (when and where), the plan as one stitched paragraph, a weather line for the plan's time window, and a sign-off. Loading lines in the dial's voice until each source lands.
+5. **Show.** One face, one weight. The dial changes the background: white, amber, red. The receipts at the foot – each step's time, place, distance and closing time – are exact and never change colour.
+
+*Another plan* re-picks from the same data straight away. After five minutes it fetches everything again.
 
 ## Editing the lines
 
-Everything Steve needs is in `BANK`, `LOADING`, `FAILED`, `START` and `DENIED` in `index.html`. A rule looks like:
+All the copy is in `index.html` under *Write: the line bank*. Every entry has three versions, Blair → Three pints → Mad one:
 
 ```js
-R('lastOrders',()=>!!F.sit.lastOrders,
-  "{drink} closes at {drinkCloses}. It's {drinkWalk} minutes' walk.",          // Buttoned up
-  "{drink} shuts at {drinkCloses}. {drinkWalk} minutes' walk. Doable.",         // Decentish
-  "{drink}'s got {drinkMinsLeft} minutes left and it's {drinkWalk} minutes away. That's one if you leg it.",  // Three pints
-  "{drink} shuts in {drinkMinsLeft} minutes. {drinkWalk} minutes away. RUN.")   // Uncle
+rushed:L3(
+  "{Name} closes at {closes}. It is {m} minutes' walk, so one drink if you leave now.",
+  "{Name}'s got {left} minutes left and it's {m} minutes away. That's one if you leg it.",
+  "{Name} shuts in {left} minutes. {m} minutes away. RUN."),
 ```
 
-- Any of the four can be a list – `["line one", "line two"]` – and one is picked at random each refresh.
-- `{word}` fills from the facts. `{Word}` with a capital fills and capitalises. `{drink}'s` turns into *is* or *has* after a name that already ends in s (*Edison's is…*).
-- Times in useful facts (closing, sunset, rain) are exact at every setting – *23:30* when buttoned up, *half eleven* above that. The clock in the opening line gets vaguer as the dial goes up: *23:10*, *ten past eleven*, *gone eleven*, *stupid o'clock*.
-- Fills available: place, weekday, date, time24, timeWords, timeVague, temp, feels, cond, condShort, sunset, sunrise, tomMax, tomMin, drop, rise, rainAt, drink, drinkWalk, drinkCloses, drinkMinsLeft, food, foodShort, foodWalk, foodCloses, cafe, cafeWalk, shop, shopCloses, anyOpen, anyWalk, nOpen, nShut, nKnown, nTotal, openList, firstOpen, firstOpenTime, nearest, nearestIn, nearestMiles, nearestWalk.
+- Any version can be a list – `["Sorted.","Decent-ish."]` – and one is picked per plan.
+- `{word}` fills from the facts; `{Word}` fills and capitalises. `{name}'s` becomes *is* or *has* after a name ending in s.
+- Sets: `OPEN` (opening line by When, with Friday and small-hours specials), `T` (plan steps by kind – culture, cafe, food, pub, bar, club, shop – and position: first, next, last; plus `rushed` for last orders and `townHop` for the trip into town), `TRAVEL`, `ROLL` (rolling forward), `WEATHER` (rain now, rain later, cold, sunny, sunny earlier, mild, anything else), `SIGN` (small hours, tomorrow, day, evening), `NOPLAN` (remote, hours unknown, nothing), `OUTSIDE`, `LOADING`, `FAILED`, `START`, `DENIED`.
+- Fills in step lines: name, m (minutes), travel, left, closes, what (cuisine: *Italian* for Blair, *an Italian* otherwise; *a curry*, *chippy tea*), whatClause (Blair's ": Italian", dropped when the name already says it), meal (Blair: lunch/dinner; otherwise dinner/tea).
+- Profiles (who picks what, how far, how late) are in `PROFILES` at the top of the script.
 
-After changing lines: `python3 build.py`, `python3 tests/decentish_check.py` (it writes every line for every scenario to `tests/out/decentish.md` – the easiest way to read them all), commit, push.
+After changing anything: `python3 build.py`, then `python3 tests/decentish_check.py` – it writes every line for every scenario, dial and When to `tests/out/decentish.md`, which is the quickest way to read them all. Commit, push.
 
 ## Testing on a phone
 
-Open the link, tap *Use my location*. The stopwatch under the facts shows each source's time and the total. *Test* lets you run any postcode at any time (Friday 17:30, Saturday 23:00, Sunday 10:00, 03:00, a remote Hebridean postcode). *Workings* lists every place it found with its open/shut status and raw hours – the way to check it against the street.
+Open the link and tap *Use my location*. The stopwatch in the small print shows each source and the total. *Test* runs any postcode at any time (shortcuts: Friday 17:30, Saturday 23:00, Sunday 10:00, 03:00, the Northern Quarter, Barra). *Workings* lists every place it found with its status at the plan's start time, so you can check it against the street.
 
-## Known gaps in 0.1
+## Known gaps in 0.2
 
-- Not wired up yet (they need keys, so they need a small server-side function first): trams (TfGM), trains (Rail Data Marketplace), gigs (Skiddle, Ticketmaster), film times, Google ratings, food hygiene (FSA – no key, but it needs a version header, untested from a browser, so it goes through the function too).
-- Opening hours are only as good as OpenStreetMap. Places with no hours on the map count as unknown, never as open.
-- No caching yet, so every refresh asks every service. Fine for testing; not for launch.
-- Overpass's public servers are shared and sometimes slow or busy. The stopwatch will show how bad that is from a phone.
-- Diatype Bold is used only where it's installed on the device. For everyone else it's Hanken Grotesk Bold. To serve Diatype, drop `ABCDiatype-Bold.woff2` next to `index.html` – only if the licence covers web use.
+- Not wired up yet (they need keys, so they need a small server-side function): film times, gigs, trams, trains, Google ratings, food hygiene. Cinemas, theatres and music venues are left out of plans until their listings are in – an open cinema says nothing about what's on.
+- Opening hours are only as good as OpenStreetMap. No hours means it won't use the place.
+- The trip into town is an estimate, not a timetable.
+- No caching yet: every fetch asks every service.
+- Diatype Bold only where it's installed; Hanken Grotesk Bold otherwise. Drop `ABCDiatype-Bold.woff2` next to `index.html` if the licence covers web use.
 
 ## Next
 
-1. Steve tests on his phone in a few places and times; check the stopwatch and the Workings list against reality.
-2. Domain and hosting: decentish.co.uk, on Cloudflare (static page plus a small function for the keyed sources, with caching by grid square).
-3. Keyed sources through that function: trams, trains, gigs, Google ratings, hygiene.
-4. Line bank v1 – Steve rewrites, more variants per rule so refreshes don't repeat.
+1. Steve: check plans against reality on the phone, and rewrite the line bank.
+2. A hand-picked list of Manchester venues (cinemas, galleries, gig venues, the good pubs) with their own listings – the way to get films and exhibitions in.
+3. Domain and hosting (decentish.co.uk on Cloudflare) with the server-side function and caching; then gigs, trams, ratings and a film-listings trial.
