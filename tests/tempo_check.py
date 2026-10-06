@@ -20,6 +20,8 @@ def check(name, ok, detail=''):
 
 # the sentence the saver builds for a given moment and options, read from the page itself
 SAY = """([ms,o])=>{const C=Object.assign({},window.__cfg,{show:'words',words:Object.assign({},window.__cfg.words,o)});
+  const W=C.words,wx=window.__tempoWx||(window.__tempoWx={});for(const k in wx)delete wx[k];
+  if(o.wx)wx[W.place.lat.toFixed(2)+','+W.place.lon.toFixed(2)+','+W.unit]={tried:ms,data:Object.assign({at:ms},o.wx)};
   const RealDate=Date;let out='';const D=function(...a){return a.length?new RealDate(...a):new RealDate(ms)};D.now=()=>ms;D.prototype=RealDate.prototype;
   window.Date=D;try{const e=createEngine();const sv=createSaver(e,C);const cv=document.createElement('canvas');cv.width=1680;cv.height=1050;
   sv.frame(cv.getContext('2d'),1680,1050,0,0);out=sv.words();}finally{window.Date=RealDate;}return out;}"""
@@ -99,30 +101,57 @@ def main():
         check('Words export carries the words settings and themes', cfg.get('show') == 'words' and cfg['words']['case'] == 'sentence' and len(cfg['words']['themes']) >= 4)
         pg.evaluate("c=>{window.__cfg=c}", cfg)
         ms = lambda y, mo, d, hh, mm, ss: calendar.timegm((y, mo, d, hh, mm, ss, 0, 0, 0)) * 1000  # London is on GMT for all these dates
+        OFF = {'weekday': False, 'daynum': False, 'month': False, 'year': False}
+        MAN = {'name': 'Manchester', 'lat': 53.4808, 'lon': -2.2426, 'tz': 'Europe/London'}
+        TOK = {'name': 'Tokyo', 'lat': 35.6895, 'lon': 139.6917, 'tz': 'Asia/Tokyo'}
         cases = [
             ((2026, 10, 28, 23, 47, 59), {}, 'It is eleven forty seven and fifty nine seconds on Wednesday the twenty eighth of October twenty twenty six'),
             ((2026, 10, 29, 0, 0, 0), {}, 'It is midnight exactly on Thursday the twenty ninth of October twenty twenty six'),
             ((2026, 11, 1, 12, 0, 1), {}, 'It is midday and one second on Sunday the first of November twenty twenty six'),
             ((2026, 11, 3, 9, 5, 0), {'secs': False}, 'It is nine oh five on Tuesday the third of November twenty twenty six'),
-            ((2026, 11, 3, 9, 0, 0), {'secs': False, 'date': 'none', 'stop': True}, 'It is nine o’clock.'),
-            ((2026, 11, 3, 9, 5, 7), {'h24': True, 'date': 'day'}, 'It is oh nine oh five and seven seconds on Tuesday'),
-            ((2026, 11, 3, 0, 0, 0), {'h24': True, 'secs': False, 'date': 'none'}, 'It is zero hundred'),
+            ((2026, 11, 3, 9, 0, 0), dict(OFF, secs=False, stop=True), 'It is nine o’clock.'),
+            ((2026, 11, 3, 9, 5, 7), dict(OFF, h24=True, weekday=True), 'It is oh nine oh five and seven seconds on Tuesday'),
+            ((2026, 11, 3, 0, 0, 0), dict(OFF, h24=True, secs=False), 'It is zero hundred'),
             ((2026, 11, 3, 21, 40, 2), {'num': 'figures'}, 'It is 9.40pm and 2 seconds on Tuesday 3 November 2026'),
             ((2026, 11, 3, 21, 40, 2), {'num': 'figures', 'h24': True, 'sep': 'colon', 'lead': False, 'secs': False}, '21:40 on Tuesday 3 November 2026'),
             ((2026, 11, 3, 21, 40, 2), {'case': 'lower', 'secs': False}, 'it is nine forty on tuesday the third of november twenty twenty six'),
-            ((2026, 11, 3, 21, 40, 2), {'case': 'upper', 'secs': False, 'date': 'day'}, 'IT IS NINE FORTY ON TUESDAY'),
+            ((2026, 11, 3, 21, 40, 2), dict(OFF, case='upper', secs=False, weekday=True), 'IT IS NINE FORTY ON TUESDAY'),
             ((2026, 12, 31, 23, 59, 59), {}, 'It is eleven fifty nine and fifty nine seconds on Thursday the thirty first of December twenty twenty six'),
+            # parts switched on and off: the grammar closes up
+            ((2026, 11, 3, 21, 40, 2), dict(OFF, secs=False, month=True), 'It is nine forty in November'),
+            ((2026, 11, 3, 21, 40, 2), dict(OFF, secs=False, weekday=True, month=True), 'It is nine forty on Tuesday in November'),
+            ((2026, 11, 3, 21, 40, 2), dict(OFF, secs=False, year=True), 'It is nine forty in twenty twenty six'),
+            ((2026, 11, 3, 21, 40, 2), dict(OFF, secs=False, daynum=True, num='figures'), 'It is 9.40pm on the 3rd'),
+            ((2026, 11, 3, 21, 40, 2), {'time': False}, 'It is Tuesday the third of November twenty twenty six'),
+            ((2026, 11, 3, 21, 40, 2), {'time': False, 'lead': False, 'weekday': False}, 'The third of November twenty twenty six'),
+            # place, and the place's own time zone
+            ((2026, 11, 3, 21, 40, 2), dict(OFF, secs=False, inPlace=True, place=MAN), 'It is nine forty in Manchester'),
+            ((2026, 10, 28, 23, 47, 59), {'inPlace': True, 'place': TOK}, 'It is eight forty seven and fifty nine seconds on Thursday the twenty ninth of October twenty twenty six in Tokyo'),
+            ((2026, 11, 3, 21, 40, 2), dict(OFF, secs=False, inPlace=True, place=dict(MAN, name='Northern Quarter')), 'It is nine forty in Northern Quarter'),
+            # sunrise and sunset, tense following the sun
+            ((2026, 10, 28, 12, 0, 0), dict(OFF, secs=False, sun=True, place=MAN), 'It is midday. The sun rose at seven o’clock and sets at four forty four'),
+            ((2026, 10, 28, 5, 30, 0), dict(OFF, secs=False, sun=True, place=MAN), 'It is five thirty. The sun rises at seven o’clock and sets at four forty four'),
+            ((2026, 10, 28, 23, 47, 59), dict(OFF, time=False, sun=True, place=MAN, stop=True), 'The sun set at four forty four and rises at seven oh two.'),
+            ((2026, 10, 28, 12, 0, 0), dict(OFF, secs=False, sun=True, place=MAN, num='figures', h24=True), 'It is 12.00. The sun rose at 07.00 and sets at 16.44'),
+            ((2026, 10, 28, 23, 47, 59), dict(OFF, secs=False, sun=True, inPlace=True, place=TOK), 'It is eight forty seven in Tokyo. The sun rose at six o’clock and sets at four fifty'),
+            # weather
+            ((2026, 10, 28, 12, 0, 0), dict(OFF, secs=False, weather=True, place=MAN, wx={'t': 11.4, 'code': 3, 'day': 1}), 'It is midday. Eleven degrees and grey skies'),
+            ((2026, 10, 28, 12, 0, 0), dict(OFF, time=False, weather=True, place=MAN, wx={'t': -2.6, 'code': 71, 'day': 1}, stop=True), 'Minus three degrees and light snow.'),
+            ((2026, 10, 28, 12, 0, 0), dict(OFF, time=False, weather=True, place=MAN, num='figures', wx={'t': 0.6, 'code': 0, 'day': 1}), '1°C and sunshine'),
+            ((2026, 10, 28, 12, 0, 0), dict(OFF, time=False, weather=True, place=MAN, num='figures', case='lower', wx={'t': 0.6, 'code': 0, 'day': 1}), '1°C and sunshine'),
+            ((2026, 10, 28, 23, 0, 0), dict(OFF, time=False, weather=True, place=MAN, unit='F', wx={'t': 52.2, 'code': 61, 'day': 0}), 'Fifty two degrees and light rain'),
+            ((2026, 10, 28, 12, 0, 0), dict(OFF, time=False, weather=True, place=MAN, wx={'t': 11.4, 'code': 3, 'day': 1, 'at': calendar.timegm((2026, 10, 28, 8, 0, 0, 0, 0, 0)) * 1000}), ''),
         ]
         bad = []
         for when, o, want in cases:
             got = pg.evaluate(SAY, [ms(*when), o])
             if got != want:
                 bad.append(f'{when}: got “{got}”')
-        check(f'Sentences read correctly ({len(cases)} cases)', not bad, '; '.join(bad))
+        check(f'Sentences read correctly ({len(cases)} cases, incl. parts on and off, place, sun, weather, stale weather dropped)', not bad, '; '.join(bad))
 
         # preview draws, and the exported page draws the same frame
         pg.locator('#c_ssDrift').evaluate("e=>{e.value=0;e.dispatchEvent(new Event('input'))}"); wait(300)
-        pg.get_by_role('switch', name='Seconds').click(); wait(1500)
+        pg.get_by_role('group', name='Sentence parts').get_by_role('button', name='Seconds').click(); wait(1500)
         prev = pg.evaluate("document.querySelector('#cv').toDataURL('image/png')")
         whtml, _ = download(lambda: pg.get_by_role('button', name='Download HTML file').click())
         p2 = ctx.new_page(); e2 = []
@@ -156,6 +185,47 @@ def main():
         check('Exported words page with fonts runs without errors', not e3, '; '.join(e3[:3]))
         check('Words export bakes every letter it can need', all(ch in cfg['fonts'][0]['cmap'] for ch in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:'))
         check('Highlight style is carried into the export', cfg['words']['hiFace'] in [f['id'] for f in cfg['fonts']] and len(cfg['fonts']) == 2)
+
+        # place search, the Place card, and live weather in an export (both services mocked)
+        GEO = {'results': [{'name': 'Leeds', 'latitude': 53.79648, 'longitude': -1.54785, 'country': 'United Kingdom', 'admin1': 'England', 'timezone': 'Europe/London'}]}
+        FC = {'current': {'time': '2026-10-28T23:45', 'temperature_2m': 9.6, 'weather_code': 63, 'is_day': 0}}
+        hits = []
+        def geo(rt): hits.append(rt.request.url); rt.fulfill(json=GEO)
+        def fc(rt): hits.append(rt.request.url); rt.fulfill(json=FC, headers={'Access-Control-Allow-Origin': '*'})
+        ctx.route('https://geocoding-api.open-meteo.com/**', geo)
+        ctx.route('https://api.open-meteo.com/**', fc)
+        check('Place card hidden until a part needs it', pg.locator('section.card:visible h2').filter(has_text='Place').count() == 0)
+        parts = pg.get_by_role('group', name='Sentence parts')
+        parts.get_by_role('button', name='Place').click(); wait(200)
+        check('Place card appears when Place is on', pg.locator('section.card:visible h2').filter(has_text='Place').count() == 1)
+        pg.get_by_label('Search for a town or city').fill('Leeds'); pg.get_by_label('Search for a town or city').press('Enter')
+        for _ in range(20):
+            wait(50); time.sleep(.03)
+            if pg.get_by_role('button', name='Leeds, England, United Kingdom').count(): break
+        pg.get_by_role('button', name='Leeds, England, United Kingdom').click(); wait(500)
+        own = json.loads(pg.evaluate("localStorage.getItem('tempo:settings')") or '{}')
+        check('Choosing a search result sets the place', pg.locator('#c_ssWPlaceName').input_value() == 'Leeds' and abs(own.get('ssWLat', 0) - 53.79648) < 1e-4 and own.get('ssWTz') == 'Europe/London',
+              f"{own.get('ssWPlaceName')} {own.get('ssWLat')} {own.get('ssWTz')}")
+        pg.locator('#c_ssWPlaceName').fill('the Northern Quarter'); wait(500)
+        parts.get_by_role('button', name='Weather').click(); parts.get_by_role('button', name='Sunrise and sunset').click(); wait(300)
+        whtml, _ = download(lambda: pg.get_by_role('button', name='Download HTML file').click())
+        wcfg = json.loads(whtml.decode().split('window.__TEMPO__=')[1].split(';</script>')[0].replace('\\u003c', '<'))
+        check('Export carries the place, sun and weather settings', wcfg['words']['inPlace'] and wcfg['words']['sun'] and wcfg['words']['weather'] and wcfg['words']['place']['name'] == 'the Northern Quarter')
+        p4 = ctx.new_page(); e4 = []
+        p4.on('pageerror', lambda e: e4.append(str(e)))
+        p4.set_content(whtml.decode()); time.sleep(.4)
+        # the page's clock is paused by the test, so drive frames from here while the (mocked) fetch lands
+        p4.evaluate("""(C)=>{const e=createEngine();e.setFaces(C.fonts.map(d=>({id:d.id,face:e.makeBaked(d),swap:true})));
+          window.__sv=createSaver(e,C);const cv=document.createElement('canvas');cv.width=1680;cv.height=1050;window.__x=cv.getContext('2d');}""", wcfg)
+        said = ''
+        for _ in range(40):
+            said = p4.evaluate("()=>{window.__sv.frame(window.__x,1680,1050,performance.now(),16);return window.__sv.words();}")
+            if 'rain' in said: break
+            time.sleep(.05)
+        check('Exported page fetches the weather itself and says it', 'Ten degrees and rain' in said and 'in the Northern Quarter' in said and 'The sun' in said, said)
+        check('Weather request is for the chosen place, in Celsius', any('latitude=53.796&longitude=-1.548' in h and 'temperature_unit' not in h for h in hits), '; '.join(h for h in hits if 'forecast' in h)[:160])
+        check('Exported page with weather runs without errors', not e4, '; '.join(e4[:3]))
+        p4.close()
 
         # changes: every style draws mid-change without errors
         okc = True

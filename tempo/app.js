@@ -9,11 +9,13 @@ let ssDirty=true;/* the preview needs the new settings */
 function tempoKeys(){return Object.keys(D).filter(k=>/^ss[A-Z0-9]/.test(k)||k==='baseSlot');}
 /* Settings only Tempo has (the time in words). They join the shared defaults
    here rather than in shared/core.js, so Rubato is untouched. */
-function wordsDefaults(){return{ssWLead:true,ssWH24:false,ssWSecs:true,ssWDate:'full',ssWStop:false,
+function wordsDefaults(){return{ssWLead:true,ssWH24:false,ssWTime:true,ssWSecs:true,ssWWeekday:true,ssWDayNum:true,ssWMonth:true,ssWYear:true,
+  ssWPlace:false,ssWSun:false,ssWWeather:false,ssWStop:false,ssWUnit:'C',
+  ssWPlaceName:'Manchester',ssWLat:53.4808,ssWLon:-2.2426,ssWTz:'Europe/London',
   ssWCase:'sentence',ssWNum:'words',ssWSep:'stop',ssWHi:'time',ssWHiFace:'same',
   ssWSize:5,ssWLeading:1,ssWTracking:-20,ssWMeasure:100,ssWAlign:'left',ssWVAlign:'top',ssWMargin:2.5,
   ssWChange:'roll',ssWBy:'word',ssWFeel:'smooth',ssWLen:.6,ssWGlide:true,
-  ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWRotate:false};}
+  ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWDateCol:'#F7C6AA',ssWSunCol:'#FF6A1F',ssWWxCol:'#8FAFC4',ssWRotate:false};}
 function loadSettings(){
   Object.assign(D,wordsDefaults());
   const s=Object.assign(fresh(),sanitise(RLS.get('settings')||{}));
@@ -41,10 +43,9 @@ Object.assign(TIPS,{
   ssEvery:'How long each look stays before the next.',ssShuffle:'Plays looks in a random order.',ssReseed:'Gives random settings a fresh variation each time a look comes round.',
   ssLookCol:'Use each look’s own colours, or the Colour settings below for all of them.',ssSpeed:'Speeds up or slows down the motion.',
   ssDrift:'Slowly moves the whole composition so nothing sits still on screen for hours.',ssImage:'Includes the Rubato image in the screensaver.',
-  ssWLead:'Opens the sentence with “It is”.',ssWH24:'Eleven forty seven, or twenty three forty seven.',ssWSecs:'Adds the seconds, so a word changes every second.',
-  ssWDate:'How much of the date follows the time.',ssWStop:'Ends the sentence with a full stop.',
+  ssWH24:'Eleven forty seven, or twenty three forty seven. Sunrise and sunset follow it too.',ssWUnit:'Celsius or Fahrenheit.',
   ssWCase:'Sentence case capitalises the first word, the day and the month.',ssWNum:'Write numbers out in words, or set them as figures.',
-  ssWSep:'What sits between hours and minutes when they’re figures.',ssWHi:'Which words stand out. Latest change follows whatever changed last.',
+  ssWSep:'What sits between hours and minutes when they’re figures.',ssWHi:'Which words stand out. Latest change follows whatever changed last. Each part gives the time, the date and place, the sun and the weather their own colours.',
   ssWHiFace:'Sets the highlighted words in another of your loaded styles, such as a bold.',
   ssWSize:'Type size, as a share of the screen width.',ssWLeading:'Distance between lines, as a multiple of the type size.',ssWTracking:'Space between letters.',
   ssWMeasure:'How far across the screen a line can run before it breaks.',ssWMargin:'Space kept clear around the edge.',
@@ -89,13 +90,40 @@ const clk=s=>s.ssShow==='clock',lk=s=>s.ssShow==='looks',wd=s=>s.ssShow==='words
 }
 /* In words: what the sentence says */
 {const b=card('ss-wsay','Sentence',wd,'saver');
+  /* every part of the sentence, in reading order, switched on and off like words in a line */
+  const PIECES=[['ssWLead','It is'],['ssWTime','Time'],['ssWSecs','Seconds'],['ssWWeekday','Day'],['ssWDayNum','Date'],['ssWMonth','Month'],['ssWYear','Year'],
+    ['ssWPlace','Place'],['ssWSun','Sunrise and sunset'],['ssWWeather','Weather'],['ssWStop','Full stop']];
+  addHint(b,'Click the parts to build your sentence.');
+  const chips=el('div','ctl btn-row');chips.setAttribute('role','group');chips.setAttribute('aria-label','Sentence parts');addCustom(b,null,chips);
+  const cs=PIECES.map(([k,t])=>{const p=el('button','pill small',t);p.onclick=()=>set(k,!S[k]);chips.append(p);return[k,p];});
+  controls.push({d:{},w:chips,update(){cs.forEach(([k,p])=>{p.setAttribute('aria-pressed',!!S[k]);p.hidden=k==='ssWSecs'&&!S.ssWTime;});}});
   build(b,[
-    {t:'toggle',k:'ssWLead',label:'Start with \u201cIt is\u201d'},
-    {t:'seg',k:'ssWH24',label:'Format',opts:[[false,'12-hour'],[true,'24-hour']]},
-    {t:'toggle',k:'ssWSecs',label:'Seconds'},
-    {t:'seg',k:'ssWDate',label:'Date',opts:[['full','Day and date'],['day','Day only'],['none','None']]},
-    {t:'toggle',k:'ssWStop',label:'Full stop'},
+    {t:'seg',k:'ssWH24',label:'Format',opts:[[false,'12-hour'],[true,'24-hour']],show:s=>s.ssWTime||s.ssWSun},
+    {t:'hint',text:'Nothing to show. Switch on at least one part.',show:s=>!(s.ssWTime||s.ssWWeekday||s.ssWDayNum||s.ssWMonth||s.ssWYear||s.ssWPlace||s.ssWSun||s.ssWWeather)},
   ]);
+}
+/* In words: where. Needed for the place name, the sun and the weather. */
+{const needs=s=>wd(s)&&(s.ssWPlace||s.ssWSun||s.ssWWeather);
+  const b=card('ss-wplace','Place',needs,'saver');
+  const sr=el('div','ctl btn-row'),q=el('input'),go=el('button','pill small','Find');q.type='text';q.placeholder='Town or city';q.setAttribute('aria-label','Search for a town or city');q.style.flex='1';
+  sr.append(q,go);b.append(sr);
+  const found=el('div','ctl btn-row');b.append(found);
+  const nr=el('div','ctl'),nh=el('div','ctl-head'),nl=el('label',null,'Call it'),nm=el('input');nm.type='text';nm.id='c_ssWPlaceName';nl.htmlFor=nm.id;nm.style.width='100%';
+  nh.append(nl);nr.append(nh,nm);b.append(nr);
+  nm.oninput=()=>set('ssWPlaceName',nm.value,true);
+  const info=el('p','hint');b.append(info);
+  controls.push({d:{},w:nr,update(){if(document.activeElement!==nm)nm.value=S.ssWPlaceName;
+    const ll=(v,p,n)=>Math.abs(v).toFixed(2)+'\u00b0 '+(v<0?n:p);info.textContent=ll(S.ssWLat,'N','S')+', '+ll(S.ssWLon,'E','W')+(S.ssWTz?' \u00b7 '+S.ssWTz.replace(/_/g,' '):'');}});
+  const search=async()=>{const t=q.value.trim();if(!t)return;found.textContent='';go.disabled=true;
+    try{const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name='+encodeURIComponent(t));const j=await r.json();const rs=(j&&j.results)||[];
+      if(!rs.length)found.append(el('p','hint','No places found. Try another spelling, or add the country.'));
+      rs.forEach(x=>{const p=el('button','pill small',[x.name,x.admin1,x.country].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', '));
+        p.onclick=()=>{S.ssWPlaceName=x.name;S.ssWLat=+x.latitude;S.ssWLon=+x.longitude;S.ssWTz=x.timezone||'';found.textContent='';q.value='';set('ssWTz',S.ssWTz);toast(`Place set to ${x.name}`);};found.append(p);});}
+    catch(e){found.append(el('p','hint','Couldn\u2019t reach the place search. Check your connection.'));}
+    finally{go.disabled=false;}};
+  go.onclick=search;q.onkeydown=e=>{if(e.key==='Enter')search();};
+  build(b,[{t:'seg',k:'ssWUnit',label:'Temperature',opts:[['C','Celsius'],['F','Fahrenheit']],show:s=>s.ssWWeather}]);
+  addHint(b,'The time and date are given in the place\u2019s own time zone when Place is on. Sunrise and sunset are worked out on the computer. Place search (GeoNames) and weather come from Open-Meteo: the screen saver checks the weather every 20 minutes and leaves it out when it can\u2019t connect.');
 }
 /* In words: how it's set */
 {const b=card('ss-wtype','Type',wd,'saver');
@@ -103,7 +131,7 @@ const clk=s=>s.ssShow==='clock',lk=s=>s.ssShow==='looks',wd=s=>s.ssShow==='words
     {t:'seg',k:'ssWCase',label:'Case',opts:[['sentence','Sentence case'],['lower','lower case'],['upper','CAPITALS']]},
     {t:'seg',k:'ssWNum',label:'Numbers',opts:[['words','Words'],['figures','Figures']]},
     {t:'seg',k:'ssWSep',label:'Separator',opts:[['stop','Full stop'],['colon','Colon']],show:s=>s.ssWNum==='figures'},
-    {t:'seg',k:'ssWHi',label:'Highlight',opts:[['time','The time'],['latest','Latest change'],['none','Nothing']]},
+    {t:'seg',k:'ssWHi',label:'Highlight',opts:[['time','The time'],['latest','Latest change'],['parts','Each part'],['none','Nothing']]},
     {t:'segdyn',k:'ssWHiFace',label:'Highlight style',show:s=>s.ssWHi!=='none',
       optsFn:()=>[['same','Same style']].concat(anyLoaded()?eng.faceList().map(({id,face})=>[id,face.name]):[['d2','Demo heavy']])},
     {t:'range',k:'ssWSize',label:'Size',min:1.5,max:20,step:.1,fmt:v=>roundTo(v,.1)+'% of width'},
@@ -201,25 +229,29 @@ const clk=s=>s.ssShow==='clock',lk=s=>s.ssShow==='looks',wd=s=>s.ssShow==='words
 }
 /* In words: colour. Curated themes to start; Steve's set will replace them. */
 const WORD_THEMES=[
-  {name:'Apricot',bg:'#FFFFFF',ink:'#181818',soft:'#FDA072'},
-  {name:'Red',bg:'#FFFFFF',ink:'#FF3B1F',soft:'#181818'},
-  {name:'Paper',bg:'#F2F2F2',ink:'#000000',soft:'#B4B4B4'},
-  {name:'Night',bg:'#000000',ink:'#FFFFFF',soft:'#4D4D4D'},
-  {name:'Signal',bg:'#FF4F1F',ink:'#000000',soft:'#FFFFFF'},
-  {name:'Ultraviolet',bg:'#5B23F0',ink:'#FFF35C',soft:'#A98BFF'},
+  {name:'Apricot',bg:'#FFFFFF',ink:'#181818',soft:'#FDA072',date:'#F7C6AA',sun:'#FF6A1F',wx:'#8FAFC4'},
+  {name:'Red',bg:'#FFFFFF',ink:'#FF3B1F',soft:'#181818',date:'#8C8C8C',sun:'#FF9A8A',wx:'#5A5A5A'},
+  {name:'Paper',bg:'#F2F2F2',ink:'#000000',soft:'#B4B4B4',date:'#6E6E6E',sun:'#3A3A3A',wx:'#949494'},
+  {name:'Night',bg:'#000000',ink:'#FFFFFF',soft:'#4D4D4D',date:'#8C8C8C',sun:'#FFB347',wx:'#7FA7C9'},
+  {name:'Signal',bg:'#FF4F1F',ink:'#000000',soft:'#FFFFFF',date:'#FFD3C4',sun:'#FFF35C',wx:'#7A1A00'},
+  {name:'Ultraviolet',bg:'#5B23F0',ink:'#FFF35C',soft:'#A98BFF',date:'#FFFFFF',sun:'#FF8FD0',wx:'#5DE0C0'},
 ];
+const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','date'],['ssWSunCol','sun'],['ssWWxCol','wx']];
 {const b=card('ss-wcolour','Colour',wd,'saver');
   const row=el('div','ctl btn-row');addCustom(b,s=>!s.ssWRotate,row);
-  const same=T=>T.bg.toLowerCase()===S.ssWBg.toLowerCase()&&T.ink.toLowerCase()===S.ssWInk.toLowerCase()&&T.soft.toLowerCase()===S.ssWSoft.toLowerCase();
+  const same=T=>W_COLS.every(([k,t])=>String(T[t]).toLowerCase()===String(S[k]).toLowerCase());
   const fixed=s=>!s.ssWRotate;
   build(b,[
     {t:'colour',k:'ssWBg',label:'Background',show:fixed},
-    {t:'colour',k:'ssWInk',label:'Highlight',labelFn:s=>s.ssWHi==='time'?'The time':s.ssWHi==='latest'?'Latest change':'Type',show:fixed},
+    {t:'colour',k:'ssWInk',label:'Highlight',labelFn:s=>s.ssWHi==='time'||s.ssWHi==='parts'?'The time':s.ssWHi==='latest'?'Latest change':'Type',show:fixed},
+    {t:'colour',k:'ssWDateCol',label:'Date and place',show:s=>fixed(s)&&s.ssWHi==='parts'},
+    {t:'colour',k:'ssWSunCol',label:'Sunrise and sunset',show:s=>fixed(s)&&s.ssWHi==='parts'},
+    {t:'colour',k:'ssWWxCol',label:'Weather',show:s=>fixed(s)&&s.ssWHi==='parts'},
     {t:'colour',k:'ssWSoft',label:'Everything else',show:s=>fixed(s)&&s.ssWHi!=='none'},
     {t:'toggle',k:'ssWRotate',label:'Change theme every hour'},
   ]);
   const paint=()=>{row.textContent='';WORD_THEMES.forEach(T=>{const p=el('button','pill small',T.name);p.setAttribute('aria-pressed',same(T));
-    p.onclick=()=>{S.ssWBg=T.bg;S.ssWInk=T.ink;S.ssWSoft=T.soft;set('ssWRotate',false);};row.append(p);});};
+    p.onclick=()=>{W_COLS.forEach(([k,t])=>{S[k]=T[t];});set('ssWRotate',false);};row.append(p);});};
   controls.push({d:{},w:row,update:paint});
 }
 /* Export */
@@ -254,7 +286,9 @@ function saverConfig(){
     colours:{by:S.ssColBy,bg:S.ssBg,p:[S.ssP1,S.ssP2,S.ssP3,S.ssP4],cycle:S.ssRotate!=='off'&&pals.length>0},palettes:pals,lookColours:S.ssLookCol,
     looks:looks.length?looks:[base],base,every:S.ssEvery,shuffle:S.ssShuffle,reseed:S.ssReseed,speed:S.ssSpeed,drift:S.ssDrift,
     /* only when showing words, so clock and looks exports stay as they were */
-    ...(wd(S)?{words:{lead:S.ssWLead,h24:S.ssWH24,secs:S.ssWSecs,date:S.ssWDate,stop:S.ssWStop,case:S.ssWCase,num:S.ssWNum,sep:S.ssWSep,
+    ...(wd(S)?{words:{lead:S.ssWLead,h24:S.ssWH24,time:S.ssWTime,secs:S.ssWSecs,weekday:S.ssWWeekday,daynum:S.ssWDayNum,month:S.ssWMonth,year:S.ssWYear,
+      inPlace:S.ssWPlace,sun:S.ssWSun,weather:S.ssWWeather,unit:S.ssWUnit,stop:S.ssWStop,case:S.ssWCase,num:S.ssWNum,sep:S.ssWSep,
+      place:{name:S.ssWPlaceName,lat:S.ssWLat,lon:S.ssWLon,tz:S.ssWTz},cols:{date:S.ssWDateCol,sun:S.ssWSunCol,wx:S.ssWWxCol},
       hi:S.ssWHi,hiFace:S.ssWHiFace,size:S.ssWSize,leading:S.ssWLeading,tracking:S.ssWTracking,measure:S.ssWMeasure,align:S.ssWAlign,valign:S.ssWVAlign,margin:S.ssWMargin,
       change:S.ssWChange,by:S.ssWBy,feel:S.ssWFeel,len:S.ssWLen,glide:S.ssWGlide,bg:S.ssWBg,ink:S.ssWInk,soft:S.ssWSoft,rotate:S.ssWRotate,themes:WORD_THEMES}}:{})};
 }
@@ -265,7 +299,7 @@ function saverChars(cfg){
   for(let i=0;i<7;i++)add(new Date(2026,0,5+i).toLocaleDateString('en-GB',{weekday:'long'}));
   for(let m=0;m<12;m++)add(new Date(2026,m,1).toLocaleDateString('en-GB',{month:'long'}));
   add(cfg.clock.text);
-  if(cfg.words)add(saverVocab());
+  if(cfg.words){add(saverVocab());add(cfg.words.place.name);}
   for(const L of cfg.looks)for(const t of (L.seq?L.texts:[L.texts[0]||'']))add(t);
   return chars;
 }

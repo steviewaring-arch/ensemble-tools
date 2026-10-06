@@ -331,6 +331,9 @@ NEW_SAVER = open(os.path.join(ROOT, 'tempo/saver.js'), 'rb').read().rstrip(b'\n'
 BACK = [(b'window.__TEMPO__', b'window.__RUBATO__'), (b'Made with Tempo by Ensemble', b'Made with Rubato by Ensemble'),
         (b'<title>Tempo \xe2\x80\x93 screensaver</title>', b'<title>Rubato \xe2\x80\x93 screensaver</title>')]
 PANEL_BACK = [('The time\nIn words\nSaved looks', 'The time\nSaved looks')]
+# Two live-preview frames catch a roll or a drift mid-step, so 0.8.1 itself lands on one of two
+# frames from run to run. Largest difference seen between two runs of the reference on 6 Oct 2026:
+KNOWN_NOISE = {'screen saver preview': (1136, 10), 'roll at 150 ms': (1845, 208)}
 
 def _back(b):
     b = b.replace(NEW_SAVER, REF_SAVER)
@@ -489,6 +492,12 @@ def main():
                 else:
                     same = a == b
                     status = 'same' if same else 'DIFFERENT'
+                    # live-preview frames that land on one of two states depending on timing:
+                    # allowed the difference 0.8.1 itself showed between its own runs (6 Oct 2026)
+                    d = None if same or k not in KNOWN_NOISE else img_diff(a, b)
+                    if d and d[0] <= KNOWN_NOISE[k][0] and d[1] <= KNOWN_NOISE[k][1]:
+                        report.append(f'- same within known run-to-run variation: {k} – {d[0]} px differ by up to {d[1]}/255 (0.8.1 against itself: {KNOWN_NOISE[k][0]} px, {KNOWN_NOISE[k][1]}/255)')
+                        continue
                     note = None if same else tempo02(k, a, b)
                     if note:
                         report.append(f'- same apart from Tempo 0.2 changes: {k} – {note}')
