@@ -8,6 +8,7 @@ Google Fonts and opentype.js links it has always had):
     docs/rubato/index.html   Rubato – type in motion
     docs/tempo/index.html    Tempo – clock screen saver
     docs/tutti/index.html    Tutti – copied from tutti/index.html unchanged
+    docs/decentish/index.html  Decentish – prototype, copied after a syntax check
     docs/index.html          a small page linking to all three
     docs/rubato/0.9/         earlier versions kept live, from archive/
 
@@ -114,6 +115,10 @@ def main():
             print(f'  archive {src}: storage line not found'); ok = False
         write(f'{app}/{ver}/index.html', html.replace(a, b))
         print(f'{app} {ver}: docs/{app}/{ver}/index.html (archived)')
+    html = read('decentish/index.html')
+    ok = check_scripts('decentish', html) and ok
+    write('decentish/index.html', html)
+    print(f'decentish 0.1: docs/decentish/index.html ({len(html.encode()) // 1024} KB, copied after a syntax check)')
     shutil.copyfile(os.path.join(ROOT, 'shared/home.html'), os.path.join(DOCS, 'index.html'))
     open(os.path.join(DOCS, '.nojekyll'), 'w').close()
     if not ok:

@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>Decentish</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@700&display=swap">
+<style>
+/* Decentish 0.1. One face, one weight. The dial only changes colour: white, stone, amber, red.
+   The voice sits top left. The controls and the sober facts sit at the foot, and the facts never change colour. */
+@font-face{font-family:"Diatype Bold";src:local("ABC Diatype Bold"),local("ABCDiatype-Bold"),url("ABCDiatype-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
+:root{
+  --face:"Diatype Bold","Hanken Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --paper:#ffffff;
+  --ink:#121212;
+  --sober-paper:#ffffff;
+  --sober-ink:#121212;
+  --sober-soft:#5d5b56;
+  --gutter:clamp(16px,4.5vw,44px);
+  --voice:clamp(28px,5.6vw,64px);
+  color-scheme:light;
+}
+body[data-dial="0"]{--paper:#ffffff}
+body[data-dial="1"]{--paper:#e7e4dc}
+body[data-dial="2"]{--paper:#f3b419}
+body[data-dial="3"]{--paper:#ff4a2e}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--face);font-weight:700;letter-spacing:-.022em;-webkit-font-smoothing:antialiased;transition:background-color .6s ease}
+.page{min-height:100%;display:flex;flex-direction:column}
+.voice{flex:1;padding-inline:var(--gutter);padding-block:calc(var(--gutter) + env(safe-area-inset-top,0px)) var(--gutter)}
+#lines p{margin:0 0 .3em;font-size:var(--voice);line-height:1.04;max-width:16em;overflow-wrap:break-word}
+#lines p.in{animation:land .5s ease both}
+#lines p.loading{animation:breathe 1.4s ease-in-out infinite}
+@keyframes land{from{opacity:0;transform:translateY(.22em)}to{opacity:1;transform:none}}
+@keyframes breathe{0%,100%{opacity:.5}50%{opacity:.22}}
+.ask{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:1.1em;font-size:18px}
+.ask form{display:flex;flex-wrap:wrap;gap:8px}
+button,input{font:inherit;color:inherit;letter-spacing:inherit}
+.btn{background:transparent;border:2px solid currentColor;padding:9px 14px;cursor:pointer;border-radius:0}
+.btn:hover{background:var(--ink);color:var(--paper)}
+.field{background:transparent;border:2px solid currentColor;padding:9px 12px;border-radius:0;width:9.5em;min-width:0}
+.field::placeholder{color:currentColor;opacity:.45}
+:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+.desk{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px 22px;padding-inline:var(--gutter);padding-block:10px 18px;font-size:14px}
+.dial{flex:1 1 260px;min-width:0}
+.dial label{display:block;font-size:18px;margin-bottom:8px}
+input[type=range]{-webkit-appearance:none;appearance:none;display:block;width:100%;height:30px;margin:0;background:transparent;cursor:pointer}
+input[type=range]::-webkit-slider-runnable-track{height:2px;background:var(--ink)}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;margin-top:-11px;background:var(--ink);border:0;border-radius:0}
+input[type=range]::-moz-range-track{height:2px;background:var(--ink)}
+input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink);border:0;border-radius:0}
+.ends{display:flex;justify-content:space-between;gap:12px;font-size:12px;margin-top:2px}
+.facts{background:var(--sober-paper);color:var(--sober-ink);border-top:2px solid var(--sober-ink);padding-inline:var(--gutter);padding-block:12px calc(14px + env(safe-area-inset-bottom,0px));font-size:13px;line-height:1.45;font-variant-numeric:tabular-nums;display:grid;gap:6px}
+.facts p{margin:0}
+.soft{color:var(--sober-soft)}
+.tools{display:flex;flex-wrap:wrap;gap:6px 18px}
+.link{background:none;border:0;padding:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.lab{display:grid;gap:10px;padding-top:6px}
+.lab form{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.lab .field{width:auto;padding:7px 10px;border-width:1.5px}
+.lab .btn{padding:7px 12px;border-width:1.5px}
+.lab .btn:hover{background:var(--sober-ink);color:var(--sober-paper)}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.workings{display:grid;gap:2px;padding-top:6px}
+.workings ol{margin:0;padding-left:1.4em;display:grid;gap:2px}
+@media (prefers-reduced-motion:reduce){#lines p.in,#lines p.loading{animation:none}body{transition:none}}
+</style>
+</head>
+<body data-dial="1">
+<div class="page">
+  <main class="voice">
+    <div id="lines" aria-live="polite"></div>
+    <div class="ask" id="ask" hidden>
+      <button class="btn" id="useLocation" type="button">Use my location</button>
+      <form id="askForm" autocomplete="off">
+        <input class="field" id="askPostcode" name="postcode" placeholder="Postcode" aria-label="Postcode" autocapitalize="characters">
+        <button class="btn" type="submit">Go</button>
+      </form>
+    </div>
+  </main>
+  <section class="desk" aria-label="Controls">
+    <div class="dial">
+      <label for="dial" id="dialName">Decentish</label>
+      <input type="range" id="dial" min="0" max="3" step="1" value="1">
+      <div class="ends" aria-hidden="true"><span>Buttoned up</span><span>Mad one</span></div>
+    </div>
+    <button class="btn" id="refresh" type="button">Refresh</button>
+  </section>
+  <footer class="facts">
+    <p id="facts">Decentish 0.1</p>
+    <p class="soft" id="timings"></p>
+    <p class="soft">Not wired up yet: trams, trains, gigs, films, ratings, hygiene.</p>
+    <div class="tools">
+      <button class="link soft" id="workingsToggle" type="button" aria-expanded="false">Workings</button>
+      <button class="link soft" id="labToggle" type="button" aria-expanded="false">Test</button>
+    </div>
+    <div class="workings" id="workings" hidden></div>
+    <div class="lab" id="lab" hidden>
+      <form id="labForm" autocomplete="off">
+        <input class="field" id="tPostcode" placeholder="Postcode" aria-label="Test postcode" autocapitalize="characters">
+        <input class="field" id="tAt" type="datetime-local" aria-label="Test day and time">
+        <button class="btn" type="submit">Run test</button>
+        <button class="btn" id="tClear" type="button">Back to real</button>
+      </form>
+      <div class="presets">
+        <button class="btn" type="button" data-preset="fri">Friday 17:30</button>
+        <button class="btn" type="button" data-preset="sat">Saturday 23:00</button>
+        <button class="btn" type="button" data-preset="sun">Sunday 10:00</button>
+        <button class="btn" type="button" data-preset="small">Tonight 03:00</button>
+        <button class="btn" type="button" data-preset="remote">Barra, HS9</button>
+      </div>
+      <p class="soft" id="labNote">Test runs use real data for that place and time. Weather covers yesterday to a week ahead.</p>
+    </div>
+  </footer>
+</div>
+<script>
+(()=>{
+'use strict';
+const VERSION='0.1';
+const $=s=>document.querySelector(s);
+
+/* ---------- Settings ---------- */
+const STOPS=['Buttoned up','Decentish','Three pints and a meal deal','Pissed-up uncle on a mad one'];
+const LOCAL_WALK=15;      // minutes on foot that count as local
+const SEARCH_M=1300;      // first look: about a 20-minute walk
+const WIDE_M=16000;       // second look, only when nothing is local
+const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
+const LIBS=[
+  ['https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js','https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js'],
+  ['https://cdn.jsdelivr.net/npm/opening_hours@3.15.0/build/opening_hours.min.js','https://cdn.jsdelivr.net/npm/opening_hours@3.15.0/build/opening_hours.js']
+];
+const store={
+  get(k){try{return localStorage.getItem('decentish:'+k)}catch(e){return null}},
+  set(k,v){try{localStorage.setItem('decentish:'+k,String(v))}catch(e){}}
+};
+
+/* ---------- State ---------- */
+let dial=(()=>{const n=parseInt(store.get('dial'),10);return n>=0&&n<=3?n:1})();
+let F={mode:'idle'};
+let slots={};
+let timings=[];
+let runId=0,runStart=0,runTotal=null;
+let choices={};
+let USED=new Set();
+let libsPromise=null;
+let permState='prompt';
+let lastOpts={};
+const test={postcode:'',at:''};
+
+/* ---------- Words for time ---------- */
+const DAYS=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const HOURW=['twelve','one','two','three','four','five','six','seven','eight','nine','ten','eleven'];
+const pad=n=>String(n).padStart(2,'0');
+const t24=d=>pad(d.getHours())+':'+pad(d.getMinutes());
+const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+const hw=h=>HOURW[h%12];
+const sameDay=(a,b)=>a.toDateString()===b.toDateString();
+const dayStart=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
+
+function timeWords(d){
+  let h=d.getHours(),m=Math.round(d.getMinutes()/5)*5;
+  if(m===60){m=0;h=(h+1)%24}
+  const n=(h+1)%24;
+  switch(m){
+    case 0:return h===0?'midnight':h===12?'midday':hw(h)+" o'clock";
+    case 5:return 'five past '+hw(h);
+    case 10:return 'ten past '+hw(h);
+    case 15:return 'quarter past '+hw(h);
+    case 20:return 'twenty past '+hw(h);
+    case 25:return 'twenty-five past '+hw(h);
+    case 30:return 'half '+hw(h);
+    case 35:return 'twenty-five to '+hw(n);
+    case 40:return 'twenty to '+hw(n);
+    case 45:return 'quarter to '+hw(n);
+    case 50:return 'ten to '+hw(n);
+    default:return 'five to '+hw(n);
+  }
+}
+function vague(d,rowdy){
+  const h=d.getHours(),m=d.getMinutes();
+  if(rowdy){
+    if(h>=1&&h<5)return "stupid o'clock";
+    if(h>=5&&h<7)return 'the crack of dawn';
+    if(h>=12&&h<14)return 'dinnertime';
+    if(h===17||(h===18&&m<30))return 'teatime';
+  }
+  if(m<20)return h===0?'gone midnight':h===12?'gone twelve':'gone '+hw(h);
+  if(m<45)return 'half '+hw(h)+'-ish';
+  const n=(h+1)%24;
+  return n===0?'nearly midnight':'nearly '+hw(n);
+}
+/* Clock times for useful facts (closing, sunset, rain). Exact at every setting, just said differently. */
+function clockSay(d,n,ref){
+  if(!d)return '';
+  let s;
+  if(n===0)s=t24(d);
+  else{
+    const h=d.getHours(),m=d.getMinutes();
+    if(m===0)s=h===0?'midnight':h===12?'midday':hw(h);
+    else if(m===30)s='half '+hw(h);
+    else if(m===15)s='quarter past '+hw(h);
+    else if(m===45)s='quarter to '+hw((h+1)%24);
+    else s=(h%12||12)+':'+pad(m)+(h<12?'am':'pm');
+  }
+  if(ref&&!sameDay(d,ref)&&!(d-ref<6*3600e3&&d.getHours()<6)){
+    const days=Math.round((dayStart(d)-dayStart(ref))/864e5);
+    s+=days===1?' tomorrow':' on '+DAYS[d.getDay()];
+  }
+  return s;
+}
+function bucket(d){
+  const m=d.getHours()*60+d.getMinutes();
+  if(m<60)return 'late';
+  if(m<300)return 'small';
+  if(m<540)return 'early';
+  if(m<720)return 'morning';
+  if(m<990)return 'afternoon';
+  if(m<1170)return 'teatime';
+  if(m<1350)return 'evening';
+  return 'late';
+}
+
+/* ---------- Sun (after SunCalc, Vladimir Agafonkin) ---------- */
+const RAD=Math.PI/180,J1970=2440588,J2000=2451545,OBL=RAD*23.4397;
+const toDays=d=>d.valueOf()/864e5-0.5+J1970-J2000;
+const fromJ=j=>new Date((j+0.5-J1970)*864e5);
+function sunTimes(date,lat,lng){
+  const lw=RAD*-lng,phi=RAD*lat,d=toDays(date);
+  const n=Math.round(d-0.0009-lw/(2*Math.PI));
+  const ds=0.0009+lw/(2*Math.PI)+n;
+  const M=RAD*(357.5291+0.98560028*ds);
+  const L=M+RAD*(1.9148*Math.sin(M)+0.02*Math.sin(2*M)+0.0003*Math.sin(3*M))+RAD*102.9372+Math.PI;
+  const dec=Math.asin(Math.sin(OBL)*Math.sin(L));
+  const Jnoon=J2000+ds+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+  const w=Math.acos((Math.sin(-0.833*RAD)-Math.sin(phi)*Math.sin(dec))/(Math.cos(phi)*Math.cos(dec)));
+  if(isNaN(w))return null;
+  const a=0.0009+(w+lw)/(2*Math.PI)+n;
+  const Jset=J2000+a+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+  return{rise:fromJ(Jnoon-(Jset-Jnoon)),set:fromJ(Jset)};
+}
+
+/* ---------- Distance ---------- */
+function metres(a,b){
+  const dLat=(b.lat-a.lat)*RAD,dLon=(b.lon-a.lon)*RAD;
+  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*RAD)*Math.cos(b.lat*RAD)*Math.sin(dLon/2)**2;
+  return 2*6371000*Math.asin(Math.sqrt(h));
+}
+const walkMins=m=>Math.max(1,Math.round(m*1.3/80));
+const miles=m=>{const x=m/1609.34;return x<10?Math.round(x*10)/10:Math.round(x)};
+
+/* ---------- Weather words ---------- */
+function COND(c,day){
+  if(c===0||c===1)return day?['clear','sunny']:['clear','clear'];
+  if(c===2)return['partly cloudy','cloudy'];
+  if(c===3)return['overcast','grey'];
+  if(c<=48)return['foggy','foggy'];
+  if(c<=57)return['drizzling','drizzly'];
+  if(c<=67)return['raining','wet'];
+  if(c<=77)return['snowing','snowy'];
+  if(c<=82)return['showery','showery'];
+  if(c<=86)return['snow showers','snowy'];
+  return['thundery','stormy'];
+}
+const wetCode=c=>(c>=51&&c<=67)||(c>=80&&c<=82)||c>=95;
+
+/* ---------- Sources ---------- */
+function withTimeout(p,ms){
+  return new Promise((res,rej)=>{
+    const t=setTimeout(()=>rej({timeout:true}),ms);
+    p.then(v=>{clearTimeout(t);res(v)},e=>{clearTimeout(t);rej(e)});
+  });
+}
+function timed(name,fn,ms){
+  const rec={name,status:'pending',ms:null,note:''};
+  timings.push(rec);renderTimings();
+  const t0=performance.now();
+  return withTimeout(Promise.resolve().then(fn),ms).then(v=>{
+    rec.ms=performance.now()-t0;rec.status='ok';
+    if(v&&v.host)rec.note=v.host;
+    renderTimings();return v;
+  },e=>{
+    rec.ms=performance.now()-t0;rec.status=e&&e.timeout?'timeout':'failed';
+    renderTimings();throw e;
+  });
+}
+async function getJSON(url,ms=8000){
+  const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),ms);
+  try{
+    const r=await fetch(url,{signal:ctrl.signal});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    return await r.json();
+  }finally{clearTimeout(t)}
+}
+function loadScript(urls){
+  return new Promise((res,rej)=>{
+    const tryOne=i=>{
+      if(i>=urls.length)return rej(new Error('script failed'));
+      const s=document.createElement('script');
+      s.src=urls[i];s.async=false;
+      s.onload=()=>res();s.onerror=()=>{s.remove();tryOne(i+1)};
+      document.head.appendChild(s);
+    };
+    tryOne(0);
+  });
+}
+async function loadLibs(){
+  await loadScript(LIBS[0]);
+  await loadScript(LIBS[1]);
+  if(typeof window.opening_hours!=='function')throw new Error('hours engine missing');
+  return window.opening_hours;
+}
+function getPosition(){
+  return new Promise((res,rej)=>{
+    if(!navigator.geolocation)return rej({code:'unsupported'});
+    navigator.geolocation.getCurrentPosition(
+      p=>res({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy}),
+      e=>rej({code:e.code===1?'denied':'unavailable'}),
+      {enableHighAccuracy:false,timeout:15000,maximumAge:300000}
+    );
+  });
+}
+async function lookupPostcode(pc){
+  const clean=pc.trim().toUpperCase().replace(/\s+/g,' ');
+  try{
+    const j=await getJSON('https://api.postcodes.io/postcodes/'+encodeURIComponent(clean),6000);
+    const r=j.result;
+    return{lat:r.latitude,lon:r.longitude,postcode:r.postcode,ward:r.admin_ward,district:r.admin_district,country:r.country};
+  }catch(e){
+    const out=clean.split(' ')[0];
+    const j=await getJSON('https://api.postcodes.io/outcodes/'+encodeURIComponent(out),6000);
+    const r=j.result;
+    return{lat:r.latitude,lon:r.longitude,postcode:r.outcode,ward:(r.admin_ward||[])[0],district:(r.admin_district||[])[0],country:(r.country||[])[0]};
+  }
+}
+async function reversePostcode(q){
+  const j=await getJSON(`https://api.postcodes.io/postcodes?lon=${q.lon}&lat=${q.lat}&radius=1000&limit=1`,6000);
+  const r=j.result&&j.result[0];
+  return r?{postcode:r.postcode,ward:r.admin_ward,district:r.admin_district,country:r.country}:null;
+}
+async function placeName(q,zoom=16){
+  const j=await getJSON(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${q.lat}&lon=${q.lon}&zoom=${zoom}&addressdetails=1&accept-language=en-GB`,6000);
+  const a=j.address||{};
+  return a.suburb||a.village||a.hamlet||a.neighbourhood||a.quarter||a.town||a.city_district||a.city||null;
+}
+const weatherUrl=q=>`https://api.open-meteo.com/v1/forecast?latitude=${q.lat}&longitude=${q.lon}`+
+  '&current=temperature_2m,apparent_temperature,weather_code,precipitation,wind_speed_10m,is_day'+
+  '&hourly=temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,is_day'+
+  '&daily=temperature_2m_max,temperature_2m_min&timezone=auto&past_days=1&forecast_days=8&wind_speed_unit=mph';
+const placesQuery=q=>`[out:json][timeout:15];(`+
+  `nwr(around:${SEARCH_M},${q.lat},${q.lon})[amenity~"^(pub|bar|biergarten|nightclub|restaurant|fast_food|cafe|ice_cream|cinema|theatre|arts_centre|music_venue)$"][name];`+
+  `nwr(around:${SEARCH_M},${q.lat},${q.lon})[shop~"^(convenience|alcohol|supermarket)$"][name];`+
+  `);out center tags;`;
+const wideQuery=q=>`[out:json][timeout:20];(`+
+  `nwr(around:${WIDE_M},${q.lat},${q.lon})[amenity~"^(pub|bar|restaurant|cafe|fast_food)$"][name];`+
+  `);out center tags;`;
+async function overpass(query){
+  let last;
+  for(const url of OVERPASS){
+    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),9000);
+    try{
+      const r=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(query),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:ctrl.signal});
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      const j=await r.json();
+      return{els:j.elements||[],host:new URL(url).hostname};
+    }catch(e){last=e}finally{clearTimeout(t)}
+  }
+  throw last;
+}
+
+/* ---------- Gather: weather ---------- */
+function deriveWeather(w,at,live){
+  if(!w||!w.hourly)return null;
+  const H=w.hourly,off=(w.utc_offset_seconds||0)*1000;
+  const T=H.time.map(s=>Date.parse(s+':00Z')-off);
+  let i=-1;
+  for(let k=0;k<T.length;k++){if(T[k]<=at.getTime())i=k;else break}
+  if(i<0||at.getTime()-T[i]>2*3600e3)return null;
+  let temp=H.temperature_2m[i],feels=H.apparent_temperature[i],code=H.weather_code[i],precip=H.precipitation[i]||0,isDay=!!H.is_day[i];
+  if(live&&w.current){
+    const c=w.current;
+    temp=c.temperature_2m??temp;feels=c.apparent_temperature??feels;code=c.weather_code??code;
+    precip=c.precipitation??precip;isDay=c.is_day!=null?!!c.is_day:isDay;
+  }
+  const day=H.time[i].slice(0,10);
+  let sunnyHrs=0,wetMm=0;
+  for(let k=0;k<i;k++){
+    if(H.time[k].slice(0,10)!==day)continue;
+    const hr=+H.time[k].slice(11,13);
+    if(hr>=10&&hr<=17&&H.weather_code[k]<=1&&H.is_day[k])sunnyHrs++;
+    if(k>=i-6)wetMm+=H.precipitation[k]||0;
+  }
+  const rainNow=wetCode(code)||precip>=0.3;
+  let rainAt=null;
+  if(!rainNow)for(let k=i+1;k<=i+6&&k<T.length;k++){
+    if((H.precipitation_probability[k]||0)>=60&&wetCode(H.weather_code[k])){rainAt=new Date(T[k]);break}
+  }
+  const D=w.daily||{time:[]},di=D.time.indexOf(day);
+  const g=(a,j)=>a&&j>=0&&j<a.length?a[j]:null;
+  return{
+    temp,feels,code,isDay,rainNow,rainAt,
+    snowNow:(code>=71&&code<=77)||code===85||code===86,
+    thunder:code>=95,
+    sunnyHrs,wetEarlier:wetMm>=1,
+    todayMax:g(D.temperature_2m_max,di),todayMin:g(D.temperature_2m_min,di),
+    tomMax:g(D.temperature_2m_max,di+1),tomMin:g(D.temperature_2m_min,di+1)
+  };
+}
+
+/* ---------- Gather: places ---------- */
+function classify(t){
+  const a=t.amenity,s=t.shop;
+  if(['pub','bar','biergarten','nightclub'].includes(a))return 'drink';
+  if(['restaurant','fast_food','cafe','ice_cream'].includes(a))return 'food';
+  if(['convenience','alcohol','supermarket'].includes(s))return 'shop';
+  if(['cinema','theatre','arts_centre','music_venue'].includes(a))return 'culture';
+  return null;
+}
+function derivePlaces(els,pos,at,OH,country){
+  const out=[],seen=new Set();
+  for(const e of els||[]){
+    const t=e.tags||{},kind=classify(t);
+    if(!kind||!t.name)continue;
+    const lat=e.lat??(e.center&&e.center.lat),lon=e.lon??(e.center&&e.center.lon);
+    if(lat==null||lon==null)continue;
+    const key=t.name.toLowerCase()+'|'+kind;
+    if(seen.has(key))continue;
+    seen.add(key);
+    const dist=metres(pos,{lat,lon});
+    const p={name:t.name,kind,sub:t.amenity||t.shop,lat,lon,dist,walk:walkMins(dist),raw:t.opening_hours||'',known:false,open:null,next:null,
+      town:t['addr:town']||t['addr:city']||t['addr:village']||t['addr:hamlet']||null};
+    if(p.raw&&OH){
+      try{
+        const oh=new OH(p.raw,{lat,lon,address:{country_code:'gb',state:country||'England'}},{tag_key:'opening_hours',locale:'en'});
+        if(!oh.getUnknown(at)){p.known=true;p.open=oh.getState(at);p.next=oh.getNextChange(at)||null}
+      }catch(err){p.bad=true}
+    }
+    out.push(p);
+  }
+  return out.sort((a,b)=>a.dist-b.dist);
+}
+
+/* ---------- Judge ---------- */
+function judge(){
+  const P=F.places,at=F.at;
+  const local=P.filter(p=>p.walk<=LOCAL_WALK&&p.kind!=='culture');
+  const fd=local.filter(p=>p.kind==='drink'||p.kind==='food');
+  const known=local.filter(p=>p.known);
+  const open=local.filter(p=>p.known&&p.open);
+  const openNotShop=open.filter(p=>p.kind!=='shop');
+  const s={local,known,open,openNotShop,nTotal:local.length,nKnown:known.length,nOpen:open.length,nShut:known.length-open.length};
+  s.drink=open.find(p=>p.kind==='drink')||null;
+  s.food=open.find(p=>p.kind==='food'&&p.sub!=='cafe')||open.find(p=>p.kind==='food')||null;
+  s.cafe=open.find(p=>p.sub==='cafe')||null;
+  s.shop=open.find(p=>p.kind==='shop')||null;
+  s.any=openNotShop[0]||open[0]||null;
+  s.culture=P.filter(p=>p.kind==='culture'&&p.walk<=25);
+  if(s.drink&&s.drink.next){
+    const left=Math.round((s.drink.next-at)/6e4);
+    if(left<=45)s.lastOrders={p:s.drink,left,makeIt:left>s.drink.walk+3};
+  }
+  const shut=known.filter(p=>!p.open&&p.next&&p.kind!=='shop').sort((a,b)=>a.next-b.next);
+  s.firstOpen=shut[0]||null;
+  if(fd.length===0){
+    const near=P.filter(p=>p.kind==='drink'||p.kind==='food');
+    s.situation=near.length?'far':'remote';
+    s.nearest=near[0]||null;
+  }else if(local.length>=6){
+    if(known.length<3)s.situation='busyUnknown';
+    else if(openNotShop.length>=4||(openNotShop.length>=3&&open.length/known.length>=0.4))s.situation='buzzing';
+    else s.situation='allShut';
+  }else s.situation='quiet';
+  return s;
+}
+function verdict(){
+  const tb=F.tb,s=F.sit,w=F.wx;
+  if(tb==='small')return 'bed';
+  if(s&&s.situation==='remote')return 'remote';
+  if(s&&s.lastOrders&&s.lastOrders.makeIt&&(tb==='late'||tb==='evening'))return 'legIt';
+  if(tb==='late')return s&&s.food?'foodThenBed':'lateBed';
+  if(w&&w.rainNow&&(tb==='evening'||tb==='teatime'))return 'sofa';
+  if(s&&s.situation==='buzzing'&&(tb==='evening'||(tb==='teatime'&&(F.isFri||F.isWeekend))))return 'goOut';
+  if(tb==='teatime'&&!F.isWeekend)return s&&s.drink?'pubHome':'home';
+  if(tb==='early'||tb==='morning')return 'crackOn';
+  if(tb==='afternoon'&&F.isWeekend&&w&&!w.rainNow)return 'outside';
+  return 'decentish';
+}
+
+/* ---------- Write: the line bank ----------
+   Each slot is a list of rules, most specific first. The first rule whose test passes
+   writes the line. Every rule has four versions: buttoned up, decentish, three pints, uncle.
+   {curly} words are filled from the facts. A capital first letter capitalises the fill. */
+const R=(id,when,...d)=>({id,when,d:d.map(x=>Array.isArray(x)?x:[x])});
+const tbIn=(...b)=>b.includes(F.tb);
+const dark=()=>F.sunDown;
+
+const BANK={
+when:[
+  R('small',()=>tbIn('small'),
+    "{Weekday} {date}. {time24}. {place}.",
+    "{Weekday}. {TimeWords}. {place}.",
+    "{TimeVague}. {place}. Why are you up?",
+    "It's {timeVague} in {place}. What are you doing up?"),
+  R('friday',()=>F.isFri&&tbIn('teatime','evening'),
+    "{Weekday} {date}. {time24}. {place}.",
+    "Friday. {TimeWords}. {place}.",
+    "Friday. {TimeVague}. {place}. You made it.",
+    "FRIDAY. {TimeVague}. {place}. Get in."),
+  R('monday',()=>F.isMon&&tbIn('early','morning'),
+    "{Weekday} {date}. {time24}. {place}.",
+    "Monday. {TimeWords}. {place}.",
+    "Monday. {TimeVague}. {place}. Brace yourself.",
+    "Monday. {TimeVague}. {place}. Bloody Mondays."),
+  R('any',()=>true,
+    "{Weekday} {date}. {time24}. {place}.",
+    "{Weekday}. {TimeWords}. {place}.",
+    "{Weekday}. {TimeVague}. {place}.",
+    "{TimeVague} on a {weekday}. You're in {place}.")
+],
+weather:[
+  R('snow',()=>F.wx.snowNow,
+    "Snowing. {temp}°C.",
+    "Snow. Actual snow.",
+    "It's snowing. Everything will stop working.",
+    "It's snowing. Britain is now shut."),
+  R('thunder',()=>F.wx.thunder,
+    "Thunderstorms. {temp}°C.",
+    "Thunder about. Stay in.",
+    "Thunder about. Unplug the telly.",
+    "It's thundering. Someone upstairs is moving furniture."),
+  R('rainCold',()=>F.wx.rainNow&&F.wx.feels<7,
+    "Raining. {temp}°C, feels like {feels}°C.",
+    "Raining and cold. Proper coat.",
+    "Raining and nithering.",
+    "It's pissing down and it's bloody freezing."),
+  R('rain',()=>F.wx.rainNow,
+    "Raining. {temp}°C.",
+    "Raining. Brolly.",
+    "Raining. Course it is.",
+    "It's pissing down. Standard."),
+  R('sunnyEarlierCold',()=>F.wx.sunnyHrs>=2&&dark()&&F.wx.feels<9,
+    "Sunny earlier. Now {temp}°C, feels like {feels}°C. A coat is advisable.",
+    "Lovely earlier. Not now. Coat.",
+    "Cracking flags earlier. Sun's gone. Coat on.",
+    "It was cracking flags earlier but the sun's buggered off. Big coat or you'll freeze your bollocks off."),
+  R('sunnyEarlier',()=>F.wx.sunnyHrs>=2&&(dark()||F.wx.code>=2),
+    "Sunny earlier. {temp}°C now and {cond}.",
+    "Nice earlier. Still {temp} degrees.",
+    "Cracking flags earlier. Still mild now.",
+    "Belter of a day. Sun's gone, but it's still warm enough to sit out."),
+  R('rainSoon',()=>!!F.wx.rainAt,
+    "Dry now. Rain likely from {rainAt}.",
+    "Dry till about {rainAt}. Then it isn't.",
+    "Dry for now. Rain at {rainAt}. Don't get comfy.",
+    "Dry for now, but it's chucking it down from {rainAt}. Shift."),
+  R('sunsetSoon',()=>F.sunsetSoon,
+    "{temp}°C. Sunset at {sunset}.",
+    "{temp} degrees. Sun's down at {sunset}.",
+    "Sun's off at {sunset}. Make the most of it.",
+    "Sun clocks off at {sunset}. Get out in it."),
+  R('hot',()=>F.wx.temp>=24,
+    "{temp}°C and {cond}.",
+    "{temp} degrees. Proper warm.",
+    "{temp} degrees. Shorts weather.",
+    "{temp} degrees. Half the street's gone lobster."),
+  R('coldDark',()=>dark()&&F.wx.feels<7,
+    "{temp}°C, feels like {feels}°C. {Cond}.",
+    "Cold. {temp} degrees. Coat.",
+    "Nithering. {temp} degrees, feels like {feels}.",
+    "It's bloody freezing. Coat, hat, the lot."),
+  R('cold',()=>F.wx.feels<7,
+    "{temp}°C, feels like {feels}°C. {Cond}.",
+    "Chilly. {temp} degrees.",
+    "Nippy. {temp} degrees. Coat.",
+    "It's brass monkeys out there. {temp} degrees."),
+  R('mildDark',()=>dark()&&F.wx.feels>=11,
+    "{temp}°C and {cond}. Sunset was {sunset}.",
+    "Mild and {condShort}.",
+    "Mild. {CondShort}. Can't complain.",
+    "{temp} degrees at this time of night? Get out while it lasts."),
+  R('any',()=>true,
+    "{temp}°C and {cond}.",
+    "{temp} degrees and {condShort}.",
+    "{CondShort}. {temp} degrees. Fine.",
+    "{temp} degrees and {condShort}. Could be worse.")
+],
+tomorrow:[
+  R('freezing',()=>tbIn('teatime','evening','late','small')&&F.wx.drop>=3&&F.wx.tomMin<7,
+    "Tomorrow is cooler: {tomMax}°C at best, {tomMin}°C overnight.",
+    "Colder tomorrow. Coat's back on.",
+    "Tomorrow's {drop} degrees colder. Enjoy this.",
+    "Tomorrow you'll freeze your bits off. Enjoy this while it lasts."),
+  R('colder',()=>tbIn('teatime','evening','late','small')&&F.wx.drop>=3,
+    "Tomorrow is cooler: {tomMax}°C at best.",
+    "Bit colder tomorrow.",
+    "Tomorrow's {drop} degrees colder. Coat on.",
+    "Tomorrow's {drop} degrees colder. Don't say I didn't warn you."),
+  R('warmer',()=>tbIn('teatime','evening','late','small')&&F.wx.rise>=3,
+    "Tomorrow is warmer: up to {tomMax}°C.",
+    "Warmer tomorrow.",
+    "Tomorrow's {rise} degrees warmer. Something to look forward to.",
+    "Tomorrow's {rise} degrees warmer. Dig the shorts out.")
+],
+out:[
+  R('remoteNone',()=>F.sit.situation==='remote'&&!F.sit.nearest,
+    "Nothing open within ten miles.",
+    "Nothing for miles. Literally.",
+    "Nowt within ten miles. Impressive.",
+    "You live in the arse end of nowhere. I've looked ten miles out and found nowt. Respect."),
+  R('remote',()=>F.sit.situation==='remote',
+    "Nothing within walking distance. Nearest: {nearest}{nearestIn}, {nearestMiles} miles away.",
+    "Quiet round here. Nearest thing's {nearest}{nearestIn}, {nearestMiles} miles off.",
+    "Nowt round here. Nearest is {nearest}{nearestIn}. {nearestMiles} miles. That's a taxi and a half.",
+    "You live in the arse end of nowhere. Nearest thing's {nearest}{nearestIn}. {nearestMiles} miles. Several sheep rides away."),
+  R('far',()=>F.sit.situation==='far',
+    "Nothing within 15 minutes' walk. Nearest: {nearest}, {nearestWalk} minutes.",
+    "Nothing on the doorstep. {nearest}'s {nearestWalk} minutes away.",
+    "Bit of a trek. {nearest}'s {nearestWalk} minutes away.",
+    "Nowt on your doorstep. {nearest}'s {nearestWalk} minutes away. Pack a sandwich."),
+  R('busyUnknown',()=>F.sit.situation==='busyUnknown',
+    "{nTotal} places nearby. Opening hours unknown for most.",
+    "Plenty about. No idea what's open – the map doesn't say.",
+    "Loads about. Opening hours? Nobody's told the map.",
+    "Loads about. Is any of it open? Nobody's bothered telling the map. Go and look."),
+  R('allShutNone',()=>F.sit.situation==='allShut'&&!F.sit.openNotShop.length,
+    "{nShut} places within 15 minutes' walk. All closed. {FirstOpen} opens at {firstOpenTime}.",
+    "Plenty about. All shut. {FirstOpen} opens at {firstOpenTime}.",
+    "Plenty about, all shut. {FirstOpen}'s first to open, at {firstOpenTime}.",
+    "Loads round here and all the shit's shut. {FirstOpen} opens at {firstOpenTime}. Set an alarm."),
+  R('allShut',()=>F.sit.situation==='allShut',
+    "{nShut} of {nKnown} places nearby are closed. Still open: {openList}.",
+    "Plenty about, mostly shut. Still going: {openList}.",
+    "Plenty about. All shut, bar {openList}.",
+    "Loads round here and all the shit's shut. Survivors: {openList}."),
+  R('buzzingMorning',()=>F.sit.situation==='buzzing'&&tbIn('early','morning'),
+    "{nOpen} places open within 15 minutes' walk.",
+    "Plenty open already.",
+    "Everyone's up. {nOpen} places open.",
+    "Everyone's up and about. {nOpen} places open. Get your shoes on."),
+  R('buzzingDrink',()=>F.sit.situation==='buzzing'&&!!F.sit.drink,
+    "{nOpen} places open within 15 minutes' walk. Nearest pub or bar: {drink}, {drinkWalk} minutes.",
+    "Plenty open. {drink}'s {drinkWalk} minutes away.",
+    "Loads open. {drink}'s {drinkWalk} minutes away. No excuses.",
+    "It's all going off. {nOpen} places open. {drink}'s {drinkWalk} minutes away. Shoes on."),
+  R('buzzing',()=>F.sit.situation==='buzzing',
+    "{nOpen} places open within 15 minutes' walk, including {anyOpen}.",
+    "Plenty open. {anyOpen}'s {anyWalk} minutes away.",
+    "Loads open. {anyOpen}'s {anyWalk} minutes away.",
+    "It's all going on. {nOpen} places open. Start with {anyOpen}."),
+  R('quietDrink',()=>F.sit.situation==='quiet'&&!!F.sit.drink,
+    "{nTotal} places nearby. {drink} is open until {drinkCloses}, {drinkWalk} minutes' walk.",
+    "Not much round here, but {drink}'s open till {drinkCloses}.",
+    "Quiet one. {drink}'s open till {drinkCloses}, though.",
+    "Not exactly Ibiza round here. {drink}'s open till {drinkCloses}. It'll do."),
+  R('quietSome',()=>F.sit.situation==='quiet'&&!!F.sit.any,
+    "{nTotal} places nearby. {anyOpen} is open, {anyWalk} minutes' walk.",
+    "Not much round here. {anyOpen}'s open.",
+    "Quiet one. {anyOpen}'s open, at least.",
+    "Not exactly Ibiza round here. {anyOpen}'s open. Living the dream."),
+  R('quietNone',()=>F.sit.situation==='quiet',
+    "{nTotal} places nearby. None open right now.",
+    "Not much round here, and it's shut.",
+    "Quiet one. Nowt open.",
+    "Not exactly Ibiza round here. And what there is, is shut.")
+],
+last:[
+  R('missed',()=>!!F.sit.lastOrders&&!F.sit.lastOrders.makeIt,
+    "{drink} closes at {drinkCloses}, {drinkWalk} minutes' walk away. Too late to make it.",
+    "{drink} shuts at {drinkCloses}. You won't make it.",
+    "{drink} shuts in {drinkMinsLeft} minutes and it's {drinkWalk} minutes away. Even running, no.",
+    "{drink} shuts in {drinkMinsLeft} minutes. It's {drinkWalk} minutes away. Not even if you sprint. And you won't."),
+  R('lastOrders',()=>!!F.sit.lastOrders,
+    "{drink} closes at {drinkCloses}. It's {drinkWalk} minutes' walk.",
+    "{drink} shuts at {drinkCloses}. {drinkWalk} minutes' walk. Doable.",
+    "{drink}'s got {drinkMinsLeft} minutes left and it's {drinkWalk} minutes away. That's one if you leg it.",
+    "{drink} shuts in {drinkMinsLeft} minutes. {drinkWalk} minutes away. RUN.")
+],
+food:[
+  R('late',()=>tbIn('late','small')&&!!F.sit.food&&!USED.has(F.sit.food.name),
+    "{food} is open until {foodCloses}, {foodWalk} minutes' walk.",
+    "{food}'s open till {foodCloses}. {foodWalk} minutes away.",
+    "{food}'s open till {foodCloses}. Soak it up.",
+    "Soakage: {food}, open till {foodCloses}. You know it."),
+  R('breakfast',()=>tbIn('early','morning')&&!!F.sit.cafe&&!USED.has(F.sit.cafe.name),
+    "{cafe} is open, {cafeWalk} minutes' walk.",
+    "Coffee: {cafe}, {cafeWalk} minutes away.",
+    "Brew: {cafe}, {cafeWalk} minutes.",
+    "Need a brew? {cafe}. {cafeWalk} minutes. Go on."),
+  R('dinner',()=>F.at.getHours()>=12&&F.at.getHours()<14&&!!F.sit.food&&!USED.has(F.sit.food.name),
+    "For lunch, {food} is open, {foodWalk} minutes' walk.",
+    "Dinner: {food}, {foodWalk} minutes away.",
+    "Dinnertime. {food}'s {foodWalk} minutes away.",
+    "Dinner. Not lunch. Dinner. {food}, {foodWalk} minutes."),
+  R('tea',()=>tbIn('teatime','evening')&&!!F.sit.food&&!USED.has(F.sit.food.name),
+    "For food, {food} is open until {foodCloses}.",
+    "Tea: {food}, open till {foodCloses}.",
+    "Tea sorted: {food}, {foodWalk} minutes.",
+    "Can't be arsed cooking? {food}. {foodWalk} minutes."),
+  R('mealDeal',()=>!!F.sit.shop&&!F.sit.food&&!USED.has(F.sit.shop.name),
+    "{shop} is open until {shopCloses}.",
+    "{shop}'s open till {shopCloses}.",
+    "{shop}'s open. Meal deal it is.",
+    "{shop}'s open till {shopCloses}. Meal deal. Living the dream.")
+],
+verdict:[
+  R('bed',()=>F.verdict==='bed',"Sleep is recommended.","Bed.","Verdict: bed.","Go to bed. You animal."),
+  R('remote',()=>F.verdict==='remote',"Staying in is the realistic option.","Make your own fun.","Verdict: make your own fun.","Verdict: make your own fun. Or get a horse."),
+  R('legIt',()=>F.verdict==='legIt',"One drink is possible if you leave now.","Go now or don't bother.","Verdict: leg it.","Shoes. Door. Now."),
+  R('foodThenBed',()=>F.verdict==='foodThenBed',"Food, then bed.","Food, then bed.","Verdict: {foodShort}, then bed.","{FoodShort}. Bed. Sorted."),
+  R('lateBed',()=>F.verdict==='lateBed',"Bed is the sensible option.","Bed, probably.","Verdict: bed. It's shut.","It's all shut. Bed, you lightweight."),
+  R('sofa',()=>F.verdict==='sofa',"Staying in is reasonable.","Stay in.","Verdict: sofa.","Sofa. Telly. Takeaway. Sorted."),
+  R('goOut',()=>F.verdict==='goOut',"Going out is a good option.","Go out.","Verdict: out out.","Get out. Now. Stop reading this."),
+  R('pubHome',()=>F.verdict==='pubHome',"Time to head home.","Home time. Or the pub on the way.","Verdict: pub on the way home.","Pub. On the way home. Obviously."),
+  R('home',()=>F.verdict==='home',"Time to head home.","Home time.","Verdict: home, tea, telly.","Home. Tea. Telly. Living the dream."),
+  R('crackOn',()=>F.verdict==='crackOn',"Have a productive day.","Crack on.","Verdict: brew, then crack on.","Brew. Then crack on. You've got this."),
+  R('outside',()=>F.verdict==='outside',"Getting outside is a good option.","Get outside.","Verdict: get out in it.","Get out in it. The telly will still be there."),
+  R('decentish',()=>true,"Nothing much to report.","Could do worse.","Verdict: decent-ish.","Verdict: decent-ish. Which is more than most days.")
+]
+};
+const ORDER=['when','weather','tomorrow','out','last','food','verdict'];
+const LOADING={
+  when:["Finding your location.","Working out where you are.","Where are you? Hang on.","Where the bloody hell are you? Hang on."],
+  weather:["Checking the weather.","Looking out the window.","Sticking a hand out the window.","Sticking me head out the window."],
+  out:["Checking what's open nearby.","Having a look what's about.","Scouting about for owt.","Having a proper root around."],
+  remote:["Nothing nearby. Widening the search.","Nothing close. Looking further afield.","Nowt round here. Scouting further out.","Christ. Scouting the next county."],
+  verdict:["Considering.","Thinking about it.","Weighing it up.","Having a think. Hold me pint."]
+};
+const FAILED={
+  when:["That postcode wasn't found. Try another.","Can't find that postcode. Try again.","That's not a postcode. Try again.","That's not a real postcode, is it? Try again."],
+  weather:["Weather unavailable.","Weather's not answering. Look out the window.","Weather's down. Stick your head out.","Weather's broke. Lick your finger and hold it up."],
+  out:["Local listings unavailable right now. Try Refresh.","Couldn't get a look at what's about. Try Refresh.","Map's having a lie-down. Hit Refresh.","The map's pissed. Hit Refresh."]
+};
+const START=["To begin, share your location or enter a postcode.","Where are you? Share your location or type a postcode.","Right. Where are you? Location or postcode.","Where the hell are you? Location or postcode, sharpish."];
+const DENIED=["Location not shared. Enter a postcode instead.","Fair enough. Postcode, then?","Playing hard to get. Postcode?","Suit yourself. Postcode, then, you secretive sod."];
+
+/* ---------- Fill ---------- */
+function joinList(a){return a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1]}
+function vars(n){
+  const at=F.at,v={_names:{}};
+  v.place=F.placeName||'your bit of the world';
+  v.weekday=DAYS[at.getDay()];
+  v.date=at.getDate()+' '+MONTHS[at.getMonth()];
+  v.time24=t24(at);v.timeWords=timeWords(at);v.timeVague=vague(at,n===3);
+  const w=F.wx;
+  if(w){
+    v.temp=Math.round(w.temp);v.feels=Math.round(w.feels);
+    const c=COND(w.code,w.isDay&&!F.sunDown);v.cond=c[0];v.condShort=c[1];
+    if(w.tomMax!=null){v.tomMax=Math.round(w.tomMax);v.tomMin=Math.round(w.tomMin)}
+    v.drop=w.drop;v.rise=w.rise;
+    v.rainAt=clockSay(w.rainAt,n,at);
+  }
+  if(F.sun){v.sunset=clockSay(F.sun.set,n,null);v.sunrise=clockSay(F.sun.rise,n,null)}
+  const s=F.sit,till=p=>p.next?clockSay(p.next,n,at):(n===0?'late':'all hours');
+  if(s){
+    if(s.drink){v.drink=s.drink.name;v.drinkWalk=s.drink.walk;v.drinkCloses=till(s.drink);v._names.drink=[s.drink.name]}
+    if(s.lastOrders)v.drinkMinsLeft=s.lastOrders.left;
+    if(s.food){v.food=s.food.name;v.foodShort=s.food.name;v.foodWalk=s.food.walk;v.foodCloses=till(s.food);v._names.food=[s.food.name]}
+    if(s.cafe){v.cafe=s.cafe.name;v.cafeWalk=s.cafe.walk;v._names.cafe=[s.cafe.name]}
+    if(s.shop){v.shop=s.shop.name;v.shopCloses=till(s.shop);v._names.shop=[s.shop.name]}
+    if(s.any){v.anyOpen=s.any.name;v.anyWalk=s.any.walk;v._names.anyOpen=[s.any.name]}
+    v.nOpen=s.nOpen;v.nShut=s.nShut;v.nKnown=s.nKnown;v.nTotal=s.nTotal;
+    const list=s.openNotShop.slice(0,3);
+    v.openList=joinList(list.map(p=>n===0?`${p.name} (${p.walk} min walk, closes ${till(p)})`:`${p.name} (${p.walk} min, till ${till(p)})`));
+    v._names.openList=list.map(p=>p.name);
+    if(s.firstOpen){v.firstOpen=s.firstOpen.name;v.firstOpenTime=clockSay(s.firstOpen.next,n,at);v._names.firstOpen=[s.firstOpen.name]}
+    if(s.nearest){
+      v.nearest=s.nearest.name;v.nearestWalk=s.nearest.walk;v.nearestMiles=miles(s.nearest.dist);
+      v.nearestIn=s.nearestTown?' in '+s.nearestTown:'';v._names.nearest=[s.nearest.name];
+    }
+  }
+  return v;
+}
+/* "{drink}'s" means "is" or "has". After a name that already ends in s (Edison's, Ma Kelly's),
+   spell it out instead: "Edison's is 7 minutes away", "Edison's has got 20 minutes left". */
+function fill(tpl,v){
+  return tpl.replace(/\{(\w+)\}('s(?= \{?(\w+)))?/g,(m,k,poss,nextWord)=>{
+    const lk=k[0].toLowerCase()+k.slice(1);
+    let x=v[k];
+    if(x===undefined&&v[lk]!==undefined)x=cap(String(v[lk]));
+    if(v._names[lk])v._names[lk].forEach(nm=>USED.add(nm));
+    x=x===undefined||x===null?'':String(x);
+    if(poss)x+=/s$/i.test(x)?(nextWord==='got'?' has':' is'):"'s";
+    return x;
+  });
+}
+function say(slot,n,v){
+  for(const r of BANK[slot]||[]){
+    let ok=false;
+    try{ok=r.when()}catch(e){ok=false}
+    if(!ok)continue;
+    const opts=r.d[n];
+    const key=slot+':'+r.id+':'+n;
+    if(choices[key]==null)choices[key]=Math.floor(Math.random()*opts.length);
+    return fill(opts[choices[key]],v);
+  }
+  return null;
+}
+
+/* ---------- Render ---------- */
+function render(){
+  document.body.dataset.dial=dial;
+  $('#dialName').textContent=STOPS[dial];
+  $('#dial').value=dial;
+  $('#dial').setAttribute('aria-valuetext',STOPS[dial]);
+  const n=dial,want=[];
+  USED=new Set();
+  if(F.mode==='start'||F.mode==='denied'||F.mode==='badPostcode'){
+    want.push({k:'ask',text:(F.mode==='denied'?DENIED:F.mode==='badPostcode'?FAILED.when:START)[n]});
+  }else if(F.mode==='run'){
+    const v=vars(n);
+    for(const s of ORDER){
+      const st=slots[s];
+      if(!st)continue;
+      let text=null,cls='';
+      if(st==='loading'||st==='remote'){text=(st==='remote'?LOADING.remote:LOADING[s])[n];cls='loading'}
+      else if(st==='failed'){text=FAILED[s]?FAILED[s][n]:null;cls='failed'}
+      else if(st==='ready')text=say(s,n,v);
+      if(text)want.push({k:s,text,cls});
+    }
+  }
+  const box=$('#lines');
+  const have=new Map([...box.children].map(el=>[el.dataset.k,el]));
+  let prev=null;
+  for(const L of want){
+    let el=have.get(L.k);
+    if(el)have.delete(L.k);
+    else{el=document.createElement('p');el.dataset.k=L.k;el.classList.add('in')}
+    const wasLoading=el.classList.contains('loading');
+    if(el.textContent!==L.text)el.textContent=L.text;
+    el.classList.toggle('loading',L.cls==='loading');
+    el.classList.toggle('failed',L.cls==='failed');
+    if(wasLoading&&L.cls!=='loading'){el.classList.remove('in');void el.offsetWidth;el.classList.add('in')}
+    if(prev)prev.after(el);else box.prepend(el);
+    prev=el;
+  }
+  for(const el of have.values())el.remove();
+  $('#ask').hidden=!(F.mode==='start'||F.mode==='denied'||F.mode==='badPostcode');
+  renderFacts();renderTimings();renderWorkings();
+}
+function renderFacts(){
+  const parts=[];
+  if(F.mode==='run'){
+    const at=F.at;
+    parts.push(`${t24(at)} ${DAYS[at.getDay()].slice(0,3)} ${at.getDate()} ${MONTHS[at.getMonth()].slice(0,3)}`);
+    if(F.placeName||F.postcode)parts.push([F.placeName,F.postcode].filter(Boolean).join(', '));
+    if(F.wx){
+      parts.push(`${Math.round(F.wx.temp)}°C, feels ${Math.round(F.wx.feels)}°C, ${COND(F.wx.code,F.wx.isDay&&!F.sunDown)[0]}`);
+      if(F.wx.tomMax!=null)parts.push(`Tomorrow ${Math.round(F.wx.tomMax)}° / ${Math.round(F.wx.tomMin)}°`);
+    }
+    if(F.sun)parts.push((F.at>F.sun.set?'Sunset was ':'Sunset ')+t24(F.sun.set));
+    if(F.sit)parts.push(`${F.sit.nOpen} of ${F.sit.nTotal} places open within ${LOCAL_WALK} min walk, hours known for ${F.sit.nKnown}`);
+    if(test.at||test.postcode)parts.push('Test run');
+  }
+  parts.push('Decentish '+VERSION);
+  $('#facts').textContent=parts.join(' · ');
+}
+function renderTimings(){
+  const el=$('#timings');
+  if(!timings.length){el.textContent='';return}
+  const bits=timings.map(t=>{
+    const r=t.status==='pending'?'…':t.status==='ok'?(t.ms/1000).toFixed(2)+'s':t.status==='timeout'?'timed out':'failed';
+    return `${t.name} ${r}${t.note?' ('+t.note+')':''}`;
+  });
+  if(runTotal!=null)bits.push(`Total ${(runTotal/1000).toFixed(2)}s`);
+  if(F.updated)bits.push('Updated '+t24(F.updated));
+  el.textContent=bits.join(' · ');
+}
+function renderWorkings(){
+  const box=$('#workings');
+  if(box.hidden)return;
+  box.textContent='';
+  if(!F.places){box.textContent='Nothing loaded yet.';return}
+  const head=document.createElement('p');
+  head.textContent=`Situation: ${F.sit?F.sit.situation:'–'} · Verdict: ${F.verdict||'–'} · Time of day: ${F.tb}`+(F.wx?` · Sunny hours earlier: ${F.wx.sunnyHrs}`:'');
+  const ol=document.createElement('ol');
+  for(const p of F.places){
+    const li=document.createElement('li');
+    const st=p.known?(p.open?'open'+(p.next?' till '+clockSay(p.next,0,F.at):', all hours'):'shut'+(p.next?', opens '+clockSay(p.next,0,F.at):'')):(p.raw?'hours unclear: '+p.raw:'no hours on the map');
+    li.textContent=`${p.walk} min · ${p.name} · ${p.sub} · ${st}`;
+    ol.append(li);
+  }
+  box.append(head,ol);
+}
+
+/* ---------- Run ---------- */
+async function run(opts={}){
+  const id=++runId;
+  runStart=performance.now();runTotal=null;timings=[];choices={};
+  const live=!test.at;
+  const at=test.at?new Date(test.at):new Date();
+  F={mode:'run',at,live,tb:bucket(at),isFri:at.getDay()===5,isMon:at.getDay()===1,isWeekend:at.getDay()===0||at.getDay()===6};
+  slots={when:'loading'};
+  render();
+  if(!libsPromise)libsPromise=timed('Hours engine',loadLibs,20000).catch(()=>null);
+  else timings.push({name:'Hours engine',status:'ok',ms:0,note:'already loaded'});
+  const pc=test.postcode||opts.postcode||'';
+  let pos,pcInfo=null;
+  try{
+    if(pc){pcInfo=await timed('Postcode',()=>lookupPostcode(pc),8000);pos={lat:pcInfo.lat,lon:pcInfo.lon}}
+    else pos=await timed(permState==='granted'?'Location':'Location (incl. your tap)',getPosition,25000);
+  }catch(e){
+    if(id!==runId)return;
+    F.mode=pc?'badPostcode':'denied';
+    runTotal=performance.now()-runStart;render();return;
+  }
+  if(id!==runId)return;
+  F.pos=pos;
+  const q={lat:+pos.lat.toFixed(3),lon:+pos.lon.toFixed(3)};
+  const noon=new Date(at.getFullYear(),at.getMonth(),at.getDate(),12);
+  F.sun=sunTimes(noon,pos.lat,pos.lon);
+  if(F.sun){
+    F.sunDown=at>=F.sun.set||at<F.sun.rise;
+    F.sunsetSoon=!F.sunDown&&F.sun.set-at<=90*6e4;
+  }
+  slots.weather='loading';slots.out='loading';slots.verdict='loading';
+  render();
+  const pPost=pcInfo?Promise.resolve(pcInfo):timed('Postcode',()=>reversePostcode(q),8000).catch(()=>null);
+  const pName=timed('Place name',()=>placeName(q),8000).catch(()=>null);
+  const pWx=timed('Weather',()=>getJSON(weatherUrl(q),9000),10000).catch(()=>null);
+  const pPl=timed('Places',()=>overpass(placesQuery(q)),28000).catch(()=>null);
+  const whenDone=Promise.all([pPost,pName]).then(([pi,nm])=>{
+    if(id!==runId)return;
+    F.postcode=pi&&pi.postcode;F.country=pi&&pi.country;
+    F.placeName=nm||(pi&&(pi.ward||pi.district))||null;
+    slots.when='ready';render();
+  });
+  const wxDone=pWx.then(w=>{
+    if(id!==runId)return;
+    F.wx=deriveWeather(w,at,live);
+    if(F.wx){
+      F.wx.drop=F.wx.todayMax!=null&&F.wx.tomMax!=null?Math.round(F.wx.todayMax-F.wx.tomMax):0;
+      F.wx.rise=-F.wx.drop;
+      slots.weather='ready';slots.tomorrow='ready';
+    }else slots.weather='failed';
+    render();
+  });
+  const plDone=(async()=>{
+    const[res,OH]=await Promise.all([pPl,libsPromise]);
+    if(id!==runId)return;
+    if(!res){slots.out='failed';render();return}
+    await whenDone;
+    F.places=derivePlaces(res.els,pos,at,OH,F.country);
+    F.sit=judge();
+    if(F.sit.situation==='remote'){
+      slots.out='remote';render();
+      const wide=await timed('Wider search',()=>overpass(wideQuery(q)),28000).catch(()=>null);
+      if(id!==runId)return;
+      if(wide){
+        const nn=derivePlaces(wide.els,pos,at,OH,F.country).find(p=>p.kind==='drink'||p.kind==='food');
+        if(nn){
+          F.sit.nearest=nn;
+          let town=nn.town;
+          if(!town)town=await timed('Nearest town',()=>placeName({lat:+nn.lat.toFixed(3),lon:+nn.lon.toFixed(3)},14),8000).catch(()=>null);
+          F.sit.nearestTown=town&&town!==F.placeName?town:null;
+        }
+      }
+    }
+    slots.out='ready';slots.last='ready';slots.food='ready';
+    render();
+  })();
+  await Promise.all([whenDone,wxDone,plDone]);
+  if(id!==runId)return;
+  F.verdict=verdict();
+  slots.verdict='ready';
+  runTotal=performance.now()-runStart;F.updated=new Date();
+  render();
+}
+
+/* ---------- Controls ---------- */
+$('#dial').addEventListener('input',e=>{dial=+e.target.value;store.set('dial',dial);render()});
+$('#refresh').addEventListener('click',()=>{if(F.mode==='start'||F.mode==='denied')return askLocation();run(lastOpts)});
+function askLocation(){lastOpts={};run(lastOpts)}
+$('#useLocation').addEventListener('click',askLocation);
+$('#askForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const pc=$('#askPostcode').value.trim();
+  if(!pc){$('#askPostcode').focus();return}
+  lastOpts={postcode:pc};run(lastOpts);
+});
+function toggle(btn,box){
+  const open=box.hidden;box.hidden=!open;btn.setAttribute('aria-expanded',String(open));
+  if(open&&box.id==='workings')renderWorkings();
+}
+$('#workingsToggle').addEventListener('click',e=>toggle(e.currentTarget,$('#workings')));
+$('#labToggle').addEventListener('click',e=>toggle(e.currentTarget,$('#lab')));
+const toLocalInput=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+function nextDay(dow,h,m){
+  const now=new Date(),d=new Date(now);
+  d.setDate(now.getDate()+((dow-now.getDay()+7)%7));d.setHours(h,m,0,0);
+  if(d<now)d.setDate(d.getDate()+7);
+  return d;
+}
+$('#labForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  test.postcode=$('#tPostcode').value.trim();
+  test.at=$('#tAt').value;
+  run({});
+});
+$('#tClear').addEventListener('click',()=>{
+  test.postcode='';test.at='';$('#tPostcode').value='';$('#tAt').value='';
+  run(lastOpts);
+});
+document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{
+  const p=b.dataset.preset;
+  if(p==='fri')$('#tAt').value=toLocalInput(nextDay(5,17,30));
+  if(p==='sat')$('#tAt').value=toLocalInput(nextDay(6,23,0));
+  if(p==='sun')$('#tAt').value=toLocalInput(nextDay(0,10,0));
+  if(p==='small'){const d=new Date();if(d.getHours()>=3)d.setDate(d.getDate()+1);d.setHours(3,0,0,0);$('#tAt').value=toLocalInput(d)}
+  if(p==='remote')$('#tPostcode').value='HS9';
+  $('#labForm').requestSubmit();
+}));
+
+/* ---------- Start ---------- */
+async function boot(){
+  render();
+  try{
+    const p=await navigator.permissions.query({name:'geolocation'});
+    permState=p.state;
+  }catch(e){}
+  if(permState==='granted')run({});
+  else{F={mode:'start'};render()}
+}
+boot();
+})();
+</script>
+</body>
+</html>

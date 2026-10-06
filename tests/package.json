@@ -1,8 +1,10 @@
 {
   "name": "ensemble-tools-tests",
   "private": true,
-  "description": "Only here to fetch opentype.js 2.0.0 for the tests (the apps load the same version from jsDelivr).",
+  "description": "Only here to fetch the libraries the apps load from jsDelivr, so the tests run offline: opentype.js for Rubato and Tempo, SunCalc and opening_hours for Decentish.",
   "devDependencies": {
-    "opentype.js": "2.0.0"
+    "opening_hours": "3.15.0",
+    "opentype.js": "2.0.0",
+    "suncalc": "1.9.0"
   }
 }

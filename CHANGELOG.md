@@ -1,5 +1,16 @@
 # Changelog
 
+## 6 October 2026 – Decentish 0.1
+
+**Decentish 0.1** – new, unlisted prototype at `/decentish/`. No changes to Rubato, Tempo or Tutti.
+- Asks for your location (or a postcode), then pulls the time, the place name, the weather (with earlier today and tomorrow), sunset, and everything open within a 15-minute walk from OpenStreetMap, with its opening hours.
+- Sorts the moment into busy, all shut, quiet or remote, and writes a few short lines and a verdict. A dial sets the voice, from Buttoned up to Pissed-up uncle on a mad one. The dial changes the words and the background colour; the facts strip at the foot never changes.
+- Talks while it loads, in the dial's voice. A stopwatch shows how long each source took.
+- Test switches for any postcode and time. Workings lists every place it found and why it's open or shut.
+- One typeface: ABC Diatype Bold if it's installed on the device, Hanken Grotesk Bold otherwise.
+- Tested: `tests/decentish_check.py`, 36 of 36, with every source faked (Monton Road as Google listed it on 6 October, a made-up remote pub on Barra, the map service down, location refused, a bad postcode). Not tested: the real services from a phone – that's what this version is for.
+- `build.py` copies it into `docs/decentish/` after a syntax check.
+
 ## 6 October 2026 – Rubato 1.0
 
 **Rubato 1.0** – lockups, physics, kerning, three new tricks and a calmer panel. Everything 0.9 could do still works and draws the same.

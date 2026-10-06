@@ -10,6 +10,8 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
+**Decentish** 0.1 is also in here, unlisted: a prototype of a location-aware website that tells you what's going on round you, in a voice you set with a dial. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
+
 Rubato and Tempo share one core (font loading, controls, design system). From 1.0 Rubato has its own copy of the type engine, so its new features never reach Tempo; Tempo keeps `shared/engine.js`. Tutti is copied in as it is, and moves onto the shared core later.
 
 ## How the repo is laid out
@@ -32,6 +34,7 @@ tempo/         app.html, app.js (screen saver cards and exports), saver.js (cloc
   mac/             Mac .saver packager (WebViewScreenSaver, Apache 2.0)
   win/             Windows .scr host – C source, built .exe, and its base64 copy (host.js)
 tutti/         index.html – Tutti 6.0, unchanged
+decentish/     index.html – Decentish prototype, one self-contained page; NOTES.md
 reference/     rubato-0.8.1.html – the last combined app, kept for the parity tests
 archive/       earlier versions still served live – rubato-0.9.html → docs/rubato/0.9/
 tests/         parity.py, split_check.py, rubato_regress.py, rubato_features.py, legacy/ (the v0.8.1 handover tests)
@@ -47,7 +50,7 @@ build.py       stitches each app into one file in docs/
 python3 build.py
 ```
 
-Writes `docs/rubato/index.html`, `docs/tempo/index.html`, `docs/tutti/index.html`, `docs/index.html` and the archived `docs/rubato/0.9/`, and checks every script for syntax errors. Commit `docs/` along with the source – it's what gets published.
+Writes `docs/rubato/index.html`, `docs/tempo/index.html`, `docs/tutti/index.html`, `docs/decentish/index.html`, `docs/index.html` and the archived `docs/rubato/0.9/`, and checks every script for syntax errors. Commit `docs/` along with the source – it's what gets published.
 
 ## Test
 
@@ -65,6 +68,7 @@ python3 tests/parity.py        # Rubato and Tempo against v0.8.1 – writes test
 python3 tests/split_check.py   # Rubato and Tempo sharing fonts and looks
 python3 tests/rubato_regress.py   # Rubato 1.0 draws exactly what 0.9 drew, for 0.9's settings
 python3 tests/rubato_features.py  # Rubato 1.0's new features
+python3 tests/decentish_check.py  # Decentish logic and voice, all sources faked
 ```
 
 The parity tests drive the v0.8.1 reference and the new apps through the same steps, with randomness and the clock pinned, and compare every frame, download and panel read-out byte for byte. They need Chromium (via Playwright) and the Poppins and Lora fonts – set `FONTS=/path/to/folder` if they're not in `/usr/share/fonts/truetype/google-fonts`.

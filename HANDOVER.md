@@ -53,7 +53,7 @@ Everything is per browser and per site, so on GitHub Pages Rubato and Tempo shar
 - Found while testing, present in 0.8.1 too: Tempo's Laptop/Display/Portrait buttons don't move their highlight when clicked (the preview does change). In 0.8.1 switching tabs repainted them; now only a reload does. One-line fix – worth doing first in Tempo 0.2.
 
 ## Working in separate chats
-One chat per stream: **Tutti**, **Rubato**, **Tempo**. Each starts by cloning this repo and reading this file.
+One chat per stream: **Tutti**, **Rubato**, **Tempo**, **Decentish**. Each starts by cloning this repo and reading this file.
 
 What's linked:
 
@@ -62,6 +62,7 @@ What's linked:
 | `rubato/` | Rubato only |
 | `tempo/` (incl. `saver.js`, `mac/`, `win/`) | Tempo only |
 | `tutti/` | Tutti only – it shares nothing yet |
+| `decentish/` | Decentish only – it shares nothing with the tools |
 | `rubato/engine.js` | Rubato only (from 1.0) |
 | `shared/engine.js` | Tempo only now – and every screen saver Tempo exports from then on |
 | `shared/core.js`, `core-end.js`, `tokens.css`, `components.css`, `page.html` | Rubato **and** Tempo (controls, font loading, look and feel) |
