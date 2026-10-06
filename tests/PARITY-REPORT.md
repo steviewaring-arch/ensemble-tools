@@ -1,14 +1,13 @@
 # Parity report – Rubato 0.9 and Tempo 0.2 vs Rubato v0.8.1
 
-Run on 6 October 2026 against docs/ as committed (Tempo 0.2, with sentence parts, place, sun and weather). 87 results:
+Run on 6 October 2026 against docs/ as committed (Tempo 0.2 with In words, its looks and the export name). 87 results:
 
-- 77 byte-identical to two runs of the reference.
-- 9 differ only by Tempo 0.2's intended changes. `tempo02()` in `parity.py` undoes them – the Rubato → Tempo renames, the 0.2 screen saver runtime inside each export, the rebuilt Windows host, the extra Show option, and the Mac re-signing that follows from the page changing (only code-signature bytes differ in the binary) – and the result then matches 0.8.1 byte for byte.
-- 1 (screen saver preview) varied between the two reference runs themselves; the new build fell within that variation.
+- 78 byte-identical to two runs of the reference.
+- 9 differ only by Tempo 0.2's intended changes. `tempo02()` in `parity.py` undoes them – the Rubato → Tempo renames, the 0.2 screen saver runtime inside each export, the rebuilt Windows host, the extra Show option and the Export card's Name field, and the Mac re-signing that follows from the page changing (only code-signature bytes differ in the binary) – and the result then matches 0.8.1 byte for byte.
 
-Two live-preview frames (screen saver preview, roll at 150 ms) catch a drift or roll mid-step, so 0.8.1 lands on one of two frames from run to run. Across today's runs both the reference and Tempo 0.2 produced both frames. `KNOWN_NOISE` in `parity.py` now allows each the largest difference measured between two runs of 0.8.1 itself, so a run that happens to split them doesn't read as a failure.
+Two live-preview frames (screen saver preview, roll at 150 ms) catch a drift or roll mid-step, so 0.8.1 lands on one of two frames from run to run. `KNOWN_NOISE` in `parity.py` allows each the largest difference measured between two runs of 0.8.1 itself. In this run both matched exactly.
 
-`tests/tempo_check.py` (30 checks) covers what's new in 0.2; `tests/split_check.py` (13 checks) passes; it now reads the export's settings from `window.__TEMPO__`.
+`tests/tempo_check.py` (35 checks) covers what's new in 0.2; `tests/split_check.py` (13 checks) passes, reading the export's settings from `window.__TEMPO__`.
 
 ## t1 – Fonts: styles, variable axes, instances, axis animation, SVG, picker, reload.
 
@@ -69,7 +68,7 @@ Two live-preview frames (screen saver preview, roll at 150 ms) catch a drift or 
 - same: migrated styles – ["Poppins Regular", "Poppins Bold"]
 - same: migrated settings – {"fit": "block", "stretch": true, "baseSlot is 2nd style": true, "picks": {"a": ["200",...
 - same: default style – [["Default"], "Poppins Bold"]
-- same within run-to-run variation: screen saver preview – ref vs ref: 1019 px differ by up to 9/255; ref vs new: 1019 px by up to 9/255
+- same: screen saver preview – 81249 bytes, sha256 a71e2418067f
 - same apart from Tempo 0.2 changes: screen saver HTML – export renamed to Tempo and carries the 0.2 runtime
 - same: screen saver HTML (file name) – lazaar-screensaver.html
 - same apart from Tempo 0.2 changes: Mac zip – only signature bytes differ in the binary; page and read-me renamed to Tempo; re-signed over the new page
@@ -83,7 +82,7 @@ Two live-preview frames (screen saver preview, roll at 150 ms) catch a drift or 
 ## t4 – Screen saver panels, digit roll timing, looks mode, Windows + Mac exports.
 
 - same: saver cards – ["Fonts", "Screensaver", "Clock", "Numerals", "Change", "Position", "Colour", "Export"]
-- same apart from Tempo 0.2 changes: Screensaver panel – Show now also offers In words
+- same apart from Tempo 0.2 changes: Screensaver panel – Show now also offers In words; Export has a Name field
 - same: roll at 150 ms – 89876 bytes, sha256 de0eb35f5350
 - same: roll at 450 ms – 94219 bytes, sha256 a5fb685ba7b0
 - same: roll at 750 ms – 93996 bytes, sha256 ff11d4c2a495
@@ -91,7 +90,7 @@ Two live-preview frames (screen saver preview, roll at 150 ms) catch a drift or 
 - same: roll at 930 ms – 93996 bytes, sha256 ff11d4c2a495
 - same: looks cards – ["Fonts", "Screensaver", "Position", "Export"]
 - same: drift visible in looks – True
-- same apart from Tempo 0.2 changes: Screensaver panel, saved looks – Show now also offers In words
+- same apart from Tempo 0.2 changes: Screensaver panel, saved looks – Show now also offers In words; Export has a Name field
 - same apart from Tempo 0.2 changes: Windows zip – Windows host rebuilt with Tempo wording; page and read-me renamed to Tempo
 - same: Windows zip (file name) – Poppins screen saver for Windows.zip
 - same apart from Tempo 0.2 changes: Mac zip – only signature bytes differ in the binary; page and read-me renamed to Tempo; re-signed over the new page

@@ -1,21 +1,5 @@
 /* Every character the time in words can use, so exports bake them all. */
-function saverVocab(){return 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:’\'\u00b0\u2212-';}
-/* Sunrise and sunset for the solar day around ms, worked out here (no
-   connection needed): NOAA's solar position, solved for the moment the sun's
-   upper edge meets the horizon (-0.833 degrees, refraction included). */
-function saverSun(ms,lat,lon){
-  const R=Math.PI/180;
-  const alt=t=>{const T=(t/864e5+2440587.5-2451545)/36525,L0=(280.46646+T*(36000.76983+T*.0003032))%360,M=(357.52911+T*(35999.05029-.0001537*T))*R,
-    ec=.016708634-T*(.000042037+.0000001267*T),C=Math.sin(M)*(1.914602-T*(.004817+.000014*T))+Math.sin(2*M)*(.019993-.000101*T)+Math.sin(3*M)*.000289,
-    om=(125.04-1934.136*T)*R,lam=(L0+C-.00569-.00478*Math.sin(om))*R,eps=(23+(26+(21.448-T*(46.815+T*(.00059-T*.001813)))/60)/60+.00256*Math.cos(om))*R,
-    dec=Math.asin(Math.sin(eps)*Math.sin(lam)),y=Math.pow(Math.tan(eps/2),2),l=L0*R,
-    eqt=4*(y*Math.sin(2*l)-2*ec*Math.sin(M)+4*ec*y*Math.sin(M)*Math.cos(2*l)-.5*y*y*Math.sin(4*l)-1.25*ec*ec*Math.sin(2*M))/R,
-    tst=((((t%864e5)+864e5)%864e5)/6e4+eqt+4*lon)%1440,ha=(tst/4-180)*R;
-    return Math.asin(Math.sin(lat*R)*Math.sin(dec)+Math.cos(lat*R)*Math.cos(dec)*Math.cos(ha))/R+.833;};
-  const noon=Math.floor((ms+lon/15*36e5)/864e5)*864e5+12*36e5-lon/15*36e5;
-  const cross=(a,b)=>{let fa=alt(a);if((fa>0)===(alt(b)>0))return null;for(let i=0;i<40;i++){const m=(a+b)/2,fm=alt(m);if((fm>0)===(fa>0)){a=m;fa=fm;}else b=m;}return(a+b)/2;};
-  const rise=cross(noon-12*36e5,noon),set=cross(noon,noon+12*36e5);return rise==null||set==null?null:{rise,set};
-}
+function saverVocab(){return 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:’\'';}
 function createSaver(eng,C){
 'use strict';
 const TAU=Math.PI*2,FADE=650;
@@ -62,56 +46,38 @@ function yearWords(y){if(y>=2000&&y<2010)return y===2000?['two','thousand']:['tw
   const lo=y%100;return num(Math.floor(y/100)%100).concat(lo===0?['hundred']:lo<10?['oh',ONES[lo]]:num(lo));}
 /* Each word has a key naming its place in the sentence, so a change can tell
    which words stay, which change and which come or go. ORD is reading order. */
-const CLOCKK=p=>[p+'x',p+'f',p+'oh',p+'h0',p+'h1',p+'mx',p+'moh',p+'m0',p+'m1'];
-const WKEYS=['lead.0','lead.1',...CLOCKK('time.'),'sec.x','sec.and','sec.0','sec.1','sec.u',
-  'date.on','date.w','date.the','date.0','date.1','date.of','date.m','date.in','date.y0','date.y1','date.y2','date.y3','date.y4',
-  'place.in','place.0','place.1','place.2','place.3','place.4','place.5',
-  'sun.the','sun.sun','sun.v1','sun.at1',...CLOCKK('sun.a.'),'sun.and','sun.v2','sun.at2',...CLOCKK('sun.b.'),
-  'wx.f','wx.neg','wx.0','wx.1','wx.deg','wx.and','wx.c0','wx.c1','wx.c2','wx.c3'];
+const WKEYS=['lead.0','lead.1','time.x','time.f','time.oh','time.h0','time.h1','time.mx','time.moh','time.m0','time.m1','sec.x','sec.and','sec.0','sec.1','sec.u',
+  'date.on','date.w','date.the','date.0','date.1','date.of','date.m','date.in','date.y0','date.y1','date.y2','date.y3','date.y4'];
 const ORD=Object.fromEntries(WKEYS.map((k,i)=>[k,i]));
-/* the date and time in a place's own time zone (or this computer's) */
-const ZF={},WD=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-function zoned(ms,tz){
-  if(tz){try{const f=ZF[tz]||(ZF[tz]=new Intl.DateTimeFormat('en-GB',{timeZone:tz,year:'numeric',month:'numeric',day:'numeric',weekday:'short',hour:'numeric',minute:'numeric',second:'numeric',hourCycle:'h23'}));
-    const p={};for(const x of f.formatToParts(new Date(ms)))p[x.type]=x.value;
-    return{y:+p.year,mo:+p.month-1,d:+p.day,wd:WD.indexOf(p.weekday),h:(+p.hour)%24,mi:+p.minute,s:+p.second};}catch(e){}}
-  const d=new Date(ms);return{y:d.getFullYear(),mo:d.getMonth(),d:d.getDate(),wd:d.getDay(),h:d.getHours(),mi:d.getMinutes(),s:d.getSeconds()};
-}
-/* Current weather from Open-Meteo, shared by every saver on the page. Checked every
-   20 minutes (2 after a failure); left out once it's more than 3 hours old. */
-const WXC=(typeof window!=='undefined'&&(window.__tempoWx||(window.__tempoWx={})))||{};
-function weatherNow(o){const p=o.place;if(!o.weather||!p||!isFinite(p.lat)||!isFinite(p.lon))return null;
-  const key=p.lat.toFixed(2)+','+p.lon.toFixed(2)+','+o.unit,now=Date.now();let e=WXC[key];if(!e)e=WXC[key]={tried:-1e13};
-  if(!e.busy&&now-e.tried>(e.data?20:2)*60000&&typeof fetch==='function'){e.busy=1;e.tried=now;
-    fetch('https://api.open-meteo.com/v1/forecast?latitude='+p.lat.toFixed(3)+'&longitude='+p.lon.toFixed(3)+'&current=temperature_2m,weather_code,is_day'+(o.unit==='F'?'&temperature_unit=fahrenheit':''))
-      .then(r=>r.ok?r.json():null).then(j=>{const c=j&&j.current;if(c&&isFinite(c.temperature_2m))e.data={t:c.temperature_2m,code:c.weather_code,day:c.is_day,at:Date.now()};})
-      .catch(()=>{}).then(()=>{e.busy=0;});}
-  return e.data&&Date.now()-e.data.at<3*36e5?e.data:null;}
-/* WMO weather codes, as something that reads after "eleven degrees and" */
-function sky(code,day){const c=code|0;
-  return c===0?(day?'sunshine':'clear skies'):c===1?(day?'sunny spells':'mostly clear skies'):c===2?'some cloud':c===3?'grey skies':c===45||c===48?'fog':
-    c===51||c===53?'drizzle':c===55?'heavy drizzle':c===56||c===57?'freezing drizzle':c===61?'light rain':c===63?'rain':c===65?'heavy rain':c===66||c===67?'freezing rain':
-    c===71?'light snow':c===73||c===77?'snow':c===75?'heavy snow':c===80?'light showers':c===81?'showers':c===82?'heavy showers':c===85||c===86?'snow showers':
-    c===95?'thunder':c===96||c===99?'thunder and hail':'';}
-function clockWords(add,p,H,M,o){
-  if(o.num==='figures'){add(p+'f',(o.h24?pad(H):String(H%12||12))+(o.sep==='colon'?':':'.')+pad(M)+(o.h24?'':H<12?'am':'pm'));return;}
-  if(!o.h24&&M===0&&H%12===0){add(p+'x',H?'midday':'midnight');return;}
+/* Phrases that hold together when a line breaks: "It is eleven forty seven",
+   "and fifty nine seconds", "on Wednesday", "the twenty eighth", "of October",
+   "twenty twenty six". Glue between words: 3 never breaks (inside a number,
+   after "It", "on", "the", "of", "in", "and"); 2 breaks only if a phrase can't
+   fit on a line (between hours and minutes, before "seconds"); 1 gives way
+   before that (after "is", so the time stays whole); 0 is between phrases. */
+const GRP=k=>k.startsWith('lead.')?'lead':k.startsWith('time.')?'time':k.startsWith('sec.')?'sec':
+  k==='date.on'||k==='date.w'?'dw':k==='date.the'||k==='date.0'||k==='date.1'?'dd':k==='date.of'||k==='date.m'?'dm':'dy';
+const STICKY={'lead.0':3,'lead.1':1,'sec.and':3,'date.on':3,'date.the':3,'date.of':3,'date.in':3};
+function glueOf(t,n){if(!n)return 0;if(STICKY[t.k])return STICKY[t.k];
+  if(t.k==='date.0'&&n.k==='date.m')return 2;if(n.grp!==t.grp)return 0;
+  if(n.k==='time.mx'||n.k==='time.moh'||(n.k==='time.m0'&&t.k!=='time.moh')||n.k==='sec.u')return 2;return 3;}
+const parts=ms=>{const d=new Date(ms);return{y:d.getFullYear(),mo:d.getMonth(),d:d.getDate(),wd:d.getDay(),h:d.getHours(),mi:d.getMinutes(),s:d.getSeconds()};};
+function clockWords(add,H,M,o){
+  if(o.num==='figures'){add('time.f',(o.h24?pad(H):String(H%12||12))+(o.sep==='colon'?':':'.')+pad(M)+(o.h24?'':H<12?'am':'pm'));return;}
+  if(!o.h24&&M===0&&H%12===0){add('time.x',H?'midday':'midnight');return;}
   const h=o.h24?H:H%12||12;
-  if(o.h24&&h<10){if(h)add(p+'oh','oh');add(p+'h0',ONES[h]);}else num(h).forEach((w,i)=>add(p+'h'+i,w));
-  if(M===0)add(p+'mx',o.h24?'hundred':'o’clock');
-  else{if(M<10)add(p+'moh','oh');num(M).forEach((w,i)=>add(p+'m'+i,w));}
+  if(o.h24&&h<10){if(h)add('time.oh','oh');add('time.h0',ONES[h]);}else num(h).forEach((w,i)=>add('time.h'+i,w));
+  if(M===0)add('time.mx',o.h24?'hundred':'o’clock');
+  else{if(M<10)add('time.moh','oh');num(M).forEach((w,i)=>add('time.m'+i,w));}
 }
 const sfx=n=>n%10===1&&n!==11?'st':n%10===2&&n!==12?'nd':n%10===3&&n!==13?'rd':'th';
-/* Up to three short sentences: the time, date and place; the sun; the weather.
-   Every part can be switched on or off and the grammar closes up around it. */
-function sentence(now,o){
-  const S1=[],S2=[],S3=[];let cur=S1;
-  const add=(k,w,proper)=>cur.push({k,w,part:k.split('.')[0],proper:proper||false});
-  const pl=o.place&&isFinite(o.place.lat)?o.place:null,figs=o.num==='figures';
-  const t=Math.floor(now/1000)*1000,z=zoned(t,o.inPlace&&pl?pl.tz:null);
+/* One sentence, always in this computer's own time and date. Every part can be
+   switched on or off and the grammar closes up around it. */
+function sentence(z,o){
+  const out=[],add=(k,w,proper)=>out.push({k,w,part:k.split('.')[0],grp:GRP(k),proper:!!proper}),figs=o.num==='figures';
   const hasDate=o.weekday||o.daynum||o.month||o.year;
   if(o.lead&&(o.time||hasDate)){add('lead.0','it');add('lead.1','is');}
-  if(o.time){clockWords(add,'time.',z.h,z.mi,o);
+  if(o.time){clockWords(add,z.h,z.mi,o);
     if(o.secs){if(z.s===0)add('sec.x','exactly');
       else{add('sec.and','and');if(figs)add('sec.0',String(z.s));else num(z.s).forEach((w,i)=>add('sec.'+i,w));add('sec.u',z.s===1?'second':'seconds');}}}
   if(hasDate){const prep=o.time;
@@ -119,58 +85,88 @@ function sentence(now,o){
       if(o.daynum){if(figs&&o.month)add('date.0',String(z.d));else{add('date.the','the');if(figs)add('date.0',z.d+sfx(z.d));else ordinal(z.d).forEach((w,i)=>add('date.'+i,w));}}}
     if(o.month){if(o.daynum){if(!figs)add('date.of','of');}else if(prep||o.weekday)add('date.of','in');add('date.m',MONTHS[z.mo],true);}
     if(o.year){if(!o.month&&(prep||o.weekday||o.daynum))add('date.in','in');(figs?[String(z.y)]:yearWords(z.y)).forEach((w,i)=>add('date.y'+i,w));}}
-  if(o.inPlace&&pl&&pl.name.trim()){if(S1.length)add('place.in','in');
-    const ws=pl.name.trim().split(/\s+/);if(ws.length>6)ws.splice(5,ws.length,ws.slice(5).join(' '));ws.forEach((w,i)=>add('place.'+i,w,'keep'));}
-  if(o.sun&&pl){cur=S2;
-    const tz=pl.tz||null,mid=t-(z.h*3600+z.mi*60+z.s)*1000,today=saverSun(mid+12*36e5,pl.lat,pl.lon);
-    if(today){const at=(p,ms)=>{const q=zoned(Math.round(ms/6e4)*6e4,tz);clockWords(add,p,q.h,q.mi,o);};
-      add('sun.the','the');add('sun.sun','sun');
-      if(t<today.rise){add('sun.v1','rises');add('sun.at1','at');at('sun.a.',today.rise);add('sun.and','and');add('sun.v2','sets');add('sun.at2','at');at('sun.b.',today.set);}
-      else if(t<today.set){add('sun.v1','rose');add('sun.at1','at');at('sun.a.',today.rise);add('sun.and','and');add('sun.v2','sets');add('sun.at2','at');at('sun.b.',today.set);}
-      else{const next=saverSun(mid+36*36e5,pl.lat,pl.lon);add('sun.v1','set');add('sun.at1','at');at('sun.a.',today.set);
-        if(next){add('sun.and','and');add('sun.v2','rises');add('sun.at2','at');at('sun.b.',next.rise);}}}}
-  const wx=weatherNow(o);
-  if(wx){cur=S3;const T=Math.round(wx.t),A=Math.abs(T),words=sky(wx.code,wx.day);
-    if(figs||A>99)add('wx.f',(T<0?'−':'')+A+'°'+(o.unit==='F'?'F':'C'),'raw');
-    else{if(T<0)add('wx.neg','minus');num(A).forEach((w,i)=>add('wx.'+i,w));add('wx.deg',A===1?'degree':'degrees');}
-    if(words){add('wx.and','and');words.split(' ').forEach((w,i)=>add('wx.c'+i,w));}}
-  const parts=[S1,S2,S3].filter(x=>x.length),out=[];
-  parts.forEach((P,si)=>{P.forEach((tk,i)=>{
-      tk.w=tk.proper==='raw'?tk.w:o.case==='upper'?tk.w.toUpperCase():o.case==='lower'?tk.w.toLowerCase():(tk.proper===true||i===0)?tk.w[0].toUpperCase()+tk.w.slice(1):tk.w;out.push(tk);});
-    if(si<parts.length-1||o.stop)P[P.length-1].w+='.';});
+  out.forEach((t,i)=>{t.w=o.case==='upper'?t.w.toUpperCase():o.case==='lower'?t.w.toLowerCase():(t.proper||i===0)?t.w[0].toUpperCase()+t.w.slice(1):t.w;
+    t.glue=glueOf(t,out[i+1]);});
+  if(o.stop&&out.length)out[out.length-1].w+='.';
   return out;
 }
-let wBuilt=0,wMemo=['',[]],wErr=0,wCur=null,wPrev=null,wSig=null,wT0=-1e9,wLatest=new Set(),wPrevLatest=new Set(),wCache=new Map(),wPal=null;
-const wPalette=()=>{const o=C.words;if(o.rotate&&o.themes&&o.themes.length)return o.themes[new Date().getHours()%o.themes.length];const c=o.cols||{};return{bg:o.bg,ink:o.ink,soft:o.soft,date:c.date,sun:c.sun,wx:c.wx};};
+let wBuilt=0,wMemo=['',[]],wErr=0,wCur=null,wPrev=null,wSig=null,wT0=-1e9,wLatest=new Set(),wPrevLatest=new Set(),wCache=new Map(),wFit=new Map(),wPal=null;
+const wPalette=()=>{const o=C.words;if(o.rotate&&o.themes&&o.themes.length)return o.themes[new Date().getHours()%o.themes.length];return{bg:o.bg,ink:o.ink,soft:o.soft,date:o.dateCol};};
 function hiFaceOf(){const id=C.words.hiFace;if(!id||id==='same')return null;
   if(eng.faceList().some(x=>x.id===id))return eng.F(id);if(!eng.anyLoaded()&&(id==='d1'||id==='d2'))return eng.F(id);return null;}
-const glyphOf=(f,ch)=>{let g=f.base(ch);if(!g&&ch==='’')g=f.base("'");if(!g&&ch==='−')g=f.base('-');return g;};
-/* what colour a word takes: hi (the highlight), rest, or its part's own colour */
-const PARTCOL={time:'hi',date:'date',place:'date',sun:'sun',wx:'wx'};
+const glyphOf=(f,ch)=>{let g=f.base(ch);if(!g&&ch==='’')g=f.base("'");return g;};
+/* what colour a word takes: hi (the highlight), rest, or the date's own colour */
 function roleOf(t,latest){const h=C.words.hi;
-  return h==='time'?(t.part==='time'?'hi':'rest'):h==='latest'?(latest.has(t.k)?'hi':'rest'):h==='parts'?(PARTCOL[t.part]||'rest'):'rest';}
+  return h==='time'?(t.part==='time'?'hi':'rest'):h==='latest'?(latest.has(t.k)?'hi':'rest'):h==='parts'?(t.part==='time'?'hi':t.part==='date'?'date':'rest'):'rest';}
 const isHi=(t,latest)=>roleOf(t,latest)==='hi';
-/* Lay the words out like a paragraph: flush left by default, ragged right, broken to the measure. */
-function wLayout(toks,latest,W,H){
+/* Side bearings, so a flush edge lines up on the ink rather than the glyph box
+   (an I and an O sit on the same vertical). From the outline where there is one. */
+const SB=new Map(),SBCV=typeof document!=='undefined'?document.createElement('canvas').getContext('2d'):null;
+function bearings(f,id){const key=(f.name||'')+'|'+(f.weight||'')+'|'+id;let r=SB.get(key);if(r)return r;r=[0,0];
+  try{if(f.pathD){const n=(f.pathD(id)||'').match(/-?\d*\.?\d+(?:e-?\d+)?/gi)||[];let lo=Infinity,hi=-Infinity;for(let i=0;i<n.length;i+=2){const v=+n[i];if(v<lo)lo=v;if(v>hi)hi=v;}
+      if(lo<Infinity)r=[lo,f.adv(id)-hi];}
+    else if(SBCV&&f.fallback){SBCV.font=f.weight+' 1000px "Inter Tight","Helvetica Neue",Arial,sans-serif';const m=SBCV.measureText(id);r=[-(m.actualBoundingBoxLeft||0),f.adv(id)-(m.actualBoundingBoxRight||0)];}}catch(e){}
+  SB.set(key,r);return r;}
+/* Set the words at one size. Paragraph: filled line by line, breaking only between
+   phrases, and a lone short phrase on the last line pulls a neighbour down to
+   keep it company. Stacked: one phrase to a line. */
+function wSet(toks,latest,W,H,size){
   const o=C.words,f=eng.F(eng.baseSlot()),hf=hiFaceOf()||f;
-  const key=W+'x'+H+'|'+toks.map(t=>t.k+'='+t.w+'*'+roleOf(t,latest)).join('|');let L=wCache.get(key);if(L)return L;
-  const size=o.size/100*W,m=o.margin/100*Math.min(W,H),availW=Math.max(1,(W-2*m)*o.measure/100),trk=o.tracking/1000*size;
+  const m=o.margin/100*Math.min(W,H),availW=Math.max(1,(W-2*m)*o.measure/100),trk=o.tracking/1000*size;
   let top=0,bot=0;
   const shape=(face,str)=>{const k=size/face.upm,gl=[];let x=0,prev=null,wb=0;
     for(const ch of Array.from(str)){const id=glyphOf(face,ch);if(prev!==null)x+=face.kern(prev,id)*k+trk;gl.push({id,x,ch,w:face.adv(id)*k});x+=face.adv(id)*k;prev=id;
       const b=face.bbox&&face.bbox(id);if(b){top=Math.max(top,b[0]*k);bot=Math.max(bot,b[1]*k);wb=Math.max(wb,b[1]*k);}}
     return{gl,w:x,bot:wb};};
-  const sp=f.adv(glyphOf(f,' '))*size/f.upm+trk;
+  const sp=f.adv(glyphOf(f,' '))*size/f.upm*(o.space/100)+trk;
   const words=toks.map(t=>{const role=roleOf(t,latest),face=role==='hi'?hf:f,s=shape(face,t.w);return{t,hl:role,face,gl:s.gl,w:s.w,bot:s.bot};});
-  const lines=[];let ln=null;
-  for(const w of words){if(!ln||(ln.items.length&&ln.w+sp+w.w>availW+.5)){ln={items:[],w:0};lines.push(ln);}ln.w+=(ln.items.length?sp:0)+w.w;ln.items.push(w);}
+  /* units: runs of words that hold together. A phrase too wide for the line is
+     split at its weaker joins, and only then, as a last resort, between words. */
+  const runs=(ws,min)=>{const out=[];let u=null;ws.forEach(w=>{if(!u){u={ws:[],w:0};out.push(u);}u.w+=(u.ws.length?sp:0)+w.w;u.ws.push(w);if(w.t.glue<min)u=null;});return out;};
+  const units=[];let forced=false;
+  /* lvl 4 means a phrase that never breaks didn't fit: it goes word by word */
+  const split=(ws,lvl)=>{if(lvl>3)forced=true;for(const r of runs(ws,lvl)){if(r.w<=availW+.5||lvl>3)units.push(r);else split(r.ws,lvl+1);}};
+  split(words,1);
+  let lines=[];
+  const fits=(l,uw)=>!l.us.length||l.w+sp+uw<=availW+.5;
+  if(o.layout==='stack'){
+    /* a new line for each phrase; the pieces of a phrase that had to be split continue on the line */
+    let prevFull=true;
+    for(const un of units){const last=un.ws[un.ws.length-1],l=lines[lines.length-1];
+      if(!prevFull&&l&&fits(l,un.w)){l.w+=sp+un.w;l.us.push(un);}else lines.push({us:[un],w:un.w});
+      prevFull=last.t.glue===0;}}
+  else{for(const un of units){let l=lines[lines.length-1];
+      if(!l||!fits(l,un.w)){l={us:[],w:0};lines.push(l);}l.w+=(l.us.length?sp:0)+un.w;l.us.push(un);}
+    const n=lines.length;
+    if(n>1){const L=lines[n-1],P=lines[n-2];
+      if(L.us.length===1&&L.w<availW*.33&&P.us.length>1){const mv=P.us[P.us.length-1];if(L.w+sp+mv.w<=availW+.5){P.us.pop();P.w-=sp+mv.w;L.us.unshift(mv);L.w+=sp+mv.w;}}}}
+  lines=lines.filter(l=>l.us.length);
   const capPx=f.cap/f.upm*size,lead=o.leading*size,n=Math.max(1,lines.length),blockH=capPx+(n-1)*lead;
   const y0=o.valign==='top'?m:o.valign==='bottom'?H-m-blockH:(H-blockH)/2;
-  const map=new Map();
-  lines.forEach((l,li)=>{let x=o.align==='left'?m:o.align==='right'?W-m-l.w:(W-l.w)/2;const y=y0+capPx+li*lead;
-    for(const w of l.items){Object.assign(w,{x,y,li});map.set(w.t.k,w);x+=w.w+sp;}});
+  const map=new Map();let wide=0;
+  lines.forEach((l,li)=>{const ws=l.us.flatMap(x=>x.ws),first=ws[0],last=ws[ws.length-1];wide=Math.max(wide,l.w);
+    let x=o.align==='left'?m:o.align==='right'?W-m-l.w:(W-l.w)/2;
+    if(o.optical&&o.align==='left'&&first)x-=bearings(first.face,first.gl[0].id)[0]*size/first.face.upm;
+    if(o.optical&&o.align==='right'&&last)x+=bearings(last.face,last.gl[last.gl.length-1].id)[1]*size/last.face.upm;
+    const y=y0+capPx+li*lead;
+    for(const w of ws){Object.assign(w,{x,y,li,size});map.set(w.t.k,w);x+=w.w+sp;}});
   if(!top){top=capPx;bot=.22*size;}
-  L={map,words,size,pad:.04*size,top,bot,lead};
+  return{map,words,size,pad:.04*size,top,bot,lead,blockH,wide,availW,availH:H-2*m,forced};
+}
+/* Fit: the largest size at which the longest sentence these settings can make
+   (a Wednesday the twenty seventh of September, at twelve fifty seven and fifty
+   seven seconds) still fits without breaking a phrase that never breaks, so the
+   type never changes size as the time does. */
+function fitSize(W,H){const o=C.words,y=new Date().getFullYear(),key=W+'x'+H+'|'+wBuilt+'|'+y;let s=wFit.get(key);if(s)return s;
+  const worst=[sentence({y,mo:8,d:27,wd:3,h:o.h24?23:12,mi:57,s:57},o),sentence({y,mo:8,d:23,wd:3,h:o.h24?23:0,mi:37,s:37},o)].filter(t=>t.length);
+  let lo=.002*W,hi=.6*W;
+  for(let i=0;i<22;i++){const mid=(lo+hi)/2;
+    if(worst.every(t=>{const L=wSet(t,new Set(),W,H,mid);return L.blockH<=L.availH&&L.wide<=L.availW+.5&&!L.forced;}))lo=mid;else hi=mid;}
+  if(wFit.size>20)wFit.clear();wFit.set(key,lo);return lo;}
+function wLayout(toks,latest,W,H){
+  const o=C.words,size=o.fit?fitSize(W,H):o.size/100*W;
+  const key=W+'x'+H+'|'+size.toFixed(3)+'|'+toks.map(t=>t.k+'='+t.w+'*'+roleOf(t,latest)).join('|');let L=wCache.get(key);if(L)return L;
+  L=wSet(toks,latest,W,H,size);
   if(wCache.size>40)wCache.clear();wCache.set(key,L);return L;
 }
 function hex(c){const m=/^#?([0-9a-f]{6})$/i.exec(c||'');const v=m?parseInt(m[1],16):0;return[v>>16&255,v>>8&255,v&255];}
@@ -208,8 +204,8 @@ function typed(t){
   return out;
 }
 function wordsFrame(ctx,W,H,now,K){
-  const o=C.words,ms=Date.now(),wx=weatherNow(o),mk=Math.floor(ms/1000)+'|'+(wx?wx.at:0)+'|'+wBuilt;
-  if(mk!==wMemo[0])wMemo=[mk,sentence(ms,o)];
+  const o=C.words,ms=Date.now(),mk=Math.floor(ms/1000)+'|'+wBuilt;
+  if(mk!==wMemo[0])wMemo=[mk,sentence(parts(ms),o)];
   const toks=wMemo[1],sig=toks.map(t=>t.k+'='+t.w).join('|');
   if(sig!==wSig){
     if(wCur){const prev=new Map(wCur.map(t=>[t.k,t.w]));wPrev=wCur;wT0=now;wPrevLatest=wLatest;
@@ -257,14 +253,14 @@ function wordsFrame(ctx,W,H,now,K){
     wGlyphs(ctx,K,b,x,y,mix(colOf(a.hl),colOf(b.hl),e),1,0,null,gi,end);}
 }
 /* Preview only: replay the last change, or the one a minute (or second) ago */
-function replay(){if(!isWords())return;const o=C.words;wCur=sentence(Date.now()-(o.time&&o.secs?1000:60000),o);wSig=wCur.map(t=>t.k+'='+t.w).join('|');wPrev=null;}
+function replay(){if(!isWords())return;const o=C.words;wCur=sentence(parts(Date.now()-(o.time&&o.secs?1000:60000)),o);wSig=wCur.map(t=>t.k+'='+t.w).join('|');wPrev=null;}
 
 const slotNow=()=>Math.floor(Date.now()/(Math.max(.5,C.every)*60000));
 function lookIndex(sl){const n=C.looks.length,o=C.looks.map((_,i)=>i);
   if(C.shuffle){const cyc=Math.floor(sl/n);for(let i=n-1;i>0;i--){const j=Math.floor(rnd(cyc*131+i)*(i+1));[o[i],o[j]]=[o[j],o[i]];}}
   return o[((sl%n)+n)%n];}
 function build(){
-  wCache.clear();wBuilt++;
+  wCache.clear();wFit.clear();wBuilt++;
   if(isWords()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
   if(isClock()){
     const c=C.clock;S=JSON.parse(JSON.stringify(C.base||{}));
@@ -314,5 +310,8 @@ function frame(ctx,W,H,now,dt){
   if(veil>0){ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=veil;ctx.fillStyle=S.bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);ctx.globalAlpha=1;}
 }
 setConfig(C);
-return{frame,setConfig,bg:()=>S&&S.bg,replay,words:()=>(wCur||[]).map(t=>t.w).join(' ')};
+/* read-outs for tests and the preview */
+const lines=(W,H)=>{if(!wCur||!isWords())return{size:0,lines:[],x:[]};const L=wLayout(wCur,wLatest,W,H),out=[],xs=[];
+  for(const w of L.words){if(!out[w.li]){out[w.li]=[];xs[w.li]=w.x;}out[w.li].push(w.t.w);}return{size:L.size,lines:out.map(a=>a.join(' ')),x:xs,forced:L.forced};};
+return{frame,setConfig,bg:()=>S&&S.bg,replay,words:()=>(wCur||[]).map(t=>t.w).join(' '),lines};
 }

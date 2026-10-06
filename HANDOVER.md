@@ -61,20 +61,22 @@ Rules:
 3. Once an app deliberately changes behaviour, its parity scenarios against 0.8.1 will start to differ – that's expected. Say which differences are intended in the changelog.
 
 ## Tempo's time in words (0.2)
-- `tempo/saver.js` builds the sentence (`sentence()`), lays it out as a paragraph (`wLayout()`) and animates changes (`wordsFrame()`, `typed()`). It draws glyph outlines itself rather than through the engine's single-block layout, but uses the same faces, so baked fonts in exports draw identically.
+- **Steve's direction (6 Oct):** Ensemble ships In words as a handful of pre-made screen savers (variants), so each must be right wherever it's installed: always the computer's own time and date, nothing fetched. Put the effort into the typography.
+- `tempo/saver.js` builds the sentence (`sentence()`), sets it (`wSet()`, sized by `fitSize()` when Fit is on, cached by `wLayout()`) and animates changes (`wordsFrame()`, `typed()`). It draws glyph outlines itself rather than through the engine's single-block layout, but uses the same faces, so baked fonts in exports draw identically.
 - Every word has a key for its place in the sentence (`WKEYS`), so a change knows which words stay, change, arrive or leave. Words that keep their line and shift less than two ems glide; anything else rolls or fades out where it was and in where it lands.
-- Its settings (`ssW…`) are added to the defaults by `wordsDefaults()` in `tempo/app.js`, so `shared/core.js` is untouched. They go into exports as a `words` block only when Show is In words, so clock and looks exports are as they were.
-- Every part of the sentence is a switch (`ssWLead`, `ssWTime`, `ssWSecs`, `ssWWeekday`, `ssWDayNum`, `ssWMonth`, `ssWYear`, `ssWPlace`, `ssWSun`, `ssWWeather`, `ssWStop`); `sentence()` builds up to three short sentences (time, date and place; sun; weather) and closes up the grammar around whatever is off.
-- Place is stored as name, latitude, longitude and IANA time zone (`ssWPlaceName`, `ssWLat`, `ssWLon`, `ssWTz`, default Manchester). Place search calls Open-Meteo's geocoding API from Tempo only; exports carry the result.
-- Sunrise and sunset: `saverSun()` at the top of `saver.js` – NOAA solar position solved for −0.833°, offline. Weather: `weatherNow()` fetches Open-Meteo every 20 minutes from Tempo and from exported screen savers (no key; free tier is non-commercial – check before release). Untested on a real Mac/Windows screen saver: whether WebViewScreenSaver and Edge kiosk let a local page fetch it (both should, the API sends CORS headers).
-- Starter themes are `WORD_THEMES` in `tempo/app.js` – placeholders until Steve's curated set. Each has colours for the time, everything else, date and place, sun and weather.
-- Queued (Steve, 6 Oct): two dials – Accuracy (exact to vague: “about midday”, “sunset's about quarter to five”) and Personality (deadpan to Northern to sweary, in the spirit of the old “it's fucking raining” weather app). Needs a phrase bank written and approved before it's built.
+- Line breaks: each word has a phrase (`GRP`) and the little words in `STICKY` hold on to the next, so lines break only between phrases. In Paragraph, a short lone last phrase pulls one down from the line above. Stacked puts each phrase on its own line. Optical margin uses each glyph's side bearing (`bearings()`, from the outline).
+- Fit sizes the type for the longest sentence the settings can make (a Wednesday the twenty seventh of September at twelve fifty seven and fifty seven seconds) and keeps it – the size only changes when a setting does.
+- Its settings (`ssW…`, plus `ssName` for the export name) are added to the defaults by `wordsDefaults()` in `tempo/app.js`, so `shared/core.js` is untouched. They go into exports as a `words` block only when Show is In words, so clock and looks exports are as they were.
+- Looks are `WORD_LOOKS` in `tempo/app.js`: each sets the whole of In words. Starter themes are `WORD_THEMES`. Both are placeholders for Steve's curated set (and his fonts – check the licence allows embedding outlines before shipping a face publicly).
+- Exports are named by `exportName()`: the typed name, else “Tempo <look>”, else the font as before. Variants need different names, or installing one replaces another. The Mac bundle identifier still says `uk.co.ensemble.rubato…` – invisible to people, left alone.
+- **Set aside:** place, sunrise and sunset, and weather were built and tested (commit `c0cc72c`: NOAA sun maths, Open-Meteo place search and weather, place time zones) and then taken out, because a screen saver can't ask where it is. Starting point for the planned website, where the browser can ask.
+- **Queued for that website (Steve, 6 Oct):** two dials – Accuracy (exact to vague: “about midday”) and Personality (deadpan to Northern to sweary). Needs a phrase bank written and approved before it's built. Paused.
 
 ## Tests
 - `tests/parity.py` – the six v0.8.1 handover tests (`tests/legacy/`), rewritten to drive both the reference and the new apps with randomness and the clock pinned. Compares 87 results: canvas frames, SVG/PNG/GIF, screen saver HTML, Mac and Windows zips, panel text, storage. Last run (`tests/PARITY-REPORT.md`): 85 byte-identical; the other two are live-preview frames that vary a little between runs of 0.8.1 itself, and the new build matched 0.8.1 exactly on both.
   Since Tempo 0.2 the new build's exports and Show control differ from 0.8.1 on purpose; `tempo02()` in `parity.py` maps those changes back and then requires an exact match, and the report says which change each result carried.
 - `tests/split_check.py` – 13 checks on the new sharing between Rubato and Tempo.
-- `tests/tempo_check.py` – Tempo 0.2, 30 checks: preview shape buttons, Tempo naming in all three exports, the time in words (cards, 31 sentences at pinned moments covering parts on and off, place time zones, sun tense and stale weather, every change style, exported page draws the same frame, fonts baked, place search and live weather with both services mocked, clock exports untouched).
+- `tests/tempo_check.py` – Tempo 0.2: preview shape buttons, Tempo naming in all three exports, the time in words (cards, sentences at pinned moments with parts on and off, line breaks across 160 random layouts, Stacked, Fit holding one size all year, optical margin, looks and export names, every change style, exported page draws the same frame, fonts baked, the same export read in New York shows New York's time, clock exports untouched).
 - Not tested: video recording (real-time MediaRecorder, not comparable byte for byte – the code is unchanged), the Windows `.scr` on a real PC, the Mac `.saver` on a real Mac since the split (bytes match 0.8.1, which Steve confirmed works), Adobe Fonts loading (blocked in the test browser).
 
 ## Known limits (carried over)
@@ -86,7 +88,9 @@ Rules:
 1. Tempo: optionally pick up Rubato changes without a reload. (0.2 did the shape highlight and the rename.)
 2. Steve to curate Rubato's built-in presets (the current seven are placeholders).
 3. Test the Windows `.scr` on a real PC.
-4. Tempo: Swiss-style looks from Steve, with a small set of variations. In words is the first; next is curating fonts and themes, then deciding whether it ships as one open tool or a series of locked screen savers.
+4. Tempo: Steve to curate the In words looks and themes that ship as pre-made screen savers. Six starter looks are in place.
+   **Steve to come back to: fonts for the screen saver.** Which faces ship, and whether their licences allow their outlines inside a distributed screen saver (Steve's own faces avoid the question; Adobe Fonts faces such as Aktiv Grotesk can't be loaded into Tempo as files anyway).
+7. A website version of In words that uses the browser's location (place, sun, weather) and the Accuracy and Personality dials – its own project. Code for place, sun and weather is in commit `c0cc72c`.
 5. Tutti onto the shared tokens and UI kit (see `tutti/HANDOVER.md`).
 6. Develop each app in its own chat, from this repo.
 

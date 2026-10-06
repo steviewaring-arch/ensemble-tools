@@ -9,13 +9,11 @@ let ssDirty=true;/* the preview needs the new settings */
 function tempoKeys(){return Object.keys(D).filter(k=>/^ss[A-Z0-9]/.test(k)||k==='baseSlot');}
 /* Settings only Tempo has (the time in words). They join the shared defaults
    here rather than in shared/core.js, so Rubato is untouched. */
-function wordsDefaults(){return{ssWLead:true,ssWH24:false,ssWTime:true,ssWSecs:true,ssWWeekday:true,ssWDayNum:true,ssWMonth:true,ssWYear:true,
-  ssWPlace:false,ssWSun:false,ssWWeather:false,ssWStop:false,ssWUnit:'C',
-  ssWPlaceName:'Manchester',ssWLat:53.4808,ssWLon:-2.2426,ssWTz:'Europe/London',
+function wordsDefaults(){return{ssWLead:true,ssWH24:false,ssWTime:true,ssWSecs:true,ssWWeekday:true,ssWDayNum:true,ssWMonth:true,ssWYear:true,ssWStop:false,
   ssWCase:'sentence',ssWNum:'words',ssWSep:'stop',ssWHi:'time',ssWHiFace:'same',
-  ssWSize:5,ssWLeading:1,ssWTracking:-20,ssWMeasure:100,ssWAlign:'left',ssWVAlign:'top',ssWMargin:2.5,
+  ssWLayout:'para',ssWFit:false,ssWSize:5,ssWLeading:1,ssWTracking:-20,ssWSpace:100,ssWMeasure:100,ssWOptical:true,ssWAlign:'left',ssWVAlign:'top',ssWMargin:2.5,
   ssWChange:'roll',ssWBy:'word',ssWFeel:'smooth',ssWLen:.6,ssWGlide:true,
-  ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWDateCol:'#F7C6AA',ssWSunCol:'#FF6A1F',ssWWxCol:'#8FAFC4',ssWRotate:false};}
+  ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWDateCol:'#F7C6AA',ssWRotate:false,ssName:''};}
 function loadSettings(){
   Object.assign(D,wordsDefaults());
   const s=Object.assign(fresh(),sanitise(RLS.get('settings')||{}));
@@ -43,9 +41,12 @@ Object.assign(TIPS,{
   ssEvery:'How long each look stays before the next.',ssShuffle:'Plays looks in a random order.',ssReseed:'Gives random settings a fresh variation each time a look comes round.',
   ssLookCol:'Use each look’s own colours, or the Colour settings below for all of them.',ssSpeed:'Speeds up or slows down the motion.',
   ssDrift:'Slowly moves the whole composition so nothing sits still on screen for hours.',ssImage:'Includes the Rubato image in the screensaver.',
-  ssWH24:'Eleven forty seven, or twenty three forty seven. Sunrise and sunset follow it too.',ssWUnit:'Celsius or Fahrenheit.',
+  ssWH24:'Eleven forty seven, or twenty three forty seven.',
+  ssWLayout:'Paragraph fills each line. Stacked sets one phrase to a line.',ssWFit:'Fit sizes the type so the longest sentence these settings can make fills the screen, so it never changes size. Or set the size yourself.',
+  ssWSpace:'Space between words, as a share of the typeface’s own word space.',ssWOptical:'Lines up the ink of each line’s first letter on the margin, rather than its side bearing.',
+  ssName:'What the screen saver is called on the computer. Give each variant its own name, or they replace each other when installed.',
   ssWCase:'Sentence case capitalises the first word, the day and the month.',ssWNum:'Write numbers out in words, or set them as figures.',
-  ssWSep:'What sits between hours and minutes when they’re figures.',ssWHi:'Which words stand out. Latest change follows whatever changed last. Each part gives the time, the date and place, the sun and the weather their own colours.',
+  ssWSep:'What sits between hours and minutes when they’re figures.',ssWHi:'Which words stand out. Latest change follows whatever changed last. Each part gives the time and the date their own colours.',
   ssWHiFace:'Sets the highlighted words in another of your loaded styles, such as a bold.',
   ssWSize:'Type size, as a share of the screen width.',ssWLeading:'Distance between lines, as a multiple of the type size.',ssWTracking:'Space between letters.',
   ssWMeasure:'How far across the screen a line can run before it breaks.',ssWMargin:'Space kept clear around the edge.',
@@ -88,42 +89,43 @@ const clk=s=>s.ssShow==='clock',lk=s=>s.ssShow==='looks',wd=s=>s.ssShow==='words
     {t:'toggle',k:'ssImage',label:'Include the image',show:s=>!!img&&!wd(s)},
   ]);
 }
+/* In words: curated looks – starting points for the screen savers Ensemble ships.
+   Each sets the whole of In words; anything can be changed afterwards. */
+const W_PARTS={ssWLead:true,ssWTime:true,ssWSecs:true,ssWWeekday:true,ssWDayNum:true,ssWMonth:true,ssWYear:true,ssWStop:false};
+const W_SET={ssWCase:'sentence',ssWNum:'words',ssWSep:'stop',ssWH24:false,ssWHi:'time',ssWHiFace:'same',ssWLayout:'para',ssWFit:false,ssWSize:5,ssWLeading:1,ssWTracking:-20,ssWSpace:100,
+  ssWMeasure:100,ssWOptical:true,ssWAlign:'left',ssWVAlign:'top',ssWMargin:2.5,ssWChange:'roll',ssWBy:'word',ssWFeel:'smooth',ssWLen:.6,ssWGlide:true,ssWRotate:false};
+const C_APRICOT={ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWDateCol:'#F7C6AA'},C_RED={ssWBg:'#FFFFFF',ssWInk:'#FF3B1F',ssWSoft:'#181818',ssWDateCol:'#8C8C8C'},
+  C_PAPER={ssWBg:'#F2F2F2',ssWInk:'#000000',ssWSoft:'#B4B4B4',ssWDateCol:'#6E6E6E'},C_NIGHT={ssWBg:'#000000',ssWInk:'#FFFFFF',ssWSoft:'#4D4D4D',ssWDateCol:'#8C8C8C'},
+  C_SIGNAL={ssWBg:'#FF4F1F',ssWInk:'#000000',ssWSoft:'#FFFFFF',ssWDateCol:'#FFD3C4'},C_UV={ssWBg:'#5B23F0',ssWInk:'#FFF35C',ssWSoft:'#A98BFF',ssWDateCol:'#FFFFFF'};
+const WORD_LOOKS=[
+  {name:'Reference',s:Object.assign({},W_PARTS,W_SET,C_APRICOT)},
+  {name:'Stack',s:Object.assign({},W_PARTS,W_SET,C_RED,{ssWLayout:'stack',ssWFit:true,ssWLeading:.92,ssWTracking:-30,ssWSpace:85,ssWMargin:4,ssWFeel:'snappy',ssWLen:.5})},
+  {name:'Poster',s:Object.assign({},W_PARTS,W_SET,C_SIGNAL,{ssWStop:true,ssWCase:'upper',ssWFit:true,ssWLeading:.86,ssWTracking:20,ssWSpace:90,ssWMargin:3,ssWBy:'letter',ssWFeel:'snappy',ssWLen:.45})},
+  {name:'Night',s:Object.assign({},W_PARTS,W_SET,C_NIGHT,{ssWSecs:false,ssWCase:'lower',ssWSize:3.4,ssWLeading:1.12,ssWTracking:-10,ssWMeasure:58,ssWVAlign:'bottom',ssWMargin:7,ssWChange:'fade',ssWLen:1.6})},
+  {name:'Typewriter',s:Object.assign({},W_PARTS,W_SET,C_PAPER,{ssWStop:true,ssWHi:'latest',ssWSize:4.2,ssWLeading:1.18,ssWTracking:0,ssWMeasure:62,ssWVAlign:'middle',ssWMargin:8,ssWChange:'type',ssWLen:.9})},
+  {name:'Hours',s:Object.assign({},W_PARTS,W_SET,C_UV,{ssWLead:false,ssWSecs:false,ssWWeekday:false,ssWDayNum:false,ssWMonth:false,ssWYear:false,ssWCase:'lower',ssWHi:'none',
+    ssWFit:true,ssWLeading:.9,ssWTracking:-40,ssWSpace:80,ssWMargin:4,ssWVAlign:'bottom',ssWBy:'letter',ssWLen:.9})},
+];
+const currentLook=()=>WORD_LOOKS.find(L=>Object.keys(L.s).every(k=>String(S[k]).toLowerCase()===String(L.s[k]).toLowerCase()));
+{const b=card('ss-wlooks','Looks',wd,'saver');
+  addHint(b,'Starting points for the screen savers you ship. Change anything afterwards.');
+  const row=el('div','ctl btn-row');row.setAttribute('role','group');row.setAttribute('aria-label','Looks');addCustom(b,null,row);
+  const ps=WORD_LOOKS.map(L=>{const p=el('button','pill small',L.name);p.onclick=()=>{const ks=Object.keys(L.s);ks.forEach(k=>{S[k]=L.s[k];});set(ks[0],L.s[ks[0]]);};row.append(p);return[L,p];});
+  controls.push({d:{},w:row,update(){const c=currentLook();ps.forEach(([L,p])=>p.setAttribute('aria-pressed',c===L));}});
+}
 /* In words: what the sentence says */
 {const b=card('ss-wsay','Sentence',wd,'saver');
   /* every part of the sentence, in reading order, switched on and off like words in a line */
-  const PIECES=[['ssWLead','It is'],['ssWTime','Time'],['ssWSecs','Seconds'],['ssWWeekday','Day'],['ssWDayNum','Date'],['ssWMonth','Month'],['ssWYear','Year'],
-    ['ssWPlace','Place'],['ssWSun','Sunrise and sunset'],['ssWWeather','Weather'],['ssWStop','Full stop']];
+  const PIECES=[['ssWLead','It is'],['ssWTime','Time'],['ssWSecs','Seconds'],['ssWWeekday','Day'],['ssWDayNum','Date'],['ssWMonth','Month'],['ssWYear','Year'],['ssWStop','Full stop']];
   addHint(b,'Click the parts to build your sentence.');
   const chips=el('div','ctl btn-row');chips.setAttribute('role','group');chips.setAttribute('aria-label','Sentence parts');addCustom(b,null,chips);
   const cs=PIECES.map(([k,t])=>{const p=el('button','pill small',t);p.onclick=()=>set(k,!S[k]);chips.append(p);return[k,p];});
   controls.push({d:{},w:chips,update(){cs.forEach(([k,p])=>{p.setAttribute('aria-pressed',!!S[k]);p.hidden=k==='ssWSecs'&&!S.ssWTime;});}});
   build(b,[
-    {t:'seg',k:'ssWH24',label:'Format',opts:[[false,'12-hour'],[true,'24-hour']],show:s=>s.ssWTime||s.ssWSun},
-    {t:'hint',text:'Nothing to show. Switch on at least one part.',show:s=>!(s.ssWTime||s.ssWWeekday||s.ssWDayNum||s.ssWMonth||s.ssWYear||s.ssWPlace||s.ssWSun||s.ssWWeather)},
+    {t:'seg',k:'ssWH24',label:'Format',opts:[[false,'12-hour'],[true,'24-hour']],show:s=>s.ssWTime},
+    {t:'hint',text:'Nothing to show. Switch on at least one part.',show:s=>!(s.ssWTime||s.ssWWeekday||s.ssWDayNum||s.ssWMonth||s.ssWYear)},
+    {t:'hint',text:'Always this computer’s own time and date, wherever the screen saver is installed.'},
   ]);
-}
-/* In words: where. Needed for the place name, the sun and the weather. */
-{const needs=s=>wd(s)&&(s.ssWPlace||s.ssWSun||s.ssWWeather);
-  const b=card('ss-wplace','Place',needs,'saver');
-  const sr=el('div','ctl btn-row'),q=el('input'),go=el('button','pill small','Find');q.type='text';q.placeholder='Town or city';q.setAttribute('aria-label','Search for a town or city');q.style.flex='1';
-  sr.append(q,go);b.append(sr);
-  const found=el('div','ctl btn-row');b.append(found);
-  const nr=el('div','ctl'),nh=el('div','ctl-head'),nl=el('label',null,'Call it'),nm=el('input');nm.type='text';nm.id='c_ssWPlaceName';nl.htmlFor=nm.id;nm.style.width='100%';
-  nh.append(nl);nr.append(nh,nm);b.append(nr);
-  nm.oninput=()=>set('ssWPlaceName',nm.value,true);
-  const info=el('p','hint');b.append(info);
-  controls.push({d:{},w:nr,update(){if(document.activeElement!==nm)nm.value=S.ssWPlaceName;
-    const ll=(v,p,n)=>Math.abs(v).toFixed(2)+'\u00b0 '+(v<0?n:p);info.textContent=ll(S.ssWLat,'N','S')+', '+ll(S.ssWLon,'E','W')+(S.ssWTz?' \u00b7 '+S.ssWTz.replace(/_/g,' '):'');}});
-  const search=async()=>{const t=q.value.trim();if(!t)return;found.textContent='';go.disabled=true;
-    try{const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=5&language=en&format=json&name='+encodeURIComponent(t));const j=await r.json();const rs=(j&&j.results)||[];
-      if(!rs.length)found.append(el('p','hint','No places found. Try another spelling, or add the country.'));
-      rs.forEach(x=>{const p=el('button','pill small',[x.name,x.admin1,x.country].filter((v,i,a)=>v&&a.indexOf(v)===i).join(', '));
-        p.onclick=()=>{S.ssWPlaceName=x.name;S.ssWLat=+x.latitude;S.ssWLon=+x.longitude;S.ssWTz=x.timezone||'';found.textContent='';q.value='';set('ssWTz',S.ssWTz);toast(`Place set to ${x.name}`);};found.append(p);});}
-    catch(e){found.append(el('p','hint','Couldn\u2019t reach the place search. Check your connection.'));}
-    finally{go.disabled=false;}};
-  go.onclick=search;q.onkeydown=e=>{if(e.key==='Enter')search();};
-  build(b,[{t:'seg',k:'ssWUnit',label:'Temperature',opts:[['C','Celsius'],['F','Fahrenheit']],show:s=>s.ssWWeather}]);
-  addHint(b,'The time and date are given in the place\u2019s own time zone when Place is on. Sunrise and sunset are worked out on the computer. Place search (GeoNames) and weather come from Open-Meteo: the screen saver checks the weather every 20 minutes and leaves it out when it can\u2019t connect.');
 }
 /* In words: how it's set */
 {const b=card('ss-wtype','Type',wd,'saver');
@@ -134,10 +136,14 @@ const clk=s=>s.ssShow==='clock',lk=s=>s.ssShow==='looks',wd=s=>s.ssShow==='words
     {t:'seg',k:'ssWHi',label:'Highlight',opts:[['time','The time'],['latest','Latest change'],['parts','Each part'],['none','Nothing']]},
     {t:'segdyn',k:'ssWHiFace',label:'Highlight style',show:s=>s.ssWHi!=='none',
       optsFn:()=>[['same','Same style']].concat(anyLoaded()?eng.faceList().map(({id,face})=>[id,face.name]):[['d2','Demo heavy']])},
-    {t:'range',k:'ssWSize',label:'Size',min:1.5,max:20,step:.1,fmt:v=>roundTo(v,.1)+'% of width'},
+    {t:'seg',k:'ssWLayout',label:'Layout',opts:[['para','Paragraph'],['stack','Stacked']]},
+    {t:'seg',k:'ssWFit',label:'Size',opts:[[true,'Fit the screen'],[false,'Set size']]},
+    {t:'range',k:'ssWSize',label:'Type size',min:1.5,max:30,step:.1,fmt:v=>roundTo(v,.1)+'% of width',show:s=>!s.ssWFit},
     {t:'range',k:'ssWLeading',label:'Line spacing',min:.75,max:1.8,step:.01,fmt:v=>v.toFixed(2)},
     {t:'range',k:'ssWTracking',label:'Tracking',min:-100,max:200,step:1,fmt:v=>(v>0?'+':'')+Math.round(v)},
+    {t:'range',k:'ssWSpace',label:'Word spacing',min:40,max:160,step:1,fmt:v=>Math.round(v)+'%'},
     {t:'range',k:'ssWMeasure',label:'Line length',min:30,max:100,step:1,fmt:v=>Math.round(v)+'%'},
+    {t:'toggle',k:'ssWOptical',label:'Optical margin'},
   ]);
 }
 /* In words: how a change moves */
@@ -229,14 +235,14 @@ const clk=s=>s.ssShow==='clock',lk=s=>s.ssShow==='looks',wd=s=>s.ssShow==='words
 }
 /* In words: colour. Curated themes to start; Steve's set will replace them. */
 const WORD_THEMES=[
-  {name:'Apricot',bg:'#FFFFFF',ink:'#181818',soft:'#FDA072',date:'#F7C6AA',sun:'#FF6A1F',wx:'#8FAFC4'},
-  {name:'Red',bg:'#FFFFFF',ink:'#FF3B1F',soft:'#181818',date:'#8C8C8C',sun:'#FF9A8A',wx:'#5A5A5A'},
-  {name:'Paper',bg:'#F2F2F2',ink:'#000000',soft:'#B4B4B4',date:'#6E6E6E',sun:'#3A3A3A',wx:'#949494'},
-  {name:'Night',bg:'#000000',ink:'#FFFFFF',soft:'#4D4D4D',date:'#8C8C8C',sun:'#FFB347',wx:'#7FA7C9'},
-  {name:'Signal',bg:'#FF4F1F',ink:'#000000',soft:'#FFFFFF',date:'#FFD3C4',sun:'#FFF35C',wx:'#7A1A00'},
-  {name:'Ultraviolet',bg:'#5B23F0',ink:'#FFF35C',soft:'#A98BFF',date:'#FFFFFF',sun:'#FF8FD0',wx:'#5DE0C0'},
+  {name:'Apricot',bg:'#FFFFFF',ink:'#181818',soft:'#FDA072',date:'#F7C6AA'},
+  {name:'Red',bg:'#FFFFFF',ink:'#FF3B1F',soft:'#181818',date:'#8C8C8C'},
+  {name:'Paper',bg:'#F2F2F2',ink:'#000000',soft:'#B4B4B4',date:'#6E6E6E'},
+  {name:'Night',bg:'#000000',ink:'#FFFFFF',soft:'#4D4D4D',date:'#8C8C8C'},
+  {name:'Signal',bg:'#FF4F1F',ink:'#000000',soft:'#FFFFFF',date:'#FFD3C4'},
+  {name:'Ultraviolet',bg:'#5B23F0',ink:'#FFF35C',soft:'#A98BFF',date:'#FFFFFF'},
 ];
-const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','date'],['ssWSunCol','sun'],['ssWWxCol','wx']];
+const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','date']];
 {const b=card('ss-wcolour','Colour',wd,'saver');
   const row=el('div','ctl btn-row');addCustom(b,s=>!s.ssWRotate,row);
   const same=T=>W_COLS.every(([k,t])=>String(T[t]).toLowerCase()===String(S[k]).toLowerCase());
@@ -244,9 +250,7 @@ const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','
   build(b,[
     {t:'colour',k:'ssWBg',label:'Background',show:fixed},
     {t:'colour',k:'ssWInk',label:'Highlight',labelFn:s=>s.ssWHi==='time'||s.ssWHi==='parts'?'The time':s.ssWHi==='latest'?'Latest change':'Type',show:fixed},
-    {t:'colour',k:'ssWDateCol',label:'Date and place',show:s=>fixed(s)&&s.ssWHi==='parts'},
-    {t:'colour',k:'ssWSunCol',label:'Sunrise and sunset',show:s=>fixed(s)&&s.ssWHi==='parts'},
-    {t:'colour',k:'ssWWxCol',label:'Weather',show:s=>fixed(s)&&s.ssWHi==='parts'},
+    {t:'colour',k:'ssWDateCol',label:'The date',show:s=>fixed(s)&&s.ssWHi==='parts'},
     {t:'colour',k:'ssWSoft',label:'Everything else',show:s=>fixed(s)&&s.ssWHi!=='none'},
     {t:'toggle',k:'ssWRotate',label:'Change theme every hour'},
   ]);
@@ -257,6 +261,10 @@ const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','
 /* Export */
 {const b=card('ss-export','Export',null,'saver');
   addHint(b,'No font loaded, so exports will use the demo face. Add your font in Fonts first.',()=>!anyLoaded());
+  const nr=el('div','ctl'),nh=el('div','ctl-head'),nl=el('label',null,'Name'),nm=el('input');nm.type='text';nm.id='c_ssName';nl.htmlFor=nm.id;nm.style.width='100%';
+  nh.append(nl);const nq=qMark({k:'ssName',label:'Name'});if(nq)nh.append(nq);nr.append(nh,nm);b.append(nr);
+  nm.oninput=()=>set('ssName',nm.value,true);
+  controls.push({d:{},w:nr,update(){if(document.activeElement!==nm)nm.value=S.ssName;nm.placeholder=defaultName();}});
   b.append(el('div','sub-head','Mac'));
   const mac=el('button','pill primary','Download for Mac');const r1=el('div','ctl btn-row');r1.append(mac);b.append(r1);
   b.append(el('p','hint','A .saver you install by double-clicking. The first time, macOS blocks it: allow it under System Settings \u203a Privacy & Security \u203a Open Anyway, then install for all users. The read-me in the zip walks through it.'));
@@ -273,10 +281,14 @@ const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','
   howText.innerHTML='<p>Open it in any browser and click to go full screen. It also works with WebViewScreenSaver on a Mac and Lively Wallpaper on Windows, if you already use them.</p>';
   how.append(sm,howText);b.append(how);
 }
+/* What the screen saver is called: the name typed under Export, else the look
+   (Tempo Stack), else the font, as before. */
+function defaultName(){if(wd(S)){const L=currentLook();if(L)return 'Tempo '+L.name;}return anyLoaded()?F(baseSlot()).family:'Tempo';}
+const exportName=()=>(S.ssName||'').trim()||defaultName();
 function saverConfig(){
   const ps=getPresets();
   /* the words settings travel in their own block below, not inside each look */
-  const noW=o=>{for(const k in o)if(/^ssW/.test(k))delete o[k];return o;};
+  const noW=o=>{for(const k in o)if(/^ssW/.test(k)||k==='ssName')delete o[k];return o;};
   const looks=[...ssPicked].map(k=>k==='__current'?S:(ps.find(p=>p.name===k)||{}).settings).filter(Boolean).map(o=>{const l=noW(Object.assign(fresh(),sanitise(o)));l.transparent=false;return l;});
   const base=noW(Object.assign(fresh(),sanitise(S)));base.transparent=false;
   const pals=S.ssRotate==='mine'?getThemes():[...PALETTES,...getThemes()];
@@ -287,8 +299,7 @@ function saverConfig(){
     looks:looks.length?looks:[base],base,every:S.ssEvery,shuffle:S.ssShuffle,reseed:S.ssReseed,speed:S.ssSpeed,drift:S.ssDrift,
     /* only when showing words, so clock and looks exports stay as they were */
     ...(wd(S)?{words:{lead:S.ssWLead,h24:S.ssWH24,time:S.ssWTime,secs:S.ssWSecs,weekday:S.ssWWeekday,daynum:S.ssWDayNum,month:S.ssWMonth,year:S.ssWYear,
-      inPlace:S.ssWPlace,sun:S.ssWSun,weather:S.ssWWeather,unit:S.ssWUnit,stop:S.ssWStop,case:S.ssWCase,num:S.ssWNum,sep:S.ssWSep,
-      place:{name:S.ssWPlaceName,lat:S.ssWLat,lon:S.ssWLon,tz:S.ssWTz},cols:{date:S.ssWDateCol,sun:S.ssWSunCol,wx:S.ssWWxCol},
+      stop:S.ssWStop,case:S.ssWCase,num:S.ssWNum,sep:S.ssWSep,layout:S.ssWLayout,fit:S.ssWFit,space:S.ssWSpace,optical:S.ssWOptical,dateCol:S.ssWDateCol,
       hi:S.ssWHi,hiFace:S.ssWHiFace,size:S.ssWSize,leading:S.ssWLeading,tracking:S.ssWTracking,measure:S.ssWMeasure,align:S.ssWAlign,valign:S.ssWVAlign,margin:S.ssWMargin,
       change:S.ssWChange,by:S.ssWBy,feel:S.ssWFeel,len:S.ssWLen,glide:S.ssWGlide,bg:S.ssWBg,ink:S.ssWInk,soft:S.ssWSoft,rotate:S.ssWRotate,themes:WORD_THEMES}}:{})};
 }
@@ -299,7 +310,7 @@ function saverChars(cfg){
   for(let i=0;i<7;i++)add(new Date(2026,0,5+i).toLocaleDateString('en-GB',{weekday:'long'}));
   for(let m=0;m<12;m++)add(new Date(2026,m,1).toLocaleDateString('en-GB',{month:'long'}));
   add(cfg.clock.text);
-  if(cfg.words){add(saverVocab());add(cfg.words.place.name);}
+  if(cfg.words)add(saverVocab());
   for(const L of cfg.looks)for(const t of (L.seq?L.texts:[L.texts[0]||'']))add(t);
   return chars;
 }
@@ -318,7 +329,7 @@ function saverHTML(){
   cfg.fonts=bakeFonts(saverChars(cfg));
   cfg.image=null;
   if(img&&S.ssImage){try{const c=document.createElement('canvas');const iw=img.naturalWidth,ih=img.naturalHeight,sc=Math.min(1,2400/Math.max(iw,ih));c.width=Math.round(iw*sc);c.height=Math.round(ih*sc);c.getContext('2d').drawImage(img,0,0,c.width,c.height);cfg.image=c.toDataURL('image/jpeg',.88);}catch(e){}}
-  const title=(anyLoaded()?F(baseSlot()).family:'Tempo').replace(/[<&]/g,'');
+  const title=exportName().replace(/[<&]/g,'');
   const json=JSON.stringify(cfg).replace(/</g,'\\u003c');
   const bg=saverBg(cfg);
   const html=`<!doctype html>
@@ -334,7 +345,9 @@ ${anyLoaded()?'':'<link href="https://fonts.googleapis.com/css2?family=Inter+Tig
 </body></html>`;
   return html;
 }
-async function exportScreensaver(){await saveFile(slug().replace(/-(still|fluid|snappy|transitional|motion)$/,'')+'-screensaver.html',new Blob([saverHTML()],{type:'text/html'}));}
+async function exportScreensaver(){
+  const named=(S.ssName||'').trim()||(wd(S)&&currentLook()),base=named?exportName().toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tempo':slug().replace(/-(still|fluid|snappy|transitional|motion)$/,'');
+  await saveFile(base+'-screensaver.html',new Blob([saverHTML()],{type:'text/html'}));}
 
 function saverThumbs(){
   const tEng=createEngine();tEng.setFaces(eng.faceList());tEng.setImage(S.ssImage?img:null);
@@ -392,7 +405,7 @@ async function exportMac(){
   if(!window.crypto||!crypto.subtle){toast('This browser can\u2019t build the Mac file. Try Chrome, Safari or Firefox.');return;}
   const btn=window.macBtn;btn.disabled=true;const label=btn.textContent;btn.textContent='Building\u2026';
   try{
-    const name=(anyLoaded()?F(baseSlot()).family:'Tempo').replace(/[^A-Za-z0-9 \-]/g,'').trim()||'Tempo';
+    const name=exportName().replace(/[^A-Za-z0-9 \-]/g,'').trim()||'Tempo';
     const res=await SaverPack.build(SAVER_ASSETS,{name,html:saverHTML(),thumbs:saverThumbs(),readme:macReadme(name)});
     await saveFile(name+' screen saver for Mac.zip',res.blob);
   }catch(e){console.error(e);toast('Couldn\u2019t build the Mac file: '+(e.message||e));}
@@ -426,7 +439,7 @@ async function exportWin(){
   if(!window.SaverPack||!window.SAVER_WIN){toast("The Windows packager didn't load. Reload and try again.");return;}
   const btn=window.winBtn;btn.disabled=true;const label=btn.textContent;btn.textContent='Building\u2026';
   try{
-    const name=(anyLoaded()?F(baseSlot()).family:'Tempo').replace(/[^A-Za-z0-9 \-]/g,'').trim()||'Tempo';
+    const name=exportName().replace(/[^A-Za-z0-9 \-]/g,'').trim()||'Tempo';
     const enc=new TextEncoder(),nb=enc.encode(name),hb=enc.encode(saverHTML());
     const bin=atob(SAVER_WIN),tpl=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)tpl[i]=bin.charCodeAt(i);
     const hex=/^#?([0-9a-f]{6})$/i.exec(saverBg(saverConfig())),bg=hex?parseInt(hex[1],16):0;

@@ -330,7 +330,7 @@ REF_SAVER = _saver_src(open(os.path.join(ROOT, 'reference/rubato-0.8.1.html'), '
 NEW_SAVER = open(os.path.join(ROOT, 'tempo/saver.js'), 'rb').read().rstrip(b'\n')
 BACK = [(b'window.__TEMPO__', b'window.__RUBATO__'), (b'Made with Tempo by Ensemble', b'Made with Rubato by Ensemble'),
         (b'<title>Tempo \xe2\x80\x93 screensaver</title>', b'<title>Rubato \xe2\x80\x93 screensaver</title>')]
-PANEL_BACK = [('The time\nIn words\nSaved looks', 'The time\nSaved looks')]
+PANEL_BACK = [('The time\nIn words\nSaved looks', 'The time\nSaved looks'), ('Export\n–\nName\n?\nMac', 'Export\n–\nMac')]
 # Two live-preview frames catch a roll or a drift mid-step, so 0.8.1 itself lands on one of two
 # frames from run to run. Largest difference seen between two runs of the reference on 6 Oct 2026:
 KNOWN_NOISE = {'screen saver preview': (1136, 10), 'roll at 150 ms': (1845, 208)}
@@ -371,7 +371,7 @@ def tempo02(k, a, b):
     if isinstance(a, str) and isinstance(b, str):
         for x, y in PANEL_BACK:
             b = b.replace(x, y)
-        return 'Show now also offers In words' if a == b else None
+        return 'Show now also offers In words; Export has a Name field' if a == b else None
     if not (isinstance(a, bytes) and isinstance(b, bytes)):
         return None
     if a[:15].lower() == b'<!doctype html>':
