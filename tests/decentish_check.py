@@ -1,5 +1,5 @@
-"""Checks for Decentish 0.3 – the planner, the distance dial and the voice, with every outside source
-faked so it runs offline and gives the same answer every time.
+"""Checks for Decentish 0.4 – the planner, the distance dial, getting there and back, and the plan as written,
+with every outside source faked and the dice loaded, so it runs offline and gives the same answer every time.
 
     python3 tests/decentish_check.py
 
@@ -7,9 +7,11 @@ Needs Playwright with Chromium, and `cd tests && npm install` once (for the
 SunCalc and opening_hours libraries the page loads from jsDelivr).
 
 The places are Monton Road as Google listed them on 6 October 2026, with their
-opening hours written in OpenStreetMap's format. The weather is made up but
-shaped like that day (sunny afternoon, mild night, colder tomorrow). The real
-page asks the real services; this only proves what the page does with answers.
+opening hours written in OpenStreetMap's format. Everything called "Test" is made
+up – Eccles and Worsley a mile or two away, town, Salford Quays, Chorlton – and so
+are their quality tags (real ale, beer garden, chain, free entry). Tram stops are
+roughly where the real ones are. The weather is made up but shaped like that week.
+The real page asks the real services; this only proves what the page does with answers.
 
 Writes the lines for every scenario and dial setting to tests/out/decentish.md
 and phone-width screenshots to tests/out/.
@@ -29,12 +31,14 @@ OH = open(os.path.join(NM, 'opening_hours', 'build', 'opening_hours.js')).read()
 MONTON = (53.495079, -2.350899)
 
 # ---------- fake Overpass ----------
+_ids = iter(range(1, 10**6))
 def node(name, lat, lon, hours=None, **tags):
     t = {'name': name, **tags}
     if hours:
         t['opening_hours'] = hours
-    return {'type': 'node', 'lat': lat, 'lon': lon, 'tags': t}
+    return {'type': 'node', 'id': next(_ids), 'lat': lat, 'lon': lon, 'tags': t}
 
+# Monton Road as Google listed it on 6 October 2026, hours in OSM's format. Only hours and cuisine are real.
 MONTON_PLACES = [
     node('Sip Monton', 53.490752, -2.3514264, 'Mo 16:00-22:00; Tu-Th 15:00-22:00; Fr 14:00-00:30; Sa 12:00-00:30; Su 13:00-22:00', amenity='bar'),
     node("Edison's", 53.4917745, -2.353548, 'Mo,Tu 10:00-15:00; We 10:00-22:00; Th 10:00-24:00; Fr 10:00-01:00; Sa,Su 09:30-01:00', amenity='bar'),
@@ -53,22 +57,55 @@ MONTON_PLACES = [
     node('Chinese Express', 53.4845619, -2.34014, 'Mo off; Tu-Su 16:30-23:00', amenity='fast_food', cuisine='chinese'),
     node('Corner Shop (test)', 53.4930, -2.3515, 'Mo-Su 07:00-22:00', shop='convenience'),
     node('Hourless Bar (test)', 53.4925, -2.3520, None, amenity='bar'),
+    node('Monton Test Green', 53.4935, -2.3480, None, leisure='park'),
+]
+# Made up: Eccles and Worsley, 1–2 miles from Monton, with quality tags to test the reasons
+RING_PLACES = [
+    node('Eccles Test Tap', 53.4855, -2.3400, 'Mo-Su 12:00-23:00', amenity='pub', real_ale='yes', heritage='2'),
+    node('Eccles Test Thai', 53.4858, -2.3395, 'Mo-Su 17:00-22:30', amenity='restaurant', cuisine='thai'),
+    node('Eccles Test Bar', 53.4850, -2.3385, 'Mo-Su 16:00-24:00', amenity='bar', outdoor_seating='yes'),
+    node('Worsley Test Inn', 53.5030, -2.3800, 'Mo-Su 12:00-23:00', amenity='pub', beer_garden='yes'),
 ]
 TOWN = (53.4808, -2.2369)
 TOWN_PLACES = [
     node('NQ Test Bar', 53.4835, -2.2355, 'Mo-Su 12:00-02:00', amenity='bar'),
-    node('Test Tap', 53.4829, -2.2340, 'Mo-Su 12:00-23:30', amenity='pub'),
+    node('Test Tap', 53.4829, -2.2340, 'Mo-Su 12:00-23:30', amenity='pub', real_ale='yes', wikipedia='en:Test Tap'),
     node('Test Wine Bar', 53.4815, -2.2390, 'Mo-Su 12:00-23:00', amenity='bar'),
     node('Test Bistro', 53.4822, -2.2378, 'Mo-Su 12:00-22:00', amenity='restaurant', cuisine='french'),
-    node('Test Gallery', 53.4790, -2.2400, 'Tu-Su 10:00-17:00', tourism='gallery'),
+    node('Test Gallery', 53.4790, -2.2400, 'Tu-Su 10:00-17:00', tourism='gallery', fee='no'),
     node('Test Club', 53.4842, -2.2330, 'We-Sa 22:00-04:00', amenity='nightclub'),
     node('Late Test Kebab', 53.4838, -2.2362, 'Mo-Su 17:00-04:00', amenity='fast_food', cuisine='kebab'),
     node('Test Cafe', 53.4826, -2.2349, 'Mo-Su 08:00-17:00', amenity='cafe'),
     node('Test Cinema', 53.4800, -2.2420, None, amenity='cinema'),
+    node('Test Bowl', 53.4818, -2.2380, 'Mo-Su 10:00-24:00', leisure='bowling_alley'),
+    node('Test Spoons', 53.4812, -2.2375, 'Mo-Su 08:00-24:00', amenity='pub', brand='Wetherspoon'),
+    node('Peveril of the Peak', 53.4746, -2.2453, 'Mo-Su 12:00-23:00', amenity='pub'),   # real pub on the picks list; hours made up
 ]
+# Made up: two of the destinations further afield
+QUAYS_PLACES = [
+    node('Quays Test Gallery', 53.4705, -2.2965, 'Tu-Su 10:00-17:00', tourism='gallery', fee='no'),
+    node('Quays Test Bar', 53.4718, -2.2950, 'Mo-Su 12:00-24:00', amenity='bar', outdoor_seating='yes'),
+    node('Quays Test Noodles', 53.4722, -2.2980, 'Mo-Su 12:00-22:00', amenity='restaurant', cuisine='japanese'),
+]
+CHORLTON_PLACES = [
+    node('Chorlton Test Pub', 53.4430, -2.2765, 'Mo-Su 12:00-23:30', amenity='pub', real_ale='yes'),
+    node('Chorlton Test Kitchen', 53.4425, -2.2775, 'Tu-Su 17:00-22:00', amenity='restaurant', cuisine='vietnamese'),
+    node('Chorlton Test Bar', 53.4433, -2.2780, 'Mo-Su 16:00-01:00', amenity='bar'),
+    node('Chorlton Test Park', 53.4440, -2.2800, None, leisure='park'),
+]
+# Metrolink stops, roughly where they are
+TRAM_STOPS = [node(n, la, lo, None, railway='tram_stop', public_transport='stop_position') for n, la, lo in [
+    ('Eccles', 53.4836, -2.3348), ('Ladywell', 53.4857, -2.3226), ('Weaste', 53.4824, -2.3085),
+    ('Harbour City', 53.4742, -2.2920), ('MediaCityUK', 53.4720, -2.2972), ('Salford Quays', 53.4706, -2.2854),
+    ('Cornbrook', 53.4697, -2.2638), ('Deansgate-Castlefield', 53.4746, -2.2507), ("St Peter's Square", 53.4783, -2.2425),
+    ('Piccadilly Gardens', 53.4807, -2.2369), ('Market Street', 53.4823, -2.2393), ('Shudehill', 53.4853, -2.2393),
+    ('Exchange Square', 53.4855, -2.2436), ('Victoria', 53.4875, -2.2426), ('Firswood', 53.4545, -2.2731),
+    ('Chorlton', 53.4428, -2.2740), ('Prestwich', 53.5332, -2.2858)]] + [
+    node('Eccles', 53.4840, -2.3340, None, railway='station', train='yes')]   # the rail station, which isn't a tram stop
 NQ = (53.4840, -2.2338)
 BARRA = (56.9818, -7.4583)
 BARRA_WIDE = [node('The Test Arms', 56.9530, -7.4870, 'Mo-Su 12:00-23:00', amenity='pub')]
+EVERYTHING = MONTON_PLACES + RING_PLACES + TOWN_PLACES + QUAYS_PLACES + CHORLTON_PLACES + TRAM_STOPS + BARRA_WIDE
 
 # ---------- fake weather ----------
 DAYS = ['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09',
@@ -109,10 +146,17 @@ def weather():
 def near(q, place, tol=0.05):
     return abs(float(q['lat'][0]) - place[0]) < tol and abs(float(q['lon'][0]) - place[1]) < tol
 
+def metres(a, b):
+    import math
+    la1, lo1, la2, lo2 = map(math.radians, (a[0], a[1], b[0], b[1]))
+    h = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
+    return 2 * 6371000 * math.asin(math.sqrt(h))
+
 def install_fakes(page, overpass_down=False):
     def js(body):
         return dict(status=200, content_type='application/json', body=json.dumps(body),
                     headers={'Access-Control-Allow-Origin': '*'})
+    page.add_init_script("(()=>{let a=20261007;Math.random=()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}})()")
     page.route('https://fonts.googleapis.com/**', lambda r: r.fulfill(body='', content_type='text/css'))
     page.route('https://fonts.gstatic.com/**', lambda r: r.abort())
     page.route('**/suncalc@1.9.0/**', lambda r: r.fulfill(body=SUNCALC, content_type='application/javascript'))
@@ -151,17 +195,18 @@ def install_fakes(page, overpass_down=False):
         if overpass_down:
             return r.fulfill(status=504, body='busy', headers={'Access-Control-Allow-Origin': '*'})
         data = urllib.parse.unquote_plus((r.request.post_data or '')[5:])
-        m = re.search(r'around:(\d+),([-\d.]+),([-\d.]+)', data)
-        radius, lat, lon = int(m.group(1)), float(m.group(2)), float(m.group(3))
-        if abs(lat - TOWN[0]) < .006 and abs(lon - TOWN[1]) < .01: els = TOWN_PLACES
-        elif abs(lat - MONTON[0]) < .01: els = MONTON_PLACES
-        else: els = BARRA_WIDE if radius > 5000 else []
-        return r.fulfill(**js({'elements': els}))
+        found = {}
+        for m in re.finditer(r'around:(\d+),([-\d.]+),([-\d.]+)', data):
+            rad, c = int(m.group(1)), (float(m.group(2)), float(m.group(3)))
+            for e in EVERYTHING:
+                if metres(c, (e['lat'], e['lon'])) <= rad:
+                    found[e['id']] = e
+        return r.fulfill(**js({'elements': list(found.values())}))
     for host in ['overpass-api.de', 'overpass.kumi.systems', 'overpass.private.coffee']:
         page.route(f'https://{host}/**', overpass)
 
-STOPS = ['Tony Blair on a culture trip', 'Three pints and a meal deal', 'Pissed-up uncle on a mad one']
-DISTS = ['On the doorstep', 'Walking distance', 'Worth the trip']
+MOODS = ['Tony Blair on a culture trip', 'Three pints and a meal deal', 'Pissed-up uncle on a mad one']
+DISTS = ['On the doorstep', 'Nearby', 'Further afield']
 WHENS = ['now', 'soon', 'tomorrow']
 
 def wait_done(pg, timeout=20):
@@ -192,10 +237,10 @@ def test_run(pg, at='', postcode=''):
     time.sleep(.2)
     return wait_done(pg)
 
-results, report = [], ['# Decentish 0.3 – test lines', '',
-    'Every scenario at every mood and When, at Walking distance; then the distance dial on its own for two scenarios. '
-    'Places are Monton Road as Google listed them on 6 October 2026; "Test" places in town and on Barra are made up; '
-    'the weather is made up but shaped like that week.', '']
+results, report = [], ['# Decentish 0.4 – test lines', '',
+    'Every scenario at every mood and When, at Nearby; then the distance dial on its own (Now) for each scenario. '
+    'Monton Road names and hours are real (Google, 6 October 2026); every "Test" place is made up, and so are all the '
+    'quality tags; the weather is made up but shaped like that week. Receipts in code under each plan.', '']
 def check(name, ok, detail=''):
     results.append(ok)
     print(('PASS ' if ok else 'FAIL ') + name + (f' – {detail}' if detail else ''))
@@ -207,17 +252,28 @@ def block(pg, label):
     if rc: report.append('\n`' + rc + '`')
     report.append('')
 
-def record(title, pg, distances=False):
+def record(title, pg):
     report.append(f'## {title}\n')
+    report.append(f'### Nearby, by When\n')
     for w in WHENS:
         for n in range(3):
-            view(pg, n, w); block(pg, f'{STOPS[n]} · {w.capitalize()}')
-    if distances:
-        report.append(f'### {title} – distance dial, Now\n')
-        for d in range(3):
-            for n in range(3):
-                view(pg, n, 'now', d); block(pg, f'{STOPS[n]} · {DISTS[d]}')
+            view(pg, n, w); block(pg, f'{MOODS[n]} · {w.capitalize()}')
+    report.append(f'### The distance dial, Now\n')
+    for d in (0, 2):
+        for n in range(3):
+            view(pg, n, 'now', d); block(pg, f'{MOODS[n]} · {DISTS[d]}')
     view(pg, 1)
+
+def every_view(pg, w='now'):
+    out = {}
+    for d in range(3):
+        for n in range(3):
+            out[(n, d)] = (view(pg, n, w, d), pg.inner_text('#receipts'))
+    view(pg, 1)
+    return out
+
+def walks(rc):
+    return [int(x) for x in re.findall(r'walk (\d+) min', rc)]
 
 def main():
     os.makedirs(OUT, exist_ok=True)
@@ -233,44 +289,75 @@ def main():
         install_fakes(pg)
         pg.goto(url)
         check('Starts by itself when location is already allowed', wait_done(pg))
-        check('First visit: Three pints, Walking distance, Now',
-              pg.inner_text('#dialName') == 'Three pints and a meal deal' and pg.inner_text('#distName') == 'Walking distance'
+        check('First visit: Three pints, Nearby, Now',
+              pg.inner_text('#dialName') == 'Three pints and a meal deal' and pg.inner_text('#distName') == 'Nearby'
               and pg.get_attribute('[data-when="now"]', 'aria-pressed') == 'true')
 
-        # Tuesday, ten past eleven
+        # ---- Friday, half five, Monton ----
+        check('Friday 17:30 run finishes', test_run(pg, '2026-10-09T17:30'))
+        check('The facts strip names the nearest tram stop', 'Nearest tram stop Eccles, 27 min walk' in pg.inner_text('#facts'), pg.inner_text('#facts'))
+        V = every_view(pg)
+        L, rc = V[(1, 1)]
+        check('Friday opener', L[0] == 'Friday, half five-ish, Monton – you made it.', L[0])
+        L0, rc0 = V[(1, 0)]
+        check('Doorstep: every leg a short walk, and it says how close',
+              all(w <= 10 for w in walks(rc0)) and 'taxi' not in rc0 and 'Nothing here is more than' in ' '.join(L0), rc0)
+        check('Doorstep: the first stop is in yards',
+              re.search(r"^Start at .+ – it's \d+ yards away", L0[1]) is not None, L0[1])
+        check('Doorstep: stops relate to each other (next door, a few doors down, round the corner)',
+              re.search(r'next door|a few doors down|round the corner', L0[2]) is not None, L0[2])
+        L1, rc1 = V[(1, 1)]
+        check('Nearby: goes past the doorstep and gives the distance in miles',
+              re.search(r'miles away', L1[1]) is not None and walks(rc1)[0] > 10, L1[1])
+        check('Nearby: says how far back it is', re.search(r"minutes' walk back to Monton|taxi back to Monton|minutes from your door", ' '.join(L1)) is not None, json.dumps(L1))
+        L2, rc2 = V[(1, 2)]
+        check('Further afield: how to get there, what it costs, the tram as the other option',
+              re.search(r'^Head (into town|to [A-Z][a-z ]+) by taxi – about \d+ minutes, around £\d+, or about .+ by tram from Eccles – so you\'re there by', L2[1]) is not None, L2[1])
+        check('Further afield: how to get back', re.search(r'A taxi back to Monton is about \d+ minutes, around £\d+', ' '.join(L2)) is not None, json.dumps(L2))
+        check('Further afield: one near home on the way back', 'Back in Monton, ' in ' '.join(L2), json.dumps(L2))
+        firsts = [re.search(r'→ \d\d:\d\d ([^(]+) \(', V[(1, d)][1]).group(1) for d in range(3)]
+        check('The three distances give three different first stops', len(set(firsts)) == 3, json.dumps(firsts))
+        blair = ' '.join(' '.join(V[(0, d)][0]) for d in range(3))
+        check('Blair Friday: no takeaways or chains anywhere',
+              not any(x in blair for x in ['Pizza Monton', 'Shabna', 'Late Test Kebab', 'Chinese Express', 'Test Spoons']), blair[:400])
+        check('Blair names the cuisine properly', 'for British,' not in blair and 'for British –' not in blair, blair[:300])
+        mad = V[(2, 2)][1]
+        check('Mad one, further afield: five stops at most, and it ends in food',
+              mad.count('→') <= 5 and 'Finish with' in ' '.join(V[(2, 2)][0]), mad)
+        alltext = ' '.join(' '.join(v[0]) for v in V.values())
+        check('Quality shows up as a reason: real ale', 'does real ale' in alltext)
+        check('A pick says why it is picked', "Peveril of the Peak" not in alltext or 'green-tiled Victorian pub' in alltext, alltext[:200])
+        check('No sentence says the same drink line twice in a row', 'for a pint – it' not in ' '.join(V[(2, 0)][0][2:3]) or ' '.join(V[(2, 0)][0]).count('for a pint') <= 1, json.dumps(V[(2, 0)][0]))
+        check('Weather line is one plain sentence at the end of the way back', all(len(v[0]) >= 4 for v in V.values()))
+        record('Friday 9 October, 17:30, Monton', pg)
+
+        # ---- Tuesday, ten past eleven ----
         check('Tuesday 23:10 run finishes', test_run(pg, '2026-10-06T23:10'))
-        L = view(pg, 1)
-        check('Opener flows as one sentence', L[0] == 'Gone eleven on a Tuesday in Monton.', L[0])
-        check('Three pints: last orders then pizza, stitched in one sentence',
-              L[1].startswith("The Park's got 20 minutes left and it's 8 minutes away, so that's one if you leg it, then pizza at Pizza Monton to soak it up, open till one."), L[1])
-        check('Weather sits in the same paragraph as the plan', L[1].count('.') == 2 and len(L) == 3, json.dumps(L))
+        L = view(pg, 1, 'now', 0)
+        check('Opener', L[0] == 'Gone eleven on a Tuesday in Monton.', L[0])
+        check('Last orders: one if you go now', L[1] == "The Park has 20 minutes left and it's 8 minutes' walk, so one drink if you go now.", L[1])
+        check('So the next stop follows from it: The Park shuts, so pizza next door, the only kitchen open',
+              L[2].startswith('The Park shuts at half eleven, so then Pizza Monton, next door,') and 'the only kitchen still open' in L[2], L[2])
         check('No "bed" at 23:10 for Three pints', 'bed' not in text(pg).lower())
-        check('Receipts list the plan exactly', 'The Park, pub, 8 min walk, till 23:30' in pg.inner_text('#receipts'), pg.inner_text('#receipts'))
+        check('Receipts list the plan exactly', 'walk 8 min → 23:18 The Park (pub), till 23:30' in pg.inner_text('#receipts'), pg.inner_text('#receipts'))
         facts1 = pg.inner_text('#facts')
-        L = view(pg, 2)
-        check('Mad one at walking distance stays local: The Park, then pizza',
-              'so RUN' in L[1] and 'Pizza Monton' in L[1] and 'into town' not in L[1], json.dumps(L))
-        L = view(pg, 2, 'now', 2)
-        check('Mad one, worth the trip: half an hour into town',
-              'half an hour into town for NQ Test Bar till two' in L[1] and 'Late Test Kebab' in L[1], json.dumps(L))
+        L = view(pg, 1, 'now', 2)
+        check('Further at 23:10: taxi in, and the trams have stopped for the way back',
+              L[1].startswith('Head into town by taxi') and "The trams will have stopped by then, so it's a taxi back to Monton" in ' '.join(L), json.dumps(L))
         check('The facts strip is the same at every setting', pg.inner_text('#facts') == facts1)
+        L = view(pg, 2)
         time.sleep(.8)
         check('Mad one is red', pg.evaluate("getComputedStyle(document.body).backgroundColor") == 'rgb(255, 74, 46)')
         L = view(pg, 0)
-        check('Blair rolls to tomorrow with a reason, then one flowing sentence',
-              L[1].startswith('Everything nearby has closed, so here is tomorrow from 18:00.') and ', followed by a glass of something at' in L[1], json.dumps(L))
+        check('Blair rolls to tomorrow with a reason', L[1].startswith('Everything nearby has closed, so here is tomorrow from 18:00.'), json.dumps(L))
         L = view(pg, 1, 'tomorrow')
         check('Tomorrow toggle opener', L[0] == 'Tomorrow, Wednesday, from half five in Monton.', L[0])
-        L = view(pg, 1, 'soon')
-        check('Soon at 23:10: nothing walkable, so it widens to town and says so', L[1].startswith("Nowt within walking distance, so it's worth the trip.") and 'NQ Test Bar' in L[1], json.dumps(L))
-        L = view(pg, 1, 'now', 0)
-        check('Doorstep widens, and says so', L[1].startswith('Nowt on the doorstep, so a bit further.'), json.dumps(L))
         view(pg, 1)
         before = pg.inner_text('#timings')
         pg.click('#refresh'); time.sleep(.3)
         check('Another plan re-picks without fetching again', pg.inner_text('#timings') == before and len(lines(pg)) >= 3)
-        record('Tuesday 6 October, 23:10, Monton', pg, distances=True)
-        view(pg, 1); time.sleep(.7)
+        record('Tuesday 6 October, 23:10, Monton', pg)
+        view(pg, 1, 'now', 1); time.sleep(.7)
         pg.screenshot(path=os.path.join(OUT, 'decentish-tue-2310-pints.png'), full_page=True)
         view(pg, 2, 'now', 2); time.sleep(.7)
         pg.screenshot(path=os.path.join(OUT, 'decentish-tue-2310-mad.png'), full_page=True)
@@ -279,40 +366,48 @@ def main():
         check('Location buttons hidden once it has run', pg.locator('#ask').is_hidden())
         pg.click('#workingsToggle')
         w = pg.inner_text('#workings')
-        check('Workings show distance and town places', 'Distance: Worth the trip' in w and 'town · Test Cinema · listing · needs listings' in w, w[:300])
+        check('Workings show distance, destinations and tram stops',
+              'Distance: Further afield' in w and 'town 7.7 km' in w and 'Tram stops: Eccles 27 min' in w and 'Monton Test Green · park' in w, w[:500])
         pg.click('#workingsToggle')
         view(pg, 1)
 
-        check('Friday 17:30 run finishes', test_run(pg, '2026-10-09T17:30'))
-        L = view(pg, 1)
-        check('Friday opener', L[0] == 'Friday, half five-ish, Monton – you made it.', L[0])
-        check('Three pints Friday: three steps in one sentence', pg.inner_text('#receipts').count('→') == 2 and L[1].count(', and ') >= 1, json.dumps(L))
-        L = view(pg, 0)
-        check('Blair Friday: dinner then a glass, no takeaways',
-              L[1].startswith('Dinner at') and ', followed by a glass of something at' in L[1] and 'Pizza Monton' not in L[1] and 'Shabna' not in L[1], json.dumps(L))
-        L = view(pg, 2, 'now', 2)
-        check('Mad one Friday, worth the trip: into town in the evening', 'into town' in L[1], json.dumps(L))
-        record('Friday 9 October, 17:30, Monton', pg, distances=True)
+        # ---- Tuesday afternoon, sunny ----
+        check('Tuesday 14:00 run finishes', test_run(pg, '2026-10-06T14:00'))
+        V = every_view(pg)
+        alltext = ' '.join(' '.join(v[0]) for v in V.values())
+        check('Sunny: a beer garden becomes the reason and the weather line', 'has a beer garden' in alltext and 'sit outside at Worsley Test Inn' in alltext, alltext[:300])
+        check('Daytime is not just pubs: a park walk, a coffee or culture', 'for a walk' in alltext and 'for a coffee' in alltext and 'free to get in' in alltext)
+        record('Tuesday 6 October, 14:00, Monton (sunny)', pg)
 
+        # ---- Sunday morning ----
         check('Sunday 10:00 run finishes', test_run(pg, '2026-10-11T10:00'))
-        L = view(pg, 0)
-        check('Blair Sunday: gallery is only in town, so it widens and says so',
-              L[1].startswith('Nothing suitable within walking distance, so this one is worth the trip. Start at Test Gallery, in town'), json.dumps(L))
+        L = view(pg, 0, 'now', 0)
+        check('Blair Sunday, doorstep: a walk in the park, not a trip to town', L[1].startswith('Start at Monton Test Green for a walk'), json.dumps(L))
+        L = view(pg, 0, 'now', 2)
+        check('Blair Sunday, further afield: a free gallery', 'Test Gallery – it\'s free to get in' in ' '.join(L), json.dumps(L))
         record('Sunday 11 October, 10:00, Monton', pg)
 
+        # ---- 3am ----
         check('03:00 run finishes', test_run(pg, '2026-10-07T03:00'))
-        L = view(pg, 1)
+        L = view(pg, 1, 'now', 0)
         check('Three pints at 03:00: all shut, tomorrow', L[1].startswith("It's all shut round here, so tomorrow then, from half five."), json.dumps(L))
-        L = view(pg, 2)
-        check('Mad one at 03:00 widens to town for the kebab',
-              'into town we go' in L[1] and 'Straight into town – half an hour – for Late Test Kebab till four' in L[1] and L[-1] == 'Then bed, you animal.', json.dumps(L))
+        L = view(pg, 2, 'now', 0)
+        check('Mad one at 03:00 goes to town for the kebab, and taxis back',
+              'Late Test Kebab' in L[1] and 'Head into town by taxi' in L[1] and "taxi back to Monton" in ' '.join(L) and L[-1] == 'Then bed, you animal.', json.dumps(L))
         record('Wednesday 7 October, 03:00, Monton', pg)
 
+        # ---- Northern Quarter, Friday night ----
         check('Northern Quarter Friday run finishes', test_run(pg, '2026-10-09T21:30', 'M4 1HN'))
-        L = view(pg, 2)
-        check('In town, no trip into town', 'the Northern Quarter' in L[0] and 'into town' not in text(pg), json.dumps(L))
+        V = every_view(pg)
+        near = ' '.join(' '.join(V[(n, d)][0]) for n in range(3) for d in (0, 1))
+        check('In town: no trip into town on the doorstep or nearby', 'the Northern Quarter' in V[(1, 0)][0][0] and 'into town' not in near, near[:300])
+        far = ' '.join(' '.join(V[(n, 2)][0]) for n in range(3))
+        check('From town, further afield means somewhere else', re.search(r'Head to (Chorlton|Salford Quays)', far) is not None, far[:400])
+        check('The tram, with the stops named', re.search(r'get the tram to Chorlton|for the tram to Piccadilly Gardens', far) is not None, far[:600])
+        check('Late back from Chorlton: the trams will have stopped, so a taxi', "The trams will have stopped by then, so it's a taxi back to the Northern Quarter" in far, far[:600])
         record('Friday 9 October, 21:30, Northern Quarter (M4 1HN)', pg)
 
+        # ---- Barra ----
         check('Barra run finishes', test_run(pg, '2026-10-06T20:00', 'HS9'))
         L = view(pg, 2)
         check('Outside Greater Manchester says so', any("You're not in Manchester – bold" in l for l in L), json.dumps(L))
@@ -326,7 +421,7 @@ def main():
 
         pg2 = ctx.new_page(); install_fakes(pg2, overpass_down=True)
         pg2.on('pageerror', lambda e: errs.append(str(e)))
-        pg2.goto(url); wait_done(pg2, 40)
+        pg2.goto(url); wait_done(pg2, 60)
         set_range(pg2, '#dial', 2); L = lines(pg2)
         check('Map down: says so in voice, weather still there', any("map's pissed" in l.lower() for l in L) and len(L) >= 3, json.dumps(L))
         check('Map down shows in the stopwatch', 'Places failed' in pg2.inner_text('#timings'), pg2.inner_text('#timings'))

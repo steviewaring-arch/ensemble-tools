@@ -1,5 +1,16 @@
 # Changelog
 
+## 7 October 2026 – Decentish 0.4
+
+**Decentish 0.4** – plans laid out like a friend would, with the way there and back. No changes to Rubato, Tempo or Tutti.
+- **The distance dial means something now.** On the doorstep: what's right here, in yards, nothing more than 12 minutes from your door. Nearby: somewhere past the doorstep, up to about two miles, with the distance in miles and how to get there (walk, or a taxi with the cost), and back towards home when there's nothing more out there. Further afield: town or another destination (Salford Quays, Chorlton, Didsbury…), by tram or taxi, there and back.
+- **Getting about:** tram stops from the map and the Metrolink network in the page – which stop, which stop to, minutes, any change, the walk at each end, the last tram, and a taxi when the trams have stopped. Taxi minutes and rough cost. Nearest tram stop in the facts strip. All estimates – no live times yet.
+- **The writing:** one sentence per stop, each relating to the last – next door, a few doors down, round the corner; "The Park shuts at half eleven, so then Pizza Monton, next door…"; "When you're hungry…"; "Finish at…". Then the way back, and one near home if the night allows. Plain voice for now, on purpose; openers, weather and sign-offs keep their three voices.
+- **What counts as good:** real ale, own brewery, listed buildings, Wikipedia, free entry, beer gardens when the weather's right, chains marked down (hard for Blair), "the only one still serving", "open latest", and a picks list (`PICKS`) for places worth a line. No ratings yet.
+- **Not just pubs:** parks while it's light and dry, galleries and museums, coffee, bowling, crazy golf, escape rooms, arcades and karaoke. Stops capped at 3, 4 and 5 by profile.
+- It tries several first stops and keeps the best whole plan, so it doesn't strand you at a pub with nothing near it.
+- Tested: `tests/decentish_check.py`, 60 of 60, all sources faked and the dice loaded (Monton Road's real hours; made-up places in Eccles, Worsley, town, the Quays and Chorlton; tram stops roughly where the real ones are). `tests/out/decentish.md` has every plan by When and by distance. Not tested: the real services from a phone, the bigger map query on a real signal, and whether the real map's tram stop names match the network list.
+
 ## 7 October 2026 – Decentish 0.3
 
 **Decentish 0.3** – a distance dial, and a voice that flows. No changes to Rubato, Tempo or Tutti.

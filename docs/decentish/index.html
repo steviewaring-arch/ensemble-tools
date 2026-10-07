@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@700&display=swap">
 <style>
-/* Decentish 0.3. One face, one weight. The dial only changes colour: white, amber, red.
+/* Decentish 0.4. One face, one weight. The dial only changes colour: white, amber, red.
    The plan sits top left. Controls and the sober receipts sit at the foot, and the receipts never change colour. */
 @font-face{font-family:"Diatype Bold";src:local("ABC Diatype Bold"),local("ABCDiatype-Bold"),url("ABCDiatype-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
 :root{
@@ -19,7 +19,7 @@
   --sober-ink:#121212;
   --sober-soft:#5d5b56;
   --gutter:clamp(16px,4.5vw,44px);
-  --voice:clamp(28px,5.6vw,64px);
+  --voice:clamp(26px,4.6vw,54px);
   color-scheme:light;
 }
 body[data-dial="0"]{--paper:#ffffff}
@@ -31,7 +31,7 @@ html,body{height:100%}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--face);font-weight:700;letter-spacing:-.022em;-webkit-font-smoothing:antialiased;transition:background-color .6s ease}
 .page{min-height:100%;display:flex;flex-direction:column}
 .voice{flex:1;padding-inline:var(--gutter);padding-block:calc(var(--gutter) + env(safe-area-inset-top,0px)) var(--gutter)}
-#lines p{margin:0 0 .3em;font-size:var(--voice);line-height:1.04;max-width:16em;overflow-wrap:break-word}
+#lines p{margin:0 0 .45em;font-size:var(--voice);line-height:1.06;max-width:18em;overflow-wrap:break-word}
 #lines p.in{animation:land .5s ease both}
 #lines p.loading{animation:breathe 1.4s ease-in-out infinite}
 @keyframes land{from{opacity:0;transform:translateY(.22em)}to{opacity:1;transform:none}}
@@ -96,17 +96,17 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink)
       <div class="ends" aria-hidden="true"><span>Culture trip</span><span>Mad one</span></div>
     </div>
     <div class="dial">
-      <label for="dist" id="distName">Walking distance</label>
+      <label for="dist" id="distName">Nearby</label>
       <input type="range" id="dist" min="0" max="2" step="1" value="1">
-      <div class="ends" aria-hidden="true"><span>Doorstep</span><span>Further</span></div>
+      <div class="ends" aria-hidden="true"><span>Doorstep</span><span>Further afield</span></div>
     </div>
     <button class="btn" id="refresh" type="button">Another plan</button>
   </section>
   <footer class="facts">
     <p id="receipts"></p>
-    <p id="facts">Decentish 0.3</p>
+    <p id="facts">Decentish 0.4</p>
     <p class="soft" id="timings"></p>
-    <p class="soft">Not wired up yet: film times, gigs, trams, trains, ratings, hygiene. Cinemas and venues stay out of plans until their listings are in.</p>
+    <p class="soft">Tram and taxi times are estimates, not timetables. Not wired up yet: live trams, trains, buses, film times, gigs, ratings, hygiene.</p>
     <div class="tools">
       <button class="link soft" id="workingsToggle" type="button" aria-expanded="false">Workings</button>
       <button class="link soft" id="labToggle" type="button" aria-expanded="false">Test</button>
@@ -134,14 +134,30 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink)
 <script>
 (()=>{
 'use strict';
-const VERSION='0.3';
+const VERSION='0.4';
 const $=s=>document.querySelector(s);
 
 /* ---------- Settings ---------- */
-const SEARCH_M=1300;                          // local look: about a 20-minute walk
+const NEAR_M=1300;                            // everything, hours or not: the doorstep and the workings
+const RING_M=3000;                            // places with hours, parks and tram stops: about two miles
 const WIDE_M=16000;                           // only when nothing is local
-const TOWN={lat:53.4808,lon:-2.2369,r:1100};  // Manchester city centre, Piccadilly Gardens
+const HUB_KM=[3.5,16];                        // further afield: places this far away are fetched as destinations
 const GM=['Bolton','Bury','Manchester','Oldham','Rochdale','Salford','Stockport','Tameside','Trafford','Wigan'];
+/* Destinations worth the trip. Centre points only; what's there comes from the map. Town is always one of them. */
+const HUBS=[
+  {key:'town',name:'town',lat:53.4808,lon:-2.2369,r:1100},
+  {key:'quays',name:'Salford Quays',lat:53.4712,lon:-2.2970,r:700},
+  {key:'chorlton',name:'Chorlton',lat:53.4428,lon:-2.2770,r:700},
+  {key:'didsbury',name:'Didsbury',lat:53.4166,lon:-2.2310,r:600},
+  {key:'prestwich',name:'Prestwich',lat:53.5325,lon:-2.2855,r:500},
+  {key:'sale',name:'Sale',lat:53.4245,lon:-2.3215,r:500},
+  {key:'altrincham',name:'Altrincham',lat:53.3872,lon:-2.3500,r:600},
+  {key:'stockport',name:'Stockport',lat:53.4092,lon:-2.1580,r:600},
+  {key:'levenshulme',name:'Levenshulme',lat:53.4445,lon:-2.1925,r:500},
+  {key:'monton',name:'Monton',lat:53.4905,lon:-2.3505,r:400},
+  {key:'bury',name:'Bury',lat:53.5928,lon:-2.2965,r:500},
+  {key:'ramsbottom',name:'Ramsbottom',lat:53.6478,lon:-2.3168,r:400}
+];
 const OVERPASS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter','https://overpass.private.coffee/api/interpreter'];
 const LIBS=[
   ['https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.min.js','https://cdn.jsdelivr.net/npm/suncalc@1.9.0/suncalc.js'],
@@ -152,34 +168,81 @@ const store={
   set(k,v){try{localStorage.setItem('decentish:'+k,String(v))}catch(e){}}
 };
 
+/* ---------- Getting about: estimates until live times are wired up ----------
+   Trams: about 2.2 minutes a stop, a 6-minute wait, 8 more for a change. Last trams around midnight.
+   Taxis: roads 1.3 times the straight line at 28 km/h, plus 3 minutes; £3.50 plus £1.60 a road kilometre. */
+const TRAM={hop:2.2,wait:6,change:8,first:6,last:23.5,warn:23};
+const TAXI={pickup:3,road:1.3,kmh:28,flag:3.5,perKm:1.6};
+/* Metrolink, stop by stop. Positions come from the map; this is just which stop follows which. */
+const METROLINK=[
+  ['Victoria','Shudehill','Market Street','Piccadilly Gardens','Piccadilly'],
+  ['Victoria','Exchange Square',"St Peter's Square"],
+  ['Piccadilly Gardens',"St Peter's Square",'Deansgate-Castlefield','Cornbrook'],
+  ['Piccadilly','New Islington','Holt Town','Etihad Campus','Velopark','Clayton Hall','Edge Lane','Cemetery Road','Droylsden','Audenshaw','Ashton Moss','Ashton West','Ashton-under-Lyne'],
+  ['Victoria','Queens Road','Abraham Moss','Crumpsall','Bowker Vale','Heaton Park','Prestwich',"Besses o' th' Barn",'Whitefield','Radcliffe','Bury'],
+  ['Victoria','Monsall','Central Park','Newton Heath and Moston','Failsworth','Hollinwood','South Chadderton','Freehold','Westwood','Oldham King Street','Oldham Central','Oldham Mumps','Derker','Shaw and Crompton','Newhey','Milnrow','Kingsway Business Park','Newbold','Rochdale Railway Station','Rochdale Town Centre'],
+  ['Cornbrook','Trafford Bar','Old Trafford','Stretford','Dane Road','Sale','Brooklands','Timperley','Navigation Road','Altrincham'],
+  ['Trafford Bar','Firswood','Chorlton',"St Werburgh's Road",'Withington','Burton Road','West Didsbury','Didsbury Village','East Didsbury'],
+  ["St Werburgh's Road",'Barlow Moor Road','Sale Water Park','Northern Moor','Wythenshawe Park','Moor Road','Baguley','Roundthorn','Martinscroft','Benchill','Crossacres','Wythenshawe Town Centre','Robinswood Road','Peel Hall','Shadowmoss','Manchester Airport'],
+  ['Cornbrook','Pomona','Exchange Quay','Salford Quays','Anchorage','Harbour City','Broadway','Langworthy','Weaste','Ladywell','Eccles'],
+  ['Harbour City','MediaCityUK'],
+  ['Pomona','Wharfside','Imperial War Museum','Village','Parkway','Barton Dock Road','EventCity','The Trafford Centre']
+];
+const CITY_STOPS=['Victoria','Shudehill','Market Street','Piccadilly Gardens','Piccadilly','Exchange Square',"St Peter's Square",'Deansgate-Castlefield'];
+
 /* ---------- The dial: three profiles ----------
-   Each stop decides what gets picked, how late, how many steps, and how it talks. How far is the distance dial's job.
-   Steps are lists of roles in order of preference. Stays are minutes spent at each kind of place.
-   Tomorrow starts at [weekday, weekend] hours. */
+   Each stop decides what gets picked, how late, how many steps, and what counts as good. How far is the distance dial's job.
+   Steps are lists of roles in order of preference; '-' makes a step optional. Stays are minutes spent at each kind of place.
+   q weighs the quality signals: chain, real ale, heritage, free entry, sitting outside, independent. */
 const PROFILES=[
   {key:'blair',name:'Tony Blair on a culture trip',endHour:22.5,tomorrow:[18,11],
-   avoid:p=>p.kind==='fast_food',strict:true,
-   steps:s=>s.getHours()<16?[['culture'],['cafe','food'],['culture','cafe']]:s.getHours()>=21?[['bar','pub']]:[['food'],['bar','pub']],
-   stay:{culture:75,cafe:40,food:75,pub:45,bar:45,club:60,shop:5},
-   townBonus:(i,role)=>role==='culture'?6:1},
-  {key:'pints',name:'Three pints and a meal deal',endHour:24.5,tomorrow:[17.5,13],
-   steps:s=>s.getHours()>=5&&s.getHours()<11?[['cafe'],['pub','bar'],['food','shop']]:[['pub','bar'],['food','shop'],['pub','bar']],
-   stay:{culture:45,cafe:30,food:45,pub:75,bar:60,club:60,shop:5},
-   townBonus:()=>0},
-  {key:'mad',name:'Pissed-up uncle on a mad one',endHour:30,tomorrow:[17.5,14],late:true,
-   steps:s=>{const h=s.getHours();return h>=1&&h<6?[['club','bar','pub','food']]:[['pub','bar'],['bar','pub'],['bar','pub','club'],['club','bar'],['food']]},
-   stay:{culture:20,cafe:15,food:20,pub:50,bar:50,club:120,shop:5},
-   foodAfter:23,
-   townBonus:(i,role,arrive)=>i>=1&&(arrive.getHours()>=19||arrive.getHours()<5)?10:0}
+   avoid:p=>p.kind==='fast_food'||p.role==='shop',strict:true,taxiSlack:10,max:3,
+   steps:s=>{const h=s.getHours();return h<16?[['culture','park'],['cafe','food'],['culture','park','cafe']]:h>=21?[['bar','pub']]:[['culture','park','-'],['food'],['bar','pub']]},
+   stay:{culture:75,park:40,cafe:40,food:75,pub:45,bar:45,club:60,activity:60,shop:5},
+   q:{chain:-4,indie:1,ale:1,heritage:3,free:1.5,outdoor:2,pick:3},
+   hubPref:h=>h.key==='town'||h.key==='quays'?3:0},
+  {key:'pints',name:'Three pints and a meal deal',endHour:24.5,tomorrow:[17.5,13],taxiSlack:20,max:4,
+   steps:s=>{const h=s.getHours();return h>=5&&h<11?[['cafe'],['park','culture','activity','-'],['pub','bar'],['food','shop']]:h>=11&&h<16?[['pub','bar'],['activity','park','culture','-'],['food','shop'],['pub','bar']]:[['pub','bar'],['food','shop'],['activity','pub','bar']]},
+   stay:{culture:45,park:30,cafe:30,food:45,pub:75,bar:60,club:60,activity:60,shop:5},
+   q:{chain:-1,indie:.5,ale:2,heritage:1.5,free:0,outdoor:2,pick:3},
+   hubPref:h=>h.key==='town'?1:0},
+  {key:'mad',name:'Pissed-up uncle on a mad one',endHour:30,tomorrow:[17.5,14],late:true,taxiSlack:20,foodAfter:23,max:5,
+   steps:s=>{const h=s.getHours();return h>=1&&h<6?[['club','bar','pub','food']]:[['pub','bar'],['bar','activity','pub'],['bar','pub','club'],['club','bar'],['food']]},
+   stay:{culture:20,park:15,cafe:15,food:25,pub:65,bar:65,club:120,activity:50,shop:5},
+   q:{chain:0,indie:0,ale:1,heritage:.5,free:0,outdoor:1,pick:2},
+   hubPref:(h,s)=>h.key==='town'&&(s.getHours()>=19||s.getHours()<5)?5:0}
 ];
-/* The distance dial: how far on foot, and whether a trip into town counts */
+/* The distance dial.
+   Doorstep: first stop within 10 minutes' walk, the rest within 6 of each other, nothing more than 12 from your door.
+   Nearby: somewhere you wouldn't call the doorstep, up to about two miles – walk, or a taxi or tram if it's far – then stops within 15 minutes of each other.
+   Further afield: a destination (town, Chorlton, the Quays…), there and back by tram or taxi, stops within 15 minutes of each other. */
 const DIST=[
-  {name:'On the doorstep',walk:6,town:false},
-  {name:'Walking distance',walk:15,town:false},
-  {name:'Worth the trip',walk:25,town:true}
+  {name:'On the doorstep',first:10,hop:6,home:12},
+  {name:'Nearby',first:25,hop:15,ride:true,beyond:11},
+  {name:'Further afield',hub:true,hop:15}
 ];
-const MINSTAY={culture:45,cafe:20,food:30,pub:10,bar:10,club:30,shop:5};
+const MINSTAY={culture:45,park:20,cafe:20,food:30,pub:10,bar:10,club:30,activity:30,shop:5};
 const WHENS=['now','soon','tomorrow'];
+
+/* ---------- Picks: places worth saying something about. Steve's list to grow. ----------
+   Keyed by name. Each note is a verb phrase that follows "it": "it is a green-tiled Victorian pub". */
+const PICKS={
+  'Peveril of the Peak':'is a green-tiled Victorian pub',
+  "Sam's Chop House":'is a Victorian chop house',
+  "Mr Thomas's Chop House":'is a Victorian chop house',
+  'Marble Arch':'has a sloping mosaic floor and its own brewery',
+  "The Briton's Protection":'has hundreds of whiskies',
+  'Mackie Mayor':'is a food hall in a Victorian market building',
+  'Manchester Art Gallery':'is free to get in',
+  'The Whitworth':'is free to get in',
+  'Science and Industry Museum':'is free to get in',
+  "People's History Museum":'is free to get in',
+  'John Rylands Library':'is a free neo-Gothic library',
+  'John Rylands Research Institute and Library':'is a free neo-Gothic library',
+  'IWM North':'is free to get in',
+  'Imperial War Museum North':'is free to get in'
+};
+const CHAINS=/^(j ?d )?(wetherspoon|greene king|stonehouse|toby carvery|hungry horse|harvester|nando's|mcdonald's|kfc|burger king|greggs|subway|costa|starbucks|caff[eè] nero|pret|pizza hut|domino's|papa john's|wagamama|zizzi|ask italian|prezzo|frankie & benny's|bella italia|slug and lettuce|be at one|revolution|walkabout|yates|o'neill's|all bar one|browns|las iguanas|tgi fridays|five guys|leon|itsu|wasabi|gourmet burger kitchen|byron|bill's|cosy club|the botanist|brewdog|turtle bay|miller & carter|tim hortons|black sheep coffee|gail's|wingstop|popeyes|taco bell|pizza express|franco manca|honest burgers|dishoom)\b/i;
 
 /* ---------- State ---------- */
 let dial=(()=>{const n=parseInt(store.get('dial3'),10);return n>=0&&n<=2?n:1})();
@@ -206,6 +269,8 @@ const hw=h=>HOURW[h%12];
 const sameDay=(a,b)=>a.toDateString()===b.toDateString();
 const dayStart=d=>new Date(d.getFullYear(),d.getMonth(),d.getDate());
 const pick=(arr,r)=>arr[Math.floor(r()*arr.length)%arr.length];
+const addMins=(d,m)=>new Date(d.getTime()+m*6e4);
+const hourOf=d=>d.getHours()+d.getMinutes()/60;
 
 function vague(d,rowdy){
   const h=d.getHours(),m=d.getMinutes();
@@ -269,6 +334,9 @@ function metres(a,b){
 }
 const walkMins=m=>Math.max(1,Math.round(m*1.3/80));
 const miles=m=>{const x=m/1609.34;return x<10?Math.round(x*10)/10:Math.round(x)};
+const milesText=m=>{const x=miles(m);return x===1?'a mile':x+' miles'};
+const yardsText=m=>Math.max(50,Math.round(m*1.0936/50)*50)+' yards';
+const minsText=m=>m<55?m+' minutes':m<=70?'an hour':m<=85?'an hour and a quarter':m<=100?'an hour and a half':Math.round(m/60)+' hours';
 
 /* ---------- Weather words ---------- */
 const wetCode=c=>(c>=51&&c<=67)||(c>=80&&c<=82)||c>=95;
@@ -369,18 +437,34 @@ const weatherUrl=q=>`https://api.open-meteo.com/v1/forecast?latitude=${q.lat}&lo
   '&current=temperature_2m,apparent_temperature,weather_code,precipitation,is_day'+
   '&hourly=temperature_2m,apparent_temperature,weather_code,precipitation_probability,precipitation,is_day'+
   '&daily=temperature_2m_max,temperature_2m_min&timezone=auto&past_days=1&forecast_days=8';
-const venueQuery=(lat,lon,r)=>`[out:json][timeout:20];(`+
-  `nwr(around:${r},${lat},${lon})[amenity~"^(pub|bar|biergarten|nightclub|restaurant|fast_food|cafe|ice_cream|cinema|theatre|arts_centre|music_venue)$"][name];`+
-  `nwr(around:${r},${lat},${lon})[tourism~"^(gallery|museum)$"][name];`+
-  `nwr(around:${r},${lat},${lon})[shop~"^(convenience|alcohol)$"][name];`+
+const AMEN='pub|bar|biergarten|nightclub|restaurant|fast_food|food_court|cafe|ice_cream|cinema|theatre|arts_centre|music_venue|karaoke_box';
+const LEIS='bowling_alley|miniature_golf|escape_game|amusement_arcade';
+const around=(r,c)=>`(around:${r},${c.lat},${c.lon})`;
+/* Here: everything within NEAR_M (for the doorstep and the workings), then anything with hours out to RING_M, plus parks and tram stops */
+const localQuery=c=>`[out:json][timeout:30];(`+
+  `nwr${around(NEAR_M,c)}[amenity~"^(${AMEN})$"][name];`+
+  `nwr${around(NEAR_M,c)}[shop~"^(convenience|alcohol)$"][name];`+
+  `nwr${around(RING_M,c)}[amenity~"^(${AMEN})$"][name][opening_hours];`+
+  `nwr${around(RING_M,c)}[tourism~"^(gallery|museum)$"][name];`+
+  `nwr${around(RING_M,c)}[leisure~"^(${LEIS})$"][name][opening_hours];`+
+  `nwr${around(RING_M,c)}[leisure=park][name];`+
+  `nwr${around(RING_M+800,c)}[railway~"^(tram_stop|station)$"][name];`+
+  `);out center tags;`;
+/* Destinations: places with hours, parks and tram stops around each one */
+const hubQuery=hubs=>`[out:json][timeout:30];(`+hubs.map(h=>
+  `nwr${around(h.r,h)}[amenity~"^(${AMEN})$"][name][opening_hours];`+
+  `nwr${around(h.r,h)}[tourism~"^(gallery|museum)$"][name];`+
+  `nwr${around(h.r,h)}[leisure~"^(${LEIS})$"][name][opening_hours];`+
+  `nwr${around(h.r,h)}[leisure=park][name];`+
+  `nwr${around(h.r+700,h)}[railway~"^(tram_stop|station)$"][name];`).join('')+
   `);out center tags;`;
 const wideQuery=q=>`[out:json][timeout:20];(`+
-  `nwr(around:${WIDE_M},${q.lat},${q.lon})[amenity~"^(pub|bar|restaurant|cafe|fast_food)$"][name];`+
+  `nwr${around(WIDE_M,q)}[amenity~"^(pub|bar|restaurant|cafe|fast_food)$"][name];`+
   `);out center tags;`;
 async function overpass(query){
   let last;
   for(const url of OVERPASS){
-    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),12000);
+    const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),25000);
     try{
       const r=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(query),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:ctrl.signal});
       if(!r.ok)throw new Error('HTTP '+r.status);
@@ -393,49 +477,83 @@ async function overpass(query){
 
 /* ---------- Gather ---------- */
 function roleOf(t){
-  const a=t.amenity,tour=t.tourism,s=t.shop;
+  const a=t.amenity,tour=t.tourism,s=t.shop,l=t.leisure;
   if(tour==='gallery'||tour==='museum'||a==='arts_centre')return 'culture';
   if(a==='pub'||a==='biergarten')return 'pub';
   if(a==='bar')return 'bar';
   if(a==='nightclub')return 'club';
   if(a==='cafe'||a==='ice_cream')return 'cafe';
-  if(a==='restaurant'||a==='fast_food')return 'food';
+  if(a==='restaurant'||a==='fast_food'||a==='food_court')return 'food';
+  if(l==='park')return 'park';
+  if(a==='karaoke_box'||(l&&new RegExp('^('+LEIS+')$').test(l)))return 'activity';
   if(s)return 'shop';
   if(a==='cinema'||a==='theatre'||a==='music_venue')return 'listing';
   return null;
 }
-function makePlaces(els,zone,OH,country){
-  const out=[];
+const isTramStop=t=>t.railway==='tram_stop'||(t.railway==='station'&&(t.station==='light_rail'||t.tram==='yes'||/metrolink/i.test(t.network||'')));
+/* Quality signals the map knows. Each is a verb phrase that follows "it". */
+function traitsOf(p){
+  const t=p.t,r=[];
+  if(t.microbrewery==='yes')r.push({k:'ale',vp:'brews its own beer'});
+  else if(t.real_ale==='yes'||t['drink:real_ale']==='yes')r.push({k:'ale',vp:'does real ale'});
+  if(t.heritage||t.listed_status||t['heritage:operator'])r.push({k:'heritage',vp:'is in a listed building'});
+  else if(t.wikipedia&&p.role!=='culture')r.push({k:'heritage',vp:'is notable enough for Wikipedia'});
+  if(p.role==='culture'&&t.fee==='no')r.push({k:'free',vp:'is free to get in'});
+  if(t.beer_garden==='yes'||t.amenity==='biergarten')r.push({k:'outdoor',vp:'has a beer garden'});
+  else if(t.outdoor_seating==='yes')r.push({k:'outdoor',vp:'has seats outside'});
+  return r;
+}
+function makePlaces(els,zone,OH,country,hubs){
+  const out=[],stops=[];
   for(const e of els||[]){
-    const t=e.tags||{},role=roleOf(t);
-    if(!role||!t.name)continue;
+    const t=e.tags||{};
     const lat=e.lat??(e.center&&e.center.lat),lon=e.lon??(e.center&&e.center.lon);
-    if(lat==null||lon==null)continue;
-    const p={name:t.name,role,zone,lat,lon,kind:t.amenity||t.tourism||t.shop,cuisine:(t.cuisine||'').split(';')[0].trim(),
+    if(lat==null||lon==null||!t.name)continue;
+    if(isTramStop(t)){stops.push({name:t.name,key:norm(t.name),lat,lon});continue}
+    if(t.railway)continue;
+    const role=roleOf(t);
+    if(!role)continue;
+    const p={name:t.name,role,zone,lat,lon,t,kind:t.amenity||t.tourism||t.leisure||t.shop,cuisine:(t.cuisine||'').split(';')[0].trim(),
       raw:t.opening_hours||'',oh:null,town:t['addr:town']||t['addr:city']||t['addr:village']||null};
+    if(zone==='hub'){
+      let hb=null,hd=1e9;
+      for(const h of hubs){const d=metres(h,p);if(d<hd){hd=d;hb=h}}
+      if(!hb||hd>hb.r+150)continue;
+      p.hub=hb.key;
+    }
     if(p.raw&&OH){
       try{p.oh=new OH(p.raw,{lat,lon,address:{country_code:'gb',state:country||'England'}},{tag_key:'opening_hours',locale:'en'})}
       catch(err){p.bad=true}
     }
     p.dist=F.pos?metres(F.pos,p):0;
     p.walk=walkMins(p.dist);
+    p.chain=!!(t.brand||t['brand:wikidata'])||CHAINS.test(p.name);
+    p.pick=PICKS[p.name]||null;
+    p.traits=traitsOf(p);
     out.push(p);
   }
-  return out;
+  return{places:out,stops};
 }
-function mergePlaces(local,town){
+function mergePlaces(lists){
   const seen=new Set(),out=[];
-  for(const p of [...local,...town]){
-    const k=p.name.toLowerCase()+'|'+p.role;
+  for(const p of lists.flat()){
+    const k=p.name.toLowerCase()+'|'+p.role+'|'+(p.hub||p.zone);
     if(seen.has(k))continue;
     seen.add(k);out.push(p);
   }
   return out.sort((a,b)=>a.dist-b.dist);
 }
+function mergeStops(lists){
+  const by=new Map();
+  for(const s of lists.flat())if(!by.has(s.key))by.set(s.key,s);
+  const out=[...by.values()];
+  for(const s of out){s.dist=F.pos?metres(F.pos,s):0;s.walk=walkMins(s.dist)}
+  return out.sort((a,b)=>a.dist-b.dist);
+}
 function isOpen(p,d){try{return !!p.oh&&!p.oh.getUnknown(d)&&p.oh.getState(d)}catch(e){return false}}
 function nextChange(p,d){try{return p.oh.getNextChange(d)||null}catch(e){return null}}
 
-/* ---------- Weather over a window ---------- */
+/* ---------- Weather ---------- */
 function hourIndex(d){
   const W=F.wxRaw;if(!W)return -1;
   const off=(W.utc_offset_seconds||0)*1000;
@@ -443,6 +561,18 @@ function hourIndex(d){
   let i=-1;
   for(let k=0;k<W._T.length;k++){if(W._T[k]<=d.getTime())i=k;else break}
   return i>=0&&d.getTime()-W._T[i]<=2*3600e3?i:-1;
+}
+function wxAt(d){
+  const W=F.wxRaw,i=hourIndex(d);if(i<0)return null;
+  const H=W.hourly;
+  return{temp:H.temperature_2m[i],feels:H.apparent_temperature[i],code:H.weather_code[i],
+    wet:wetCode(H.weather_code[i])||(H.precipitation[i]||0)>=.3||(H.precipitation_probability[i]||0)>=70};
+}
+/* Good enough to sit outside: dry, feels 13°C or more, and light */
+function niceOut(d){
+  const w=wxAt(d);if(!w)return false;
+  const sun=sunFor(d);
+  return !w.wet&&w.feels>=13&&(!sun||(d>=sun.rise&&d<sun.set));
 }
 function weatherFor(start,end,live){
   const W=F.wxRaw;if(!W)return null;
@@ -469,6 +599,81 @@ function weatherFor(start,end,live){
     tomMax:D.temperature_2m_max?D.temperature_2m_max[di+1]:null,tomMin:D.temperature_2m_min?D.temperature_2m_min[di+1]:null};
 }
 
+/* ---------- Getting about ---------- */
+function norm(s){
+  return String(s).toLowerCase().replace(/[’‘'`]/g,'').replace(/&/g,' and ')
+    .replace(/\b(metrolink|tram stop|stop|station|interchange)\b/g,' ').replace(/^\s*the\s+/,'').replace(/[^a-z0-9]+/g,' ').trim();
+}
+const NET=(()=>{
+  const adj=new Map(),label=new Map();
+  const add=k=>{if(!adj.has(k))adj.set(k,new Set())};
+  for(const line of METROLINK)line.forEach((name,i)=>{
+    const k=norm(name);add(k);label.set(k,name);
+    if(i){const j=norm(line[i-1]);adj.get(k).add(j);adj.get(j).add(k)}
+  });
+  const depth=new Map(),root=norm("St Peter's Square"),q=[root];depth.set(root,0);
+  while(q.length){const k=q.shift();for(const n of adj.get(k))if(!depth.has(n)){depth.set(n,depth.get(k)+1);q.push(n)}}
+  return{adj,label,depth,city:new Set(CITY_STOPS.map(norm))};
+})();
+function tramPath(a,b){
+  if(!NET.adj.has(a)||!NET.adj.has(b))return null;
+  const prev=new Map([[a,null]]),q=[a];
+  while(q.length){const k=q.shift();if(k===b)break;for(const n of NET.adj.get(k))if(!prev.has(n)){prev.set(n,k);q.push(n)}}
+  if(!prev.has(b))return null;
+  const path=[];for(let k=b;k!==null;k=prev.get(k))path.unshift(k);
+  return path;
+}
+/* A ride between two stops. Every line runs into town, so a trip that goes in and back out again
+   changes where it turns: at a junction (Cornbrook, Trafford Bar…) for certain, in town only maybe. */
+const rideCache=new Map();
+function ride(s1,s2){
+  const ck=s1.key+'|'+s2.key;
+  if(rideCache.has(ck))return rideCache.get(ck);
+  let r;
+  const path=tramPath(s1.key,s2.key);
+  if(!path){r={mins:Math.round(2+metres(s1,s2)/1000*2.6),change:null}}
+  else{
+    let turn=path[0];
+    for(const k of path)if(NET.depth.get(k)<NET.depth.get(turn))turn=k;
+    let change=null;
+    const ends=[path[0],path[path.length-1]];
+    if(!ends.includes(turn)){
+      if(!NET.city.has(turn))change=NET.label.get(turn);
+      else if(!(NET.city.has(ends[0])&&NET.city.has(ends[1])))change='town';
+    }
+    r={mins:Math.round((path.length-1)*TRAM.hop+1),change,stops:path.length-1};
+  }
+  rideCache.set(ck,r);
+  return r;
+}
+const tramRunning=d=>hourOf(d)>=TRAM.first&&hourOf(d)<TRAM.last;    // first trams about 6am, last about midnight
+function stopsNear(pt,max){
+  return (F.stops||[]).map(s=>({s,w:walkMins(metres(pt,s))})).filter(x=>x.w<=max).sort((a,b)=>a.w-b.w).slice(0,3);
+}
+function tramLeg(a,b,t,maxA,maxB){
+  let best=null;
+  for(const x of stopsNear(a,maxA))for(const y of stopsNear(b,maxB)){
+    if(x.s.key===y.s.key)continue;
+    const r=ride(x.s,y.s);
+    const mins=x.w+TRAM.wait+r.mins+(r.change?TRAM.change:0)+y.w;
+    if(!best||mins<best.mins)best={mode:'tram',mins,w1:x.w,from:x.s,to:y.s,ride:r.mins,change:r.change,w2:y.w};
+  }
+  if(best){best.leave=addMins(t,best.w1);best.running=tramRunning(best.leave)}
+  return best;
+}
+function taxiLeg(a,b){
+  const km=metres(a,b)/1000*TAXI.road;
+  return{mode:'taxi',mins:Math.max(5,Math.round(TAXI.pickup+km/TAXI.kmh*60)),cost:Math.max(6,Math.round((TAXI.flag+km*TAXI.perKm)/5)*5)};
+}
+/* Tram if it's running and not much slower than a taxi; otherwise a taxi, with the tram (or the walk) as the other option */
+function transport(a,b,t,prof,homeEnd){
+  const taxi=taxiLeg(a,b);
+  const tram=tramLeg(a,b,t,homeEnd==='a'?30:15,homeEnd==='b'?30:15);
+  const w=walkMins(metres(a,b));
+  if(tram&&tram.running&&tram.mins<=taxi.mins+prof.taxiSlack)return Object.assign(tram,{alt:taxi});
+  return Object.assign(taxi,{alt:tram&&tram.running?tram:null,walk:w<=45?w:null,tramGone:!!(tram&&!tram.running)});
+}
+
 /* ---------- Plan ---------- */
 function startFor(w,prof,now){
   if(w==='now')return now;
@@ -483,58 +688,148 @@ function startFor(w,prof,now){
   d.setHours(Math.floor(h),Math.round((h%1)*60),0,0);
   return d;
 }
-function travel(from,p,D){
-  if(p.zone==='town'){
-    if(from.zone==='town')return{mins:walkMins(metres(from,p)),mode:'walk'};
-    if(!D.town||!F.townMins)return null;
-    return{mins:F.townMins,mode:'town'};
+function openAt(p,d){
+  if(p.role==='park'){
+    const sun=sunFor(d);
+    if(!sun||d<sun.rise||d>addMins(sun.set,-30))return false;
+    const w=wxAt(d);if(w&&w.wet)return false;
+    return p.oh?isOpen(p,d):true;
   }
-  if(from.zone==='town')return null;
-  const m=walkMins(metres(from,p));
-  return m>D.walk?null:{mins:m,mode:'walk'};
+  return isOpen(p,d);
 }
-function buildPlan(prof,start,rand,D){
-  const places=F.places||[];
+function closesAt(p,d){
+  if(p.role==='park'){const sun=sunFor(d);return sun?sun.set:null}
+  return nextChange(p,d);
+}
+function quality(p,prof,arrive){
+  const Q=prof.q;let s=0;
+  if(p.chain)s+=Q.chain;else if(/^(pub|bar|cafe|food)$/.test(p.role))s+=Q.indie;
+  for(const tr of p.traits)s+=tr.k==='outdoor'?(niceOut(arrive)?Q.outdoor:0):(Q[tr.k]||0);
+  if(p.pick)s+=Q.pick;
+  return s;
+}
+function legCost(leg,ti,firstStep,p){
+  if(!firstStep)return leg.mins*.5;
+  if(ti===0)return leg.mins*.4;
+  if(ti===1)return leg.mins*(leg.mode==='walk'?.08:.15);
+  return leg.mins*.08;
+}
+/* One plan at one distance. hub: a destination for Further afield. beyond: Nearby's first stop must be past the doorstep. */
+function buildPlan(prof,start,rand,ti,hub,beyond,notFirst){
+  const D=DIST[ti],home={lat:F.pos.lat,lon:F.pos.lon};
   const end=new Date(dayStart(start).getTime()+prof.endHour*3600e3);
-  let t=start,from={lat:F.pos.lat,lon:F.pos.lon,zone:'local'};
-  const steps=[],used=new Set(),specs=prof.steps(start).slice();
+  const pool=(F.places||[]).filter(p=>(p.oh||p.role==='park')&&!(prof.avoid&&prof.avoid(p))&&(hub?p.hub===hub.key:p.zone==='local'));
+  if(!pool.length)return null;
+  const specs=prof.steps(start).slice();
   const foodAfter=prof.foodAfter?new Date(dayStart(start).getTime()+prof.foodAfter*3600e3):null;
-  let extra=0;
+  let t=start,from=home,extra=0;
+  const steps=[],used=new Set();
   for(let i=0;i<specs.length;i++){
     /* The mad one keeps going until late before it eats */
-    if(foodAfter&&specs[i][0]==='food'&&start<foodAfter&&t<foodAfter&&extra<3){specs.splice(i,0,['club','bar','pub']);extra++}
-    const roles=specs[i];let best=null;
-    for(const p of places){
-      if(!p.oh||used.has(p.name)||(prof.avoid&&prof.avoid(p)))continue;
+    if(foodAfter&&specs[i][0]==='food'&&start<foodAfter&&t<addMins(foodAfter,-30)&&extra<1&&steps.length<prof.max-1){specs.splice(i,0,['club','bar','pub']);extra++}
+    const roles=specs[i].filter(r=>r!=='-'),optional=specs[i].includes('-'),firstStep=!steps.length;
+    let best=null,n=0,closings=[];
+    for(const p of pool){
       const ri=roles.indexOf(p.role);
       if(ri<0)continue;
-      const tr=travel(from,p,D);
-      if(!tr)continue;
-      const arrive=new Date(t.getTime()+tr.mins*6e4);
-      if(arrive>end||!isOpen(p,arrive))continue;
+      if(ti===0&&p.walk>D.home)continue;
+      if(firstStep&&beyond&&p.walk<beyond)continue;
+      if(firstStep&&notFirst&&notFirst.has(p.name))continue;
+      let leg;
+      if(firstStep){
+        if(hub)leg=transport(home,p,t,prof,'a');
+        else if(p.walk<=D.first)leg={mode:'walk',mins:p.walk,m:p.dist};
+        else if(D.ride&&p.dist<=RING_M+300)leg=transport(home,p,t,prof,'a');
+      }else{
+        const m=metres(from,p),w=walkMins(m);
+        if(w<=D.hop)leg={mode:'walk',mins:w,m,homeward:ti===1&&p.walk<=10&&from.walk>12};
+        /* Nearby: when there's nothing more out there, head back towards home */
+        else if(ti===1&&p.walk<=10&&from.walk>12&&/^(pub|bar|food)$/.test(p.role))leg=w<=25?{mode:'walk',mins:w,m,homeward:true}:Object.assign(transport(from,p,t,prof,'b'),{homeward:true,m});
+      }
+      if(!leg)continue;
+      const arrive=addMins(t,leg.mins);
+      if(arrive>end||!openAt(p,arrive))continue;
       if(p.role==='cafe'&&arrive.getHours()>=19)continue;
-      const closes=nextChange(p,arrive);
+      const closes=closesAt(p,arrive);
       const left=closes?(closes-arrive)/6e4:1e4;
       if(left<(prof.strict?Math.max(MINSTAY[p.role],prof.stay[p.role]*.8):MINSTAY[p.role]))continue;
-      let score=(roles.length-ri)*4-tr.mins*.25+rand()*6+(p.zone==='town'?prof.townBonus(i,p.role,arrive):0);
+      n++;closings.push(closes?closes.getTime():Infinity);
+      if(used.has(p.name))continue;
+      let score=(roles.length-ri)*4+quality(p,prof,arrive)+rand()*5-legCost(leg,ti,firstStep,p);
       if(prof.late)score+=Math.min(3,left/60*.6);
-      if(!best||score>best.score)best={p,role:p.role,arrive,tr,closes,left:Math.round(left),score};
+      if(!best||score>best.score)best={p,role:p.role,arrive,leg,closes,left:Math.round(left),score};
     }
-    if(!best){if(i===0)return null;continue}
+    if(!best){if(firstStep&&!optional)return null;continue}
+    const ah=hourOf(best.arrive);
+    best.only=n===1&&(ah>=21||ah<6);
+    const bc=best.closes?best.closes.getTime():Infinity;
+    best.latest=!best.only&&n>=3&&(ah>=21||ah<6)&&closings.filter(c=>c>=bc).length===1;
+    best.homeward=!!best.leg.homeward;
     best.rushed=best.left<prof.stay[best.role]*.6;
+    best.stay=Math.min(prof.stay[best.role],best.left);
     steps.push(best);used.add(best.p.name);
-    t=new Date(best.arrive.getTime()+Math.min(prof.stay[best.role],best.left)*6e4);
+    t=addMins(best.arrive,best.stay);
     from=best.p;
-    if(t>=end)break;
+    if(t>=end||steps.length>=prof.max)break;
+    /* One stop short of the cap and the night ends in food: go to the food */
+    if(steps.length===prof.max-1&&specs[specs.length-1][0]==='food'&&i<specs.length-2)i=specs.length-2;
   }
   return steps.length?steps:null;
+}
+/* Further afield: try each destination, keep the best plan */
+/* A plan is only as good as what's around its first stop, so try a few first stops and keep the best whole plan */
+const planScore=st=>st.reduce((a,x)=>a+x.score,0)+st.length*4-st.filter(x=>x.homeward).length*3;
+function searchPlan(prof,s,key,ti,hub,beyond){
+  let best=null;const tried=new Set();
+  for(let k=0;k<4;k++){
+    const st=buildPlan(prof,s,rng(key+ti*31+k*977),ti,hub,beyond,tried);
+    if(!st)break;
+    tried.add(st[0].p.name);
+    const sc=planScore(st);
+    if(!best||sc>best.sc)best={steps:st,sc};
+  }
+  return best;
+}
+function planTier(prof,s,key,ti){
+  const D=DIST[ti];
+  if(!D.hub){
+    let r=D.beyond?searchPlan(prof,s,key,ti,null,D.beyond):null;
+    const beyond=!!r;
+    if(!r)r=searchPlan(prof,s,key,ti,null,0);
+    return r?{steps:r.steps,hub:null,beyond}:null;
+  }
+  let best=null;
+  (F.hubs||[]).forEach((h,i)=>{
+    const r=searchPlan(prof,s,key+i*7,ti,h,0);
+    if(!r)return;
+    const sc=r.sc/Math.max(3,r.steps.length)+(prof.hubPref?prof.hubPref(h,s):0)+rng(key+i)()*4;
+    if(!best||sc>best.sc)best={steps:r.steps,hub:h,sc};
+  });
+  return best;
+}
+/* The way back, and one near home if the night allows */
+function finishPlan(P,prof){
+  const home={lat:F.pos.lat,lon:F.pos.lon},last=P.steps[P.steps.length-1];
+  const t=addMins(last.arrive,last.stay);
+  const m=metres(last.p,home),w=walkMins(m);
+  P.back=P.tier<2&&w<=25?{mode:'walk',mins:w,m}:transport(last.p,home,t,prof,'b');
+  P.home=addMins(t,P.back.mins);
+  P.maxWalk=Math.max(...P.steps.map(s=>s.p.walk));
+  P.nightcap=null;
+  if(dial>0&&(P.tier===2||w>12)&&P.home<new Date(dayStart(P.start).getTime()+prof.endHour*3600e3)){
+    const used=new Set(P.steps.map(s=>s.p.name));
+    const near=(F.places||[]).filter(p=>p.zone==='local'&&p.walk<=8&&(p.role==='pub'||p.role==='bar')&&!used.has(p.name)&&isOpen(p,P.home))
+      .map(p=>({p,closes:nextChange(p,P.home)})).filter(x=>!x.closes||(x.closes-P.home)/6e4>=40)
+      .sort((a,b)=>a.p.walk-b.p.walk);
+    if(near.length)P.nightcap=near[0];
+  }
 }
 /* Try the chosen distance first, then further. If nothing works today, tomorrow. */
 function makePlan(){
   const prof=PROFILES[dial];
   const key=seed*7919+dial*101+WHENS.indexOf(when)*13+dist*7;
   const tryAt=s=>{
-    for(let d=dist;d<DIST.length;d++){const st=buildPlan(prof,s,rng(key+d),DIST[d]);if(st)return{steps:st,d}}
+    for(let d=dist;d<DIST.length;d++){const r=planTier(prof,s,key,d);if(r)return Object.assign(r,{tier:d})}
     return null;
   };
   const start=startFor(when,prof,F.at);
@@ -543,20 +838,21 @@ function makePlan(){
     const s2=startFor('tomorrow',prof,F.at),r2=tryAt(s2);
     if(r2){r=r2;rolled=when;s=s2}
   }
-  const steps=r?r.steps:null,widened=r&&!rolled&&r.d>dist?r.d:null;
+  const steps=r?r.steps:null,widened=r&&!rolled&&r.tier>dist?r.tier:null;
   const last=steps&&steps[steps.length-1];
-  const end=last?new Date(last.arrive.getTime()+Math.min(prof.stay[last.role],last.left)*6e4):new Date(s.getTime()+2*3600e3);
-  const local=(F.places||[]).filter(p=>p.zone==='local'&&p.walk<=15&&p.role!=='listing'&&p.role!=='shop');
+  const end=last?addMins(last.arrive,last.stay):addMins(s,120);
+  const local=(F.places||[]).filter(p=>p.zone==='local'&&p.walk<=15&&!/^(listing|shop|park)$/.test(p.role));
   const known=local.filter(p=>p.oh),openAsked=known.filter(p=>isOpen(p,start)).length;
-  F.plan={prof,start:s,end,steps,rolled,widened,key,
+  F.plan={prof,start:s,end,steps,rolled,widened,key,tier:r?r.tier:dist,hub:r?r.hub:null,beyond:r?r.beyond:false,
     nLocal:local.length,nKnown:known.length,allShut:known.length>=6&&openAsked/known.length<.3,
     wx:weatherFor(s,end,when==='now'&&!rolled&&F.live)};
+  if(steps)finishPlan(F.plan,prof);
 }
 
 /* ---------- Write: the line bank ----------
-   Three versions of everything: Tony Blair on a culture trip, Three pints and a meal deal, Pissed-up uncle on a mad one.
-   Plan steps are clauses, not sentences. The stitcher joins them with commas and connectors, so a whole plan
-   reads as one breath. {word} fills from the facts; {Word} fills and capitalises. Any version can be a list. */
+   Openers, weather and sign-offs come in three voices: Tony Blair on a culture trip, Three pints and a meal deal,
+   Pissed-up uncle on a mad one. The plan itself is plain for now – one voice, built sentence by sentence from the facts –
+   until the stitching is right. {word} fills from the facts; {Word} fills and capitalises. Any version can be a list. */
 const L3=(a,b,c)=>[a,b,c].map(x=>Array.isArray(x)?x:[x]);
 
 const OPEN={
@@ -573,53 +869,11 @@ const ROLL={
   allShut:L3("Everything nearby has closed, so here is tomorrow from {start}.","It's all shut round here, so tomorrow then, from {start}.","Loads round here and all the shit's shut, so tomorrow then, from {start}."),
   nothing:L3("Nothing suitable is open, so here is tomorrow from {start}.","Nowt doing, so tomorrow then, from {start}.","Nowt, absolutely nowt, so tomorrow then, from {start}.")
 };
+const STAYLOCAL=L3("Nothing better a bit further out, so stay close.","Nowt better further out, so stay local.","Nowt better further out, so stay put.");
 const WIDER={
-  1:L3("Nothing suitable on the doorstep, so a little further afield.","Nowt on the doorstep, so a bit further.","Nowt on your doorstep, so shoes on, we're going further."),
-  2:L3("Nothing suitable within walking distance, so this one is worth the trip.","Nowt within walking distance, so it's worth the trip.","Nowt within walking distance, so into town we go.")
+  1:L3("Nothing suitable on the doorstep, so a bit further.","Nowt on the doorstep, so a bit further.","Nowt on your doorstep, so shoes on."),
+  2:L3("Nothing suitable nearby, so further afield.","Nowt nearby, so further afield.","Nowt nearby, so we're going on a trip.")
 };
-const TRAVEL={
-  walk:L3("{m} minutes' walk away","{m} minutes away","{m} minutes away"),
-  walk1:L3("a minute's walk away","a minute away","a minute away"),
-  near:L3("next door, more or less","just round the corner","next door"),
-  town:L3("in town, about {m} minutes away","in town, about {m} minutes away","{townWords} into town")
-};
-const T={
-  culture:{
-    first:L3("start at {name}, {travel}, which is open until {closes}","a bit of culture at {name} first, {travel} – you'll survive","{name} for some culture, briefly, {travel}"),
-    next:L3("a turn round {name}, open until {closes}","a bit of culture at {name} – you'll survive","{name} for some culture, briefly")
-  },
-  cafe:{
-    first:L3("coffee at {name} to begin, {travel}","a brew at {name} first, {travel}","coffee at {name} first – you'll need it"),
-    next:L3("coffee at {name}","a brew at {name}, {travel}","coffee at {name} – pace yourself")
-  },
-  food:{
-    first:L3("{meal} at {name}{whatParen}, {travel}","{what} at {name} {mealFor} first, {travel}","{what} at {name} to line the stomach, {travel}"),
-    next:L3("{meal} at {name}{whatParen}, {travel}","{what} at {name}, {travel}","{what} at {name} to soak it up"),
-    last:L3("{meal} at {name}{whatParen} to finish, open until {closes}","{what} at {name} to soak it up, open till {closes}","{what} at {name} to finish – non-negotiable")
-  },
-  pub:{
-    first:L3("a quiet drink at {name}, {travel}","a pint at {name} first, {travel} and open till {closes}","{name} first, {travel}, GO"),
-    next:L3("a drink at {name}","one more at {name}, {travel}","{name}"),
-    last:L3("a final drink at {name}, which is open until {closes}","one for the road at {name} before it shuts at {closes}","{name} till {closes}")
-  },
-  bar:{
-    first:L3("a glass of something at {name}, {travel}","a pint at {name} first, {travel} and open till {closes}","{name} first, {travel}, GO"),
-    next:L3("a glass of something at {name}, which is open until {closes}","a pint at {name}, {travel}","{name} till {closes}"),
-    last:L3("a glass of something at {name}, which is open until {closes}","a last one at {name} before it shuts at {closes}","{name} till {closes}")
-  },
-  club:{
-    first:L3("{name}, {travel}, which is open until {closes}","{name} till {closes}, if you've still got it","{name} till {closes}, obviously"),
-    next:L3("{name}, open until {closes}","{name} till {closes}, if you've still got it","{name} till {closes}, OBVIOUSLY")
-  },
-  shop:{
-    next:L3("supplies from {name}, open until {closes}","a meal deal from {name}, open till {closes}","a meal deal from {name} – living the dream")
-  },
-  rushed:L3("{name} closes at {closes} and is {m} minutes' walk away, so one drink if you leave now","{name}'s got {left} minutes left and it's {m} minutes away, so that's one if you leg it","{name} shuts in {left} minutes and it's {m} minutes away, so RUN"),
-  townHop:L3(null,null,"{townWords} into town for {name} till {closes}"),
-  townHopFirst:L3(null,null,"straight into town – {townWords} – for {name} till {closes}")
-};
-/* How steps join: second step, middle steps, last step */
-const JOIN=[[', followed by ',[', then '],', and finally '],[', then ',[', then '],', and '],[', then ',[', then ',', on to '],', and ']];
 const WEATHER={
   rainNow:L3("It is raining, so best keep it indoors.","It's raining, so take a brolly.","It's pissing down, so coat on and go anyway."),
   rainLater:L3("Take an umbrella – rain is due from {rainAt}.","Take a brolly, mind – it turns at {rainAt}.","It's pissing down from {rainAt}, so who cares."),
@@ -645,7 +899,7 @@ const NOPLAN={
 const LOADING={
   when:L3("Finding your location.","Where are you? Hang on.","Where the bloody hell are you? Hang on."),
   plan:L3("Checking what's open nearby.","Scouting about for owt.","Having a proper root around."),
-  town:L3("Checking town as well.","Having a look in town.","Checking town, obviously."),
+  away:L3("Checking further afield as well.","Having a look further afield.","Checking further afield, obviously."),
   remote:L3("Nothing nearby, so widening the search.","Nowt round here, so scouting further out.","Christ, scouting the next county."),
   weather:L3("Checking the weather.","Sticking a hand out the window.","Sticking me head out the window.")
 };
@@ -660,20 +914,42 @@ const DENIED=L3("Location not shared, so enter a postcode instead.","Fair enough
 /* ---------- Fill ---------- */
 const FOOD={pizza:['pizza','pizza'],indian:['Indian','a curry'],italian:['Italian','an Italian'],chinese:['Chinese','a Chinese'],
   kebab:['kebabs','a kebab'],burger:['burgers','a burger'],fish_and_chips:['fish and chips','chippy tea'],turkish:['Turkish','a Turkish'],
-  thai:['Thai','a Thai'],japanese:['Japanese','Japanese'],sushi:['sushi','sushi'],mexican:['Mexican','a Mexican'],chicken:['chicken','chicken'],
-  vietnamese:['Vietnamese','a Vietnamese'],korean:['Korean','a Korean'],lebanese:['Lebanese','a Lebanese'],greek:['Greek','a Greek'],
-  spanish:['tapas','tapas'],french:['French','French'],british:['British','proper British'],vegan:['vegan','vegan'],coffee_shop:['coffee','a brew']};
-function whatFood(p){
-  const k=FOOD[p.cuisine];
-  if(k)return dial===0?k[0]:k[1];
-  if(p.kind==='fast_food')return 'a takeaway';
-  return ['a proper sit-down','some food','scran'][dial];
-}
+  thai:['Thai','a Thai'],japanese:['Japanese','Japanese food'],sushi:['sushi','sushi'],mexican:['Mexican','a Mexican'],chicken:['chicken','chicken'],
+  vietnamese:['Vietnamese','a Vietnamese'],korean:['Korean','a Korean'],lebanese:['Lebanese','Lebanese food'],greek:['Greek','Greek food'],
+  spanish:['tapas','tapas'],french:['French','French food'],british:['British','British food'],vegan:['vegan','vegan'],coffee_shop:['coffee','a brew']};
+const ACT={bowling_alley:'a game of bowling',miniature_golf:'crazy golf',escape_game:'an escape room',amusement_arcade:'the arcades',karaoke_box:'karaoke'};
 function mealWord(d){
   const h=d.getHours();
+  if(h>=21||h<5)return 'something to eat';
   if(h<11)return 'breakfast';
   if(h<15)return dial===0?'lunch':'dinner';
   return dial===0?'dinner':'tea';
+}
+/* What you go there for. "A curry", or the meal when the name already says what it is ("Eden Italian Restaurant"). */
+function whatFood(s){
+  const p=s.p,k=FOOD[p.cuisine];
+  if(p.kind==='food_court')return 'food';
+  if(k){
+    const named=p.name.toLowerCase().includes(k[0].toLowerCase());
+    if(named)return mealWord(s.arrive);
+    return dial===0?(/^[A-Z]/.test(k[0])?k[0]+' food':k[0]):k[1];
+  }
+  if(p.kind==='fast_food')return 'a takeaway';
+  return mealWord(s.arrive);
+}
+/* "for your tea", not "for tea", which sounds like a cuppa */
+const foodWords=s=>{const w=whatFood(s);return dial>0&&/^(breakfast|dinner|tea)$/.test(w)?'your '+w:w};
+function forWhat(s,last,again){
+  switch(s.role){
+    case 'pub':case 'bar':return last?(dial===0?'for a nightcap':'for a last one'):again?'for '+['another','one more','the next one'][(again-1)%3]:'for '+['a drink','a pint','a pint'][dial];
+    case 'food':return 'for '+foodWords(s);
+    case 'cafe':return 'for a coffee';
+    case 'park':return 'for a walk';
+    case 'activity':return 'for '+(ACT[s.p.kind]||'a go');
+    case 'club':return 'to dance';
+    case 'shop':return 'for a meal deal';
+    default:return '';
+  }
 }
 function fill(tpl,v){
   return tpl.replace(/\{(\w+)\}('s(?= \{?(\w+)))?/g,(m,k,poss,nextWord)=>{
@@ -688,59 +964,137 @@ function fill(tpl,v){
 let R=Math.random;
 const say=(set,v)=>{const opts=set[dial];return opts&&opts[0]!==null?fill(pick(opts,R),v):null};
 const prec=()=>dial===0?0:1;
+const clock=(d,ref)=>clockSay(d,prec(),ref);
+function placeWord(){return F.placeName?(/^(Northern Quarter|Green Quarter|Gay Village|Village)$/.test(F.placeName)?'the ':'')+F.placeName:null}
 function baseVars(){
   const at=F.at,v={};
-  v.place=F.placeName?(/^(Northern Quarter|Green Quarter|Gay Village|Village)$/.test(F.placeName)?'the ':'')+F.placeName:'your bit of the world';
+  v.place=placeWord()||'your bit of the world';
   v.weekday=DAYS[at.getDay()];
   v.date=at.getDate()+' '+MONTHS[at.getMonth()];
   v.time24=t24(at);
   v.timeVague=vague(at,dial===2);
   if(F.plan){
     const s=F.plan.start;
-    v.start=clockSay(s,prec(),null);
+    v.start=clock(s,null);
     const w=F.plan.wx;
-    if(w){v.temp=Math.round(w.temp);v.minFeels=Math.round(w.minFeels);v.rainAt=clockSay(w.rainAt,prec(),s)}
+    if(w){v.temp=Math.round(w.temp);v.minFeels=Math.round(w.minFeels);v.rainAt=clock(w.rainAt,s)}
     v.nLocal=F.plan.nLocal;
   }
   if(F.nearest){v.nearest=F.nearest.name;v.nearestMiles=miles(F.nearest.dist);v.nearestIn=F.nearestTown?' in '+F.nearestTown:''}
   return v;
 }
-function stepClause(s,i,n){
-  const total=F.plan.steps.length;
-  const pos=i===0?'first':i===total-1?'last':'next';
-  const meal=mealWord(s.arrive);
-  const v={name:s.p.name,m:s.tr.mins,left:s.left,
-    closes:s.closes?clockSay(s.closes,prec(),s.arrive):(dial===0?'late':'all hours'),
-    what:whatFood(s.p),meal,mealFor:meal==='breakfast'?'for breakfast':'for your '+meal,
-    townWords:s.tr.mins===30?'half an hour':s.tr.mins===60?'an hour':s.tr.mins+' minutes'};
-  /* Blair names the cuisine, unless the name already does ("Eden Italian Restaurant") */
-  const cw=(FOOD[s.p.cuisine]||[''])[0].toLowerCase(),named=!!cw&&s.p.name.toLowerCase().includes(cw);
-  v.whatParen=s.p.cuisine&&cw&&!named?' ('+v.what+')':'';
-  /* "an Italian at Eden Italian Restaurant" says it twice: say the meal instead */
-  if(named&&n>0&&/^an? /.test(v.what))v.what=meal==='breakfast'?'breakfast':'your '+meal;
-  let tset=TRAVEL.walk;
-  if(s.tr.mode==='town')tset=TRAVEL.town;
-  else if(i>0&&s.tr.mins<=2)tset=TRAVEL.near;
-  else if(s.tr.mins===1)tset=TRAVEL.walk1;
-  v.travel=fill(tset[n][0],v);
-  let set;
-  if(i===0&&s.rushed&&when==='now'&&!F.plan.rolled&&s.tr.mode==='walk'&&(s.role==='pub'||s.role==='bar')){
-    set=T.rushed;v.left=Math.round((s.closes-F.at)/6e4);
-  }
-  else if(s.tr.mode==='town'&&n===2)set=i===0?T.townHopFirst:T.townHop;
-  else{const r=T[s.role]||T.bar;set=r[pos]||r.next||r.first}
-  return fill(pick(set[n],R),v);
+
+/* ---------- Write: the plan, sentence by sentence ----------
+   Each stop is one sentence that says how it relates to the last one – next door, round the corner, when the
+   last place shuts, once you're hungry – then why it's there and when it shuts. Then the way back. */
+const andList=a=>a.length<2?a.join(''):a.slice(0,-1).join(', ')+' and '+a[a.length-1];
+/* "it" + verb phrases: "it's open till 2", "it does real ale and is open till half eleven" */
+const itSays=vps=>{const s=andList(vps);return 'it'+(s.startsWith('is ')?"'s "+s.slice(3):' '+s)};
+function whyVps(s){
+  const out=[],p=s.p,ok=tr=>tr.k!=='outdoor'||niceOut(s.arrive);
+  if(s.only)out.push(/^(pub|bar)$/.test(s.role)?'is the only one still serving':s.role==='food'?'is the only kitchen still open':'is the only one still open');
+  if(p.pick)out.push(p.pick);
+  else{const tr=p.traits.find(ok);if(tr)out.push(tr.vp)}
+  return out.slice(0,2);
 }
-function stitch(steps,n){
-  const parts=steps.map((s,i)=>stepClause(s,i,n)),j=JOIN[n];
-  let out=parts[0];
-  for(let i=1;i<parts.length;i++)out+=(i===1?j[0]:i===parts.length-1?j[2]:pick(j[1],R))+parts[i];
-  return cap(out)+'.';
+function openVp(s){
+  if(s.role==='park')return 'is light till '+clock(s.closes,s.arrive);
+  if(!s.closes)return 'is open all night';
+  return (s.latest&&!s.only&&!s.p.pick?'is open latest, till ':'is open till ')+clock(s.closes,s.arrive);
+}
+const tail=s=>' – '+itSays([...whyVps(s),openVp(s)]);
+function relText(m,w){
+  if(m<=60)return 'next door';
+  if(m<=160)return 'a few doors down';
+  if(m<=350)return 'round the corner';
+  return w+" minutes' walk away";
+}
+const changeText=L=>!L.change?'':L.change==='town'?', and you may need to change in town':', changing at '+L.change;
+const tramAlt=L=>L&&L.mode==='tram'?`or about ${minsText(L.mins)} by tram from ${L.from.name}`:'';
+const goWord=h=>h.key==='town'?'Head into town':'Head to '+h.name;
+function firstSentence(s,P){
+  const nm=s.p.name,fw=forWhat(s,false),L=s.leg,fws=fw?' '+fw:'';
+  if(s.rushed&&when==='now'&&!P.rolled&&L.mode==='walk'&&/^(pub|bar)$/.test(s.role)){
+    const left=Math.round((s.closes-F.at)/6e4);
+    return `${nm} has ${left} minutes left and it's ${L.mins} minutes' walk, so one drink if you go now.`;
+  }
+  if(L.mode==='walk'){
+    const far=L.m<800?'is '+yardsText(L.m)+' away':`is ${milesText(L.m)} away, about ${L.mins} minutes' walk`;
+    return `Start at ${nm}${fws} – ${itSays([far,...whyVps(s),openVp(s)])}.`;
+  }
+  if(P.hub){
+    const by=clock(s.arrive,P.start);
+    const go=L.mode==='tram'
+      ?`${goWord(P.hub)}: walk ${L.w1} minutes to ${L.from.name} and get the tram to ${L.to.name} – about ${L.ride} minutes${changeText(L)} – so you're there by ${by}.`
+      :`${goWord(P.hub)} by taxi – about ${L.mins} minutes, around £${L.cost}${L.alt?', '+tramAlt(L.alt):''} – so you're there by ${by}.`;
+    const on=L.mode==='tram'?`From ${L.to.name} it's ${L.w2} minutes' walk to ${nm}${fws}`:`Start at ${nm}${fws}`;
+    return go+' '+on+tail(s)+'.';
+  }
+  const how=L.mode==='tram'
+    ?`walk ${L.w1} minutes to ${L.from.name} and get the tram to ${L.to.name}, about ${L.ride} minutes${changeText(L)}, then it's ${L.w2} minutes' walk`
+    :`a ${L.mins}-minute taxi, around £${L.cost}`+(L.walk?`, or ${minsText(L.walk)} on foot`:'');
+  return `Start at ${nm}${fws}, ${milesText(s.p.dist)} away – ${how}. ${cap(itSays([...whyVps(s),openVp(s)]))}.`;
+}
+function nextSentence(s,prev,i,n,P){
+  const nm=s.p.name,last=i===n-1,L=s.leg,m=L.m||metres(prev.p,s.p),w=L.mins,rel=relText(m,w);
+  const again=/^(pub|bar)$/.test(s.role)?P.steps.slice(0,i).filter(x=>/^(pub|bar)$/.test(x.role)).length:0;
+  const fw=forWhat(s,last&&n>2,again),fws=fw?' '+fw:'',tl=tail(s);
+  const prevLeave=addMins(prev.arrive,prev.stay);
+  const shutsSoon=prev.closes&&prev.role!=='park'&&(prev.closes-prevLeave)/6e4<=20;
+  const drink=r=>/^(pub|bar|club|activity)$/.test(r);
+  if(s.homeward){
+    const place=placeWord()||'your end';
+    const how=L.mode==='walk'?`${w} minutes' walk`:L.mode==='taxi'?`a ${w}-minute taxi (around £${L.cost})`:`about ${minsText(L.mins)} on the tram from ${L.from.name}`;
+    return `Then it's ${how} back to ${place}${fws} at ${nm}, which ${andList([...whyVps(s),openVp(s)])}.`;
+  }
+  if(shutsSoon){
+    const k=P.steps.slice(1,i).filter(x=>x.after==='shuts').length;s.after='shuts';
+    const pc=clock(prev.closes,prev.arrive);
+    return k%2===0?`${prev.p.name} shuts at ${pc}, so then ${nm}, ${rel}${fw?', '+fw:''}${tl}.`
+      :`When that shuts at ${pc}, move on to ${nm}, ${rel}${fws}${tl}.`;
+  }
+  if(last&&n>2){
+    if(s.role==='food')return `Finish with ${foodWords(s)} at ${nm}, ${rel}${tl}.`;
+    const fl=/^(pub|bar)$/.test(s.role)?'':fw?', '+fw:'';
+    return `Finish at ${nm}, ${rel}${fl}${tl}.`;
+  }
+  if(s.role==='food'&&drink(prev.role))return `When you're hungry, ${nm} is ${rel}${fws}${tl}.`;
+  if(drink(s.role)&&prev.role==='food')return `After that, ${nm} is ${rel}${fws}${tl}.`;
+  const k=(i+Math.floor(P.key%3))%3;
+  if(k===0)return `${nm} is ${rel}${fws}${tl}.`;
+  if(k===1)return m>350?`Then it's ${w} minutes' walk to ${nm}${fws}${tl}.`:`Then ${nm}, ${rel}${fw?', '+fw:''}${tl}.`;
+  return m>350?`From there it's ${w} minutes to ${nm}${fws}${tl}.`:`Next, ${nm}, ${rel}${fw?', '+fw:''}${tl}.`;
+}
+function backSentence(P){
+  const B=P.back,place=placeWord()||'where you started';
+  if(B.mode==='walk'){
+    if(P.tier===0)return `Nothing here is more than ${P.maxWalk} minutes from your door.`;
+    if(P.steps[P.steps.length-1].p.walk<=12)return `And you're ${B.mins} minutes from your door.`;
+    return `It's ${B.mins} minutes' walk back to ${place} from there.`;
+  }
+  if(B.mode==='tram'){
+    const late=hourOf(B.leave)>=TRAM.warn?' The last tram is around midnight, so keep an eye on the time.':'';
+    return `To get back to ${place}, walk ${B.w1} minutes to ${B.from.name} for the tram to ${B.to.name} – about ${B.ride} minutes${changeText(B)} – then it's ${B.w2} minutes' walk.${late}`;
+  }
+  if(B.tramGone)return `The trams will have stopped by then, so it's a taxi back to ${place} – about ${B.mins} minutes, around £${B.cost}.`;
+  return `A taxi back to ${place} is about ${B.mins} minutes, around £${B.cost}`+(B.alt?', '+tramAlt(B.alt):B.walk?`, or ${minsText(B.walk)} on foot`:'')+'.';
+}
+function planSentences(P){
+  const S=P.steps.map((s,i)=>i===0?firstSentence(s,P):nextSentence(s,P.steps[i-1],i,P.steps.length,P));
+  S.push(backSentence(P));
+  if(P.nightcap&&placeWord()){
+    const c=P.nightcap;
+    S.push(`Back in ${placeWord()}, ${c.p.name} is open till ${c.closes?clock(c.closes,P.home):'late'} if you want one more.`);
+  }
+  return S;
 }
 function weatherSentence(v){
-  const ctx=F.plan||{start:F.at,rolled:null,wx:weatherFor(F.at,new Date(F.at.getTime()+2*3600e3),F.live)};
+  const ctx=F.plan||{start:F.at,rolled:null,wx:weatherFor(F.at,addMins(F.at,120),F.live)};
   const w=ctx.wx;if(!w)return null;
-  if(!F.plan){v.temp=Math.round(w.temp);v.minFeels=Math.round(w.minFeels);v.rainAt=clockSay(w.rainAt,prec(),F.at)}
+  if(!F.plan){v.temp=Math.round(w.temp);v.minFeels=Math.round(w.minFeels);v.rainAt=clock(w.rainAt,F.at)}
+  /* If a stop has seats outside and it's nice, that's the weather line */
+  const out=F.plan&&F.plan.steps&&F.plan.steps.find(s=>s.p.traits.some(t=>t.k==='outdoor')&&niceOut(s.arrive));
+  if(out&&!w.rainAt){const x=wxAt(out.arrive);return `It'll be ${Math.round(x.temp)}°C and dry, so sit outside at ${out.p.name}.`}
   const s=ctx.start,sun=sunFor(s),dark=sun?(s>=sun.set||s<sun.rise):!w.isDay;
   let k='any';
   if(w.rainNow)k='rainNow';
@@ -780,28 +1134,37 @@ function linesWanted(){
   }else{
     openSet=OPEN[when];
     const s=startFor(when,PROFILES[dial],F.at),h=s.getHours();
-    vOpen.start=clockSay(s,prec(),null);vOpen.weekday=DAYS[s.getDay()];vOpen.date=s.getDate()+' '+MONTHS[s.getMonth()];
+    vOpen.start=clock(s,null);vOpen.weekday=DAYS[s.getDay()];vOpen.date=s.getDate()+' '+MONTHS[s.getMonth()];
     vOpen.part=h<5?'later tonight':h<12?'this morning':h<17?'this afternoon':'this evening';
   }
   want.push({k:'when',text:fill(pick(openSet[n],R),vOpen)});
   if(F.inGM===false)want.push({k:'outside',text:say(OUTSIDE,v)});
   const wxReady=slots.weather==='ready';
-  if(slots.plan==='loading'||slots.plan==='town'||slots.plan==='remote'){
+  if(slots.plan==='loading'||slots.plan==='away'||slots.plan==='remote'){
     want.push({k:'plan',text:LOADING[slots.plan==='loading'?'plan':slots.plan][n][0],cls:'loading'});
   }else if(slots.plan==='failed'){
     want.push({k:'plan',text:FAILED.plan[n][0],cls:'failed'});
     if(wxReady){const w=weatherSentence(v);if(w)want.push({k:'weather',text:w})}
   }else if(slots.plan==='ready'){
-    const P=F.plan;let para='';
-    if(F.remote)para=say(F.nearest?NOPLAN.remote:NOPLAN.remoteNone,v);
+    const P=F.plan;
+    if(F.remote)want.push({k:'plan',text:say(F.nearest?NOPLAN.remote:NOPLAN.remoteNone,v)});
     else if(P.steps){
-      if(P.rolled)para=say(P.allShut?ROLL.allShut:ROLL.nothing,v)+' ';
-      else if(P.widened)para=say(WIDER[P.widened],v)+' ';
-      para+=stitch(P.steps,n);
-    }else if(P.nLocal>=3&&P.nKnown<3)para=say(NOPLAN.unknown,v);
-    else para=say(NOPLAN.nothing,v);
-    if(wxReady){const w=weatherSentence(v);if(w)para+=' '+w}
-    want.push({k:'plan',text:para});
+      const lead=P.rolled?say(P.allShut?ROLL.allShut:ROLL.nothing,v):P.widened?say(WIDER[P.widened],v):P.tier===1&&!P.beyond?say(STAYLOCAL,v):null;
+      const S=planSentences(P);
+      if(lead)S[0]=lead+' '+S[0];
+      /* The plan breathes in short paragraphs: getting there and the first stop, the rest, the way back */
+      const back=S.splice(S.length-(P.nightcap&&placeWord()?2:1));
+      want.push({k:'plan',text:S.slice(0,1).join(' ')});
+      if(S.length>1)want.push({k:'plan2',text:S.slice(1).join(' ')});
+      let tailText=back.join(' ');
+      if(wxReady){const w=weatherSentence(v);if(w)tailText+=(tailText?' ':'')+w}
+      if(tailText)want.push({k:'back',text:tailText});
+    }else{
+      let para=P.nLocal>=3&&P.nKnown<3?say(NOPLAN.unknown,v):say(NOPLAN.nothing,v);
+      if(wxReady){const w=weatherSentence(v);if(w)para+=' '+w}
+      want.push({k:'plan',text:para});
+    }
+    if(F.remote&&wxReady){const w=weatherSentence(v);if(w)want.push({k:'weather',text:w})}
   }
   if(slots.weather==='loading')want.push({k:'weather',text:LOADING.weather[n][0],cls:'loading'});
   else if(slots.weather==='failed')want.push({k:'weather',text:FAILED.weather[n][0],cls:'failed'});
@@ -841,14 +1204,18 @@ function render(){
   $('#ask').hidden=!(F.mode==='start'||F.mode==='denied'||F.mode==='badPostcode');
   renderReceipts();renderFacts();renderTimings();renderWorkings();
 }
+function legText(L){
+  if(L.mode==='walk')return `walk ${L.mins} min`;
+  if(L.mode==='taxi')return `taxi ~${L.mins} min ~£${L.cost}`+(L.tramGone?' (no trams)':'');
+  return `walk ${L.w1} min to ${L.from.name}, tram to ${L.to.name} ~${L.ride} min${L.change?' (change '+(L.change==='town'?'in town?':'at '+L.change)+')':''}, walk ${L.w2} min`;
+}
 function renderReceipts(){
   const el=$('#receipts');
   const P=F.mode==='run'&&slots.plan==='ready'?F.plan:null;
   if(!P||!P.steps||F.remote){el.textContent='';return}
-  el.textContent='Plan: '+P.steps.map(s=>{
-    const how=s.tr.mode==='town'?`about ${s.tr.mins} min into town`:`${s.tr.mins} min walk`;
-    return `${t24(s.arrive)} ${s.p.name}, ${s.p.kind.replace('_',' ')}, ${how}, ${s.closes?'till '+t24(s.closes):'open all hours'}`;
-  }).join(' → ');
+  el.textContent=`Plan, ${DIST[P.tier].name.toLowerCase()}${P.hub?' ('+P.hub.name+')':''}: `+P.steps.map(s=>
+    `${legText(s.leg)} → ${t24(s.arrive)} ${s.p.name} (${s.p.kind.replace('_',' ')}${s.p.cuisine?', '+s.p.cuisine:''}), ${s.closes?'till '+t24(s.closes):'open all night'}`
+  ).join(' · ')+` · back: ${legText(P.back)}, ${t24(P.home)}`+(P.nightcap?` · nightcap: ${P.nightcap.p.name}`:'');
 }
 function renderFacts(){
   const parts=[];
@@ -863,7 +1230,7 @@ function renderFacts(){
     }
     const sun=F.pos?sunFor(at):null;
     if(sun)parts.push((at>sun.set?'Sunset was ':'Sunset ')+t24(sun.set));
-    if(F.townMins)parts.push(`Town about ${F.townMins} min`);
+    if(F.stops&&F.stops.length&&F.stops[0].walk<=40)parts.push(`Nearest tram stop ${F.stops[0].name}, ${F.stops[0].walk} min walk`);
     if(test.at||test.postcode)parts.push('Test run');
   }
   parts.push('Decentish '+VERSION);
@@ -887,19 +1254,25 @@ function renderWorkings(){
   if(!F.places){box.textContent='Nothing loaded yet.';return}
   const P=F.plan;
   const head=document.createElement('p');
-  head.textContent=`Profile: ${PROFILES[dial].name} · Distance: ${DIST[dist].name}${P&&P.widened?' (widened to '+DIST[P.widened].name+')':''} · When: ${when}${P&&P.rolled?' (rolled to tomorrow)':''} · Plan starts ${P?t24(P.start)+' '+DAYS[P.start.getDay()]:'–'} · In Greater Manchester: ${F.inGM===null?'unknown':F.inGM?'yes':'no'} · Places: ${F.places.filter(p=>p.zone==='local').length} local, ${F.places.filter(p=>p.zone==='town').length} in town`;
+  const local=F.places.filter(p=>p.zone==='local');
+  const hubs=(F.hubs||[]).map(h=>`${h.name} ${h.km.toFixed(1)} km, ${F.places.filter(p=>p.hub===h.key).length} places`).join('; ');
+  head.textContent=`Profile: ${PROFILES[dial].name} · Distance: ${DIST[dist].name}${P&&P.widened?' (widened to '+DIST[P.widened].name+')':''} · When: ${when}${P&&P.rolled?' (rolled to tomorrow)':''} · Plan starts ${P?t24(P.start)+' '+DAYS[P.start.getDay()]:'–'} · In Greater Manchester: ${F.inGM===null?'unknown':F.inGM?'yes':'no'} · Here: ${local.length} places · Further afield: ${hubs||'none'}`;
+  const stops=document.createElement('p');
+  stops.textContent='Tram stops: '+((F.stops||[]).slice(0,6).map(s=>`${s.name} ${s.walk} min${NET.adj.has(s.key)?'':' (not on the network list)'}`).join(', ')||'none nearby');
   const ol=document.createElement('ol');
   const at=P?P.start:F.at;
-  for(const p of F.places.slice(0,150)){
+  for(const p of local.slice(0,150)){
     const li=document.createElement('li');
     let st;
     if(p.role==='listing')st='needs listings, left out';
+    else if(p.role==='park')st=openAt(p,at)?'light and dry':'dark or wet';
     else if(!p.oh)st=p.raw?'hours unclear: '+p.raw:'no hours on the map';
     else{const o=isOpen(p,at),nx=nextChange(p,at);st=o?'open'+(nx?' till '+clockSay(nx,0,at):', all hours'):'shut'+(nx?', opens '+clockSay(nx,0,at):'')}
-    li.textContent=`${p.zone==='town'?'town':p.walk+' min'} · ${p.name} · ${p.role}${p.cuisine?' ('+p.cuisine+')':''} · ${st}`;
+    const notes=[p.chain?'chain':null,...p.traits.map(t=>t.k),p.pick?'pick':null].filter(Boolean).join(', ');
+    li.textContent=`${p.walk} min · ${p.name} · ${p.role}${p.cuisine?' ('+p.cuisine+')':''}${notes?' · '+notes:''} · ${st}`;
     ol.append(li);
   }
-  box.append(head,ol);
+  box.append(head,stops,ol);
 }
 
 /* ---------- Run ---------- */
@@ -907,6 +1280,11 @@ function bucket(d){
   const m=d.getHours()*60+d.getMinutes();
   if(m<60)return 'late';if(m<300)return 'small';if(m<540)return 'early';if(m<720)return 'morning';
   if(m<990)return 'afternoon';if(m<1170)return 'teatime';if(m<1350)return 'evening';return 'late';
+}
+function pickHubs(pos){
+  const list=HUBS.map(h=>Object.assign({},h,{km:metres(pos,h)/1000})).filter(h=>h.km>=HUB_KM[0]&&h.km<=HUB_KM[1]).sort((a,b)=>a.km-b.km);
+  const town=list.find(h=>h.key==='town'),others=list.filter(h=>h.key!=='town').slice(0,town?2:3);
+  return town?[town,...others]:others;
 }
 async function run(opts={}){
   const id=++runId;
@@ -934,17 +1312,13 @@ async function run(opts={}){
   const pPost=pcInfo?Promise.resolve(pcInfo):timed('Postcode',()=>reversePostcode(q),8000).catch(()=>null);
   const pName=timed('Place name',()=>placeName(q),8000).catch(()=>null);
   const pWx=timed('Weather',()=>getJSON(weatherUrl(q),9000),10000).catch(()=>null);
-  const pLocal=timed('Places',()=>overpass(venueQuery(q.lat,q.lon,SEARCH_M)),30000).catch(()=>null);
+  const pLocal=timed('Places',()=>overpass(localQuery(q)),40000).catch(()=>null);
   const pi=await pPost;
   if(id!==runId)return;
   F.postcode=pi&&pi.postcode;F.country=pi&&pi.country;
   F.inGM=pi?GM.includes(pi.district):null;
-  const kmToTown=metres(pos,TOWN)/1000;
-  let pTown=Promise.resolve(null);
-  if(F.inGM&&kmToTown>2.5){
-    F.townMins=Math.round((8+kmToTown*2.6)/5)*5;
-    pTown=timed('Town places',()=>overpass(venueQuery(TOWN.lat,TOWN.lon,TOWN.r)),30000).catch(()=>null);
-  }
+  F.hubs=F.inGM?pickHubs(pos):[];
+  const pHubs=F.hubs.length?timed('Further afield',()=>overpass(hubQuery(F.hubs)),40000).catch(()=>null):Promise.resolve(null);
   const nm=await pName;
   if(id!==runId)return;
   F.placeName=nm||(pi&&(pi.ward||pi.district))||null;
@@ -960,18 +1334,22 @@ async function run(opts={}){
     const[local,OH]=await Promise.all([pLocal,libsPromise]);
     if(id!==runId)return;
     if(!local){slots.plan='failed';render();return}
-    if(F.townMins){slots.plan='town';render()}
-    const town=await pTown;
+    if(F.hubs.length){slots.plan='away';render()}
+    const away=await pHubs;
     if(id!==runId)return;
-    F.places=mergePlaces(makePlaces(local.els,'local',OH,F.country),town?makePlaces(town.els,'town',OH,F.country):[]);
-    const near=F.places.filter(p=>p.zone==='local'&&p.walk<=20&&p.role!=='listing'&&p.role!=='shop');
-    F.remote=!near.length&&!F.places.some(p=>p.zone==='town');
+    const L=makePlaces(local.els,'local',OH,F.country,[]);
+    const A=away?makePlaces(away.els,'hub',OH,F.country,F.hubs):{places:[],stops:[]};
+    if(!away)F.hubs=[];
+    F.places=mergePlaces([L.places,A.places]);
+    F.stops=mergeStops([L.stops,A.stops]);
+    const near=F.places.filter(p=>p.zone==='local'&&p.walk<=40&&!/^(listing|shop|park)$/.test(p.role));
+    F.remote=!near.length&&!F.places.some(p=>p.zone==='hub');
     if(F.remote){
       slots.plan='remote';render();
       const wide=await timed('Wider search',()=>overpass(wideQuery(q)),30000).catch(()=>null);
       if(id!==runId)return;
       if(wide){
-        const nn=makePlaces(wide.els,'far',OH,F.country).sort((a,b)=>a.dist-b.dist)[0];
+        const nn=makePlaces(wide.els,'far',OH,F.country,[]).places.sort((a,b)=>a.dist-b.dist)[0];
         if(nn){
           F.nearest=nn;
           let town=nn.town;
