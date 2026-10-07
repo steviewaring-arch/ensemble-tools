@@ -1,5 +1,20 @@
 # Changelog
 
+## 7 October 2026 – Tempo 0.3
+
+**Tempo 0.3** – stands on its own, one Fonts card, fonts mixed into the time as well as the words.
+- **Apart from Rubato.** Tempo keeps its own fonts (in its own browser store) and its own settings, and reads nothing of Rubato's. Gone: Saved looks, the Rubato text second line, Add Rubato motion, the Rubato image, and reading Rubato's settings. The first time 0.3 opens it copies the fonts loaded in Rubato, and anything an earlier version left only under Rubato's settings, so nothing goes missing – after that a font added in one doesn't appear in the other.
+- **Show is The time or In words.** Mixed type is part of In words: with one font it's the plain In words, with more the other fonts mix in. The looks are Reference, Stack, Poster, Typewriter, Hours, Social, Latest and Medley – Night and Spotlight are gone.
+- **Fonts, at the top, is one card.** Each font has **Use as core** (the font that carries the time and the sentence – what was the default style and Mixed type's base face), **Shuffle in** (what was "Use in style swaps"), and its own **Tracking**, which goes with that font wherever it's used – Lazaar can be opened up once and stays right in every look. The Tracking under Type and Clock tightens the core font on top of that. Under the list, **Mixing** holds what was the Typefaces card: how the other fonts come in, each part's font, when they change, a font for each word, little words staying in the core font, matching cap heights. The Highlight style option has gone – set the time's own font under Mixing instead.
+- **The time: a font for each numeral.** Hours, minutes and seconds (tens and units) and the second line can each be the core font, a font of their own, or Shuffle; or the numerals that just changed come in another font; or one numeral at a time stands out. Cap heights match, fixed-width numerals stay fixed within each font, and the size holds whichever font comes in.
+- **The preview takes the shape of the screen Tempo is open on.** The Laptop, Display and Portrait buttons have gone.
+- Settings from 0.2 carry over: Mixed type opens as In words with its base face as the core and its parts as they were; In words with a highlight style sets the time in that font; plain In words stays plain; Saved looks opens on The time; a Rubato-text second line becomes none.
+- Exports carry each numeral's and each part's font, each font's tracking, and name the core font. Files are named after the screen saver (“tempo-stack-screensaver.html”, “poppins-screensaver.html”).
+- Tempo's type engine moved from `shared/engine.js` to `tempo/engine.js` (Rubato has had its own since 1.0). It learnt to set a character in another font, scaled to the core font's cap height, with each font's tracking. With one font it draws exactly as before.
+- Tests: `tests/tempo_check.py` 67 of 67; `tests/split_check.py` now checks the two apps are kept apart, 15 of 15. `tests/parity.py` names the results that differ on purpose and why (Tempo's exports and panel); the clock frames and the exported engine's frames still match 0.8.1.
+
+**Rubato 1.0** – no change to how it works. **Shared core:** each app now has its own font store and its own storage keys, with no fallback to Rubato's (`store()`, `fontStore()`), and an app can draw its own font-row controls (`appFontRow`). Rubato's store and keys are the same as before, so nothing moves for Rubato.
+
 ## 7 October 2026 – Tempo 0.2
 
 **Tempo 0.2**

@@ -54,8 +54,17 @@ function drawImg(ctx,W,H,k,p){
 /* ---------------- glyph options ---------------- */
 const optCache=new Map();
 const vkey=v=>v.s+':'+v.r;
-function charOptions(ch){
-  const bs=baseSlot(),key=S.vMode+'|'+bs+'|'+ch;let o=optCache.get(key);if(o)return o;
+/* A display face scaled so its capitals stand as tall as the core face's (Tempo's
+   mixed faces), unless S.faceMatch is false. */
+function capScale(id){if(S.faceMatch===false)return 1;const f=F(id),fb=F(baseSlot());if(!(f.cap>0)||!(fb.cap>0))return 1;return clamp((fb.cap/fb.upm)/(f.cap/f.upm),.5,2);}
+const hasFace=id=>faces.has(id)||(!order.length&&!!fallbacks[id]);
+/* charOptions(ch) – the core face and its alternates. charOptions(ch,id) – the
+   plain glyph in another face, for a character set in a display face. */
+function charOptions(ch,slot){
+  const bs=baseSlot();
+  if(slot&&slot!==bs&&hasFace(slot)){const key='@'+slot+'|'+ch;let o=optCache.get(key);if(o)return o;
+    const def={s:slot,r:F(slot).base(ch),sc:capScale(slot)};o={def,opts:[],seq:[def],full:[def],sel:[def]};optCache.set(key,o);return o;}
+  const key=S.vMode+'|'+bs+'|'+ch;let o=optCache.get(key);if(o)return o;
   const f=F(bs),def={s:bs,r:f.base(ch)},full=[def];
   const useW=S.vMode==='weights'||S.vMode==='both',useAlt=S.vMode!=='weights';
   const slots=useW?availSlots():[bs];
@@ -65,20 +74,20 @@ function charOptions(ch){
   const anim=S.vMode!=='off';
   o={def:sel[0],opts:anim?sel.slice(1):[],seq:anim?sel:[sel[0]],full,sel};optCache.set(key,o);return o;
 }
-const advU=v=>{const f=F(v.s);return f.adv(v.r)/f.upm;};
+const advU=v=>{const f=F(v.s);return f.adv(v.r)/f.upm*(v.sc||1);};
 /* how far real glyphs reach above and below the baseline (in ems), across every glyph a character can become */
 const inkCache=new Map();
-function inkBounds(text){
-  const chars=[...new Set(Array.from('0123456789'+String(text).replace(/\s/g,'')))].sort().join(''),key=baseSlot()+'|'+S.vMode+'|'+chars;
+function inkBounds(text,slots){
+  const chars=[...new Set(Array.from('0123456789'+String(text).replace(/\s/g,'')))].sort().join(''),key=baseSlot()+'|'+S.vMode+'|'+chars+'|'+(slots||[]).join(',');
   let r=inkCache.get(key);if(r)return r;let top=0,bot=0;
-  for(const ch of chars)for(const v of charOptions(ch).full){const f=F(v.s);if(!f.bbox)continue;const b=f.bbox(v.r);if(!b)continue;top=Math.max(top,b[0]/f.upm);bot=Math.max(bot,b[1]/f.upm);}
+  for(const ch of chars)for(const o of [charOptions(ch)].concat((slots||[]).map(id=>charOptions(ch,id))))for(const v of o.full){const f=F(v.s);if(!f.bbox)continue;const b=f.bbox(v.r);if(!b)continue;const k=v.sc||1;top=Math.max(top,b[0]/f.upm*k);bot=Math.max(bot,b[1]/f.upm*k);}
   r={top,bot};inkCache.set(key,r);return r;
 }
 function axisInfo(){if(!S.axOn)return null;const id=baseSlot(),f=F(id);if(!f.axes||!f.axes.length||!f.advAt)return null;const a=f.axes.find(x=>x.tag===S.axTag)||f.axes[0];return{a,f,id};}
 function axisVal(AX,p,ord){const ph=Math.max(1,Math.round(S.axCycles))*p-S.axStagger*ord;let t=.5-.5*Math.cos(TAU*ph);if(S.axFeel==='snappy')t=E.expoInOut(t);
   const fr=lerp(S.axFrom,S.axTo,t);return AX.a.min+(AX.a.max-AX.a.min)*fr;}
 const advAx=(v,AX,val)=>{if(!AX||val==null||v.s!==AX.id)return advU(v);const f=F(v.s);return f.advAt(v.r,{[AX.a.tag]:val})/f.upm;};
-const kernU=(a,b)=>{if(a.s!==b.s)return 0;const f=F(a.s);return f.kern(a.r,b.r)/f.upm;};
+const kernU=(a,b)=>{if(a.s!==b.s)return 0;const f=F(a.s);return f.kern(a.r,b.r)/f.upm*(a.sc||1);};
 const same=(a,b)=>a.s===b.s&&a.r===b.r;
 let rankCache={key:'',arr:[]};
 function orderVal(j,n){
@@ -152,13 +161,21 @@ function layoutBlock(text,salt,W,H,p,cfg){
   const m=S.margin/100*Math.min(W,H),availW=Math.max(1,W-2*m),availH=Math.max(1,H-2*m),trk=S.tracking/1000;
   const rows=String(text).split('\n').map(l=>Array.from(l));
   let uid=0,vi=0;const occ={};
-  const L=rows.map((r,li)=>r.map((ch,ci)=>{const g={ch,vis:!/\s/.test(ch),opt:charOptions(ch),uid:salt*10007+uid++,line:li,pos:ci,text:salt,tag:cfg.tag||''};if(g.vis){g.vi=vi++;g.occ=occ[ch]||0;occ[ch]=g.occ+1;}return g;}));
+  /* hooks.face(g) can set a character in a display face (Tempo's faces per numeral) */
+  const faceOf=hooks&&hooks.face?g=>hooks.face(g):null;
+  const L=rows.map((r,li)=>r.map((ch,ci)=>{const g={ch,vis:!/\s/.test(ch),uid:salt*10007+uid++,line:li,pos:ci,text:salt,tag:cfg.tag||''};g.opt=charOptions(ch,faceOf&&g.vis?faceOf(g):null);if(g.vis){g.vi=vi++;g.occ=occ[ch]||0;occ[ch]=g.occ+1;}return g;}));
   const nv=vi,n=L.length;
-  const tab=!!S.tabular;let digU=0;if(tab)for(const dch of '0123456789')digU=Math.max(digU,advU(charOptions(dch).def));
+  const tab=!!S.tabular,digW=new Map(),digOf=s=>{let w=digW.get(s);if(w==null){w=0;for(const dch of '0123456789')w=Math.max(w,advU(charOptions(dch,s===bs?null:s).def));digW.set(s,w);}return w;};
+  const digU=tab?digOf(bs):0;
+  /* the core face's tracking (S.tracking) and each face's own (S.faceTrack) */
+  const ftk=S.faceTrack||{},gapU=g=>(g.opt.def.s===bs?trk:0)+(ftk[g.opt.def.s]||0)/1000;
+  /* hooks.fitSlots(): every display face a numeral could take, so the size holds whichever comes in */
+  const fitSlots=hooks&&hooks.fitSlots?hooks.fitSlots():null;
   const AX=axisInfo(),axLo=AX?AX.a.min+(AX.a.max-AX.a.min)*Math.min(S.axFrom,S.axTo):0,axHi=AX?AX.a.min+(AX.a.max-AX.a.min)*Math.max(S.axFrom,S.axTo):0;
   const restW=v=>AX?Math.max(advAx(v,AX,axLo),advAx(v,AX,axHi)):advU(v);
-  const isD=ch=>tab&&ch>='0'&&ch<='9',wU=g=>isD(g.ch)?digU:restW(g.opt.def),kU=(a,b)=>(isD(a.ch)||isD(b.ch))?0:kernU(a.opt.def,b.opt.def);
-  const w1=L.map(row=>{let w=0;row.forEach((g,i)=>{w+=wU(g);if(i<row.length-1)w+=trk+kU(g,row[i+1]);});return w;});
+  const isD=ch=>tab&&ch>='0'&&ch<='9',wU=g=>isD(g.ch)?digOf(g.opt.def.s):restW(g.opt.def),kU=(a,b)=>(isD(a.ch)||isD(b.ch))?0:kernU(a.opt.def,b.opt.def);
+  const wFit=g=>{let w=wU(g);if(fitSlots&&g.vis&&/\d/.test(g.ch))for(const s of fitSlots)w=Math.max(w,isD(g.ch)?digOf(s):advU(charOptions(g.ch,s).def));return w;};
+  const w1=L.map(row=>{let w=0;row.forEach((g,i)=>{w+=wFit(g);if(i<row.length-1)w+=gapU(g)+kU(g,row[i+1]);});return w;});
   const hasInk=L.map(row=>row.some(g=>g.vis));
   const maxW1=Math.max(1e-3,...w1);
   let size,sx=L.map(()=>1),sy=L.map(()=>1);
@@ -176,16 +193,16 @@ function layoutBlock(text,salt,W,H,p,cfg){
   const top=cfg.top!=null?cfg.top:S.valign==='top'?m:S.valign==='bottom'?H-m-blockH:(H-blockH)/2;
   const lines=L.map((row,li)=>{
     const recs=row.map(g=>{const ord=g.vis?orderVal(g.vi,nv):0,sw=swapState(g,ord,p),ea=swapEase(sw.t),av=AX&&g.vis?axisVal(AX,p,ord):null;
-      const w=isD(g.ch)?digU*size:S.vReflow?lerp(advAx(sw.a,AX,av)*size,advAx(sw.b,AX,av)*size,ea):advAx(g.opt.def,AX,av)*size;return{g,ord,sw,ea,w,x:0,co:av==null?null:{id:AX.id,c:{[AX.a.tag]:av}}};});
-    let x=0;recs.forEach((r,i)=>{r.x=x;x+=r.w;if(i<recs.length-1)x+=(trk+kU(r.g,recs[i+1].g))*size;});
+      const w=isD(g.ch)?digOf(g.opt.def.s)*size:S.vReflow?lerp(advAx(sw.a,AX,av)*size,advAx(sw.b,AX,av)*size,ea):advAx(g.opt.def,AX,av)*size;return{g,ord,sw,ea,w,x:0,co:av==null?null:{id:AX.id,c:{[AX.a.tag]:av}}};});
+    let x=0;recs.forEach((r,i)=>{r.x=x;x+=r.w;if(i<recs.length-1)x+=(gapU(r.g)+kU(r.g,recs[i+1].g))*size;});
     const ws=x*sx[li];const x0=S.align==='left'?m:S.align==='right'?W-m-ws:(W-ws)/2;
     return{recs,lw:x,x0,base:top+bl[li],sx:sx[li],sy:sy[li]};
   });
-  return{lines,size,capPx:capR*size,ascPx:ascR*size,descPx:descR*size,top,blockH,W,H,ink:S.tightMask?inkBounds(text):null};
+  return{lines,size,capPx:capR*size,ascPx:ascR*size,descPx:descR*size,top,blockH,W,H,ink:S.tightMask?inkBounds(text,fitSlots):null};
 }
 function pushGlyph(items,r,base,alpha,clips,size,cy,ascPx,descPx,col){
   const {a,b,t}=r.sw;
-  const put=(v,al,sy,offY,extra)=>{if(al<=.002)return;const f=F(v.s),co=r.co&&r.co.id===v.s?r.co.c:null,gw=(co?f.advAt(v.r,co):f.adv(v.r))/f.upm*size,k=size/f.upm;
+  const put=(v,al,sy,offY,extra)=>{if(al<=.002)return;const f=F(v.s),co=r.co&&r.co.id===v.s?r.co.c:null,sc=v.sc||1,gw=(co?f.advAt(v.r,co):f.adv(v.r))/f.upm*size*sc,k=size*sc/f.upm;
     const M=base.multiply(new DOMMatrix().scaleSelf(1,sy).translateSelf(-gw/2,-cy+offY).scaleSelf(k,k));
     items.push({f,r:v.r,M,alpha:al,clips:extra?clips.concat([extra]):clips,col,co});};
   if(same(a,b)||t>=1)put(b,alpha,1,0);
@@ -244,7 +261,8 @@ function buildScene(p,W,H){
 }
 function buildLive(p,W,H,items){
   const A=layoutBlock(live.from,0,W,H,p,{main:true,tag:'from'}),B=layoutBlock(live.to,0,W,H,p,{tag:'to'});
-  const diff=(X,Y)=>{const set=new Set();X.lines.forEach((ln,li)=>{const o=Y.lines[li],ok=o&&o.recs.length===ln.recs.length;ln.recs.forEach((r,ri)=>{if(r.g.vis&&(!ok||o.recs[ri].g.ch!==r.g.ch))set.add(li+'|'+ri);});});return set;};
+  /* a character changes if it's a different character, or the same one in another face */
+  const diff=(X,Y)=>{const set=new Set();X.lines.forEach((ln,li)=>{const o=Y.lines[li],ok=o&&o.recs.length===ln.recs.length;ln.recs.forEach((r,ri)=>{if(r.g.vis&&(!ok||o.recs[ri].g.ch!==r.g.ch||o.recs[ri].g.opt.def.s!==r.g.opt.def.s))set.add(li+'|'+ri);});});return set;};
   const rank=set=>{const a=[...set],m=new Map();a.forEach((k,i)=>m.set(k,a.length>1?i/(a.length-1):0));return m;};
   const cA=diff(A,B),cB=diff(B,A),rA=rank(cA),rB=rank(cB),st=clamp(S.qStagger,0,.95),t=live.t;
   const clear=S.qClear!==false,tO=clear?clamp(t*2):t,tI=clear?clamp(t*2-1):t;

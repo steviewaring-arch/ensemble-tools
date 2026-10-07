@@ -12,8 +12,8 @@ Google Fonts and opentype.js links it has always had):
     docs/index.html          a small page linking to all three
     docs/rubato/0.9/         earlier versions kept live, from archive/
 
-Rubato has its own copy of the type engine (rubato/engine.js) from 1.0 on;
-Tempo keeps shared/engine.js, so Rubato changes never reach Tempo's exports.
+Rubato and Tempo each have their own type engine (rubato/engine.js,
+tempo/engine.js), so a change to one never reaches the other or Tempo's exports.
 
 Never edit docs/ by hand – change the sources and run this again.
 """
@@ -36,7 +36,7 @@ def strip1(s):
 ARCHIVE = [('rubato', '0.9', 'archive/rubato-0.9.html', "const APP='rubato';", "const APP='rubato-0.9';")]
 
 # Each app: page title, version, its markup, extra scripts that must keep their
-# ids (Tempo's screen saver export copies #rubato-engine and #rubato-saver into
+# ids (Tempo's screen saver export copies #tempo-engine and #tempo-saver into
 # the exported page), and the app files that go inside the shared wrapper.
 APPS = {
     'rubato': dict(
@@ -47,10 +47,10 @@ APPS = {
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo — by Ensemble', version='0.2',
+        title='Tempo — by Ensemble', version='0.3',
         body='tempo/app.html',
-        tagged=[('rubato-engine', 'shared/engine.js'), ('rubato-saver', 'tempo/saver.js'),
-                ('rubato-mac', 'tempo/mac/packager.js'), ('rubato-win', 'tempo/win/host.js')],
+        tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
+                ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js')],
         before=None,
         parts=['tempo/app.js'],
     ),

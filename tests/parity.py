@@ -53,7 +53,8 @@ class Run:
         self.results, self.errors = {}, []
 
     def page(self):
-        self.ctx = self.browser.new_context(viewport={'width': 1440, 'height': 960}, accept_downloads=True)
+        # Tempo 0.3 previews at the screen's shape; 0.8.1's default preview was 1680 × 1050
+        self.ctx = self.browser.new_context(viewport={'width': 1440, 'height': 960}, screen={'width': 1680, 'height': 1050}, accept_downloads=True)
         self.ctx.add_init_script(SEED)
         pg = self.ctx.new_page()
         pg.on('pageerror', lambda e: self.errors.append('PAGE ' + str(e)))
@@ -100,7 +101,7 @@ class Run:
         self.wait(1000)
 
     def clear(self):
-        self.pg.evaluate("localStorage.clear();indexedDB.deleteDatabase('rubato')")
+        self.pg.evaluate("localStorage.clear();indexedDB.deleteDatabase('rubato');indexedDB.deleteDatabase('tempo')")
         self.pg.reload(); self.wait(1000)
 
     def expand(self):
@@ -277,11 +278,12 @@ def t4(r):
         now = pg.evaluate('Date.now()')
         r.wait((ms - now % 1000) % 1000 or 1000)
         r.canvas(f'roll at {ms} ms')
-    pg.get_by_role('group', name='Show').get_by_role('button', name='Saved looks').click(); r.wait(300)
-    r.put('looks cards', json.dumps([t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]))
-    r.put('drift visible in looks', str(pg.locator('#c_ssDrift').is_visible()))
-    r.cards('Screensaver panel, saved looks')
-    pg.get_by_role('group', name='Show').get_by_role('button', name='The time').click(); r.wait(300)
+    if r.kind == 'ref':  # Saved looks left Tempo in 0.3
+        pg.get_by_role('group', name='Show').get_by_role('button', name='Saved looks').click(); r.wait(300)
+        r.put('looks cards', json.dumps([t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]))
+        r.put('drift visible in looks', str(pg.locator('#c_ssDrift').is_visible()))
+        r.cards('Screensaver panel, saved looks')
+        pg.get_by_role('group', name='Show').get_by_role('button', name='The time').click(); r.wait(300)
     r.download('Windows zip', lambda: pg.get_by_role('button', name='Download for Windows').click())
     r.download('Mac zip', lambda: pg.get_by_role('button', name='Download for Mac').click())
 
@@ -314,105 +316,29 @@ def t6(r):
 
 SCENARIOS = {'t1': t1, 't2': t2, 't3': t3, 't4': t4, 't5': t5, 't6': t6}
 
-# ---------------------------------------------------------------- Tempo 0.2
-# Tempo 0.2 changes a few things on purpose: "Rubato" becomes "Tempo" in what it
-# exports, the screen saver runtime inside every export gains the time in words,
-# the Windows host is rebuilt with the new wording, and Show gains "In words".
-# To keep proving everything else still matches 0.8.1, the new build's result is
-# mapped back – those changes undone – and must then match exactly. The report
-# names the change each such result carried.
-import plistlib, re as _re, struct
-
-def _saver_src(html):
-    m = _re.search(rb'<script id="rubato-saver">\n(.*?)\n</script>', html, _re.S)
-    return m.group(1) if m else None
-REF_SAVER = _saver_src(open(os.path.join(ROOT, 'reference/rubato-0.8.1.html'), 'rb').read())
-NEW_SAVER = open(os.path.join(ROOT, 'tempo/saver.js'), 'rb').read().rstrip(b'\n')
-BACK = [(b'window.__TEMPO__', b'window.__RUBATO__'), (b'Made with Tempo by Ensemble', b'Made with Rubato by Ensemble'),
-        (b'<title>Tempo \xe2\x80\x93 screensaver</title>', b'<title>Rubato \xe2\x80\x93 screensaver</title>')]
-PANEL_BACK = [('The time\nIn words\nMixed type\nSaved looks', 'The time\nSaved looks'), ('Export\n–\nName\n?\nMac', 'Export\n–\nMac')]
-# Two live-preview frames catch a roll or a drift mid-step, so 0.8.1 itself lands on one of two
-# frames from run to run. Largest difference seen between two runs of the reference on 6 Oct 2026:
+# ---------------------------------------------------------------- on purpose
+# Rubato 1.0 and Tempo 0.3 changed some things on purpose. Those results are
+# named here with the reason, reported, and not counted as differences. Rubato
+# 1.0 is proven against 0.9 by rubato_regress.py; Tempo 0.3 by tempo_check.py
+# and split_check.py. Everything else must still match 0.8.1 exactly.
+import re as _re
+TEMPO03 = 'Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py'
+RUBATO10 = "Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9"
+ON_PURPOSE = {
+    ('t1', 'Studio panel'): 'Rubato 1.0 regrouped the panel (Presets first, new controls)', ('t2', '? count'): 'Rubato 1.0 has more controls with tips',
+    ('t2', 'randomised (everything)'): RUBATO10, ('t2', 'settings after randomise'): RUBATO10, ('t2', 'settings after undo'): RUBATO10,
+    ('t2', 'randomised (within limits, R key)'): RUBATO10, ('t2', 'settings after R'): RUBATO10, ('t2', 'randomise options'): RUBATO10,
+    ('t3', 'screen saver HTML'): TEMPO03, ('t3', 'screen saver HTML (file name)'): 'Tempo 0.3 names the file after the screen saver, not Rubato\'s text',
+    ('t3', 'Mac zip'): TEMPO03,
+    ('t4', 'Screensaver panel'): TEMPO03, ('t4', 'looks cards'): 'Saved looks left Tempo in 0.3',
+    ('t4', 'drift visible in looks'): 'Saved looks left Tempo in 0.3', ('t4', 'Screensaver panel, saved looks'): 'Saved looks left Tempo in 0.3',
+    ('t4', 'Windows zip'): TEMPO03, ('t4', 'Mac zip'): TEMPO03,
+    ('t5', 'screen saver HTML'): TEMPO03, ('t5', 'screen saver HTML (file name)'): 'Tempo 0.3 names the file after the screen saver, not Rubato\'s text',
+    ('t6', 'Mac zip'): TEMPO03, ('t6', 'Windows zip'): TEMPO03,
+}
+# live-preview frames that land on one of two states depending on timing:
+# allowed the difference 0.8.1 itself showed between its own runs (6 Oct 2026)
 KNOWN_NOISE = {'screen saver preview': (1136, 10), 'roll at 150 ms': (1845, 208)}
-
-def _back(b):
-    b = b.replace(NEW_SAVER, REF_SAVER)
-    for x, y in BACK:
-        b = b.replace(x, y)
-    return b
-
-def _codesig_ranges(x):
-    """Byte ranges of the code signatures in a (fat) Mach-O file."""
-    out, slices = [], []
-    if struct.unpack('>I', x[:4])[0] == 0xcafebabe:
-        for i in range(struct.unpack('>I', x[4:8])[0]):
-            _, _, off, size, _ = struct.unpack('>5I', x[8 + 20 * i:28 + 20 * i]); slices.append(off)
-    else:
-        slices = [0]
-    for off in slices:
-        ncmds, p = struct.unpack('<I', x[off + 16:off + 20])[0], off + 32
-        for _ in range(ncmds):
-            cmd, cs = struct.unpack('<II', x[p:p + 8])
-            if cmd == 0x1d:
-                so, ss = struct.unpack('<II', x[p + 8:p + 16]); out.append((off + so, off + so + ss))
-            p += cs
-    return out
-
-def _no_page(plist):
-    d = plistlib.loads(plist)
-    for k in ('files', 'files2'):
-        for f in list(d.get(k, {})):
-            if f.endswith('index.html'):
-                del d[k][f]
-    return d
-
-def tempo02(k, a, b):
-    """A note naming the intended change if b is a mapped onto 0.2, else None."""
-    if isinstance(a, str) and isinstance(b, str):
-        for x, y in PANEL_BACK:
-            b = b.replace(x, y)
-        return 'Show now also offers In words and Mixed type; Export has a Name field' if a == b else None
-    if not (isinstance(a, bytes) and isinstance(b, bytes)):
-        return None
-    if a[:15].lower() == b'<!doctype html>':
-        return 'export renamed to Tempo and carries the 0.2 runtime' if _back(b) == a else None
-    try:
-        za, zb = zipfile.ZipFile(io.BytesIO(a)), zipfile.ZipFile(io.BytesIO(b))
-    except zipfile.BadZipFile:
-        return None
-    if za.namelist() != zb.namelist():
-        return None
-    notes = set()
-    for n in za.namelist():
-        x, y = za.read(n), zb.read(n)
-        if x == y:
-            continue
-        if n.endswith('.html') or n.endswith('.txt'):
-            if _back(y) != x: return None
-            notes.add('page and read-me renamed to Tempo')
-        elif n.endswith('_CodeSignature/CodeResources'):
-            if _no_page(x) != _no_page(y): return None
-            notes.add('re-signed over the new page')
-        elif '/Contents/MacOS/' in n:
-            rs = _codesig_ranges(y)
-            if len(x) != len(y) or rs != _codesig_ranges(x) or any(x[i] != y[i] and not any(s <= i < e for s, e in rs) for i in range(len(x))):
-                return None
-            notes.add('only signature bytes differ in the binary')
-        elif n.endswith('.scr'):
-            # [host .exe][name][page][24-byte footer]: rebuilt host, page mapped back
-            def split(s):
-                nl, hl = struct.unpack('<II', s[-16:-8])
-                cut = len(s) - 24 - hl - nl
-                return s[:cut], s[cut:cut + nl], s[cut + nl:cut + nl + hl], s[-8:]
-            hx, nx, px, fx = split(x); hy, ny, py, fy = split(y)
-            host = base64.b64decode(_re.search(rb'SAVER_WIN="([^"]+)"', open(os.path.join(ROOT, 'tempo/win/host.js'), 'rb').read()).group(1))
-            if hy != host or nx != ny or _back(py) != px or fx != fy: return None
-            notes.add('Windows host rebuilt with Tempo wording')
-        else:
-            return None
-    return '; '.join(sorted(notes)) if notes else None
-
-# ---------------------------------------------------------------- comparing
 
 def describe(v):
     if isinstance(v, bytes):
@@ -474,6 +400,9 @@ def main():
             report.append(f'\n## {name} – {fn.__doc__}\n')
             for k in ref.results:
                 a, a2, b = ref.results[k], ref2.results.get(k), new.results.get(k)
+                if b is None and (name, k) in ON_PURPOSE:
+                    report.append(f'- gone on purpose: {k} – {ON_PURPOSE[(name, k)]}')
+                    continue
                 if a != a2:
                     # the reference itself differs between runs: for zips, compare
                     # everything except the entries that change from run to run
@@ -498,9 +427,9 @@ def main():
                     if d and d[0] <= KNOWN_NOISE[k][0] and d[1] <= KNOWN_NOISE[k][1]:
                         report.append(f'- same within known run-to-run variation: {k} – {d[0]} px differ by up to {d[1]}/255 (0.8.1 against itself: {KNOWN_NOISE[k][0]} px, {KNOWN_NOISE[k][1]}/255)')
                         continue
-                    note = None if same else tempo02(k, a, b)
-                    if note:
-                        report.append(f'- same apart from Tempo 0.2 changes: {k} – {note}')
+                    why = None if same else ON_PURPOSE.get((name, k))
+                    if why:
+                        report.append(f'- differs on purpose: {k} – {why}')
                         continue
                 if same is False:
                     failed += 1

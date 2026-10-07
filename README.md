@@ -6,13 +6,13 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 |---|---|---|
 | **Tutti** 6.0 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
 | **Rubato** 1.0 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
-| **Tempo** 0.2 | A clock screen saver for Mac and Windows, set in your own typeface – as figures, or the time written out in words, with display faces mixed in if you like | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
+| **Tempo** 0.3 | A clock screen saver for Mac and Windows, set in your own typefaces – as figures, or the time written out in words, with other fonts mixed in if you like | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
 **Decentish** 0.4 is also in here, unlisted: a prototype website that gives you a plan for where you are – now, soon or tomorrow, on the doorstep, nearby or further afield, with the way there and back – in a voice you set with a dial. Greater Manchester first. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
 
-Rubato and Tempo share one core (font loading, controls, design system). From 1.0 Rubato has its own copy of the type engine, so its new features never reach Tempo; Tempo keeps `shared/engine.js`. Tutti is copied in as it is, and moves onto the shared core later.
+Rubato and Tempo share one core (font loading, controls, design system) and nothing else: each has its own type engine, settings and fonts in the browser, so a change in one never reaches the other. Tutti is copied in as it is, and moves onto the shared core later.
 
 ## How the repo is laid out
 
@@ -21,7 +21,6 @@ shared/        used by more than one app
   tokens.css       colours, type, shadows – light and dark
   components.css   cards, pill sliders, toggles, segmented buttons, tooltips, capsule
   page.html        the page shell every app is poured into
-  engine.js        the type engine – createEngine() (Tempo's; Rubato has its own from 1.0)
   core.js          settings, storage, font loading, image layer, control builders, tooltips, Fonts card
   core-end.js      downloads, toasts, drag and drop, light/dark, panel resizing, start-up
   gif.js           GIF encoder
@@ -30,7 +29,7 @@ rubato/        engine.js (Rubato's type engine: blocks, physics, kerning, Jitter
                controls.js (steppers, dials, range pair, loop bar, path pad, More folds)
                stage.js (kerning on the preview, physics guides, preset tiles)
                app.js (cards, picker, randomise, presets), export.js, app.html, app.css
-tempo/         app.html, app.js (screen saver cards and exports), saver.js (clock and words runtime)
+tempo/         engine.js (Tempo's type engine), app.html, app.js (screen saver cards and exports), saver.js (clock and words runtime)
   mac/             Mac .saver packager (WebViewScreenSaver, Apache 2.0)
   win/             Windows .scr host – C source, built .exe, and its base64 copy (host.js)
 tutti/         index.html – Tutti 6.0, unchanged
@@ -65,8 +64,8 @@ Then:
 
 ```
 python3 tests/parity.py        # Rubato and Tempo against v0.8.1 – writes tests/out/report.md
-python3 tests/split_check.py   # Rubato and Tempo sharing fonts and looks
-python3 tests/tempo_check.py   # Tempo 0.2: the time in words, Mixed type, preview shapes, Tempo naming in exports
+python3 tests/split_check.py   # Rubato and Tempo kept apart
+python3 tests/tempo_check.py   # Tempo: the time in words, fonts mixed in, tracking per font, preview, exports
 python3 tests/rubato_regress.py   # Rubato 1.0 draws exactly what 0.9 drew, for 0.9's settings
 python3 tests/rubato_features.py  # Rubato 1.0's new features
 python3 tests/decentish_check.py  # Decentish logic and voice, all sources faked
@@ -82,7 +81,7 @@ Pages is on: **Settings › Pages** deploys branch **main**, folder **/docs**. S
 2. Commit `docs/` with the sources and push to `main`.
 3. A minute or two later it's live at https://steviewaring-arch.github.io/ensemble-tools/ (the *pages build and deployment* run under **Actions** shows when it's done).
 
-All three live on the same site, so Rubato and Tempo share fonts and saved looks in each browser.
+All three live on the same site. From Tempo 0.3 Rubato and Tempo keep their fonts and settings apart in each browser (Tempo copies Rubato's fonts once, the first time it opens).
 
 ## House rules
 

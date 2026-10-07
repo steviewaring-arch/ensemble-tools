@@ -897,6 +897,9 @@ const APP='rubato';
      refreshNotes()      refresh hints that depend on the loaded fonts
      refreshImageCard()  refresh the image card (a no-op without one)
      appStart()          first paint, once every card exists
+   Optional: appFontRow(style,row,top,removeButton) – an app that defines it
+   draws its own controls on each row of the Fonts card in place of Rubato's
+   Default / Use and "Use in style swaps".
 */
 /* ---------------- settings ---------------- */
 const D={texts:['Lazaar'],seq:false,tracking:0,leading:1.05,
@@ -916,13 +919,13 @@ const D={texts:['Lazaar'],seq:false,tracking:0,leading:1.05,
   ssChange:'roll',ssFeel:'snappy',ssLen:.7,ssAmbient:false,ssAlign:'left',ssVAlign:'top',ssMove:false,ssSize:62,ssMargin:8,ssTabular:true,
   ssLookCol:'own',ssColBy:'type',ssBg:'#5B23F0',ssP1:'#FFF35C',ssP2:'#5DE0C0',ssP3:'#FFFFFF',ssP4:'#FF8FD0'};
 const fresh=()=>JSON.parse(JSON.stringify(D));
-/* Storage. Each app keeps its own keys ('rubato:…', 'tempo:…'). An app other
-   than Rubato falls back to Rubato's key when it has none of its own yet, so
-   settings carry over the first time. RLS always reads Rubato's keys. */
-function store(prefix,fallback){return{
-  get(k){try{const v=localStorage.getItem(prefix+':'+k);if(v===null&&fallback)return JSON.parse(localStorage.getItem(fallback+':'+k));return JSON.parse(v)}catch(e){return null}},
+/* Storage. Each app keeps its own keys ('rubato:…', 'tempo:…') and never reads
+   another app's. (Tempo copies what it needs from v0.8.1's 'rubato:' keys once,
+   in its own loadSettings.) */
+function store(prefix){return{
+  get(k){try{return JSON.parse(localStorage.getItem(prefix+':'+k))}catch(e){return null}},
   set(k,v){try{localStorage.setItem(prefix+':'+k,JSON.stringify(v))}catch(e){}}};}
-const LS=store(APP,APP==='rubato'?null:'rubato'),RLS=store('rubato');
+const LS=store(APP);
 function sanitise(o){
   const r={};if(!o||typeof o!=='object')return r;
   for(const k in D){
@@ -1010,9 +1013,13 @@ function makeFace(F0,coords){
     pathDAt:co?(g,over)=>pathC(g,merge(over)):null,
     drawAt:co?(ctx,g,outline,over)=>{const p=p2C(g,merge(over));outline?ctx.stroke(p):ctx.fill(p);}:null};
 }
-const DB={open(){return new Promise((res,rej)=>{const r=indexedDB.open('rubato',1);r.onupgradeneeded=()=>r.result.createObjectStore('fonts');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});},
+/* Font files, styles and the image, in this browser. Each app has its own
+   store (IndexedDB 'rubato', 'tempo'); an app other than Rubato copies Rubato's
+   fonts the first time it opens, then the two stay separate. */
+function fontStore(name){return{open(){return new Promise((res,rej)=>{const r=indexedDB.open(name,1);r.onupgradeneeded=()=>r.result.createObjectStore('fonts');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});},
   async run(mode,fn){try{const db=await this.open();return await new Promise((res,rej)=>{const tx=db.transaction('fonts',mode);const st=tx.objectStore('fonts');const rq=fn(st);tx.oncomplete=()=>res(rq&&rq.result);tx.onerror=()=>rej(tx.error);});}catch(e){return null}},
-  put(k,v){return this.run('readwrite',s=>s.put(v,k))},get(k){return this.run('readonly',s=>s.get(k))},del(k){return this.run('readwrite',s=>s.delete(k))}};
+  put(k,v){return this.run('readwrite',s=>s.put(v,k))},get(k){return this.run('readonly',s=>s.get(k))},del(k){return this.run('readwrite',s=>s.delete(k))}};}
+const DB=fontStore(APP==='rubato'?'rubato':APP);
 const files=new Map();let styles=[],faceVer=0;
 const newId=()=>Math.random().toString(36).slice(2,8);
 let saveStylesT=0;
@@ -1051,6 +1058,10 @@ function setCoords(id,coords){const st=styles.find(s=>s.id===id);if(!st)return;s
 function fontsChanged(){optCache.clear();refreshFontCard();refreshAll();schedulePicker(0);dirty=true;}
 async function restoreFonts(){
   let list=await DB.get('styles');
+  if(!list&&APP!=='rubato'){/* first time: copy the fonts loaded in Rubato, once */
+    const from=fontStore('rubato'),got=await from.get('styles');list=[];
+    if(got&&got.length)for(const st of got){const rec=await from.get('file:'+st.fid);if(rec&&rec.buf){await DB.put('file:'+st.fid,rec);list.push(st);}}
+    await DB.put('styles',list);}
   if(!list){/* move fonts saved by v0.6 and earlier */
     list=[];const map={};
     for(const s of [1,2]){const rec=await DB.get('slot'+s);if(rec&&rec.buf){const fid=newId(),id=newId();await DB.put('file:'+fid,rec);list.push({id,fid,coords:null,swap:true});map[s]=id;await DB.del('slot'+s);}}
@@ -1175,11 +1186,13 @@ function refreshFontCard(){
     const f=st.face,row=el('div','slot'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',f.name),meta=el('div','slot-meta');
     const bits=[];if(f.axes.length)bits.push('variable');bits.push(f.altChars.length?`alternates for ${f.altChars.length} characters`:'no alternates');
     meta.textContent=bits.join(' \u00b7 ').replace(/^./,c=>c.toUpperCase());main.append(nm,meta);top.append(main);
-    if(multi){const def=el('button','pill small',bs===st.id?'Default':'Use');def.setAttribute('aria-pressed',bs===st.id);def.title='Set your text in this style';def.setAttribute('aria-label','Set text in '+f.name);
+    const own=typeof appFontRow==='function';
+    if(multi&&!own){const def=el('button','pill small',bs===st.id?'Default':'Use');def.setAttribute('aria-pressed',bs===st.id);def.title='Set your text in this style';def.setAttribute('aria-label','Set text in '+f.name);
       def.onclick=()=>{set('baseSlot',st.id);refreshFontCard();};top.append(def);}
     const rm=el('button','pill small','Remove');rm.setAttribute('aria-label','Remove '+f.name);rm.onclick=()=>removeStyle(st.id);top.append(rm);
     row.append(top);
-    if(multi){const w=el('div','toggle-row'),t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',st.swap!==false);t.append(el('span','box'),el('span',null,'Use in style swaps'));
+    if(own)appFontRow(st,row,top,rm);
+    else if(multi){const w=el('div','toggle-row'),t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',st.swap!==false);t.append(el('span','box'),el('span',null,'Use in style swaps'));
       t.onclick=()=>{st.swap=!(st.swap!==false);t.setAttribute('aria-checked',st.swap);saveStyles();pushFaces();schedulePicker(0);refreshNotes();};
       w.append(t,qMark({label:'Use in style swaps',tip:'When Variants is set to Styles or Both, letters can change into this style. Untick to leave it out.'}));row.append(w);}
     if(f.axes.length)row.append(axisControls(st));

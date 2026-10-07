@@ -1,12 +1,12 @@
-# Parity report – Rubato 0.9 and Tempo 0.2 vs Rubato v0.8.1
+# Parity report – Rubato 1.0 and Tempo 0.3 vs Rubato v0.8.1
 
-Run on 6 October 2026 against docs/ as committed (Tempo 0.2 with In words, Mixed type, their looks and the export name). 87 results:
+Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
 
-- 76 byte-identical to two runs of the reference.
-- 9 differ only by Tempo 0.2's intended changes. `tempo02()` in `parity.py` undoes them – the Rubato → Tempo renames, the 0.2 screen saver runtime inside each export, the rebuilt Windows host, the extra Show options (In words, Mixed type) and the Export card's Name field, and the Mac re-signing that follows from the page changing (only code-signature bytes differ in the binary) – and the result then matches 0.8.1 byte for byte.
-- 2 live-preview frames (screen saver preview, roll at 150 ms) catch a drift or roll mid-step, so 0.8.1 itself lands on one of two frames from run to run. `KNOWN_NOISE` in `parity.py` allows each the largest difference measured between two runs of 0.8.1; in this run both were within it.
+- 65 byte-identical to two runs of the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's clock frames, its panel's card list, and the frames its exported engine draws.
+- 1 live-preview frame (screen saver preview) within the difference 0.8.1 shows between its own runs.
+- 21 differ on purpose, each named with its reason (`ON_PURPOSE` in `parity.py`): 8 from Rubato 1.0 (the regrouped panel, more tips, Randomise reaching the new settings – Rubato 1.0 is proven against 0.9 by `rubato_regress.py`) and 13 from Tempo 0.3 (its exports and panel now that it stands apart from Rubato, and Saved looks gone – covered by `tempo_check.py` and `split_check.py`). Rubato's results here are identical to a run on `main` before Tempo 0.3's change to the shared core.
 
-`tests/tempo_check.py` (54 checks) covers what's new in 0.2, Mixed type included; `tests/split_check.py` (13 checks) passes, reading the export's settings from `window.__TEMPO__`.
+`tests/tempo_check.py` 67 of 67, `tests/split_check.py` 15 of 15, `tests/rubato_regress.py` all 14 looks identical to 0.9, `tests/rubato_features.py` 43 of 43.
 
 ## t1 – Fonts: styles, variable axes, instances, axis animation, SVG, picker, reload.
 
@@ -21,7 +21,7 @@ Run on 6 October 2026 against docs/ as committed (Tempo 0.2 with In words, Mixed
 - same: axis SVG (file name) – lazaar-still-frame.svg
 - same: after axis slider – ["Poppins Regular", "Lora wght 650", "Lora Medium", "Poppins Bold"]
 - same: picker – 4 rows, 16 tiles
-- same: Studio panel – Fonts / – / Poppins Regular / Alternates for 28 characters / Use / Remove / Use in styl...
+- differs on purpose: Studio panel – Rubato 1.0 regrouped the panel (Presets first, new controls)
 - same: after reload – ["Poppins Regular", "Lora wght 650", "Lora Medium", "Poppins Bold"]
 - same: after reload frame – 50997 bytes, sha256 c0da00cab7e2
 
@@ -52,25 +52,25 @@ Run on 6 October 2026 against docs/ as committed (Tempo 0.2 with In words, Mixed
 - same: repeat, stretch off – 67950 bytes, sha256 e97b0fe30fe9
 - same: repeat, stretch on – 86224 bytes, sha256 d41ce8512bb0
 - same: tooltip – 1 shown: When Variants is set to Styles or Both, letters can change into this style. Un...
-- same: ? count – 92
+- differs on purpose: ? count – Rubato 1.0 has more controls with tips
 - same: randomise menu open – True
-- same: randomised (everything) – 48521 bytes, sha256 c954ea75f074
-- same: settings after randomise – {"texts":["LOVE\nHATE","Display"],"seq":false,"tracking":200,"leading":1.97,"aspect":"1...
+- differs on purpose: randomised (everything) – Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9
+- differs on purpose: settings after randomise – Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9
 - same: menu after Escape – False
-- same: settings after undo – {"texts":["LOVE\nHATE","Display"],"seq":false,"tracking":-45,"leading":1.69,"aspect":"1...
-- same: randomised (within limits, R key) – 263285 bytes, sha256 57fb41c5f02a
-- same: settings after R – {"texts":["LOVE\nHATE","Display"],"seq":false,"tracking":5,"leading":0.93,"aspect":"1:1...
-- same: randomise options – {"level":"gentle","groups":{"motion":true,"variants":true,"sequence":true,"repeat":true...
+- differs on purpose: settings after undo – Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9
+- differs on purpose: randomised (within limits, R key) – Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9
+- differs on purpose: settings after R – Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9
+- differs on purpose: randomise options – Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9
 
 ## t3 – v0.6 font migration, then screen saver HTML + Mac exports, then GIF + PNG.
 
 - same: migrated styles – ["Poppins Regular", "Poppins Bold"]
 - same: migrated settings – {"fit": "block", "stretch": true, "baseSlot is 2nd style": true, "picks": {"a": ["200",...
 - same: default style – [["Default"], "Poppins Bold"]
-- same within known run-to-run variation: screen saver preview – 1019 px differ by up to 9/255 (0.8.1 against itself: 1136 px, 10/255)
-- same apart from Tempo 0.2 changes: screen saver HTML – export renamed to Tempo and carries the 0.2 runtime
-- same: screen saver HTML (file name) – lazaar-screensaver.html
-- same apart from Tempo 0.2 changes: Mac zip – only signature bytes differ in the binary; page and read-me renamed to Tempo; re-signed over the new page
+- same within run-to-run variation: screen saver preview – ref vs ref: 1136 px differ by up to 10/255; ref vs new: 1136 px by up to 10/255
+- differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
+- differs on purpose: screen saver HTML (file name) – Tempo 0.3 names the file after the screen saver, not Rubato's text
+- differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
 - same: Mac zip (file name) – Poppins screen saver for Mac.zip
 - same: GIF – 943987 bytes, sha256 32d695e39775
 - same: GIF (file name) – lazaar-fluid.gif
@@ -81,24 +81,24 @@ Run on 6 October 2026 against docs/ as committed (Tempo 0.2 with In words, Mixed
 ## t4 – Screen saver panels, digit roll timing, looks mode, Windows + Mac exports.
 
 - same: saver cards – ["Fonts", "Screensaver", "Clock", "Numerals", "Change", "Position", "Colour", "Export"]
-- same apart from Tempo 0.2 changes: Screensaver panel – Show now also offers In words and Mixed type; Export has a Name field
-- same within known run-to-run variation: roll at 150 ms – 1845 px differ by up to 208/255 (0.8.1 against itself: 1845 px, 208/255)
+- differs on purpose: Screensaver panel – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
+- same: roll at 150 ms – 89876 bytes, sha256 de0eb35f5350
 - same: roll at 450 ms – 94219 bytes, sha256 a5fb685ba7b0
 - same: roll at 750 ms – 93996 bytes, sha256 ff11d4c2a495
 - same: roll at 880 ms – 93996 bytes, sha256 ff11d4c2a495
 - same: roll at 930 ms – 93996 bytes, sha256 ff11d4c2a495
-- same: looks cards – ["Fonts", "Screensaver", "Position", "Export"]
-- same: drift visible in looks – True
-- same apart from Tempo 0.2 changes: Screensaver panel, saved looks – Show now also offers In words and Mixed type; Export has a Name field
-- same apart from Tempo 0.2 changes: Windows zip – Windows host rebuilt with Tempo wording; page and read-me renamed to Tempo
+- gone on purpose: looks cards – Saved looks left Tempo in 0.3
+- gone on purpose: drift visible in looks – Saved looks left Tempo in 0.3
+- gone on purpose: Screensaver panel, saved looks – Saved looks left Tempo in 0.3
+- differs on purpose: Windows zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
 - same: Windows zip (file name) – Poppins screen saver for Windows.zip
-- same apart from Tempo 0.2 changes: Mac zip – only signature bytes differ in the binary; page and read-me renamed to Tempo; re-signed over the new page
+- differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
 - same: Mac zip (file name) – Poppins screen saver for Mac.zip
 
 ## t5 – The exported screen saver page renders the same frames.
 
-- same apart from Tempo 0.2 changes: screen saver HTML – export renamed to Tempo and carries the 0.2 runtime
-- same: screen saver HTML (file name) – lazaar-screensaver.html
+- differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
+- differs on purpose: screen saver HTML (file name) – Tempo 0.3 names the file after the screen saver, not Rubato's text
 - same: engine frame 0 – 84847 bytes, sha256 a8c1d23b4bf1
 - same: engine frame 1 – 84767 bytes, sha256 ba9a238ade55
 - same: engine frame 2 – 87762 bytes, sha256 8594e4f3c439
@@ -108,9 +108,9 @@ Run on 6 October 2026 against docs/ as committed (Tempo 0.2 with In words, Mixed
 
 ## t6 – Mac and Windows exports with a single font.
 
-- same apart from Tempo 0.2 changes: Mac zip – only signature bytes differ in the binary; page and read-me renamed to Tempo; re-signed over the new page
+- differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
 - same: Mac zip (file name) – Poppins screen saver for Mac.zip
-- same apart from Tempo 0.2 changes: Windows zip – Windows host rebuilt with Tempo wording; page and read-me renamed to Tempo
+- differs on purpose: Windows zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
 - same: Windows zip (file name) – Poppins screen saver for Windows.zip
 
 **All results match.**
