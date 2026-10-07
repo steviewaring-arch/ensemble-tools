@@ -2,13 +2,17 @@
 
 Ensemble's in-house creative tools. Each one is a single HTML file that runs in the browser – no install, no server, fonts stay on your computer.
 
-| Tool | What it does | Live (once Pages is on) |
+| Tool | What it does | Live |
 |---|---|---|
-| **Tutti** 6.0 | Halftones from images, video, your camera or type | `/tutti/` |
-| **Rubato** 0.9 | Type in motion – alternates, styles and variable axes, out as PNG, SVG, GIF or video | `/rubato/` |
-| **Tempo** 0.2 | A clock screen saver for Mac and Windows, set in your own typeface – as figures, or the time written out in words, with display faces mixed in if you like | `/tempo/` |
+| **Tutti** 6.0 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
+| **Rubato** 1.0 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
+| **Tempo** 0.2 | A clock screen saver for Mac and Windows, set in your own typeface – as figures, or the time written out in words, with display faces mixed in if you like | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
 
-Rubato and Tempo share one core (type engine, font loading, controls, design system). Tutti is copied in as it is, and moves onto the shared core later.
+All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
+
+**Decentish** 0.4 is also in here, unlisted: a prototype website that gives you a plan for where you are – now, soon or tomorrow, on the doorstep, nearby or further afield, with the way there and back – in a voice you set with a dial. Greater Manchester first. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
+
+Rubato and Tempo share one core (font loading, controls, design system). From 1.0 Rubato has its own copy of the type engine, so its new features never reach Tempo; Tempo keeps `shared/engine.js`. Tutti is copied in as it is, and moves onto the shared core later.
 
 ## How the repo is laid out
 
@@ -17,18 +21,23 @@ shared/        used by more than one app
   tokens.css       colours, type, shadows – light and dark
   components.css   cards, pill sliders, toggles, segmented buttons, tooltips, capsule
   page.html        the page shell every app is poured into
-  engine.js        the type engine – createEngine()
+  engine.js        the type engine – createEngine() (Tempo's; Rubato has its own from 1.0)
   core.js          settings, storage, font loading, image layer, control builders, tooltips, Fonts card
   core-end.js      downloads, toasts, drag and drop, light/dark, panel resizing, start-up
   gif.js           GIF encoder
   home.html        the index page that links to all three tools
-rubato/        app.html (markup), app.js (Studio cards, picker, randomise, presets), export.js
+rubato/        engine.js (Rubato's type engine: blocks, physics, kerning, Jitter/Assemble/Scramble)
+               controls.js (steppers, dials, range pair, loop bar, path pad, More folds)
+               stage.js (kerning on the preview, physics guides, preset tiles)
+               app.js (cards, picker, randomise, presets), export.js, app.html, app.css
 tempo/         app.html, app.js (screen saver cards and exports), saver.js (clock and words runtime)
   mac/             Mac .saver packager (WebViewScreenSaver, Apache 2.0)
   win/             Windows .scr host – C source, built .exe, and its base64 copy (host.js)
 tutti/         index.html – Tutti 6.0, unchanged
+decentish/     index.html – Decentish prototype, one self-contained page; NOTES.md
 reference/     rubato-0.8.1.html – the last combined app, kept for the parity tests
-tests/         parity.py, split_check.py, tempo_check.py, legacy/ (the v0.8.1 handover tests)
+archive/       earlier versions still served live – rubato-0.9.html → docs/rubato/0.9/
+tests/         parity.py, split_check.py, tempo_check.py, rubato_regress.py, rubato_features.py, legacy/ (the v0.8.1 handover tests)
 docs/          the built apps – what GitHub Pages serves. Don't edit by hand.
 build.py       stitches each app into one file in docs/
 ```
@@ -41,7 +50,7 @@ build.py       stitches each app into one file in docs/
 python3 build.py
 ```
 
-Writes `docs/rubato/index.html`, `docs/tempo/index.html`, `docs/tutti/index.html` and `docs/index.html`, and checks every script for syntax errors. Commit `docs/` along with the source – it's what gets published.
+Writes `docs/rubato/index.html`, `docs/tempo/index.html`, `docs/tutti/index.html`, `docs/decentish/index.html`, `docs/index.html` and the archived `docs/rubato/0.9/`, and checks every script for syntax errors. Commit `docs/` along with the source – it's what gets published.
 
 ## Test
 
@@ -58,15 +67,20 @@ Then:
 python3 tests/parity.py        # Rubato and Tempo against v0.8.1 – writes tests/out/report.md
 python3 tests/split_check.py   # Rubato and Tempo sharing fonts and looks
 python3 tests/tempo_check.py   # Tempo 0.2: the time in words, Mixed type, preview shapes, Tempo naming in exports
+python3 tests/rubato_regress.py   # Rubato 1.0 draws exactly what 0.9 drew, for 0.9's settings
+python3 tests/rubato_features.py  # Rubato 1.0's new features
+python3 tests/decentish_check.py  # Decentish logic and voice, all sources faked
 ```
 
 The parity tests drive the v0.8.1 reference and the new apps through the same steps, with randomness and the clock pinned, and compare every frame, download and panel read-out byte for byte. They need Chromium (via Playwright) and the Poppins and Lora fonts – set `FONTS=/path/to/folder` if they're not in `/usr/share/fonts/truetype/google-fonts`.
 
 ## Publish on GitHub Pages
 
-1. Push this repo to GitHub as `ensemble-tools`.
-2. On GitHub: **Settings › Pages**. Under *Build and deployment*, choose **Deploy from a branch**, branch **main**, folder **/docs**, then **Save**.
-3. After a minute or two the tools are live at `https://<your-username>.github.io/ensemble-tools/` – with `/tutti/`, `/rubato/` and `/tempo/` after it.
+Pages is on: **Settings › Pages** deploys branch **main**, folder **/docs**. So publishing is just:
+
+1. Change the sources, run `python3 build.py`, run the tests.
+2. Commit `docs/` with the sources and push to `main`.
+3. A minute or two later it's live at https://steviewaring-arch.github.io/ensemble-tools/ (the *pages build and deployment* run under **Actions** shows when it's done).
 
 All three live on the same site, so Rubato and Tempo share fonts and saved looks in each browser.
 
