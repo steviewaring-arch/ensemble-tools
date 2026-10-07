@@ -103,6 +103,17 @@ Open the link and tap *Use my location*. The stopwatch in the small print shows 
 - Not just pubs. *0.4: parks, culture, coffee, bowling and the like in the steps.*
 - The distance dial has to mean something. Doorstep: what's right here. Nearby (a couple of miles): say the distances and how to get there. Further afield: same again, with the transport. *0.4: done as above.*
 
+**7 October 2026 – the "does it look AI-made" pass (Steve, from a checklist doing the rounds).** For when we get to it, before Decentish goes anywhere public. Find anything that gives it away in five seconds, and fix it.
+
+- **Domain:** off the github.io preview address and onto its own (decentish.co.uk is the plan).
+- **The page's metadata:** a proper title and meta description, favicon, Open Graph image, canonical URL and a social preview that looks right when the link is pasted into WhatsApp or Slack. Today: no favicon, no description, no preview image, and `noindex` on purpose while it's unlisted.
+- **The boring pages:** a real 404. Loading, empty and error states with useful words – most exist in the line bank, but check every one.
+- **Structure:** headings that make sense (there's no `h1` at the moment), alt text on any images, a sitemap once it's public.
+- **Clean-up:** no console errors (every load currently logs a 404 for a missing file – the Diatype font file or a favicon), no leftover logging, no development files exposed, nothing heavy loaded that doesn't need to be (the hours engine from jsDelivr is the big one). *Test* and *Workings* are developer tools sitting in the public footer – hide them behind something before launch.
+- **Screens:** only tested at phone width (390 px). Check tablet, desktop, small and odd sizes, very long place names, no data at all, and every error state.
+- **Consistency:** spacing, type, buttons, borders, icons and components the same everywhere.
+- **Everything clickable actually works.** Check every button and link; nothing that looks functional and isn't.
+
 ## Next
 
 1. Steve: check plans against reality on the phone – especially the tram stops in *Workings* and whether the Nearby plans pick somewhere you'd actually go.
