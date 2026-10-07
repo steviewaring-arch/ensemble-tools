@@ -1,5 +1,21 @@
 # Changelog
 
+## 7 October 2026 – Tempo 0.4
+
+**Tempo 0.4** – a font library, more ways to mix, words or figures part by part.
+- **Font library.** Fonts can be switched on and off without removing them (off: kept in the list, out of the preview, the mixing and exports). Drop in a **.zip of fonts** and they all come in at once; a font already in the list (same family and style) is skipped, and so are a zip's Mac leftovers and old Mac fonts with no outlines – the toast says how many. A zip can carry `tempo-fonts.json` saying which fonts start on, which is the core, which shuffle in and each one's tracking. Fonts listed in `tempo/fonts/fonts.json` are **built in**: they show in the list, those marked on load the first time Tempo opens, the rest are one click away. Nothing is built in yet – everything in `docs/` is public, so only fonts cleared to publish go there.
+- **Fonts card, tidier.** One row per font: name, Use as core, an on/off switch. Click the name for Shuffle in, its tracking and Remove. The list runs core first, then the fonts on, then those off.
+- **Mixing:** fonts can come **In turn** (through the list in order) as well as **Shuffled**; a new way in, **A few at random**, with **How many** from the odd one to all – for the numerals of The time (the odd figure in a display face, or every one) and for the words. Per-numeral and per-part choices are as in 0.3.
+- **Words or figures, part by part:** the time, seconds, date and year each in words or figures (“It is 11.47pm and fifty nine seconds on Wednesday the twenty eighth of October 2026”). **Say 0 as** oh or zero (“nine oh five”, “nine zero five”).
+- **A Lazaar look**: the time, the day and the month in Lazaar, the rest in the core font. Looks can name fonts; a font that isn't switched on is replaced by Shuffle.
+- **Panel:** The time or In words comes first. Folds inside the cards (Mixing, Words or figures, Spacing, Your colours) open and shut and remember it.
+- Line spacing follows the core font whichever fonts come in, and capitals match the core font's height (as in 0.3).
+- 0.3's settings carry over (numbers in figures become figures for every part).
+- A pressed small button no longer loses its label under the pointer (shared stylesheet, so Rubato too).
+- Tests: `tests/tempo_check.py` 80 of 80 (new: zip packs with duplicates and leftovers, a pack's settings, on and off, built-in fonts, in turn, a few at random, words or figures, zero, folds).
+
+**Rubato 1.0** – no change to how it works, apart from the hover fix. **Shared core:** a style can be off (`off` saved with it, left out of the engine); `loadFiles()` reads a .zip and skips fonts already loaded; new optional hooks `appFontList`, `appFontsLoaded`, `appFontsRestored`. Rubato never switches a font off and has no hooks, so for Rubato the only differences are a .zip working and a font already loaded being skipped rather than added twice.
+
 ## 7 October 2026 – Tempo 0.3
 
 **Tempo 0.3** – stands on its own, one Fonts card, fonts mixed into the time as well as the words.

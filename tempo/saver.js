@@ -47,7 +47,9 @@ const MONTHS=['January','February','March','April','May','June','July','August',
 const num=n=>n<20?[ONES[n]]:n%10?[TENS[Math.floor(n/10)],ONES[n%10]]:[TENS[n/10]];
 function ordinal(n){const w=num(n),l=w[w.length-1];w[w.length-1]=ORDS[l]||(l.endsWith('y')?l.slice(0,-1)+'ieth':l+'th');return w;}
 function yearWords(y){if(y>=2000&&y<2010)return y===2000?['two','thousand']:['two','thousand','and',ONES[y-2000]];
-  const lo=y%100;return num(Math.floor(y/100)%100).concat(lo===0?['hundred']:lo<10?['oh',ONES[lo]]:num(lo));}
+  const lo=y%100;return num(Math.floor(y/100)%100).concat(lo===0?['hundred']:lo<10?[OH(),ONES[lo]]:num(lo));}
+/* 0 said as "oh" (nine oh five) or "zero" (nine zero five) */
+const OH=()=>C.words&&C.words.zero==='zero'?'zero':'oh';
 /* Each word has a key naming its place in the sentence, so a change can tell
    which words stay, which change and which come or go. ORD is reading order. */
 const WKEYS=['lead.0','lead.1','time.x','time.f','time.oh','time.h0','time.h1','time.mx','time.moh','time.m0','time.m1','sec.x','sec.and','sec.0','sec.1','sec.u',
@@ -67,28 +69,30 @@ function glueOf(t,n){if(!n)return 0;if(STICKY[t.k])return STICKY[t.k];
   if(n.k==='time.mx'||n.k==='time.moh'||(n.k==='time.m0'&&t.k!=='time.moh')||n.k==='sec.u')return 2;return 3;}
 const parts=ms=>{const d=new Date(ms);return{y:d.getFullYear(),mo:d.getMonth(),d:d.getDate(),wd:d.getDay(),h:d.getHours(),mi:d.getMinutes(),s:d.getSeconds()};};
 function clockWords(add,H,M,o){
-  if(o.num==='figures'){add('time.f',(o.h24?pad(H):String(H%12||12))+(o.sep==='colon'?':':'.')+pad(M)+(o.h24?'':H<12?'am':'pm'));return;}
+  if(numOf(o,'time')){add('time.f',(o.h24?pad(H):String(H%12||12))+(o.sep==='colon'?':':'.')+pad(M)+(o.h24?'':H<12?'am':'pm'));return;}
   if(!o.h24&&M===0&&H%12===0){add('time.x',H?'midday':'midnight');return;}
   const h=o.h24?H:H%12||12;
-  if(o.h24&&h<10){if(h)add('time.oh','oh');add('time.h0',ONES[h]);}else num(h).forEach((w,i)=>add('time.h'+i,w));
+  if(o.h24&&h<10){if(h)add('time.oh',OH());add('time.h0',ONES[h]);}else num(h).forEach((w,i)=>add('time.h'+i,w));
   if(M===0)add('time.mx',o.h24?'hundred':'o’clock');
-  else{if(M<10)add('time.moh','oh');num(M).forEach((w,i)=>add('time.m'+i,w));}
+  else{if(M<10)add('time.moh',OH());num(M).forEach((w,i)=>add('time.m'+i,w));}
 }
+/* words or figures, part by part (exports from 0.3 and earlier say it once, as num) */
+const numOf=(o,part)=>{const v=(o.nums||{})[part];return(v||o.num)==='figures';};
 const sfx=n=>n%10===1&&n!==11?'st':n%10===2&&n!==12?'nd':n%10===3&&n!==13?'rd':'th';
 /* One sentence, always in this computer's own time and date. Every part can be
    switched on or off and the grammar closes up around it. */
 function sentence(z,o){
-  const out=[],add=(k,w,proper)=>out.push({k,w,part:k.split('.')[0],grp:GRP(k),proper:!!proper}),figs=o.num==='figures';
+  const out=[],add=(k,w,proper)=>out.push({k,w,part:k.split('.')[0],grp:GRP(k),proper:!!proper}),figS=numOf(o,'sec'),figD=numOf(o,'date'),figY=numOf(o,'year');
   const hasDate=o.weekday||o.daynum||o.month||o.year;
   if(o.lead&&(o.time||hasDate)){add('lead.0','it');add('lead.1','is');}
   if(o.time){clockWords(add,z.h,z.mi,o);
     if(o.secs){if(z.s===0)add('sec.x','exactly');
-      else{add('sec.and','and');if(figs)add('sec.0',String(z.s));else num(z.s).forEach((w,i)=>add('sec.'+i,w));add('sec.u',z.s===1?'second':'seconds');}}}
+      else{add('sec.and','and');if(figS)add('sec.0',String(z.s));else num(z.s).forEach((w,i)=>add('sec.'+i,w));add('sec.u',z.s===1?'second':'seconds');}}}
   if(hasDate){const prep=o.time;
     if(o.weekday||o.daynum){if(prep)add('date.on','on');if(o.weekday)add('date.w',DAYS[z.wd],true);
-      if(o.daynum){if(figs&&o.month)add('date.0',String(z.d));else{add('date.the','the');if(figs)add('date.0',z.d+sfx(z.d));else ordinal(z.d).forEach((w,i)=>add('date.'+i,w));}}}
-    if(o.month){if(o.daynum){if(!figs)add('date.of','of');}else if(prep||o.weekday)add('date.of','in');add('date.m',MONTHS[z.mo],true);}
-    if(o.year){if(!o.month&&(prep||o.weekday||o.daynum))add('date.in','in');(figs?[String(z.y)]:yearWords(z.y)).forEach((w,i)=>add('date.y'+i,w));}}
+      if(o.daynum){if(figD&&o.month)add('date.0',String(z.d));else{add('date.the','the');if(figD)add('date.0',z.d+sfx(z.d));else ordinal(z.d).forEach((w,i)=>add('date.'+i,w));}}}
+    if(o.month){if(o.daynum){if(!figD)add('date.of','of');}else if(prep||o.weekday)add('date.of','in');add('date.m',MONTHS[z.mo],true);}
+    if(o.year){if(!o.month&&(prep||o.weekday||o.daynum))add('date.in','in');(figY?[String(z.y)]:yearWords(z.y)).forEach((w,i)=>add('date.y'+i,w));}}
   out.forEach((t,i)=>{t.w=o.case==='upper'?t.w.toUpperCase():o.case==='lower'?t.w.toLowerCase():(t.proper||i===0)?t.w[0].toUpperCase()+t.w.slice(1):t.w;
     t.glue=glueOf(t,out[i+1]);});
   if(o.stop&&out.length)out[out.length-1].w+='.';
@@ -110,10 +114,17 @@ const LITTLE=new Set(['sec.and','date.on','date.the','date.of','date.in']);
 /* The display faces: every style ticked "Use in style swaps" except the base. */
 const mPool=()=>{const b=baseId();return eng.anyLoaded()?eng.faceList().filter(x=>x.swap&&x.id!==b).map(x=>x.id):['d1','d2'].filter(x=>x!==b);};
 let mS={},mSeed=1,mCfg='';
-const mReset=()=>{mS={fid:{},seen:{},slot:null,sig:null,feat:{},last:null,one:null,oneFace:null,oneEach:{}};};mReset();
+const mReset=()=>{mS={fid:{},seen:{},slot:null,sig:null,feat:{},last:null,one:null,oneFace:null,oneEach:{},some:{}};};mReset();
 /* a new face, never the one it replaces */
-function pickFace(pool,avoid,salt){if(!pool.length)return null;let i=Math.floor(rnd(mSeed++*7919+salt)*pool.length);if(pool.length>1&&pool[i]===avoid)i=(i+1)%pool.length;return pool[i];}
+/* In turn: the next font after the one it replaces. Shuffled: any other font. */
+let pickTurn=false;
+function pickFace(pool,avoid,salt){if(!pool.length)return null;const n=pool.length,at=pool.indexOf(avoid);
+  if(pickTurn)return pool[at<0?Math.floor(rnd(salt)*n):(at+1)%n];
+  let i=Math.floor(rnd(mSeed++*7919+salt)*n);if(n>1&&pool[i]===avoid)i=(i+1)%n;return pool[i];}
+/* A few at random: when a part (or numeral) changes, it takes another font this often */
+const chance=(M,salt)=>rnd(mSeed++*31337+salt)<(M.amount==null?.5:M.amount);
 function assignFaces(toks){const M=C.words.mixed;toks.forEach(t=>{t.fid=null;});if(!M)return;
+  pickTurn=M.order==='turn';
   const pool=mPool(),now=Date.now(),mode=M.mode||'parts',each=!!M.each,P=M.parts||{},salt=now%100003;
   const slot=M.when==='minute'?Math.floor(now/6e4):M.when==='hour'?Math.floor(now/36e5):null,newSlot=slot!=null&&slot!==mS.slot;
   const plain=t=>M.little!==false&&LITTLE.has(t.k),grpOf=t=>each?t.k:MPART(t);
@@ -121,7 +132,7 @@ function assignFaces(toks){const M=C.words.mixed;toks.forEach(t=>{t.fid=null;});
   if(mode==='latest'){
     /* the words that changed take a display face and keep it until the next change */
     if(sig!==mS.sig){const prev=mS.words,ch=toks.filter(t=>t.grp!=='lead'&&!plain(t)&&(prev?prev.get(t.k)!==t.w:t.part==='time'));
-      const one=pickFace(pool,mS.last,salt);mS.feat={};ch.forEach(t=>{mS.feat[t.k]=each?pickFace(pool,null,salt+ORD[t.k]):one;});mS.last=one;
+      const one=pickFace(pool,mS.last,salt),was=mS.feat;mS.feat={};ch.forEach(t=>{mS.feat[t.k]=each?pickFace(pool,was[t.k]||mS.last,salt+ORD[t.k]):one;});mS.last=one;
       mS.words=new Map(toks.map(t=>[t.k,t.w]));}
     toks.forEach(t=>{t.fid=mS.feat[t.k]||null;});}
   else if(mode==='one'){
@@ -131,6 +142,11 @@ function assignFaces(toks){const M=C.words.mixed;toks.forEach(t=>{t.fid=null;});
       let i=Math.floor(rnd(mSeed++*104729+salt)*ps.length);if(ps.length>1&&ps[i]===mS.one)i=(i+1)%ps.length;
       mS.one=ps[i];mS.oneFace=pickFace(pool,mS.oneFace,salt);mS.oneEach={};}
     toks.forEach(t=>{if(MPART(t)!==mS.one||plain(t))return;t.fid=each?(mS.oneEach[t.k]||(mS.oneEach[t.k]=pickFace(pool,null,salt+ORD[t.k]))):mS.oneFace;});}
+  else if(mode==='some'){
+    /* a few at random: when a part's words change (or every minute or hour), it takes another font this often */
+    const txt={};toks.forEach(t=>{if(t.grp!=='lead'&&!plain(t)){const g=grpOf(t);txt[g]=(txt[g]||'')+' '+t.w;}});
+    for(const g in txt){const sl=salt+(ORD[g]||g.length*31);if(!(g in mS.some)||(slot!=null?newSlot:txt[g]!==mS.seen[g]))mS.some[g]=chance(M,sl)?pickFace(pool,mS.some[g],sl):null;mS.seen[g]=txt[g];}
+    toks.forEach(t=>{if(t.grp==='lead'||plain(t))return;t.fid=mS.some[grpOf(t)]||null;});}
   else{
     /* each part: the base face, a face of its own, or shuffled when its words change (or every minute or hour) */
     const txt={};toks.forEach(t=>{if(P[MPART(t)]==='shuffle'&&!plain(t)){const g=grpOf(t);txt[g]=(txt[g]||'')+' '+t.w;}});
@@ -146,7 +162,7 @@ function fitVariants(toks,o){const M=o.mixed;if(!M)return[toks];
   const widest=t=>pool.reduce((b,id)=>uw(id,t.w)>uw(b,t.w)?id:b,null);
   const v=fn=>toks.map(t=>Object.assign({},t,{fid:fn(t)}));
   if(mode==='one')return[...new Set(toks.map(MPART))].filter(p=>p!=='lead').map(p=>v(t=>MPART(t)===p&&!plain(t)?widest(t):null));
-  if(mode==='latest')return[v(t=>t.grp!=='lead'&&!plain(t)?widest(t):null)];
+  if(mode==='latest'||mode==='some')return[v(t=>t.grp!=='lead'&&!plain(t)?widest(t):null)];
   return[v(t=>{if(plain(t))return null;const s=P[MPART(t)]||'base';return s==='shuffle'?widest(t):s==='base'?null:(faceById(s)?s:null);})];}
 const wPalette=()=>{const o=C.words;if(o.rotate&&o.themes&&o.themes.length)return o.themes[new Date().getHours()%o.themes.length];return{bg:o.bg,ink:o.ink,soft:o.soft,date:o.dateCol};};
 const glyphOf=(f,ch)=>{let g=f.base(ch);if(!g&&ch==='’')g=f.base("'");return g;};
@@ -317,7 +333,7 @@ function replay(){if(!isWords())return;const o=C.words;wCur=sentence(parts(Date.
 
 /* ---- faces per numeral (the time): the same three ways as the words ---- */
 let cF={l0:[],l2:null},pF={l0:[],l2:null},cS={},cCfg='',cFit=null,curKeys=null;
-const cReset=()=>{cS={fid:{},slot:null,one:null,oneFace:null,each:{},last:null};cF={l0:[],l2:null};pF=cF;};cReset();
+const cReset=()=>{cS={fid:{},slot:null,one:null,oneFace:null,each:{},last:null,some:{}};cF={l0:[],l2:null};pF=cF;};cReset();
 const hasLine2=()=>C.clock.line2==='weekday'||C.clock.line2==='date';
 /* the first time shown, Latest change features the minutes */
 const firstChange=keys=>new Set(keys.map((k,i)=>k==='m1'||k==='m2'?i:-1).filter(i=>i>=0));
@@ -328,6 +344,7 @@ function clockFitSlots(){const M=C.clock.mixed;if(!M)return null;const P=M.parts
   out.delete(eng.baseSlot());return out.size?[...out]:null;}
 function clockFaces(keys,ch){
   const M=C.clock.mixed,out={l0:keys.map(()=>null),l2:null};if(!M)return out;
+  pickTurn=M.order==='turn';
   const pool=mPool(),now=Date.now(),salt=now%100003,mode=M.mode||'parts',P=M.parts||{},each=!!M.each,two=hasLine2();
   const slot=M.when==='minute'?Math.floor(now/6e4):M.when==='hour'?Math.floor(now/36e5):null,newSlot=slot!=null&&slot!==cS.slot;
   if(mode==='latest'){
@@ -343,6 +360,12 @@ function clockFaces(keys,ch){
       cS.one=ps[i];cS.oneFace=pickFace(pool,cS.oneFace,salt);cS.each={};}
     keys.forEach((k,i)=>{if(k&&k===cS.one)out.l0[i]=each?(cS.each[i]||(cS.each[i]=pickFace(pool,null,salt+i*31))):cS.oneFace;});
     if(two&&cS.one==='line2')out.l2=cS.oneFace;}
+  else if(mode==='some'){
+    /* a few at random: a numeral that changes (or every minute or hour) takes another font this often */
+    const ks=[...new Set(keys.filter(Boolean))].concat(two?['line2']:[]);
+    for(const k of ks){const moved=k==='line2'?ch.has('l2'):keys.some((x,i)=>x===k&&ch.has(i)),sl=salt+k.charCodeAt(0)*7+k.charCodeAt(k.length-1);
+      if(!(k in cS.some)||(slot!=null?newSlot:moved))cS.some[k]=chance(M,sl)?pickFace(pool,cS.some[k],sl):null;}
+    keys.forEach((k,i)=>{if(k)out.l0[i]=cS.some[k]||null;});if(two)out.l2=cS.some.line2||null;}
   else{
     /* each numeral: the core face, a face of its own, or shuffled when it changes (or every minute or hour) */
     const fixed=k=>{const v=P[k]||'base';return v==='base'||v==='shuffle'?null:(faceById(v)?v:null);};

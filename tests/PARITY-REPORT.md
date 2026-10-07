@@ -1,12 +1,12 @@
-# Parity report – Rubato 1.0 and Tempo 0.3 vs Rubato v0.8.1
+# Parity report – Rubato 1.0 and Tempo 0.4 vs Rubato v0.8.1
 
 Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
 
-- 65 byte-identical to two runs of the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's clock frames, its panel's card list, and the frames its exported engine draws.
+- 64 byte-identical to two runs of the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's clock frames and the frames its exported engine draws.
 - 1 live-preview frame (screen saver preview) within the difference 0.8.1 shows between its own runs.
-- 21 differ on purpose, each named with its reason (`ON_PURPOSE` in `parity.py`): 8 from Rubato 1.0 (the regrouped panel, more tips, Randomise reaching the new settings – Rubato 1.0 is proven against 0.9 by `rubato_regress.py`) and 13 from Tempo 0.3 (its exports and panel now that it stands apart from Rubato, and Saved looks gone – covered by `tempo_check.py` and `split_check.py`). Rubato's results here are identical to a run on `main` before Tempo 0.3's change to the shared core.
+- 22 differ on purpose, each named with its reason (`ON_PURPOSE` in `parity.py`): 8 from Rubato 1.0 (the regrouped panel, more tips, Randomise reaching the new settings – proven against 0.9 by `rubato_regress.py`) and 14 from Tempo 0.3 and 0.4 (its exports and panel now that it stands apart from Rubato, Saved looks gone, the Screensaver card first – covered by `tempo_check.py` and `split_check.py`). Rubato's differing results are byte for byte what `main` gave before Tempo 0.3 and 0.4's changes to the shared core.
 
-`tests/tempo_check.py` 67 of 67, `tests/split_check.py` 15 of 15, `tests/rubato_regress.py` all 14 looks identical to 0.9, `tests/rubato_features.py` 43 of 43.
+`tests/tempo_check.py` 80 of 80, `tests/split_check.py` 15 of 15, `tests/rubato_regress.py` all 14 looks identical to 0.9, `tests/rubato_features.py` 43 of 43.
 
 ## t1 – Fonts: styles, variable axes, instances, axis animation, SVG, picker, reload.
 
@@ -67,7 +67,7 @@ Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
 - same: migrated styles – ["Poppins Regular", "Poppins Bold"]
 - same: migrated settings – {"fit": "block", "stretch": true, "baseSlot is 2nd style": true, "picks": {"a": ["200",...
 - same: default style – [["Default"], "Poppins Bold"]
-- same within run-to-run variation: screen saver preview – ref vs ref: 1136 px differ by up to 10/255; ref vs new: 1136 px by up to 10/255
+- same within run-to-run variation: screen saver preview – ref vs ref: 1136 px differ by up to 10/255; ref vs new: 0 px by up to 0/255
 - differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
 - differs on purpose: screen saver HTML (file name) – Tempo 0.3 names the file after the screen saver, not Rubato's text
 - differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
@@ -80,7 +80,7 @@ Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
 
 ## t4 – Screen saver panels, digit roll timing, looks mode, Windows + Mac exports.
 
-- same: saver cards – ["Fonts", "Screensaver", "Clock", "Numerals", "Change", "Position", "Colour", "Export"]
+- differs on purpose: saver cards – Tempo 0.4 puts the Screensaver card (The time or In words) first
 - differs on purpose: Screensaver panel – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral) – covered by tempo_check.py
 - same: roll at 150 ms – 89876 bytes, sha256 de0eb35f5350
 - same: roll at 450 ms – 94219 bytes, sha256 a5fb685ba7b0
@@ -114,3 +114,4 @@ Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
 - same: Windows zip (file name) – Poppins screen saver for Windows.zip
 
 **All results match.**
+

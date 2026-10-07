@@ -6,7 +6,7 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 |---|---|---|
 | **Tutti** 6.0 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
 | **Rubato** 1.0 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
-| **Tempo** 0.3 | A clock screen saver for Mac and Windows, set in your own typefaces – as figures, or the time written out in words, with other fonts mixed in if you like | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
+| **Tempo** 0.4 | A clock screen saver for Mac and Windows, set in your own typefaces – as figures, or the time written out in words, with other fonts mixed in if you like | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 

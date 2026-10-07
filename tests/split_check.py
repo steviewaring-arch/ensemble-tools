@@ -77,6 +77,7 @@ def main():
         pg.locator('#panel textarea').first.fill('Changed in Rubato'); time.sleep(.6)
         pg.goto(base + 'docs/tempo/'); time.sleep(1.5); pg.evaluate(expand)
         check('A font added in Rubato later stays in Rubato', names() == ['Poppins Regular', 'Poppins Bold'], json.dumps(names()))
+        pg.get_by_role('button', name='Details – Poppins Bold').click(); time.sleep(.3)  # Remove sits under the name from 0.4
         pg.get_by_role('button', name='Remove Poppins Bold').click(); time.sleep(.6)
         _, cfg2 = export()
         check("Rubato's later changes don't reach Tempo's export", 'Changed in Rubato' not in json.dumps(cfg2) and len(cfg2['fonts']) == 1)

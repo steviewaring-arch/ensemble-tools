@@ -41,6 +41,7 @@
   .pill.small{font-size:0.8rem;color:var(--muted);padding:6px 12px}
   .pill.small:hover{color:var(--ink)}
   .pill[aria-pressed="true"],.pill.primary{background:var(--fill-ink);color:var(--on-ink);border-color:var(--fill-ink)}
+  .pill[aria-pressed="true"]:hover{background:var(--fill-ink);color:var(--on-ink)}
   .pill.primary:hover{opacity:.9;background:var(--fill-ink)}
   .pill:disabled{opacity:.4;cursor:default}
   .pill:focus-visible,.toggle:focus-visible,.tab:focus-visible,.lane:focus-visible,.tile:focus-visible{outline:2px solid var(--focus);outline-offset:2px}

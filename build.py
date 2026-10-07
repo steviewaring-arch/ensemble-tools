@@ -47,7 +47,7 @@ APPS = {
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo — by Ensemble', version='0.3',
+        title='Tempo — by Ensemble', version='0.4',
         body='tempo/app.html',
         tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
                 ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js')],
@@ -106,6 +106,23 @@ def main():
         ok = check_scripts(name, html) and ok
         write(f'{name}/index.html', html)
         print(f'{name} {cfg["version"]}: docs/{name}/index.html ({len(html.encode()) // 1024} KB)')
+    # Tempo's built-in fonts: whatever tempo/fonts/fonts.json lists, served next to
+    # the app and loaded when switched on. Only fonts cleared to publish go here –
+    # everything in docs/ is public.
+    out = os.path.join(DOCS, 'tempo/fonts')
+    shutil.rmtree(out, ignore_errors=True)
+    man = os.path.join(ROOT, 'tempo/fonts/fonts.json')
+    listed = []
+    if os.path.exists(man):
+        import json
+        listed = json.load(open(man, encoding='utf-8')).get('fonts', [])
+        os.makedirs(out)
+        for f in listed:
+            shutil.copyfile(os.path.join(ROOT, 'tempo/fonts', f['file']), os.path.join(out, f['file']))
+        shutil.copyfile(man, os.path.join(out, 'fonts.json'))
+    else:
+        write('tempo/fonts/fonts.json', '{"fonts":[]}\n')
+    print(f'tempo fonts: {len(listed)} built in')
     os.makedirs(os.path.join(DOCS, 'tutti'), exist_ok=True)
     shutil.copyfile(os.path.join(ROOT, 'tutti/index.html'), os.path.join(DOCS, 'tutti/index.html'))
     print('tutti: docs/tutti/index.html (copied unchanged)')

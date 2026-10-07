@@ -11,16 +11,16 @@ function tempoKeys(){const gone=['ssShape','ssEvery','ssShuffle','ssReseed','ssS
    shared/core.js, so Rubato is untouched.
    ssW… the time in words. ssM… how display faces mix into the words, ssN… into
    the numerals of the time. ssVer marks settings already moved up to 0.3. */
-function tempoDefaults(){return{ssVer:3,
+function tempoDefaults(){return{ssVer:4,
   ssWLead:true,ssWH24:false,ssWTime:true,ssWSecs:true,ssWWeekday:true,ssWDayNum:true,ssWMonth:true,ssWYear:true,ssWStop:false,
-  ssWCase:'sentence',ssWNum:'words',ssWSep:'stop',ssWHi:'time',
+  ssWCase:'sentence',ssWNumTime:'words',ssWNumSec:'words',ssWNumDate:'words',ssWNumYear:'words',ssWZero:'oh',ssWSep:'stop',ssWHi:'time',
   ssWLayout:'para',ssWFit:false,ssWSize:5,ssWLeading:1,ssWTracking:-20,ssWSpace:100,ssWMeasure:100,ssWOptical:true,ssWAlign:'left',ssWVAlign:'top',ssWMargin:2.5,
   ssWChange:'roll',ssWBy:'word',ssWFeel:'smooth',ssWLen:.6,ssWGlide:true,
   ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWDateCol:'#F7C6AA',ssWRotate:false,ssName:'',
   ssMMode:'parts',ssMLead:'base',ssMTime:'base',ssMSec:'base',ssMWeekday:'base',ssMDay:'base',ssMMonth:'base',ssMYear:'base',
-  ssMWhen:'change',ssMEach:false,ssMLittle:true,ssMMatch:true,
+  ssMWhen:'change',ssMEach:false,ssMLittle:true,ssMMatch:true,ssMOrder:'shuffle',ssMAmount:.5,
   ssNMode:'parts',ssNH1:'base',ssNH2:'base',ssNM1:'base',ssNM2:'base',ssNS1:'base',ssNS2:'base',ssNLine2:'base',
-  ssNWhen:'change',ssNEach:false,ssNMatch:true};}
+  ssNWhen:'change',ssNEach:false,ssNMatch:true,ssNOrder:'shuffle',ssNAmount:.5};}
 /* (called by shared/core.js before this file's consts exist, so it uses none) */
 function loadSettings(){
   Object.assign(D,tempoDefaults());
@@ -30,12 +30,15 @@ function loadSettings(){
     localStorage.setItem('tempo:own','1');}}catch(e){}
   const raw=LS.get('settings')||{},own=sanitise(raw),s=fresh();
   for(const k of tempoKeys())if(k in own)s[k]=own[k];
-  if(raw.ssVer!==3)upgrade(s,raw);
+  if((raw.ssVer||0)<4)upgrade(s,raw);
   s.tab='saver';return s;
 }
 /* Settings saved by 0.1 and 0.2, made sense of in 0.3 */
 function upgrade(s,raw){
-  s.ssVer=3;
+  s.ssVer=4;
+  /* 0.4: words or figures part by part */
+  if(raw.ssWNum==='figures')s.ssWNumTime=s.ssWNumSec=s.ssWNumDate=s.ssWNumYear='figures';
+  if((raw.ssVer||0)>=3)return;
   const was=raw.ssShow;
   s.ssShow=was==='words'||was==='mixed'?'words':'clock';/* Saved looks has gone; Mixed type is part of In words */
   if(was==='mixed'){if(typeof raw.ssMBase==='string'&&raw.ssMBase)s.baseSlot=raw.ssMBase;}/* Mixed type's base face is the core font */
@@ -69,15 +72,19 @@ Object.assign(TIPS,{
   ssWLayout:'Paragraph fills each line. Stacked sets one phrase to a line.',ssWFit:'Fit sizes the type so the longest sentence these settings can make fills the screen, so it never changes size. Or set the size yourself.',
   ssWSpace:'Space between words, as a share of the typeface’s own word space.',ssWOptical:'Lines up the ink of each line’s first letter on the margin, rather than its side bearing.',
   ssName:'What the screen saver is called on the computer. Give each variant its own name, or they replace each other when installed.',
-  ssWCase:'Sentence case capitalises the first word, the day and the month.',ssWNum:'Write numbers out in words, or set them as figures.',
+  ssWCase:'Sentence case capitalises the first word, the day and the month.',
   ssWSep:'What sits between hours and minutes when they’re figures.',ssWHi:'Which words stand out. Latest change follows whatever changed last. Each part gives the time and the date their own colours. Display faces colours the words set in a face other than the core.',
   ssWSize:'Type size, as a share of the screen width.',ssWLeading:'Distance between lines, as a multiple of the type size.',ssWTracking:'Space between letters, for the core font. Each font’s own tracking is in Fonts.',
   ssWMeasure:'How far across the screen a line can run before it breaks.',ssWMargin:'Space kept clear around the edge.',
   ssWChange:'How a word changes. Type backspaces and retypes only the letters that differ.',ssWBy:'Change whole words, or only the letters that differ when a word keeps its length.',
   ssWFeel:'Snappy is fast with a crisp stop. Smooth eases. Elastic overshoots.',ssWLen:'How long each change takes.',
   ssWGlide:'Words that stay slide to their new place as the line reflows. Off: they jump.',ssWRotate:'Changes theme on the hour.',
-  ssMMode:'How the other fonts come into the words. Each part: set every part of the sentence to the core font, a font of its own, or Shuffle. Latest change: whatever just changed arrives in another font and goes back at the next change. One part at a time: a single part stands out, moving on as set below.',
-  ssNMode:'How the other fonts come into the numerals. Each numeral: set every figure to the core font, a font of its own, or Shuffle. Latest change: the figures that just changed arrive in another font. One numeral at a time: a single figure stands out, moving on as set below.',
+  ssWNumTime:'The time in words (eleven forty seven) or figures (11.47pm).',ssWNumSec:'Seconds in words or figures.',ssWNumDate:'The date in words (the twenty eighth) or figures (28th, or 28 before the month).',ssWNumYear:'The year in words or figures.',
+  ssWZero:'How a 0 is said: nine oh five, or nine zero five.',
+  ssMOrder:'Shuffled: any other font, never the same twice running. In turn: through the fonts in order.',ssNOrder:'Shuffled: any other font, never the same twice running. In turn: through the fonts in order.',
+  ssMAmount:'How often a part that changes comes in another font – from the odd one to all of them.',ssNAmount:'How often a numeral that changes comes in another font – from the odd one to all of them.',
+  ssMMode:'How the other fonts come into the words. Each part: set every part of the sentence to the core font, a font of its own, or Shuffle. Latest change: whatever just changed arrives in another font and goes back at the next change. One at a time: a single part stands out, moving on as set below. A few at random: parts that change sometimes come in another font.',
+  ssNMode:'How the other fonts come into the numerals. Each numeral: set every figure to the core font, a font of its own, or Shuffle. Latest change: the figures that just changed arrive in another font. One at a time: a single figure stands out, moving on as set below. A few at random: figures that change sometimes come in another font – the odd one, or all.',
   ssMWhen:'When a shuffled part (or the one standing out) takes a new font: whenever its words change, or on the minute or the hour.',
   ssNWhen:'When a shuffled numeral (or the one standing out) takes a new font: whenever it changes, or on the minute or the hour.',
   ssMEach:'Gives every word its own font, rather than one font for the whole part.',ssNEach:'Gives every numeral that changes its own font, rather than one for all of them.',
@@ -97,22 +104,86 @@ const PALETTES=[
 const clk=s=>s.ssShow!=='words',wd=s=>s.ssShow==='words';
 
 /* ---------------- Fonts: the core font, the others mixed in ---------------- */
-/* Each row of the Fonts card (shared/core.js draws the rest): use as core,
-   shuffle in, and the font's own tracking. */
+/* Sub-sections that fold inside a card. Open or shut is remembered. */
+const FOLDS=Object.assign({},LS.get('folds')||{});
+function fold(parent,id,title,show,shut){
+  const box=el('div'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');head.type='button';
+  head.style.cssText='display:flex;width:100%;align-items:center;justify-content:space-between;background:none;border:0;border-top:1px solid var(--keyline);padding:14px 0 12px;margin:2px 0 10px;color:var(--muted);font-size:0.85rem;cursor:pointer;text-align:left';
+  const open=FOLDS[id]!=null?FOLDS[id]:!shut,paint=o=>{body.hidden=!o;chev.textContent=o?'–':'+';head.setAttribute('aria-expanded',o);};paint(open);
+  head.onclick=()=>{const o=body.hidden;FOLDS[id]=o;LS.set('folds',FOLDS);paint(o);};
+  head.append(label,chev);box.append(head,body);addCustom(parent,show||null,box);return body;}
+const openRows=new Set();/* font rows showing their details */
+/* Fonts served with Tempo: tempo/fonts/fonts.json (only fonts cleared to publish) */
+let BUILTIN=[];
+const builtinsP=fetch('fonts/fonts.json').then(r=>r.ok?r.json():null).then(j=>{BUILTIN=(j&&j.fonts)||[];refreshFontCard();}).catch(()=>{});
+const fileOf=st=>(files.get(st.fid)||{}).fileName;
+const toggleEl=(label,on,fn)=>{const t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',on);t.setAttribute('aria-label',label);t.append(el('span','box'));t.style.cssText='width:auto;margin:0 0 0 6px;flex:none';t.onclick=fn;return t;};
+/* switch a font on or off – off keeps it in the list but out of everything */
+function fontOnOff(st,on){st.off=!on;
+  if(!on&&eng.baseSlot()===st.id){const next=styles.find(s=>!s.off&&s!==st);S.baseSlot=next?next.id:'';}
+  sortFonts();saveStyles();applyStyles();autosave();}
+/* Each row of the Fonts card (shared/core.js draws the name and Remove):
+   on or off, use as core, and – folded under the name – shuffle in, the font's
+   own tracking, and Remove. */
 function appFontRow(st,row,top,rm){
-  const multi=styles.length>1,isCore=eng.baseSlot()===st.id,name=st.face.name;
-  const sw=(label,on,tip,fn)=>{const w=el('div','toggle-row'),t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',on);t.setAttribute('aria-label',label+' – '+name);
-    t.append(el('span','box'),el('span',null,label));t.onclick=fn;w.append(t,qMark({label,tip}));row.append(w);return t;};
-  if(multi)sw('Use as core',isCore,'The core font carries the time and the sentence. The others mix in – see Mixing below.',()=>{if(!isCore){set('baseSlot',st.id);refreshFontCard();}});
-  if(multi&&!isCore)sw('Shuffle in',st.swap!==false,'Shuffle and the changing options pick from the fonts with this on.',()=>{st.swap=!(st.swap!==false);saveStyles();pushFaces();refreshFontCard();refreshAll();});
+  const on=!st.off,live=styles.filter(s=>!s.off),isCore=on&&eng.baseSlot()===st.id,name=st.face.name,multi=live.length>1,trk=TRACKS[st.id]||0;
+  const main=top.querySelector('.slot-main'),meta=top.querySelector('.slot-meta'),nm=top.querySelector('.slot-name');
+  meta.textContent=[!on?'Off':isCore?'Core':st.swap!==false?'In the mix':'Not in the mix',trk?'tracking '+(trk>0?'+':'')+trk:''].filter(Boolean).join(' · ');
+  if(!on)row.style.opacity='.55';
+  if(on&&multi){const c=el('button','pill small',isCore?'Core':'Use as core');c.setAttribute('aria-pressed',isCore);c.setAttribute('aria-label','Use as core – '+name);
+    c.title='The core font carries the time and the sentence. The others mix in.';c.onclick=()=>{if(!isCore){S.baseSlot=st.id;sortFonts();saveStyles();set('baseSlot',st.id);applyStyles();}};top.insertBefore(c,rm);}
+  top.insertBefore(toggleEl('On – '+name,on,()=>fontOnOff(st,!on)),rm);rm.remove();
+  /* the details, folded under the name */
+  const det=el('div');det.hidden=!openRows.has(st.id);det.style.paddingTop='8px';
+  const chev=el('span','chev',det.hidden?'+':'\u2013');chev.style.cssText='flex:none;padding:0 6px;color:var(--muted);cursor:pointer';chev.onclick=()=>main.onclick();top.insertBefore(chev,main.nextSibling);main.style.cursor='pointer';main.setAttribute('role','button');main.setAttribute('aria-label','Details – '+name);main.tabIndex=0;
+  main.onclick=()=>{if(openRows.has(st.id))openRows.delete(st.id);else openRows.add(st.id);refreshFontCard();};
+  main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();main.onclick();}};
+  if(on&&multi&&!isCore){const w=el('div','toggle-row'),t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',st.swap!==false);t.setAttribute('aria-label','Shuffle in – '+name);
+    t.append(el('span','box'),el('span',null,'Shuffle in'));t.onclick=()=>{st.swap=!(st.swap!==false);saveStyles();pushFaces();refreshFontCard();refreshAll();};
+    w.append(t,qMark({label:'Shuffle in',tip:'Shuffle, In turn, Latest change, One at a time and A few at random pick from the fonts with this on.'}));det.append(w);}
   /* tracking for this font, wherever it's used */
-  const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,'Tracking'),val=el('span','val'),inp=el('input');w.style.marginTop='12px';
+  const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,'Tracking'),val=el('span','val'),inp=el('input');
   inp.type='range';inp.min=-100;inp.max=200;inp.step=1;inp.id='trk_'+st.id;lb.htmlFor=inp.id;lb.title='Double-click to reset';inp.setAttribute('aria-label','Tracking – '+name);
   const show=v=>{val.textContent=(v>0?'+':'')+Math.round(v);};
   const put=v=>{if(v)TRACKS[st.id]=v;else delete TRACKS[st.id];LS.set('tracks',TRACKS);ssDirty=true;show(v);};
-  inp.value=TRACKS[st.id]||0;show(+inp.value);inp.oninput=()=>put(+inp.value);lb.ondblclick=()=>{inp.value=0;put(0);};
-  hd.append(lb,qMark({label:'Tracking',tip:'This font’s own letter spacing, wherever it’s used – for a display face drawn too tight or too loose. The tracking under Type and Clock tightens the core font on top of this.'}),val);w.append(hd,inp);row.append(w);
+  inp.value=trk;show(trk);inp.oninput=()=>put(+inp.value);inp.onchange=()=>refreshFontCard();lb.ondblclick=()=>{inp.value=0;put(0);refreshFontCard();};
+  hd.append(lb,qMark({label:'Tracking',tip:'This font’s own letter spacing, wherever it’s used – for a display face drawn too tight or too loose. The tracking under Type and Clock tightens the core font on top of this.'}),val);w.append(hd,inp);det.append(w);
+  const r=el('div','ctl btn-row');rm.textContent='Remove';r.append(rm);det.append(r);
+  row.append(det);return det;
 }
+/* built-in fonts not loaded yet, after the rows */
+function appFontList(list){
+  const have=new Set(styles.map(fileOf));
+  for(const bf of BUILTIN){if(have.has(bf.file))continue;
+    const row=el('div','slot'),top=el('div','slot-top'),main=el('div','slot-main');row.style.opacity='.55';
+    main.append(el('div','slot-name',bf.name||bf.file),el('div','slot-meta','Built in · off'));top.append(main);
+    const t=toggleEl('On – '+(bf.name||bf.file),false,()=>loadBuiltin(bf,true));top.append(t);row.append(top);list.append(row);}
+}
+async function loadBuiltin(bf,on){
+  try{const r=await fetch('fonts/'+encodeURIComponent(bf.file));if(!r.ok)throw new Error(r.status);
+    await loadFiles([new File([await r.arrayBuffer()],bf.file)]);appFontsLoaded([],{fonts:[Object.assign({},bf,{on,core:on&&bf.core})]});}
+  catch(e){toast(`Couldn’t load ${bf.name||bf.file}.`);}}
+/* A font pack (a .zip) can carry tempo-fonts.json: {fonts:[{file, on, core,
+   shuffle, tracking}]} – which fonts start on, the core, which shuffle in and
+   each one's tracking. Built-in fonts use the same fields. */
+function appFontsLoaded(added,manifest){
+  const list=(manifest&&manifest.fonts)||[];if(!list.length)return;
+  let core=null;
+  for(const m of list){const st=styles.find(s=>fileOf(s)===m.file);if(!st)continue;
+    st.off=m.on===false;if(m.shuffle!=null)st.swap=m.shuffle!==false;
+    if(typeof m.tracking==='number'){if(m.tracking)TRACKS[st.id]=m.tracking;else delete TRACKS[st.id];}
+    if(m.core&&m.on!==false)core=st.id;}
+  LS.set('tracks',TRACKS);if(core){S.baseSlot=core;autosave();}sortFonts();saveStyles();applyStyles();
+}
+/* the list: the core font, then the others switched on, then those off, each A to Z */
+function sortFonts(){const bs=S.baseSlot,rank=x=>x.id===bs&&!x.off?0:x.off?2:1;
+  styles.sort((a,b)=>rank(a)-rank(b)||a.face.name.localeCompare(b.face.name));}
+/* the first time Tempo opens, the built-in fonts marked on come on */
+function appFontsRestored(){builtinsP.then(async()=>{if(LS.get('builtins'))return;
+  const want=BUILTIN.filter(b=>b.on!==false&&!styles.some(s=>fileOf(s)===b.file));const bufs=[];
+  for(const bf of want){try{const r=await fetch('fonts/'+encodeURIComponent(bf.file));if(r.ok)bufs.push(new File([await r.arrayBuffer()],bf.file));}catch(e){}}
+  if(bufs.length){await loadFiles(bufs);appFontsLoaded([],{fonts:BUILTIN});}
+  if(bufs.length===want.length)LS.set('builtins',1);/* only once they're all in */});}
 /* Mixing: how the other fonts come in, under the font list */
 function addSelect(parent,d){
   const w=el('div','colour-row'),lb=el('label',null,d.label),sel=el('select');sel.id='c_'+d.k;lb.htmlFor=sel.id;d.group=d.group||curGroup;
@@ -122,53 +193,60 @@ function addSelect(parent,d){
   const c={d,w,update(){const opts=d.optsFn();const ns=JSON.stringify(opts);if(ns!==sig){sig=ns;sel.textContent='';opts.forEach(([v,t])=>{const o=el('option',null,t);o.value=v;sel.append(o);});}
     const v=S[d.k];sel.value=opts.some(o=>o[0]===v)?v:(opts[0]||[])[0];}};controls.push(c);return c;}
 const faceOpts=()=>anyLoaded()?eng.faceList().map(({id,face})=>[id,face.name]):[['d1','Demo regular'],['d2','Demo heavy']];
-const partOpts=()=>[['base','Core']].concat(faceOpts().filter(o=>o[0]!==baseSlot())).concat([['shuffle','Shuffle']]);
+const partOpts=order=>()=>[['base','Core']].concat(faceOpts().filter(o=>o[0]!==baseSlot())).concat([['shuffle',S[order]==='turn'?'In turn':'Shuffle']]);
 const canMix=()=>!anyLoaded()||eng.faceList().length>1;
 const poolN=()=>anyLoaded()?eng.faceList().filter(x=>x.swap&&x.id!==baseSlot()).length:1;
 const M_PARTS=[['ssMLead','It is','ssWLead'],['ssMTime','Time','ssWTime'],['ssMSec','Seconds','ssWSecs'],['ssMWeekday','Day','ssWWeekday'],['ssMDay','Date','ssWDayNum'],['ssMMonth','Month','ssWMonth'],['ssMYear','Year','ssWYear']];
 const N_PARTS=[['ssNH1','Hours, tens',s=>true],['ssNH2','Hours, units',s=>true],['ssNM1','Minutes, tens',s=>true],['ssNM2','Minutes, units',s=>true],
   ['ssNS1','Seconds, tens',s=>s.ssSecs],['ssNS2','Seconds, units',s=>s.ssSecs],['ssNLine2','Second line',s=>s.ssLine2!=='none']];
 const wShuffles=s=>M_PARTS.some(([k,,on])=>s[on]&&s[k]==='shuffle'),nShuffles=s=>N_PARTS.some(([k,,on])=>on(s)&&s[k]==='shuffle');
-{const b=fontList.parentElement,mixW=s=>wd(s)&&canMix(),mixN=s=>clk(s)&&canMix();
-  addCustom(b,()=>canMix(),el('div','sub-head','Mixing'));
-  addHint(b,'Load a second font to mix it into the core one.',()=>!canMix());
+const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
+{const b0=fontList.parentElement,mixW=s=>wd(s)&&canMix(),mixN=s=>clk(s)&&canMix();
+  addHint(b0,'A .zip of fonts works too – any already in the list are skipped. Switch a font off to keep it for later; click its name for its tracking and more.');
+  addHint(b0,'Load a second font to mix it into the core one.',()=>!canMix());
+  const b=fold(b0,'mixing','Mixing',()=>canMix());
   /* the words */
-  build(b,[{t:'seg',k:'ssMMode',label:'Other fonts come in',opts:[['parts','Each part'],['latest','Latest change'],['one','One part at a time']],show:mixW}]);
-  for(const [k,label,on] of M_PARTS){const c=addSelect(b,{k,label,optsFn:partOpts});c.d.show=s=>mixW(s)&&s.ssMMode==='parts'&&s[on]&&(k!=='ssMSec'||s.ssWTime);}
+  build(b,[{t:'seg',k:'ssMMode',label:'Other fonts come in',opts:[['parts','Each part'],['latest','Latest change'],['one','One at a time'],['some','A few at random']],show:mixW}]);
+  for(const [k,label,on] of M_PARTS){const c=addSelect(b,{k,label,optsFn:partOpts('ssMOrder')});c.d.show=s=>mixW(s)&&s.ssMMode==='parts'&&s[on]&&(k!=='ssMSec'||s.ssWTime);}
   build(b,[
-    {t:'seg',k:'ssMWhen',label:'New font',opts:[['change','When it changes'],['minute','Every minute'],['hour','Every hour']],show:s=>mixW(s)&&s.ssMMode==='parts'&&wShuffles(s)},
+    {t:'range',k:'ssMAmount',label:'How many',min:.05,max:1,step:.05,fmt:howMany,show:s=>mixW(s)&&s.ssMMode==='some'},
+    {t:'seg',k:'ssMOrder',label:'Fonts come',opts:[['shuffle','Shuffled'],['turn','In turn']],show:s=>mixW(s)&&(s.ssMMode!=='parts'||wShuffles(s))},
+    {t:'seg',k:'ssMWhen',label:'New font',opts:[['change','When it changes'],['minute','Every minute'],['hour','Every hour']],show:s=>mixW(s)&&((s.ssMMode==='parts'&&wShuffles(s))||s.ssMMode==='some')},
     {t:'seg',k:'ssMWhen',label:'Move on',opts:[['change','Each change'],['minute','Every minute'],['hour','Every hour']],show:s=>mixW(s)&&s.ssMMode==='one'},
     {t:'toggle',k:'ssMEach',label:'A font for each word',show:s=>mixW(s)&&(s.ssMMode!=='parts'||wShuffles(s))},
     {t:'toggle',k:'ssMLittle',label:'Little words stay in the core font',show:mixW},
     {t:'toggle',k:'ssMMatch',label:'Match cap heights',show:mixW},
   ]);
   /* the numerals */
-  build(b,[{t:'seg',k:'ssNMode',label:'Other fonts come in',opts:[['parts','Each numeral'],['latest','Latest change'],['one','One at a time']],show:mixN}]);
-  for(const [k,label,on] of N_PARTS){const c=addSelect(b,{k,label,optsFn:partOpts});c.d.show=s=>mixN(s)&&s.ssNMode==='parts'&&on(s);}
+  build(b,[{t:'seg',k:'ssNMode',label:'Other fonts come in',opts:[['parts','Each numeral'],['latest','Latest change'],['one','One at a time'],['some','A few at random']],show:mixN}]);
+  for(const [k,label,on] of N_PARTS){const c=addSelect(b,{k,label,optsFn:partOpts('ssNOrder')});c.d.show=s=>mixN(s)&&s.ssNMode==='parts'&&on(s);}
   build(b,[
-    {t:'seg',k:'ssNWhen',label:'New font',opts:[['change','When it changes'],['minute','Every minute'],['hour','Every hour']],show:s=>mixN(s)&&s.ssNMode==='parts'&&nShuffles(s)},
+    {t:'range',k:'ssNAmount',label:'How many',min:.05,max:1,step:.05,fmt:howMany,show:s=>mixN(s)&&s.ssNMode==='some'},
+    {t:'seg',k:'ssNOrder',label:'Fonts come',opts:[['shuffle','Shuffled'],['turn','In turn']],show:s=>mixN(s)&&(s.ssNMode!=='parts'||nShuffles(s))},
+    {t:'seg',k:'ssNWhen',label:'New font',opts:[['change','When it changes'],['minute','Every minute'],['hour','Every hour']],show:s=>mixN(s)&&((s.ssNMode==='parts'&&nShuffles(s))||s.ssNMode==='some')},
     {t:'seg',k:'ssNWhen',label:'Move on',opts:[['change','Each change'],['minute','Every minute'],['hour','Every hour']],show:s=>mixN(s)&&s.ssNMode==='one'},
-    {t:'toggle',k:'ssNEach',label:'A font for each numeral',show:s=>mixN(s)&&s.ssNMode!=='parts'},
+    {t:'toggle',k:'ssNEach',label:'A font for each numeral',show:s=>mixN(s)&&(s.ssNMode==='latest'||s.ssNMode==='one')},
     {t:'toggle',k:'ssNMatch',label:'Match cap heights',show:mixN},
-    {t:'hint',text:'Shuffle, Latest change and One at a time pick from the fonts with Shuffle in on.',show:s=>canMix()&&poolN()>0},
-    {t:'hint',text:'Switch on Shuffle in for a font or two to shuffle.',show:s=>canMix()&&poolN()===0},
+    {t:'hint',text:'The other fonts come from those with Shuffle in on (under each font’s name). Cap heights and line spacing follow the core font.',show:s=>canMix()&&poolN()>0},
+    {t:'hint',text:'Switch on Shuffle in for a font or two to mix.',show:s=>canMix()&&poolN()===0},
   ]);
 }
 /* Show */
 {const b=card('ss-show','Screensaver',null,'saver');
   build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words']]}]);
+  panel.insertBefore(b.parentElement,panel.firstChild);/* the first choice: the time in figures or in words */
 }
 /* In words: curated looks – starting points for the screen savers Ensemble ships.
    Each sets the whole of In words, mixing included; anything can be changed
    afterwards. Which fonts mix in is up to what's loaded in Fonts. */
 const W_PARTS={ssWLead:true,ssWTime:true,ssWSecs:true,ssWWeekday:true,ssWDayNum:true,ssWMonth:true,ssWYear:true,ssWStop:false};
-const W_SET={ssWCase:'sentence',ssWNum:'words',ssWSep:'stop',ssWH24:false,ssWHi:'time',ssWLayout:'para',ssWFit:false,ssWSize:5,ssWLeading:1,ssWTracking:-20,ssWSpace:100,
+const W_SET={ssWCase:'sentence',ssWNumTime:'words',ssWNumSec:'words',ssWNumDate:'words',ssWNumYear:'words',ssWZero:'oh',ssWSep:'stop',ssWH24:false,ssWHi:'time',ssWLayout:'para',ssWFit:false,ssWSize:5,ssWLeading:1,ssWTracking:-20,ssWSpace:100,
   ssWMeasure:100,ssWOptical:true,ssWAlign:'left',ssWVAlign:'top',ssWMargin:2.5,ssWChange:'roll',ssWBy:'word',ssWFeel:'smooth',ssWLen:.6,ssWGlide:true,ssWRotate:false,
-  ssMMode:'parts',ssMLead:'base',ssMTime:'base',ssMSec:'base',ssMWeekday:'base',ssMDay:'base',ssMMonth:'base',ssMYear:'base',ssMWhen:'change',ssMEach:false,ssMLittle:true,ssMMatch:true};
+  ssMMode:'parts',ssMLead:'base',ssMTime:'base',ssMSec:'base',ssMWeekday:'base',ssMDay:'base',ssMMonth:'base',ssMYear:'base',ssMWhen:'change',ssMEach:false,ssMLittle:true,ssMMatch:true,ssMOrder:'shuffle',ssMAmount:.5};
 const C_APRICOT={ssWBg:'#FFFFFF',ssWInk:'#181818',ssWSoft:'#FDA072',ssWDateCol:'#F7C6AA'},C_RED={ssWBg:'#FFFFFF',ssWInk:'#FF3B1F',ssWSoft:'#181818',ssWDateCol:'#8C8C8C'},
   C_PAPER={ssWBg:'#F2F2F2',ssWInk:'#000000',ssWSoft:'#B4B4B4',ssWDateCol:'#6E6E6E'},
   C_SIGNAL={ssWBg:'#FF4F1F',ssWInk:'#000000',ssWSoft:'#FFFFFF',ssWDateCol:'#FFD3C4'},C_UV={ssWBg:'#5B23F0',ssWInk:'#FFF35C',ssWSoft:'#A98BFF',ssWDateCol:'#FFFFFF'},
-  C_ACID={ssWBg:'#D5D7D6',ssWInk:'#F7FD70',ssWSoft:'#F7FD70',ssWDateCol:'#F7FD70'};
+  C_ACID={ssWBg:'#D5D7D6',ssWInk:'#F7FD70',ssWSoft:'#F7FD70',ssWDateCol:'#F7FD70'},C_NIGHT={ssWBg:'#000000',ssWInk:'#FFFFFF',ssWSoft:'#6E6E6E',ssWDateCol:'#8C8C8C'};
 const WORD_LOOKS=[
   {name:'Reference',s:Object.assign({},W_PARTS,W_SET,C_APRICOT)},
   {name:'Stack',s:Object.assign({},W_PARTS,W_SET,C_RED,{ssWLayout:'stack',ssWFit:true,ssWLeading:.92,ssWTracking:-30,ssWSpace:85,ssWMargin:4,ssWFeel:'snappy',ssWLen:.5})},
@@ -182,12 +260,22 @@ const WORD_LOOKS=[
   {name:'Latest',s:Object.assign({},W_PARTS,W_SET,C_RED,{ssWHi:'faces',ssWFit:true,ssWLeading:1.02,ssWMargin:3,ssWFeel:'snappy',ssWLen:.45,ssMMode:'latest'})},
   {name:'Medley',s:Object.assign({},W_PARTS,W_SET,C_UV,{ssWSecs:false,ssWHi:'none',ssWLayout:'stack',ssWFit:true,ssWLeading:.92,ssWTracking:-10,ssWSpace:90,ssWMargin:4,ssWLen:.7,
     ssMLead:'shuffle',ssMTime:'shuffle',ssMWeekday:'shuffle',ssMDay:'shuffle',ssMMonth:'shuffle',ssMYear:'shuffle',ssMEach:true,ssMWhen:'minute'})},
+  /* Lazaar, where it all started: the time and the day in Lazaar, the rest in the core font. Fonts are
+     named, and found among the fonts switched on; if one isn't there, that part shuffles instead. */
+  {name:'Lazaar',s:Object.assign({},W_PARTS,W_SET,C_NIGHT,{ssWSecs:false,ssWHi:'faces',ssWLayout:'stack',ssWFit:true,ssWLeading:.94,ssWTracking:-10,ssWSpace:90,ssWMargin:4,ssWFeel:'snappy',ssWLen:.6}),
+    fonts:{ssMTime:['Lazaar Block','Lazaar'],ssMWeekday:['Lazaar Soft','Lazaar'],ssMMonth:['Lazaar Soft','Lazaar']}},
 ];
-const currentLook=()=>WORD_LOOKS.find(L=>Object.keys(L.s).every(k=>String(S[k]).toLowerCase()===String(L.s[k]).toLowerCase()));
+/* a look's named fonts, found among the fonts switched on (whole name first, then family) */
+function fontNamed(names){const fl=eng.faceList(),lc=x=>String(x||'').toLowerCase();
+  for(const n of names){const f=fl.find(x=>lc(x.face.name)===lc(n))||fl.find(x=>lc(x.face.family)===lc(n));if(f&&f.id!==baseSlot())return f.id;}return null;}
+function applyLook(L){const ks=Object.keys(L.s);ks.forEach(k=>{S[k]=L.s[k];});
+  for(const k in (L.fonts||{}))S[k]=fontNamed(L.fonts[k])||'shuffle';
+  set(ks[0],L.s[ks[0]]);}
+const currentLook=()=>WORD_LOOKS.find(L=>Object.keys(L.s).every(k=>(L.fonts&&k in L.fonts)||String(S[k]).toLowerCase()===String(L.s[k]).toLowerCase()));
 {const b=card('ss-wlooks','Looks',wd,'saver');
-  addHint(b,'Starting points for the screen savers you ship. Social, Latest and Medley mix in the other fonts loaded in Fonts.');
+  addHint(b,'Starting points for the screen savers you ship. Social, Latest, Medley and Lazaar mix in the other fonts switched on in Fonts.');
   const row=el('div','ctl btn-row');row.setAttribute('role','group');row.setAttribute('aria-label','Looks');addCustom(b,null,row);
-  const ps=WORD_LOOKS.map(L=>{const p=el('button','pill small',L.name);p.onclick=()=>{const ks=Object.keys(L.s);ks.forEach(k=>{S[k]=L.s[k];});set(ks[0],L.s[ks[0]]);};row.append(p);return[L,p];});
+  const ps=WORD_LOOKS.map(L=>{const p=el('button','pill small',L.name);p.onclick=()=>applyLook(L);row.append(p);return[L,p];});
   controls.push({d:{},w:row,update(){const c=currentLook();ps.forEach(([L,p])=>p.setAttribute('aria-pressed',c===L));}});
 }
 /* In words: what the sentence says */
@@ -203,17 +291,28 @@ const currentLook=()=>WORD_LOOKS.find(L=>Object.keys(L.s).every(k=>String(S[k]).
     {t:'hint',text:'Nothing to show. Switch on at least one part.',show:s=>!(s.ssWTime||s.ssWWeekday||s.ssWDayNum||s.ssWMonth||s.ssWYear)},
     {t:'hint',text:'Always this computer’s own time and date, wherever the screen saver is installed.'},
   ]);
+  /* each part with a number in it: written out, or in figures */
+  const F=s=>s.ssWTime||s.ssWDayNum||s.ssWYear,WF=[['words','Words'],['figures','Figures']];
+  const f=fold(b,'w-figures','Words or figures',F);
+  build(f,[
+    {t:'seg',k:'ssWNumTime',label:'Time',opts:WF,show:s=>s.ssWTime},
+    {t:'seg',k:'ssWNumSec',label:'Seconds',opts:WF,show:s=>s.ssWTime&&s.ssWSecs},
+    {t:'seg',k:'ssWNumDate',label:'Date',opts:WF,show:s=>s.ssWDayNum},
+    {t:'seg',k:'ssWNumYear',label:'Year',opts:WF,show:s=>s.ssWYear},
+    {t:'seg',k:'ssWSep',label:'Separator',opts:[['stop','Full stop'],['colon','Colon']],show:s=>s.ssWTime&&s.ssWNumTime==='figures'},
+    {t:'seg',k:'ssWZero',label:'Say 0 as',opts:[['oh','Oh'],['zero','Zero']],show:s=>(s.ssWTime&&s.ssWNumTime==='words')||(s.ssWYear&&s.ssWNumYear==='words')},
+  ]);
 }
 /* In words: how it's set */
 {const b=card('ss-wtype','Type',wd,'saver');
   build(b,[
     {t:'seg',k:'ssWCase',label:'Case',opts:[['sentence','Sentence case'],['lower','lower case'],['upper','CAPITALS']]},
-    {t:'seg',k:'ssWNum',label:'Numbers',opts:[['words','Words'],['figures','Figures']]},
-    {t:'seg',k:'ssWSep',label:'Separator',opts:[['stop','Full stop'],['colon','Colon']],show:s=>s.ssWNum==='figures'},
     {t:'seg',k:'ssWHi',label:'Highlight',opts:[['time','The time'],['latest','Latest change'],['parts','Each part'],['faces','Display faces'],['none','Nothing']]},
     {t:'seg',k:'ssWLayout',label:'Layout',opts:[['para','Paragraph'],['stack','Stacked']]},
     {t:'seg',k:'ssWFit',label:'Size',opts:[[true,'Fit the screen'],[false,'Set size']]},
     {t:'range',k:'ssWSize',label:'Type size',min:1.5,max:30,step:.1,fmt:v=>roundTo(v,.1)+'% of width',show:s=>!s.ssWFit},
+  ]);
+  build(fold(b,'w-spacing','Spacing'),[
     {t:'range',k:'ssWLeading',label:'Line spacing',min:.75,max:1.8,step:.01,fmt:v=>v.toFixed(2)},
     {t:'range',k:'ssWTracking',label:'Tracking',min:-100,max:200,step:1,fmt:v=>(v>0?'+':'')+Math.round(v)},
     {t:'range',k:'ssWSpace',label:'Word spacing',min:40,max:160,step:1,fmt:v=>Math.round(v)+'%'},
@@ -284,8 +383,9 @@ const currentLook=()=>WORD_LOOKS.find(L=>Object.keys(L.s).every(k=>String(S[k]).
   const themeRow=el('div','ctl btn-row');addCustom(b,s=>s.ssRotate==='off',themeRow);
   const lab=i=>s=>s.ssColBy==='type'?['Numerals','Punctuation','Letters','Spare'][i]:s.ssColBy==='single'?'Type':s.ssColBy==='line'?'Line '+(i+1):'Colour '+(i+1);
   const manual=s=>s.ssRotate==='off';
-  build(b,[
-    {t:'seg',k:'ssColBy',label:'Colour by',opts:[['type','Character type'],['letter','Each letter'],['line','Line'],['random','Random'],['single','One colour']]},
+  build(b,[{t:'seg',k:'ssColBy',label:'Colour by',opts:[['type','Character type'],['letter','Each letter'],['line','Line'],['random','Random'],['single','One colour']]}]);
+  const cf=fold(b,'c-colours','Your colours',manual);
+  build(cf,[
     {t:'colour',k:'ssBg',label:'Background',show:manual},
     {t:'colour',k:'ssP1',labelFn:lab(0),label:'Colour 1',show:manual},
     {t:'colour',k:'ssP2',labelFn:lab(1),label:'Colour 2',show:s=>manual(s)&&s.ssColBy!=='single'},
@@ -293,7 +393,7 @@ const currentLook=()=>WORD_LOOKS.find(L=>Object.keys(L.s).every(k=>String(S[k]).
     {t:'colour',k:'ssP4',labelFn:lab(3),label:'Colour 4',show:s=>manual(s)&&s.ssColBy!=='single'&&s.ssColBy!=='type'},
   ]);
   const saveRow=el('div','ctl btn-row');const tn=el('input');tn.type='text';tn.placeholder='Name this theme';tn.setAttribute('aria-label','Theme name');tn.style.flex='1';
-  const ts=el('button','pill small primary','Save theme');saveRow.append(tn,ts);addCustom(b,manual,saveRow);
+  const ts=el('button','pill small primary','Save theme');saveRow.append(tn,ts);addCustom(cf,manual,saveRow);
   const mine=el('div','preset-list');addCustom(b,null,mine);
   build(b,[{t:'seg',k:'ssRotate',label:'Rotate themes every hour',opts:[['off','Off'],['all','All themes'],['mine','My themes']]}]);
   const apply=T=>{S.ssBg=T.bg;[S.ssP1,S.ssP2,S.ssP3,S.ssP4]=T.p;set('ssRotate','off');};
@@ -320,12 +420,12 @@ const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','
   const row=el('div','ctl btn-row');addCustom(b,s=>!s.ssWRotate,row);
   const same=T=>W_COLS.every(([k,t])=>String(T[t]).toLowerCase()===String(S[k]).toLowerCase());
   const fixed=s=>!s.ssWRotate;
-  build(b,[
+  build(b,[{t:'toggle',k:'ssWRotate',label:'Change theme every hour'}]);
+  build(fold(b,'w-colours','Your colours',fixed),[
     {t:'colour',k:'ssWBg',label:'Background',show:fixed},
     {t:'colour',k:'ssWInk',label:'Highlight',labelFn:s=>s.ssWHi==='faces'?'Display faces':s.ssWHi==='time'||s.ssWHi==='parts'?'The time':s.ssWHi==='latest'?'Latest change':'Type',show:fixed},
     {t:'colour',k:'ssWDateCol',label:'The date',show:s=>fixed(s)&&s.ssWHi==='parts'},
     {t:'colour',k:'ssWSoft',label:'Everything else',show:s=>fixed(s)&&s.ssWHi!=='none'},
-    {t:'toggle',k:'ssWRotate',label:'Change theme every hour'},
   ]);
   const paint=()=>{row.textContent='';WORD_THEMES.forEach(T=>{const p=el('button','pill small',T.name);p.setAttribute('aria-pressed',same(T));
     p.onclick=()=>{W_COLS.forEach(([k,t])=>{S[k]=T[t];});set('ssWRotate',false);};row.append(p);});};
@@ -367,16 +467,16 @@ function saverConfig(){
   return{show:wd(S)?'words':'clock',
     clock:{h24:S.ssH24,sep:SEPS[S.ssSep]||',',secs:S.ssSecs,zero:S.ssZero,ampm:true,line2:S.ssLine2,caps:S.ssCaps,
       change:S.ssChange,feel:S.ssFeel,len:S.ssLen,align:S.ssAlign,valign:S.ssVAlign,size:S.ssSize,margin:S.ssMargin,tabular:S.ssTabular,tracking:S.ssTracking,leading:S.ssLeading,move:S.ssMove,pulse:S.ssPulse,alt:S.ssAlt,altRate:S.ssAltRate,
-      mixed:{mode:S.ssNMode,parts:{h1:S.ssNH1,h2:S.ssNH2,m1:S.ssNM1,m2:S.ssNM2,s1:S.ssNS1,s2:S.ssNS2,line2:S.ssNLine2},when:S.ssNWhen,each:S.ssNEach,match:S.ssNMatch}},
+      mixed:{mode:S.ssNMode,parts:{h1:S.ssNH1,h2:S.ssNH2,m1:S.ssNM1,m2:S.ssNM2,s1:S.ssNS1,s2:S.ssNS2,line2:S.ssNLine2},when:S.ssNWhen,each:S.ssNEach,match:S.ssNMatch,order:S.ssNOrder,amount:S.ssNAmount}},
     colours:{by:S.ssColBy,bg:S.ssBg,p:[S.ssP1,S.ssP2,S.ssP3,S.ssP4],cycle:S.ssRotate!=='off'&&pals.length>0},palettes:pals,
     base,drift:S.ssDrift,tracks:tracksNow(),
     /* only when showing words */
     ...(wd(S)?{words:{lead:S.ssWLead,h24:S.ssWH24,time:S.ssWTime,secs:S.ssWSecs,weekday:S.ssWWeekday,daynum:S.ssWDayNum,month:S.ssWMonth,year:S.ssWYear,
-      stop:S.ssWStop,case:S.ssWCase,num:S.ssWNum,sep:S.ssWSep,layout:S.ssWLayout,fit:S.ssWFit,space:S.ssWSpace,optical:S.ssWOptical,dateCol:S.ssWDateCol,
+      stop:S.ssWStop,case:S.ssWCase,nums:{time:S.ssWNumTime,sec:S.ssWNumSec,date:S.ssWNumDate,year:S.ssWNumYear},zero:S.ssWZero,sep:S.ssWSep,layout:S.ssWLayout,fit:S.ssWFit,space:S.ssWSpace,optical:S.ssWOptical,dateCol:S.ssWDateCol,
       hi:S.ssWHi,size:S.ssWSize,leading:S.ssWLeading,tracking:S.ssWTracking,measure:S.ssWMeasure,align:S.ssWAlign,valign:S.ssWVAlign,margin:S.ssWMargin,
       change:S.ssWChange,by:S.ssWBy,feel:S.ssWFeel,len:S.ssWLen,glide:S.ssWGlide,bg:S.ssWBg,ink:S.ssWInk,soft:S.ssWSoft,rotate:S.ssWRotate,themes:WORD_THEMES,
       mixed:{mode:S.ssMMode,parts:{lead:S.ssMLead,time:S.ssMTime,sec:S.ssMSec,weekday:S.ssMWeekday,day:S.ssMDay,month:S.ssMMonth,year:S.ssMYear},
-        when:S.ssMWhen,each:S.ssMEach,little:S.ssMLittle,match:S.ssMMatch}}}:{})};
+        when:S.ssMWhen,each:S.ssMEach,little:S.ssMLittle,match:S.ssMMatch,order:S.ssMOrder,amount:S.ssMAmount}}}:{})};
 }
 
 function saverChars(cfg){

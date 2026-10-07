@@ -330,7 +330,7 @@ ON_PURPOSE = {
     ('t2', 'randomised (within limits, R key)'): RUBATO10, ('t2', 'settings after R'): RUBATO10, ('t2', 'randomise options'): RUBATO10,
     ('t3', 'screen saver HTML'): TEMPO03, ('t3', 'screen saver HTML (file name)'): 'Tempo 0.3 names the file after the screen saver, not Rubato\'s text',
     ('t3', 'Mac zip'): TEMPO03,
-    ('t4', 'Screensaver panel'): TEMPO03, ('t4', 'looks cards'): 'Saved looks left Tempo in 0.3',
+    ('t4', 'Screensaver panel'): TEMPO03, ('t4', 'saver cards'): 'Tempo 0.4 puts the Screensaver card (The time or In words) first', ('t4', 'looks cards'): 'Saved looks left Tempo in 0.3',
     ('t4', 'drift visible in looks'): 'Saved looks left Tempo in 0.3', ('t4', 'Screensaver panel, saved looks'): 'Saved looks left Tempo in 0.3',
     ('t4', 'Windows zip'): TEMPO03, ('t4', 'Mac zip'): TEMPO03,
     ('t5', 'screen saver HTML'): TEMPO03, ('t5', 'screen saver HTML (file name)'): 'Tempo 0.3 names the file after the screen saver, not Rubato\'s text',

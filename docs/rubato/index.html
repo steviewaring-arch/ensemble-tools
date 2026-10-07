@@ -72,6 +72,7 @@
   .pill.small{font-size:0.8rem;color:var(--muted);padding:6px 12px}
   .pill.small:hover{color:var(--ink)}
   .pill[aria-pressed="true"],.pill.primary{background:var(--fill-ink);color:var(--on-ink);border-color:var(--fill-ink)}
+  .pill[aria-pressed="true"]:hover{background:var(--fill-ink);color:var(--on-ink)}
   .pill.primary:hover{opacity:.9;background:var(--fill-ink)}
   .pill:disabled{opacity:.4;cursor:default}
   .pill:focus-visible,.toggle:focus-visible,.tab:focus-visible,.lane:focus-visible,.tile:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
@@ -899,7 +900,11 @@ const APP='rubato';
      appStart()          first paint, once every card exists
    Optional: appFontRow(style,row,top,removeButton) – an app that defines it
    draws its own controls on each row of the Fonts card in place of Rubato's
-   Default / Use and "Use in style swaps".
+   Default / Use and "Use in style swaps"; it may return the element a variable
+   font's axis controls go in. appFontList(list) – add to the list after the
+   rows. appFontsLoaded(newStyles,manifest) – after fonts are added (manifest:
+   the JSON file found in a .zip of fonts, if any). appFontsRestored() – once
+   the saved fonts are back after a reload.
 */
 /* ---------------- settings ---------------- */
 const D={texts:['Lazaar'],seq:false,tracking:0,leading:1.05,
@@ -1023,23 +1028,50 @@ const DB=fontStore(APP==='rubato'?'rubato':APP);
 const files=new Map();let styles=[],faceVer=0;
 const newId=()=>Math.random().toString(36).slice(2,8);
 let saveStylesT=0;
-function saveStyles(){clearTimeout(saveStylesT);saveStylesT=setTimeout(()=>DB.put('styles',styles.map(s=>({id:s.id,fid:s.fid,coords:s.coords||null,swap:s.swap!==false}))),250);}
-function pushFaces(){eng.setFaces(styles.map(s=>({id:s.id,face:s.face,swap:s.swap!==false})));faceVer++;optCache.clear();dirty=true;}
+/* a style can be switched off (kept, but not used); only Tempo does that */
+function saveStyles(){clearTimeout(saveStylesT);saveStylesT=setTimeout(()=>DB.put('styles',styles.map(s=>{const o={id:s.id,fid:s.fid,coords:s.coords||null,swap:s.swap!==false};if(s.off)o.off=true;return o;})),250);}
+function pushFaces(){eng.setFaces(styles.filter(s=>!s.off).map(s=>({id:s.id,face:s.face,swap:s.swap!==false})));faceVer++;optCache.clear();dirty=true;}
 function applyStyles(){pushFaces();fontsChanged();}
+/* a .zip, read in the browser: [{name,data}] (stored and deflated entries) */
+async function unzip(ab){const u=new Uint8Array(ab),dv=new DataView(ab),td=new TextDecoder();let e=u.length-22;while(e>=0&&dv.getUint32(e,true)!==0x06054b50)e--;if(e<0)throw new Error('not a zip');
+  const n=dv.getUint16(e+10,true);let p=dv.getUint32(e+16,true);const out=[];
+  for(let i=0;i<n;i++){if(dv.getUint32(p,true)!==0x02014b50)break;
+    const meth=dv.getUint16(p+10,true),csz=dv.getUint32(p+20,true),nl=dv.getUint16(p+28,true),xl=dv.getUint16(p+30,true),cl=dv.getUint16(p+32,true),lo=dv.getUint32(p+42,true);
+    const name=td.decode(u.subarray(p+46,p+46+nl));p+=46+nl+xl+cl;if(name.endsWith('/'))continue;
+    const start=lo+30+dv.getUint16(lo+26,true)+dv.getUint16(lo+28,true),raw=u.subarray(start,start+csz);
+    let data=null;if(meth===0)data=raw.slice();else if(meth===8&&window.DecompressionStream)data=new Uint8Array(await new Response(new Blob([raw]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    if(data)out.push({name,data});}
+  return out;}
+/* Fonts from files, or from a .zip of them. A font already loaded (same family
+   and style) is skipped, as are a zip's Mac '._' files and anything in it that
+   isn't an OTF, TTF or WOFF with outlines. */
 async function loadFiles(list){
   if(!window.opentype){toast("The font reader didn't load. Check your connection and reload.");return;}
-  const got=[];
+  const flat=[];let manifest=null,skipped=0,dupes=0;
   for(const f of list){
+    if(!/\.zip$/i.test(f.name)){flat.push(f);continue;}
+    let ents=[];try{ents=await unzip(await f.arrayBuffer());}catch(e){toast(`Couldn't open ${f.name}.`);continue;}
+    for(const z of ents){const base=z.name.split('/').pop();if(!base||base.startsWith('.')||/(^|\/)__MACOSX\//.test(z.name))continue;
+      if(/\.json$/i.test(base)){try{manifest=JSON.parse(new TextDecoder().decode(z.data));}catch(e){}continue;}
+      if(!z.data.length||!/\.(otf|ttf|woff)$/i.test(base)){skipped++;continue;}
+      flat.push({name:base,inZip:true,arrayBuffer:async()=>z.data.buffer.slice(z.data.byteOffset,z.data.byteOffset+z.data.byteLength)});}}
+  const got=[],seen=new Set(styles.filter(s=>!s.coords).map(s=>{const r=files.get(s.fid);return r?(r.family+'|'+r.sub).toLowerCase():'';}));
+  for(const f of flat){
     if(/\.woff2$/i.test(f.name)){toast(`${f.name}: WOFF2 isn't supported. Use the OTF or TTF.`);continue;}
-    try{const buf=await f.arrayBuffer();got.push({rec:parseFile(buf,f.name),buf,name:f.name});}catch(e){console.error(e);toast(`Couldn't read ${f.name}. Use an OTF, TTF or WOFF file.`);}
+    try{const buf=await f.arrayBuffer(),rec=parseFile(buf,f.name),key=(rec.family+'|'+rec.sub).toLowerCase();
+      if(seen.has(key)){dupes++;continue;}seen.add(key);got.push({rec,buf,name:f.name});}
+    catch(e){console.error(e);if(f.inZip)skipped++;else toast(`Couldn't read ${f.name}. Use an OTF, TTF or WOFF file.`);}
   }
-  if(!got.length)return;
+  const left=[dupes?`${dupes} already loaded`:'',skipped?`${skipped} with no outlines to use`:''].filter(Boolean).join(', ');
+  if(!got.length){if(left)toast(`Nothing new – ${left}.`);if(manifest&&typeof appFontsLoaded==='function')appFontsLoaded([],manifest);return;}
   got.sort((a,b)=>a.rec.weightClass-b.rec.weightClass);
+  const added=[];
   for(const g of got){const fid=newId();files.set(fid,g.rec);await DB.put('file:'+fid,{name:g.name,buf:g.buf});
-    const st={id:newId(),fid,coords:null,swap:true};st.face=makeFace(g.rec,null);styles.push(st);}
+    const st={id:newId(),fid,coords:null,swap:true};st.face=makeFace(g.rec,null);styles.push(st);added.push(st);}
   saveStyles();applyStyles();
+  if(typeof appFontsLoaded==='function')appFontsLoaded(added,manifest);
   const v=got.filter(g=>g.rec.axes.length).length;
-  toast(got.length===1?`${got[0].rec.family}${v?' (variable)':''} added`:`${got.length} fonts added`);
+  toast((got.length===1?`${got[0].rec.family}${v?' (variable)':''} added`:`${got.length} fonts added`)+(left?` – skipped ${left}`:''));
 }
 function removeStyle(id){
   const st=styles.find(s=>s.id===id);if(!st)return;styles=styles.filter(s=>s!==st);
@@ -1075,6 +1107,7 @@ async function restoreFonts(){
   }
   const im=await DB.get('image');if(im&&im.blob)setImage(im.blob,im.name,true);
   applyStyles();
+  if(typeof appFontsRestored==='function')appFontsRestored();
 }
 
 /* ---------------- image layer ---------------- */
@@ -1191,13 +1224,15 @@ function refreshFontCard(){
       def.onclick=()=>{set('baseSlot',st.id);refreshFontCard();};top.append(def);}
     const rm=el('button','pill small','Remove');rm.setAttribute('aria-label','Remove '+f.name);rm.onclick=()=>removeStyle(st.id);top.append(rm);
     row.append(top);
-    if(own)appFontRow(st,row,top,rm);
+    let axBox=null;
+    if(own)axBox=appFontRow(st,row,top,rm);
     else if(multi){const w=el('div','toggle-row'),t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',st.swap!==false);t.append(el('span','box'),el('span',null,'Use in style swaps'));
       t.onclick=()=>{st.swap=!(st.swap!==false);t.setAttribute('aria-checked',st.swap);saveStyles();pushFaces();schedulePicker(0);refreshNotes();};
       w.append(t,qMark({label:'Use in style swaps',tip:'When Variants is set to Styles or Both, letters can change into this style. Untick to leave it out.'}));row.append(w);}
-    if(f.axes.length)row.append(axisControls(st));
+    if(f.axes.length)(axBox||row).append(axisControls(st));
     fontList.append(row);
   });
+  if(typeof appFontList==='function')appFontList(fontList);
   fontNote.textContent=!window.opentype?"The font reader didn't load, so only the demo face is available. Check your connection and reload."
     :!styles.length?'Showing a demo face. Add as many weights or families as you like, including variable fonts. They stay in this browser.'
     :'Drop more fonts here. A variable font can be added again at different settings with + Another instance.';
