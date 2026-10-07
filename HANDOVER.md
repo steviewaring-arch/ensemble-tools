@@ -1,4 +1,4 @@
-# Ensemble Tools – handover (7 October 2026, updated for Rubato 1.0 and Tempo 0.4)
+# Ensemble Tools – handover (7 October 2026, updated for Rubato 1.0 and Tempo 0.5)
 
 Read this and `README.md` before changing anything. Tutti's own notes are in `tutti/HANDOVER.md`.
 
@@ -6,7 +6,7 @@ Read this and `README.md` before changing anything. Tutti's own notes are in `tu
 - **Repo:** `ensemble-tools` – source of truth for Rubato, Tempo and Tutti.
 - **Live:** https://steviewaring-arch.github.io/ensemble-tools/ – GitHub Pages from `docs/` on `main`. Each push to `main` redeploys in a minute or two.
 - **Last combined app:** `reference/rubato-0.8.1.html` – byte-identical to the v0.8.1 Claude artifact (rechecked 6 October against the live artifact). Kept so the parity tests have something to compare against. Don't edit it.
-- **Versions:** Rubato 1.0, Tempo 0.4, Tutti 6.0. Rubato 0.9 is still live at /rubato/0.9/ (`archive/rubato-0.9.html`).
+- **Versions:** Rubato 1.0, Tempo 0.5, Tutti 6.0. Rubato 0.9 is still live at /rubato/0.9/ (`archive/rubato-0.9.html`).
 
 ## What changed in the split
 Rubato 0.8.1 was one app with two tabs. It's now two apps on one shared core:
@@ -42,7 +42,7 @@ Everything is per browser and per site. From Tempo 0.3 each app keeps to its own
 | `rubato:rand`, `rubato:collapsed`, `rubato:theme`, `rubato:panelW`, `rubato:more` | Rubato | `more` remembers which More folds are open (1.0). |
 | `rubato-0.9:…` | Rubato 0.9, archived | Reads `rubato:` the first time, then keeps its own, so opening 0.9 never overwrites 1.0's settings. |
 | IndexedDB `rubato` › `fonts` | Rubato | Font files, styles and the image. |
-| `tempo:settings` | Tempo | The screen saver settings (`ss…`: the time, `ssW…` the words, `ssM…` mixing into the words, `ssN…` mixing into the numerals, `ssVer` – 3 once 0.2's settings have been moved up) and the core font (`baseSlot`). |
+| `tempo:settings` | Tempo | The screen saver settings (`ss…`: the time, `ssW…` the words, `ssM…` mixing into the words, `ssN…` mixing into the numerals, `ssDial…` the dial, `ssVer` – 4 once earlier versions' settings have been moved up) and the core font (`baseSlot`). Saved 300 ms after a change, or as the page closes. |
 | `tempo:tracks` | Tempo | Each font's own tracking, by style id. |
 | `tempo:themes`, `tempo:collapsed`, `tempo:theme`, `tempo:panelW` | Tempo | |
 | `tempo:own` | Tempo | Set once 0.3 has copied whatever earlier versions left only under `rubato:` (settings, themes, light/dark, panel width). |
@@ -105,13 +105,20 @@ Rules:
 - **Code:** `loadFiles()` in `shared/core.js` reads zips (`unzip()`), skips fonts already loaded by family and style, and hands a zip's JSON to `appFontsLoaded()`. Tempo's rows are `appFontRow()`, built-in rows `appFontList()`, first-run built-ins `appFontsRestored()`, the order `sortFonts()`. Mixing gained `order` ('shuffle' | 'turn', `pickFace()` in `saver.js`) and the mode 'some' with `amount`. Words take `nums:{time,sec,date,year}` and `zero`. Looks may name fonts (`fonts:` in `WORD_LOOKS`, resolved by `fontNamed()`). Folds: `fold()` in `tempo/app.js`.
 - **Fit and wide fonts:** Fit leaves room for the widest font any word or numeral could take, so one very wide face in the shuffle makes everything smaller. Keep such faces out of the shuffle and pick them for a part instead.
 
+## Tempo 0.5: the dial
+- **Steve (7 Oct):** a third Show option, As a dial – no type, variants on his two drawings (rays from a space in the middle with red hands; ticks in from the edge with cyan, apricot and pink hands): colour, transition, detail, key line weights, “real Braun level minimalism”. Also: add his 16,00 grab (grey, acid yellow, a dark comma) as a colour theme with a time name, drop Ultraviolet, remove Looks, and word the panel so it could be public.
+- **Code:** `dialFrame()` in `tempo/saver.js` – plain canvas lines, no engine. `dMarks()` lists every mark (minute, kind, from and to, or a dot's radius); `dHands()` says where each hand points from the local time, with the milliseconds, so nothing is kept between frames (sweep, tick, stop at 12 in 58.5 s; glide or step; `dEase()` for Snappy, Smooth, Elastic – a damped spring). The trail redraws the marks the second hand has passed in its colour. Weights are thousandths of the radius, so a dial looks the same at any size. Config: `dial:{face, detail, hole, tick, ring, line, key, hand, secs, secMove, minMove, feel, len, trail, tails, centre, size, colours:{bg,min,hour,quarter,handH,handM,handS}, rotate, themes}`; exports bake no fonts. Panel: Face and Hands cards, Size under Position, a Colour card with `DIAL_THEMES`, in `tempo/app.js`.
+- **Hands per face** (share of the radius – hour, minute, second): rays .36/.66/.99, ticks .5/.79/1, dots .5/.78/.9, hands only .5/.8/.95. Rays: hours run to 60 % of the way out from the middle space, quarters 26 %. Ticks: hours 3× the tick length, quarters 5×.
+- **Noon** is `#D3D5D5` / `#F4FD5F` / `#1E2023`, sampled from the grab. Tempo's defaults open The time in Noon; saved colours are untouched. `tests/parity.py` sets 0.8.1's colours before it compares Tempo's frames.
+- **Looks** (and `fontNamed`, `applyLook`) are gone; the nine looks' settings are in git history (`tempo/app.js` at 0.4, `WORD_LOOKS`) if any become one of the shipped screen savers.
+
 ## Tests
-- `tests/parity.py` – the six v0.8.1 handover tests (`tests/legacy/`), rewritten to drive both the reference and the new apps with randomness and the clock pinned. Compares 87 results: canvas frames, SVG/PNG/GIF, screen saver HTML, Mac and Windows zips, panel text, storage. Results that differ on purpose are named with the reason in `ON_PURPOSE` (Rubato 1.0's panel, tips and Randomise; Tempo 0.3's exports and panel) and everything else must match. Last run (`tests/PARITY-REPORT.md`, 7 October, Tempo 0.4): 64 byte-identical, 1 live-preview frame within 0.8.1's own run-to-run variation, 22 on purpose; Rubato's results identical to a run on `main` before Tempo 0.3.
+- `tests/parity.py` – the six v0.8.1 handover tests (`tests/legacy/`), rewritten to drive both the reference and the new apps with randomness and the clock pinned. Compares 87 results: canvas frames, SVG/PNG/GIF, screen saver HTML, Mac and Windows zips, panel text, storage. Results that differ on purpose are named with the reason in `ON_PURPOSE` (Rubato 1.0's panel, tips and Randomise; Tempo 0.3's exports and panel) and everything else must match. Tempo opens in Noon from 0.5, so the run sets 0.8.1's colours before comparing Tempo's frames. Last run (`tests/PARITY-REPORT.md`, 7 October, Tempo 0.5): 65 byte-identical, 22 on purpose (the live preview can also land within 0.8.1's own run-to-run variation); Rubato's results identical to a run on `main` before Tempo 0.3.
 - Script-level check (6 October): the engine, saver runtime and Windows host blocks in the built Tempo and Rubato are byte-identical to 0.8.1's. The Mac packager block is one trailing newline shorter (`build.py` trims it); nothing reads that block as text, and the Mac zips still match byte for byte.
 - `tests/split_check.py` – 15 checks that Rubato and Tempo are kept apart (from Tempo 0.3): fonts and v0.8.1 settings come over once, then nothing done in one reaches the other.
 - `tests/rubato_regress.py` – Rubato 1.0 against the archived 0.9: 14 looks covering every 0.9 feature, six points in the loop each plus SVG and PNG. Last run: all byte-identical, and the kerning control case differed as it should.
 - `tests/rubato_features.py` – 43 checks on 1.0's new features, including seamless loops. Last run: 43 of 43.
-- `tests/tempo_check.py` – Tempo: the font library (zip packs, duplicates, a pack's settings, on and off, built-in fonts), in turn and a few at random, words or figures and zero or oh, folds, the preview at the screen's shape, nothing of Rubato in the panel or exports, Tempo naming in all three exports, the time in words (sentences at pinned moments with parts on and off, line breaks across 200 random layouts, Stacked, Fit holding one size all year, optical margin, the eight looks, export names, every change style, exported page draws the same frame, the same export in New York shows New York's time), other fonts mixed into the words (each part, shuffle never repeating, every hour holding, latest change, one part at a time, a font per word, Fit allowing for the widest font), Use as core, each font's tracking, a font for each numeral (each numeral, shuffle, latest change, one at a time, exported page draws the same), and 0.2's and 0.3's settings carried over. Last run: 80 of 80.
+- `tests/tempo_check.py` – Tempo: the font library (zip packs, duplicates, a pack's settings, on and off, built-in fonts), in turn and a few at random, words or figures and zero or oh, folds, the preview at the screen's shape, nothing of Rubato in the panel or exports, Tempo naming in all three exports, the time in words (sentences at pinned moments with parts on and off, line breaks across 200 random layouts, Stacked, Fit holding one size all year, optical margin, export names, every change style, exported page draws the same frame, the same export in New York shows New York's time), other fonts mixed into the words (each part, shuffle never repeating, every hour holding, latest change, one part at a time, a font per word, Fit allowing for the widest font), Use as core, each font's tracking, a font for each numeral (each numeral, shuffle, latest change, one at a time, exported page draws the same), 0.2's and 0.3's settings carried over, and the dial (cards, export without fonts, the hands for each way of moving, every face and detail, trail, ring, weights, themes on the hour, the exported page drawing the same frame, Mac and Windows exports, settings remembered). Last run: 94 of 94.
 - Not tested: video recording (real-time MediaRecorder, not comparable byte for byte), the Windows `.scr` on a real PC, the Mac `.saver` on a real Mac since Tempo 0.2 (the packager is unchanged; 0.1's bytes matched 0.8.1, which Steve confirmed works), Adobe Fonts loading (blocked in the test browser), the one-time copy of fonts on Steve's own browser (tested with fresh stores).
 
 ## Known limits (carried over)
@@ -120,12 +127,12 @@ Rules:
 - Variable fonts: TrueType (gvar) tested with Lora; CFF2 untested. Axis animation doesn't carry into screen saver exports.
 
 ## To do
-1. Steve to try Tempo 0.4 with the font pack: which ways of mixing to keep (each part, latest change, one at a time, a few at random; shuffled or in turn), in the words and the numerals, and curate the half-dozen screen savers. Decide which fonts, if any, are built in publicly (Lazaar?) – and, for the screen savers Ensemble ships, whether each font's licence allows its outlines inside a distributed file.
+1. Steve to try Tempo 0.5's dial – which faces, movements and themes to keep, and what else the Braun-minimal direction wants (see the dial ideas below). Tempo 0.4 with the font pack: which ways of mixing to keep (each part, latest change, one at a time, a few at random; shuffled or in turn), in the words and the numerals, and curate the half-dozen screen savers. Decide which fonts, if any, are built in publicly (Lazaar?) – and, for the screen savers Ensemble ships, whether each font's licence allows its outlines inside a distributed file.
 2. Steve to curate Rubato's built-in presets (the twelve are placeholders) and do a cut pass on the panel.
 3. Test the Windows `.scr` on a real PC, and a 0.3 Mac `.saver` on a real Mac.
 4. **Steve's list for Tempo (6 Oct), still to do:**
    - Clock, second line: weekday and date together; the ordinal ending (6th) on or off; time, day and date over several lines; an optional GMT / time zone label.
-   - In words looks: only Reference is liked so far – rework the rest (Night and Spotlight dropped 7 Oct).
+   - Looks removed in 0.5 (the panel is the settings); the shipped screen savers will be curated as saved settings or exports instead.
    - A third screen saver kind alongside The time and In words: time as data – minutes left in the year, seconds through the day, percentages.
    - Preload a few fonts grounded by a plain Swiss face in the spirit of ABC Diatype (Diatype is commercial – check the licence covers outlines in a distributed screen saver).
    **Steve to come back to: fonts for the screen saver.** Which faces ship, and whether their licences allow their outlines inside a distributed screen saver (Steve's own faces avoid the question; Adobe Fonts faces such as Aktiv Grotesk can't be loaded into Tempo as files anyway).
@@ -136,6 +143,12 @@ Rules:
 6. Tutti onto the shared tokens and UI kit (see `tutti/HANDOVER.md`).
 7. Develop each app in its own chat, from this repo.
 8. Rubato, noted for later: physics per letter (blocks only in 1.0); Lottie export; transparent WebM / PNG sequence; more kinetic tricks and refinements to the three; a trick per block; dragging destinations on the canvas; Sequence and Repeat with blocks; preloaded / Google Fonts; a layers panel; anonymous analytics with an opt-in gallery. Full list in the Project doc `claude/rubato-next.md`.
+
+## Dial ideas not built yet (0.5)
+- Hand shapes: tapered or rounded ends, a counterweight on the second hand, a ring at the centre instead of a dot.
+- Marks: numerals or a single 12 (would bring type back), a second ring inside, a 24-hour dial, a minute track of dashes.
+- Movement: the face turning instead of the hands, marks drawing in when the screen saver starts, a theme cross-fading on the hour rather than switching.
+- Two dials (another time zone) – out of scope while the screen saver shows only the computer's own time.
 
 ## Rebuilding the Windows host
 ```

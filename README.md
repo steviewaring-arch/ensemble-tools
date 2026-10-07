@@ -6,7 +6,7 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 |---|---|---|
 | **Tutti** 6.0 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
 | **Rubato** 1.0 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
-| **Tempo** 0.4 | A clock screen saver for Mac and Windows, set in your own typefaces – as figures, or the time written out in words, with other fonts mixed in if you like | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
+| **Tempo** 0.5 | A clock screen saver for Mac and Windows – the time in your own typefaces, as figures or written out in words with other fonts mixed in, or as a dial with no type at all | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
@@ -29,7 +29,7 @@ rubato/        engine.js (Rubato's type engine: blocks, physics, kerning, Jitter
                controls.js (steppers, dials, range pair, loop bar, path pad, More folds)
                stage.js (kerning on the preview, physics guides, preset tiles)
                app.js (cards, picker, randomise, presets), export.js, app.html, app.css
-tempo/         engine.js (Tempo's type engine), app.html, app.js (screen saver cards and exports), saver.js (clock and words runtime)
+tempo/         engine.js (Tempo's type engine), app.html, app.js (screen saver cards and exports), saver.js (clock, words and dial runtime)
   mac/             Mac .saver packager (WebViewScreenSaver, Apache 2.0)
   win/             Windows .scr host – C source, built .exe, and its base64 copy (host.js)
 tutti/         index.html – Tutti 6.0, unchanged
@@ -65,7 +65,7 @@ Then:
 ```
 python3 tests/parity.py        # Rubato and Tempo against v0.8.1 – writes tests/out/report.md
 python3 tests/split_check.py   # Rubato and Tempo kept apart
-python3 tests/tempo_check.py   # Tempo: the time in words, fonts mixed in, tracking per font, preview, exports
+python3 tests/tempo_check.py   # Tempo: the time in words, fonts mixed in, tracking per font, the dial, preview, exports
 python3 tests/rubato_regress.py   # Rubato 1.0 draws exactly what 0.9 drew, for 0.9's settings
 python3 tests/rubato_features.py  # Rubato 1.0's new features
 python3 tests/decentish_check.py  # Decentish logic and voice, all sources faked

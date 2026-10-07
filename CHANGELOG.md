@@ -1,5 +1,20 @@
 # Changelog
 
+## 7 October 2026 – Tempo 0.5
+
+**Tempo 0.5** – a dial, a Noon colour theme, no more Looks.
+- **As a dial**, a third option under Show, after Steve's two drawings: no type, only lines. **Marks:** Rays (running out from a space in the middle, hours and quarters standing out nearer the centre), Ticks (running in from the edge – minutes short, hours longer, quarters almost to the middle), Dots, or Hands only. **Detail:** minutes, hours or quarters. **Line weight** for the minute marks, the hours and quarters, and the hands, each on its own. An outer ring, tails, a centre dot.
+- **How the hands move:** the second hand sweeps, ticks, or goes round in 58.5 seconds and waits at 12 for the minute, like a station clock; the minute hand glides or steps on the minute, and the hour hand follows it. A hand that jumps lands Snappy, Smooth or Elastic (springs past and settles), over a length you set. **Marks follow the second hand:** they light up in its colour as it passes – filling the minute, or fading behind it.
+- **Colour:** Paper (the red-handed drawing), Dawn (cyan, apricot and pink hands, after the other), Noon, Night (white hands, a yellow second hand) and Signal, or your own colours for the background, the minute, hour and quarter marks and each hand. Change theme every hour works as it does for the time and the words. **Size** and **Drift** under Position.
+- A dial carries no fonts: the export is small (about 70 KB), named **Tempo Dial** unless you type a name, and Fonts steps aside while the dial is showing.
+- **Noon:** the pale grey, acid yellow and near-black of Steve's 16,00 grab – numerals yellow, the comma dark. The first theme for The time and what it opens in; in the words it replaces Acid (the time yellow, the rest dark). **Ultraviolet** has gone from both. Colours already chosen stay as they were.
+- **Looks are gone** from In words – the panel is the settings themselves. Exports are named after the core font unless you type a name.
+- Wording for anyone to use: Display faces is now **Other fonts**; Rotate themes every hour is **Change theme every hour**, as it is elsewhere; the page title takes an en dash, and the site's front page says Tempo does words and a dial too.
+- A change made just before the page closes is saved (it used to wait 300 ms).
+- Tests: `tests/tempo_check.py` 94 of 94 (new: the dial's cards, export, where the hands point for each way of moving – sweep, tick, elastic, stop at 12, step – every face and detail, trail, ring, weights, themes on the hour, the exported page drawing the same frame, Mac and Windows exports, settings remembered; Noon and no Ultraviolet; no Looks). `tests/parity.py` sets 0.8.1's colours before comparing Tempo's frames, since Tempo now opens in Noon.
+
+**Rubato 1.0** – unchanged.
+
 ## 7 October 2026 – Tempo 0.4
 
 **Tempo 0.4** – a font library, more ways to mix, words or figures part by part.

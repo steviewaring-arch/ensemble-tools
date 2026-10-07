@@ -20,7 +20,7 @@ function timeParts(d){const c=C.clock;let h=d.getHours(),suf='';if(!c.h24){suf=h
   return{s,per,keys};}
 function line2(d){const c=C.clock;let s=c.line2==='weekday'?d.toLocaleDateString('en-GB',{weekday:'long'}):c.line2==='date'?d.getDate()+' '+d.toLocaleDateString('en-GB',{month:'long'}):'';return c.caps?s.toUpperCase():s;}
 function palette(){if(C.colours.cycle&&C.palettes&&C.palettes.length)return C.palettes[new Date().getHours()%C.palettes.length];return{bg:C.colours.bg,p:C.colours.p};}
-const isClock=()=>!isWords();
+const isClock=()=>!isWords()&&!isDial();
 function hooksOn(){
   eng.setHooks({
     pick:(g,o)=>{if(!isClock()||C.clock.alt==='off')return null;if(!/\d/.test(g.ch))return o.def;if(C.clock.alt!=='each'||!o.sel||o.sel.length<2||g.line!==0)return null;
@@ -377,10 +377,64 @@ function clockFaces(keys,ch){
     if(two)out.l2=P.line2==='shuffle'?(cS.fid.line2||null):fixed('line2');}
   if(slot!=null)cS.slot=slot;
   return out;}
+/* ---------------- as a dial: no type, only lines ---------------- */
+const isDial=()=>C.show==='dial';
+/* each face's hands – hour, minute, second – as a share of the radius */
+const HANDS={rays:[.36,.66,.99],ticks:[.5,.79,1],dots:[.5,.78,.9],none:[.5,.8,.95]};
+let dNow={h:0,m:0,s:0};
+const dPalette=()=>{const o=C.dial;if(o.rotate&&o.themes&&o.themes.length)return o.themes[new Date().getHours()%o.themes.length];return o.colours;};
+/* how a hand that steps gets there: Snappy lands at once, Smooth eases, Elastic springs and settles */
+const dEase=t=>{if(t>=1)return 1;if(t<=0)return 0;const f=C.dial.feel;return f==='smooth'?eng.E.inOut(t):f==='elastic'?1-Math.exp(-6.5*t)*Math.cos(16*t):eng.E.expoOut(t);};
+/* where each hand points, as a share of a turn from 12. Seconds sweep, tick, or
+   go round in 58.5 seconds and wait at 12 for the minute (like a station clock).
+   The minute hand glides or steps; the hour hand follows it. */
+function dHands(d){const o=C.dial,ms=d.getMilliseconds(),s=d.getSeconds(),m=d.getMinutes(),h=d.getHours()%12,len=Math.max(.05,Math.min(.95,o.len||.3))*1000,into=s*1000+ms;
+  const sec=o.secMove==='tick'?(s-1+dEase(ms/len))/60:o.secMove==='stop'?Math.min(1,into/58500):into/60000;
+  const min=o.minMove==='step'?(m-1+dEase(into/len))/60:(m+into/60000)/60;
+  return{h:(h+min)/12,m:min,s:sec};}
+/* every mark on the face: which minute it sits on (i), its kind (m minute, h hour,
+   q quarter), and where it runs from and to – or, for dots, its radius */
+function dMarks(R,u){const o=C.dial,face=o.face||'rays',det=o.detail||'minutes',every=det==='quarters'?15:det==='hours'?5:1,out=[];
+  const kind=i=>i%15===0?'q':i%5===0?'h':'m',lw=o.line||2.2,kw=o.key||2.2;
+  for(let i=0;i<60;i+=every){const k=kind(i);
+    if(face==='rays'){/* from the space in the middle outwards: hours and quarters stand out nearer the centre */
+      const a=Math.max(0,Math.min(.9,o.hole==null?.22:o.hole))*R,sp=R-a;
+      if(det==='minutes'){out.push({i,k:'m',a,b:R});if(k!=='m')out.push({i,k:'h',a,b:a+.6*sp});if(k==='q')out.push({i,k:'q',a,b:a+.26*sp});}
+      else if(det==='hours'){out.push({i,k:'h',a,b:R});if(k==='q')out.push({i,k:'q',a,b:a+.26*sp});}
+      else out.push({i,k:'q',a,b:R});}
+    else if(face==='ticks'){/* in from the edge: minutes short, hours longer, quarters almost to the middle */
+      const t=Math.max(.02,Math.min(.3,o.tick==null?.18:o.tick));out.push({i,k,a:R*(k==='m'?1-t:k==='h'?Math.max(.06,1-3*t):Math.max(.06,1-5*t)),b:R});}
+    else if(face==='dots'){const r=k==='m'?lw*2.2*u:k==='h'?kw*4*u:kw*5.6*u;out.push({i,k,dot:r,c:R-kw*5.6*u});}}
+  return out;}
+const dCol=(P,k)=>k==='m'?P.min:k==='h'?P.hour:P.quarter;
+function dDraw(ctx,cx,cy,list,u,col,alpha){const o=C.dial;
+  for(const x of list){const a=x.i/60*TAU,s=Math.sin(a),c=Math.cos(a);ctx.globalAlpha=alpha?alpha(x):1;if(ctx.globalAlpha<=.002)continue;
+    if(x.dot!=null){ctx.beginPath();ctx.arc(cx+x.c*s,cy-x.c*c,x.dot,0,TAU);ctx.fillStyle=col||dCol(dPal,x.k);ctx.fill();continue;}
+    ctx.beginPath();ctx.moveTo(cx+x.a*s,cy-x.a*c);ctx.lineTo(cx+x.b*s,cy-x.b*c);ctx.strokeStyle=col||dCol(dPal,x.k);ctx.lineWidth=Math.max(.25,(x.k==='m'?o.line||2.2:o.key||2.2)*u);ctx.lineCap='butt';ctx.stroke();}
+  ctx.globalAlpha=1;}
+let dPal=null;
+function dialFrame(ctx,W,H,K){
+  const o=C.dial,P=dPal=dPalette();S.bg=P.bg;
+  ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle=P.bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+  ctx.setTransform(K);
+  const cx=W/2,cy=H/2,R=Math.max(1,(o.size||86)/100*Math.min(W,H)/2),u=R/1000,face=o.face||'rays',pos=dNow=dHands(new Date());
+  const marks=face==='none'?[]:dMarks(R,u);
+  /* the minutes first, then the hours and quarters over them */
+  for(const k of ['m','h','q'])dDraw(ctx,cx,cy,marks.filter(x=>x.k===k),u);
+  /* the marks the second hand has passed: filling the minute, or fading behind it */
+  if(o.secs&&o.trail&&o.trail!=='off'&&marks.length){const at=pos.s*60;
+    dDraw(ctx,cx,cy,marks,u,P.handS,o.trail==='fill'?x=>x.i<=at+1e-6?1:0:x=>{const age=((at-x.i)%60+60)%60;return Math.max(0,1-age/12);});}
+  if(o.ring){ctx.beginPath();ctx.arc(cx,cy,R,0,TAU);ctx.strokeStyle=P.hour;ctx.lineWidth=Math.max(.25,(o.key||2.2)*u);ctx.stroke();}
+  /* the hands, seconds on top */
+  const L=HANDS[face]||HANDS.none,tail=o.tails?.06*R:0,hw=Math.max(.25,(o.hand||6)*u);
+  const hand=(p,len,col)=>{const a=p*TAU,s=Math.sin(a),c=Math.cos(a);ctx.beginPath();ctx.moveTo(cx-tail*s,cy+tail*c);ctx.lineTo(cx+len*R*s,cy-len*R*c);ctx.strokeStyle=col;ctx.lineWidth=hw;ctx.lineCap='butt';ctx.stroke();};
+  hand(pos.h,L[0],P.handH);hand(pos.m,L[1],P.handM);if(o.secs)hand(pos.s,L[2],P.handS);
+  if(o.centre){ctx.beginPath();ctx.arc(cx,cy,hw*2.2,0,TAU);ctx.fillStyle=o.secs?P.handS:P.handM;ctx.fill();}
+}
 function build(){
   wCache.clear();wFit.clear();wBuilt++;
   {const k=JSON.stringify((C.words||{}).mixed||null);if(k!==mCfg){mCfg=k;mReset();}}
-  if(isWords()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
+  if(isWords()||isDial()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
   const c=C.clock;S=JSON.parse(JSON.stringify(C.base||{}));
   Object.assign(S,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:c.change!=='roll',fit:'cap',size:c.size,align:c.align,valign:c.valign,margin:c.margin,tabular:c.tabular,transparent:false,
     tracking:c.tracking!=null?c.tracking:S.tracking,leading:c.leading!=null?c.leading:S.leading,
@@ -397,10 +451,10 @@ function build(){
 }
 function setConfig(c){C=c;build();}
 function frame(ctx,W,H,now,dt){
-  if(isWords()){
+  if(isWords()||isDial()){
     const T=Date.now()/1000,a=C.drift||0,k=ctx.canvas.width/W,K=new DOMMatrix([k,0,0,k,0,0]);
     if(a>0){const sc=1-a*.04+a*.04*Math.sin(T/41);K.multiplySelf(new DOMMatrix().translateSelf(W/2+a*.05*W*Math.sin(T/23.7),H/2+a*.05*H*Math.sin(T/31.3+1)).scaleSelf(sc,sc).translateSelf(-W/2,-H/2));}
-    try{wordsFrame(ctx,W,H,now,K);}catch(e){if(!wErr){wErr=1;console.error(e);}}
+    try{if(isDial())dialFrame(ctx,W,H,K);else wordsFrame(ctx,W,H,now,K);}catch(e){if(!wErr){wErr=1;console.error(e);}}
     return;
   }
   pal=palette();
@@ -429,5 +483,5 @@ setConfig(C);
 /* read-outs for tests and the preview */
 const lines=(W,H)=>{if(!wCur||!isWords())return{size:0,lines:[],x:[]};const L=wLayout(wCur,wLatest,W,H),out=[],xs=[];
   for(const w of L.words){if(!out[w.li]){out[w.li]=[];xs[w.li]=w.x;}out[w.li].push(w.t.w);}return{size:L.size,lines:out.map(a=>a.join(' ')),x:xs,forced:L.forced};};
-return{frame,setConfig,bg:()=>S&&S.bg,replay,words:()=>(wCur||[]).map(t=>t.w).join(' '),faces:()=>(wCur||[]).map(t=>[t.w,t.fid||'']),clockFaces:()=>({text:cur,l0:cF.l0.slice(),l2:cF.l2}),lines};
+return{frame,setConfig,bg:()=>S&&S.bg,replay,words:()=>(wCur||[]).map(t=>t.w).join(' '),faces:()=>(wCur||[]).map(t=>[t.w,t.fid||'']),clockFaces:()=>({text:cur,l0:cF.l0.slice(),l2:cF.l2}),lines,hands:()=>Object.assign({},dNow)};
 }
