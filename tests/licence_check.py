@@ -20,7 +20,7 @@ check('private/ and site/ are ignored by git', all(git('check-ignore', '-q', p) 
 tracked = [f for f in git('ls-files').splitlines() if f]
 fonts = [f for f in tracked if f.lower().endswith(('.otf', '.ttf', '.woff', '.woff2'))]
 check('No font files are tracked', not fonts, ', '.join(fonts[:5]))
-tag = b'<script id="tempo-builtin-fonts" type="application/json">{'
+tag = b'<script id="tempo-builtin-fonts" type="application/json">' + b'{'  # split, so this file doesn't match itself
 withtag = [f for f in tracked if os.path.isfile(os.path.join(ROOT, f)) and tag in open(os.path.join(ROOT, f), 'rb').read()]
 check('No tracked file carries embedded fonts', not withtag, ', '.join(withtag[:5]))
 # stretches of each private font, as bytes and as base64, searched for in every tracked file
