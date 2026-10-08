@@ -160,9 +160,13 @@ Rules:
    - **UI, parked:** the left panel is long; move Export (and maybe Show) to a right-hand panel and keep the left for tweaking; a touch smaller overall. Not to be done in isolation – one refined UI style shared by Tutti, Tempo, Rubato and what comes next (see 7: its own stream).
    - The dial (“time dial looks to come back”) went in as 0.5 on 7 Oct – Steve to review it.
 6. A website version of In words that uses the browser's location (place, sun, weather) and the Accuracy and Personality dials – its own project. Code for place, sun and weather is in commit `c0cc72c`.
-7. **UI as its own stream** (Steve, 8 Oct): one refined UI style across all the tools rather than redesigning each on its own – its own chat in this Project, working in this repo. It owns `shared/tokens.css`, `shared/components.css` and a component page (all the parts, both themes) that the apps are checked against; app streams don't restyle in the meantime, they log requests for it. Agree the layout pattern first (controls on the left, output and Export on a right-hand panel, scale), then move Rubato and Tempo (already on the shared files), then Tutti (see `tutti/HANDOVER.md`). Behaviour stays the same – the parity and app tests hold it.
+7. **UI as its own stream** (Steve, 8 Oct) – brief in `UI-BRIEF.md`: one refined UI style across all the tools rather than redesigning each on its own – its own chat in this Project, working in this repo. It owns `shared/tokens.css`, `shared/components.css` and a component page (all the parts, both themes) that the apps are checked against; app streams don't restyle in the meantime, they log requests for it. Agree the layout pattern first (controls on the left, output and Export on a right-hand panel, scale), then move Rubato and Tempo (already on the shared files), then Tutti (see `tutti/HANDOVER.md`). Behaviour stays the same – the parity and app tests hold it.
 8. Develop each app in its own chat, from this repo.
 9. Rubato, noted for later: physics per letter (blocks only in 1.0); Lottie export; transparent WebM / PNG sequence; more kinetic tricks and refinements to the three; a trick per block; dragging destinations on the canvas; Sequence and Repeat with blocks; preloaded / Google Fonts; a layers panel; anonymous analytics with an opt-in gallery. Full list in the Project doc `claude/rubato-next.md`.
+
+## UI requests
+For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the interface here instead of restyling.
+- Tempo: the left panel is too long – Export (and maybe Show and Presets) to a right-hand panel; a touch smaller overall (Steve, 8 Oct).
 
 ## Dial ideas not built yet (0.5)
 - Hand shapes: tapered or rounded ends, a counterweight on the second hand, a ring at the centre instead of a dot.

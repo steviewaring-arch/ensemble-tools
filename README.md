@@ -90,3 +90,4 @@ All three live on the same site. From Tempo 0.3 Rubato and Tempo keep their font
 - Version every publish and add a line to `CHANGELOG.md`.
 - UK English. En dashes with spaces ( – ). UI copy short, plain and specific.
 - Fonts stay in the user's browser. Exports carry only the glyph outlines they need, never a font file.
+- The look and layout of the tools is one system, owned by the UI stream – see `UI-BRIEF.md`. App chats log UI wants under UI requests in `HANDOVER.md` rather than restyling.
