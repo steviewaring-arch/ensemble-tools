@@ -22,7 +22,18 @@ So, in this repo:
 4. **No product named after the font.** Exports are called Tempo, Tempo Words or Tempo Dial (or a preset's name, or the name typed) – never a font's name.
 5. **Credit.** Tempo's Fonts card says "Timeless Sans is free from timeless.co, under the Timeless Free Font License." The licence asks that anyone who wants the fonts is sent to timeless.co.
 
-### Getting Timeless onto the live site – to decide
+### Getting Timeless onto the live site – option B, chosen 8 October
+
+Steve chose B: this repo stays public, and the fonts live in the private repo `steviewaring-arch/ensemble-tools-fonts` (`fonts/` – WOFFs, originals, licence, `fonts.json`). `.github/workflows/pages.yml` checks that repo out into `private/`, runs `build.py`, checks the fonts are only in `site/` and that `tests/licence_check.py` passes, then deploys `site/` to Pages.
+
+To switch it on (Steve, once):
+1. Create the private repo `ensemble-tools-fonts` and upload `README.md` and the `fonts` folder into it.
+2. Create a fine-grained personal access token with read-only Contents access to that one repo, and save it in this repo as the Actions secret `FONTS_TOKEN`.
+3. In this repo, go to Settings › Pages and set the Source to GitHub Actions.
+
+Then run the workflow once by hand, check the live Tempo, and turn on `push` in the workflow so every push to `main` publishes. The token expires: renew it, and update the secret, before it does – a failed run leaves the last good site up.
+
+### The two options considered
 
 `docs/` is public, so the live site can't get Timeless from it. Two ways that keep the fonts out of a public repository:
 

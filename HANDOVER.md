@@ -4,7 +4,7 @@ Read this and `README.md` before changing anything. Tutti's own notes are in `tu
 
 ## Where things are
 - **Repo:** `ensemble-tools` – source of truth for Rubato, Tempo and Tutti.
-- **Live:** https://steviewaring-arch.github.io/ensemble-tools/ – GitHub Pages from `docs/` on `main`. Each push to `main` redeploys in a minute or two.
+- **Live:** https://steviewaring-arch.github.io/ensemble-tools/ – GitHub Pages from `docs/` on `main`. Each push to `main` redeploys in a minute or two. Moving to a GitHub Actions deploy of `site/` (docs/ plus Tempo's built-in fonts from a private repo) once Steve has set it up – see `LICENCES.md`.
 - **Last combined app:** `reference/rubato-0.8.1.html` – byte-identical to the v0.8.1 Claude artifact (rechecked 6 October against the live artifact). Kept so the parity tests have something to compare against. Don't edit it.
 - **Versions:** Rubato 1.0, Tempo 0.7, Tutti 6.0. Rubato 0.9 is still live at /rubato/0.9/ (`archive/rubato-0.9.html`).
 
@@ -146,7 +146,7 @@ Rules:
 - Variable fonts: TrueType (gvar) tested with Lora; CFF2 untested. Axis animation doesn't carry into screen saver exports.
 
 ## To do
-0. **Timeless on the live site – Steve to choose A or B in `LICENCES.md`** (private repo with GitHub Pro, or a private fonts repo with an Actions deploy), and to ask Timeless (hello@timeless.co) to confirm that a free tool may embed Timeless and export screen savers carrying its outlines. Until then the live Tempo has no built-in font; Steve's pack has Timeless for his own browser.
+0. **Timeless on the live site – option B chosen (8 Oct).** Steve to set up the private fonts repo, the `FONTS_TOKEN` secret and Pages from Actions (steps in `LICENCES.md`); then run `.github/workflows/pages.yml` by hand, check the live Tempo, and switch its `push` trigger on. Also: ask Timeless (hello@timeless.co) to confirm that a free tool may embed Timeless and export screen savers carrying its outlines. Until then the live Tempo has no built-in font; Steve's pack has Timeless for his own browser.
 1. **Next Tempo round: the dials** (Steve, 8 Oct: “work into the dials a little more”) – Steve to review 0.5's dial first: which faces, movements and themes to keep, and what else the Braun-minimal direction wants (see the dial ideas below). Then **curate the twelve** with 0.6's presets – open the downloads he likes, refine, save – and ship them as built-in presets (`tempo/presets.json`). Tempo 0.4 with the font pack: which ways of mixing to keep (each part, latest change, one at a time, a few at random; shuffled or in turn), in the words and the numerals, and curate the half-dozen screen savers. Decide which fonts, if any, are built in publicly (Lazaar?) – and, for the screen savers Ensemble ships, whether each font's licence allows its outlines inside a distributed file.
 2. Steve to curate Rubato's built-in presets (the twelve are placeholders) and do a cut pass on the panel.
 3. Test the Windows `.scr` on a real PC, and a 0.3 Mac `.saver` on a real Mac.

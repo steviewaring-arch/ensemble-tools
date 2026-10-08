@@ -1,0 +1,53 @@
+# Publishes the site to GitHub Pages: everything in docs/, plus Tempo with its
+# built-in fonts embedded (site/). The fonts come from the private repo
+# steviewaring-arch/ensemble-tools-fonts and are never committed here – see
+# LICENCES.md (option B). Needs the FONTS_TOKEN secret (read-only access to that
+# repo) and Pages set to deploy from GitHub Actions.
+name: Publish the site
+
+on:
+  workflow_dispatch:
+  # Switched on once the first run has worked:
+  # push:
+  #   branches: [main]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fonts (private repo, into the git-ignored private/)
+        uses: actions/checkout@v4
+        with:
+          repository: steviewaring-arch/ensemble-tools-fonts
+          token: ${{ secrets.FONTS_TOKEN }}
+          path: private
+      - name: Build docs/ and site/
+        run: python3 build.py
+      - name: Fonts embedded in site/ only
+        run: |
+          grep -q 'id="tempo-builtin-fonts" type="application/json">{' site/tempo/index.html
+          ! grep -q 'id="tempo-builtin-fonts" type="application/json">{' docs/tempo/index.html
+      - name: Nothing licensed in this repo
+        run: python3 tests/licence_check.py
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
