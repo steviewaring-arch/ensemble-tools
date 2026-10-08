@@ -1,5 +1,19 @@
 # Changelog
 
+## 8 October 2026 – Tempo 0.6
+
+**Tempo 0.6** – presets: save a screen saver, come back to it, and open the ones you've downloaded.
+- **Presets**, the first card. Save what's on screen with a name and it joins **Yours** as a live tile – the screen saver drawn as it plays, redrawn each minute. Click a tile to open it. The card says which one is open and whether it has **changed since saved**; **Save changes** keeps the changes, **Save as new** makes another (a name already used saves over it), **Download** saves that preset as a file, **Delete** asks twice.
+- **Nothing lost.** Open a preset over work that isn't saved and **Back to what you had** brings it back – kept, even across a reload, until it's used or replaced. **Download all** saves every preset in one file; opening it brings them all back. Presets live in this browser, so download now and then.
+- **A preset is the whole screen saver:** every setting for the time, the words and the dial, the export name, which fonts are on and which shuffle in, each font's tracking and your saved colour themes. Fonts are named, not tied to this browser, so a preset opens the same elsewhere once its fonts are loaded – and says which are missing if not.
+- **Open a file** (or drop it on the page) brings back a screen saver you downloaded – the HTML, the Mac or Windows zip, or a `.scr` – ready to edit. Downloads from 0.6 carry their own preset (`edit` in the config); earlier ones are read back from their settings, so files from 0.2 to 0.5 open with everything they show (checked with real 0.4 downloads: the Lazaar look, and a clock with numerals mixed, HTML and Mac). A file that matches a preset you have opens that preset rather than a copy.
+- **Built in:** presets listed in `tempo/presets.json` (the same form as a Download all file) show under **Built in** – where the twelve that ship will go. They open like yours; changes are saved as your own.
+- Exports are named after the preset open, unless you type a name.
+- Shared core: an optional `appDropFiles` hook lets an app take files dropped on the page before they go to Fonts (Rubato doesn't use it).
+- Tests: `tests/tempo_check.py` 115 of 115 (new: save, change, save changes, open, the fonts' shuffle and tracking coming back, Back to what you had, reload, a download opened in another browser, pre-0.6 downloads for the words, the dial and the time, Mac, Windows and `.scr`, a non-Tempo file turned away, dropping a file, Delete twice, Download all and back, one preset's file, tiles drawn, built-in presets).
+
+**Rubato 1.0** – unchanged.
+
 ## 7 October 2026 – Tempo 0.5
 
 **Tempo 0.5** – a dial, a Noon colour theme, no more Looks.

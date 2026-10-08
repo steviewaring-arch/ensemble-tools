@@ -1,11 +1,12 @@
-# Parity report – Rubato 1.0 and Tempo 0.5 vs Rubato v0.8.1
+# Parity report – Rubato 1.0 and Tempo 0.6 vs Rubato v0.8.1
 
-Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
+Run on 8 October 2026 against docs/ as committed. 87 results, all accounted for:
 
-- 65 byte-identical to the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's clock frames (with 0.8.1's colours set, since Tempo now opens in Noon), its live preview and the frames its exported engine draws. (The live preview can land within the difference 0.8.1 shows between its own runs; this time it matched exactly.)
-- 22 differ on purpose, each named with its reason (`ON_PURPOSE` in `parity.py`): 8 from Rubato 1.0 (the regrouped panel, more tips, Randomise reaching the new settings – proven against 0.9 by `rubato_regress.py`) and 14 from Tempo 0.3 to 0.5 (its exports and panel now that it stands apart from Rubato, Saved looks gone, the Screensaver card first, the dial and Noon – covered by `tempo_check.py` and `split_check.py`). Rubato's differing results are byte for byte what `main` gave before Tempo 0.3's changes to the shared core.
+- 64 byte-identical to two runs of the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's clock frames (with 0.8.1's colours set, since Tempo opens in Noon) and the frames its exported engine draws.
+- 1 live-preview frame (screen saver preview) within the difference 0.8.1 shows between its own runs.
+- 22 differ on purpose, each named with its reason (`ON_PURPOSE` in `parity.py`): 8 from Rubato 1.0 (the regrouped panel, more tips, Randomise reaching the new settings – proven against 0.9 by `rubato_regress.py`) and 14 from Tempo 0.3 to 0.6 (its exports and panel now that it stands apart from Rubato, Saved looks gone, the Screensaver card first, the dial, Noon, Presets – covered by `tempo_check.py` and `split_check.py`). Rubato's differing results are byte for byte what `main` gave before Tempo 0.3's changes to the shared core.
 
-`tests/tempo_check.py` 94 of 94, `tests/split_check.py` 15 of 15, `tests/rubato_regress.py` all 14 looks identical to 0.9, `tests/rubato_features.py` 43 of 43.
+`tests/tempo_check.py` 115 of 115, `tests/split_check.py` 15 of 15, `tests/rubato_regress.py` all 14 looks identical to 0.9, `tests/rubato_features.py` 43 of 43.
 
 ## t1 – Fonts: styles, variable axes, instances, axis animation, SVG, picker, reload.
 
@@ -66,10 +67,10 @@ Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
 - same: migrated styles – ["Poppins Regular", "Poppins Bold"]
 - same: migrated settings – {"fit": "block", "stretch": true, "baseSlot is 2nd style": true, "picks": {"a": ["200",...
 - same: default style – [["Default"], "Poppins Bold"]
-- same: screen saver preview – 81271 bytes, sha256 a473b4c1c7db
-- differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet) – covered by tempo_check.py
+- same within run-to-run variation: screen saver preview – ref vs ref: 1131 px differ by up to 10/255; ref vs new: 565 px by up to 9/255
+- differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - differs on purpose: screen saver HTML (file name) – Tempo 0.3 names the file after the screen saver, not Rubato's text
-- differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet) – covered by tempo_check.py
+- differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - same: Mac zip (file name) – Poppins screen saver for Mac.zip
 - same: GIF – 943987 bytes, sha256 32d695e39775
 - same: GIF (file name) – lazaar-fluid.gif
@@ -79,8 +80,8 @@ Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
 
 ## t4 – Screen saver panels, digit roll timing, looks mode, Windows + Mac exports.
 
-- differs on purpose: saver cards – Tempo 0.4 puts the Screensaver card (The time, In words or, from 0.5, As a dial) first
-- differs on purpose: Screensaver panel – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet) – covered by tempo_check.py
+- differs on purpose: saver cards – Tempo 0.4 puts the Screensaver card (The time, In words or, from 0.5, As a dial) first; from 0.6 Presets comes before it
+- differs on purpose: Screensaver panel – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - same: roll at 150 ms – 89876 bytes, sha256 de0eb35f5350
 - same: roll at 450 ms – 94219 bytes, sha256 a5fb685ba7b0
 - same: roll at 750 ms – 93996 bytes, sha256 ff11d4c2a495
@@ -89,14 +90,14 @@ Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
 - gone on purpose: looks cards – Saved looks left Tempo in 0.3
 - gone on purpose: drift visible in looks – Saved looks left Tempo in 0.3
 - gone on purpose: Screensaver panel, saved looks – Saved looks left Tempo in 0.3
-- differs on purpose: Windows zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet) – covered by tempo_check.py
+- differs on purpose: Windows zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - same: Windows zip (file name) – Poppins screen saver for Windows.zip
-- differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet) – covered by tempo_check.py
+- differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - same: Mac zip (file name) – Poppins screen saver for Mac.zip
 
 ## t5 – The exported screen saver page renders the same frames.
 
-- differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet) – covered by tempo_check.py
+- differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - differs on purpose: screen saver HTML (file name) – Tempo 0.3 names the file after the screen saver, not Rubato's text
 - same: engine frame 0 – 84847 bytes, sha256 a8c1d23b4bf1
 - same: engine frame 1 – 84767 bytes, sha256 ba9a238ade55
@@ -107,9 +108,9 @@ Run on 7 October 2026 against docs/ as committed. 87 results, all accounted for:
 
 ## t6 – Mac and Windows exports with a single font.
 
-- differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet) – covered by tempo_check.py
+- differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - same: Mac zip (file name) – Poppins screen saver for Mac.zip
-- differs on purpose: Windows zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet) – covered by tempo_check.py
+- differs on purpose: Windows zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - same: Windows zip (file name) – Poppins screen saver for Windows.zip
 
 **All results match.**

@@ -47,8 +47,8 @@ APPS = {
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo – by Ensemble', version='0.5',
-        body='tempo/app.html',
+        title='Tempo – by Ensemble', version='0.6',
+        body='tempo/app.html', css='tempo/app.css',
         tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
                 ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js')],
         before=None,
@@ -123,6 +123,17 @@ def main():
     else:
         write('tempo/fonts/fonts.json', '{"fonts":[]}\n')
     print(f'tempo fonts: {len(listed)} built in')
+    # Tempo's built-in presets: tempo/presets.json (the screen savers that ship),
+    # in the same form as a "Download all" backup from the Presets card.
+    pre = os.path.join(ROOT, 'tempo/presets.json')
+    if os.path.exists(pre):
+        import json
+        n = len(json.load(open(pre, encoding='utf-8')).get('presets', []))
+        shutil.copyfile(pre, os.path.join(DOCS, 'tempo/presets.json'))
+    else:
+        n = 0
+        write('tempo/presets.json', '{"presets":[]}\n')
+    print(f'tempo presets: {n} built in')
     os.makedirs(os.path.join(DOCS, 'tutti'), exist_ok=True)
     shutil.copyfile(os.path.join(ROOT, 'tutti/index.html'), os.path.join(DOCS, 'tutti/index.html'))
     print('tutti: docs/tutti/index.html (copied unchanged)')

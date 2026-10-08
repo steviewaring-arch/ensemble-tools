@@ -99,8 +99,8 @@ def main():
         h = html.decode()
         check('HTML export uses window.__TEMPO__', 'window.__TEMPO__=' in h and '__RUBATO__' not in h)
         check('No-font export is titled Tempo', '<title>Tempo – screensaver</title>' in h, re.search('<title>.*?</title>', h).group(0))
-        ccfg = config(html)
-        check('Clock exports carry no words settings, export name or anything from Rubato', 'words' not in ccfg and ccfg['show'] == 'clock' and 'ssName' not in json.dumps(ccfg) and 'ssW' not in json.dumps(ccfg)
+        ccfg = config(html); run = {k: v for k, v in ccfg.items() if k != 'edit'}
+        check('Clock exports run on no words settings, export name or anything from Rubato (the preset they carry aside)', 'words' not in ccfg and ccfg['show'] == 'clock' and 'ssName' not in json.dumps(run) and 'ssW' not in json.dumps(run)
               and not re.search(r'"ss[MN][A-Z]', json.dumps(ccfg['base'])) and 'looks' not in ccfg and 'text' not in ccfg['clock'] and 'ambient' not in ccfg['clock'] and 'image' not in ccfg)
         mac, mname = download(lambda: pg.get_by_role('button', name='Download for Mac').click())
         zm = zipfile.ZipFile(io.BytesIO(mac)); readme = zm.read('Read me first.txt').decode()
@@ -116,7 +116,7 @@ def main():
         # 3. In words
         pg.get_by_role('group', name='Show').get_by_role('button', name='In words').click(); wait(400)
         cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]
-        check('In words shows its own cards, Screensaver first, and no Looks', cards == ['Screensaver', 'Fonts', 'Sentence', 'Type', 'Change', 'Position', 'Colour', 'Export'] and pg.get_by_role('group', name='Looks').count() == 0, json.dumps(cards))
+        check('In words shows its own cards, Presets and Screensaver first, and no Looks', cards == ['Presets', 'Screensaver', 'Fonts', 'Sentence', 'Type', 'Change', 'Position', 'Colour', 'Export'] and pg.get_by_role('group', name='Looks').count() == 0, json.dumps(cards))
         parts = pg.get_by_role('group', name='Sentence parts').get_by_role('button').all_inner_texts()
         check('Sentence parts are the time and date only', parts == ['It is', 'Time', 'Seconds', 'Day', 'Date', 'Month', 'Year', 'Full stop'], json.dumps(parts))
         own = json.loads(pg.evaluate("localStorage.getItem('tempo:settings')") or '{}')
@@ -260,7 +260,7 @@ def main():
         pg.get_by_role('group', name='Size').get_by_role('button', name='Fit the screen').click()
         pg.select_option('#c_ssMTime', 'shuffle'); pg.select_option('#c_ssMWeekday', 'shuffle'); wait(300)
         cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]
-        check('Mixing lives in Fonts: no separate Typefaces card', cards == ['Screensaver', 'Fonts', 'Sentence', 'Type', 'Change', 'Position', 'Colour', 'Export'], json.dumps(cards))
+        check('Mixing lives in Fonts: no separate Typefaces card', cards == ['Presets', 'Screensaver', 'Fonts', 'Sentence', 'Type', 'Change', 'Position', 'Colour', 'Export'], json.dumps(cards))
         opts = lambda sel: pg.evaluate("s=>[...document.querySelector(s).options].map(o=>o.text)", sel)
         check('Each part offers the core font, every other font, or Shuffle', opts('#c_ssMTime') == ['Core', 'Poppins Bold', 'Poppins Light Italic', 'Shuffle'], json.dumps(opts('#c_ssMTime')))
         fonts_card = pg.locator('section.card:visible').filter(has=pg.locator('h2', has_text='Fonts'))
@@ -454,7 +454,7 @@ def main():
         # 9. Tempo 0.5: As a dial – no type, only lines
         pg.get_by_role('group', name='Show').get_by_role('button', name='As a dial').click(); wait(300)
         cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]
-        check('As a dial: its own cards, and Fonts steps aside', cards == ['Screensaver', 'Face', 'Hands', 'Position', 'Colour', 'Export'], json.dumps(cards))
+        check('As a dial: its own cards, and Fonts steps aside', cards == ['Presets', 'Screensaver', 'Face', 'Hands', 'Position', 'Colour', 'Export'], json.dumps(cards))
         dcol = pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour'))
         dthemes = dcol.locator('.btn-row').first.get_by_role('button').all_inner_texts()
         check('Dial colour themes, Paper (after the red-handed drawing) first and chosen', dthemes == ['Paper', 'Dawn', 'Noon', 'Night', 'Signal'] and dcol.get_by_role('button', name='Paper').get_attribute('aria-pressed') == 'true', json.dumps(dthemes))
@@ -511,6 +511,141 @@ def main():
         check("Dial settings live in Tempo's own storage", own.get('ssShow') == 'dial' and own.get('ssDialFace') == 'ticks' and not any(k.startswith('ssDial') for k in json.loads(pg.evaluate("localStorage.getItem('rubato:settings')") or '{}')), json.dumps({k: own.get(k) for k in ('ssShow', 'ssDialFace', 'ssDialBg')}))
         pg.get_by_role('group', name='Show').get_by_role('button', name='The time').click(); wait(300)
         check('Back on The time, Fonts returns', 'Fonts' in [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()])
+
+        # 10. Tempo 0.6: presets – save, open, change, a safety net, and downloads opened again
+        import tempfile
+        tmp = tempfile.mkdtemp()
+        def tiles(page=None): return (page or pg).evaluate("[...document.querySelectorAll('#panel .thumbs:not([hidden]) .thumb')].map(t=>t.innerText)")
+        def pressed_tile(page=None): return (page or pg).evaluate("[...document.querySelectorAll('#panel .thumb[aria-pressed=true]')].map(t=>t.innerText)")
+        status = lambda page=None: (page or pg).locator('.p-status').inner_text()
+        def show(n, page=None): (page or pg).get_by_role('group', name='Show').get_by_role('button', name=n).click(); wait(200)
+        def save_new(n): pg.get_by_label('Preset name').fill(n); pg.get_by_role('button', name='Save as new').click(); wait(400)
+        def export(page=None):
+            h, fn = download(lambda: (page or pg).get_by_role('button', name='Download HTML file').click(), page); return h, fn, config(h)
+        run = lambda c: {k: v for k, v in c.items() if k != 'edit'}
+        def norm(c):
+            """a config with font ids swapped for font names, so two browsers compare"""
+            names = {f['id']: f['name'] for f in c['fonts']}
+            txt = json.dumps({k: v for k, v in c.items() if k not in ('edit', 'fonts')}, sort_keys=True)
+            for i, n in names.items(): txt = txt.replace('"' + i + '"', '"@' + n + '"')
+            return txt, sorted(json.dumps({k: v for k, v in f.items() if k != 'id'}, sort_keys=True) for f in c['fonts'])
+        def open_file(path, page=None):
+            (page or pg).set_input_files('#presetfile', path)
+            for _ in range(30): wait(50); time.sleep(.02)
+        def put_file(name, data):
+            path = os.path.join(tmp, name); open(path, 'wb').write(data if isinstance(data, bytes) else data.encode()); return path
+        def without_edit(h):
+            c = config(h); c.pop('edit', None)
+            return re.sub(r'window\.__TEMPO__=.*?;</script>', lambda m: 'window.__TEMPO__=' + json.dumps(c).replace('<', '\\u003c') + ';</script>', h.decode(), count=1, flags=re.S)
+        check('Presets is the first card, with nothing saved yet', [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()][0] == 'Presets' and tiles() == [] and 'Nothing saved yet' in pg.locator('#panel').inner_text())
+        # words, with mixing and a font's own tracking
+        show('In words')
+        pg.select_option('#c_ssMTime', 'shuffle'); pg.select_option('#c_ssMWeekday', label='Poppins Bold')
+        pg.locator('#trk_' + bold).evaluate("e=>{e.value=60;e.dispatchEvent(new Event('input'))}")
+        pg.get_by_role('group', name='Case').get_by_role('button', name='CAPITALS').click(); wait(300)
+        save_new('Words one')
+        check('Save as new: a tile, marked open and saved', tiles() == ['Words one'] and pressed_tile() == ['Words one'] and status() == 'Open: Words one – saved', status())
+        pg.get_by_role('group', name='Case').get_by_role('button', name='lower case').click(); wait(900)
+        check('A change shows as changed since saved, with Save changes', 'changed since saved' in status() and pg.get_by_role('button', name='Save changes').is_visible(), status())
+        pg.get_by_role('button', name='Save changes').click(); wait(400)
+        whtml, wfn, wsaved = export()
+        check('Save changes keeps it; exports are named after the preset open', status() == 'Open: Words one – saved' and wfn == 'words-one-screensaver.html' and wsaved['edit']['name'] == 'Words one', f'{status()} {wfn}')
+        # a dial alongside it
+        show('As a dial'); pg.get_by_role('group', name='Marks', exact=True).get_by_role('button', name='Dots').click()
+        pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).get_by_role('button', name='Night').click(); wait(200)
+        save_new('Dial one'); dhtml, _, dsaved = export()
+        check('A second preset joins the first', tiles() == ['Words one', 'Dial one'] and pressed_tile() == ['Dial one'])
+        # change the fonts (not saved), then open the words: everything comes back, and what was on screen is kept
+        show('The time')  # Fonts steps aside for a dial
+        if not pg.get_by_role('switch', name='Shuffle in – Poppins Light Italic').is_visible():
+            pg.get_by_role('button', name='Details – Poppins Light Italic').click(); wait(150)
+        pg.get_by_role('switch', name='Shuffle in – Poppins Light Italic').click(); show('As a dial'); wait(900)
+        dial_changed = 'changed since saved' in status()
+        pg.locator('#trk_' + bold).evaluate("e=>{e.value=0;e.dispatchEvent(new Event('input'))}"); wait(200)
+        pg.get_by_role('button', name='Open Words one', exact=True).click(); wait(500)
+        _, _, wopen = export()
+        check('Changing which fonts shuffle in counts as a change', dial_changed)
+        check('Opening a preset brings back every setting, the fonts it shuffles and their tracking', run(wopen) == run(wsaved) and status() == 'Open: Words one – saved', status())
+        back = pg.get_by_role('button', name='Back to what you had before Words one')
+        check('What was on screen and unsaved is kept: Back to what you had', back.is_visible())
+        back.click(); wait(500)
+        _, _, dback = export()
+        check('…and Back brings it all back, the font changes too', dback['show'] == 'dial' and dback['dial']['face'] == 'dots' and [i for i, f in dback['edit']['fonts'].items() if f['name'] == 'Poppins Light Italic'][0] not in dback['edit']['pool']
+              and 'Dial one' in status() and 'changed' in status(), status())
+        pg.reload(); wait(1500); pg.evaluate(expand); wait(300)
+        check('After a reload: the presets, and which one is open', tiles() == ['Words one', 'Dial one'] and pressed_tile() == ['Dial one'] and 'Dial one' in status(), status())
+        pg.get_by_role('button', name='Open Dial one', exact=True).click(); wait(400)
+        pg.get_by_role('button', name='Open Words one', exact=True).click(); wait(400)
+        # a downloaded screen saver opens again – in another browser too
+        nb = b.new_context(viewport={'width': 1440, 'height': 960}, screen={'width': 1680, 'height': 1050}, accept_downloads=True, timezone_id='Europe/London'); pn = nb.new_page(); en = []
+        pn.on('pageerror', lambda e: en.append(str(e)))
+        pn.route('**/opentype.min.js', lambda r: r.fulfill(body=ot, content_type='application/javascript'))
+        for u in ['https://fonts.googleapis.com/**', 'https://use.typekit.net/**']: pn.route(u, lambda r: r.abort())
+        pn.goto(base + 'docs/tempo/'); time.sleep(1); pn.evaluate("localStorage.clear();indexedDB.deleteDatabase('tempo');indexedDB.deleteDatabase('rubato')"); pn.reload(); time.sleep(1.2)
+        pn.set_input_files('#fontfile', POP + [THIRD, f'{FONTS}/Poppins-Medium.ttf']); time.sleep(2)
+        pn.set_input_files('#presetfile', put_file('words-one-screensaver.html', whtml)); time.sleep(1.5)
+        with pn.expect_download() as d: pn.get_by_role('button', name='Download HTML file').click()
+        other = config(open(d.value.path(), 'rb').read())
+        na, nb_ = norm(other), norm(wsaved)
+        diffs = [k for k in set(json.loads(na[0])) | set(json.loads(nb_[0])) if json.loads(na[0]).get(k) != json.loads(nb_[0]).get(k)] + (['fonts'] if na[1] != nb_[1] else [])
+        check('In another browser, a downloaded screen saver opens with every setting and font as it was', not diffs and tiles(pn) == ['Words one'] and not en, json.dumps(diffs) + '; '.join(en[:2]))
+        if diffs:
+            for k in diffs[:3]:
+                A, B = (json.loads(na[0]).get(k), json.loads(nb_[0]).get(k)) if k != 'fonts' else (na[1], nb_[1])
+                if isinstance(A, dict): print('   ', k, {x: (A.get(x), B.get(x)) for x in set(A) | set(B) if A.get(x) != B.get(x)})
+                else: print('   ', k, str(A)[:300], '|', str(B)[:300])
+        nb.close()
+        # downloads made before 0.6 carry no preset: they're read back from their settings
+        same = []
+        for name, h, saved in [('words', whtml, wsaved), ('dial', dhtml, dsaved)]:
+            open_file(put_file(f'old-{name}.html', without_edit(h))); _, _, again = export(); same.append(run(again) == run(saved))
+        show('The time'); pg.select_option('#c_ssNM1', label='Poppins Bold'); wait(300); khtml, _, ksaved = export()
+        open_file(put_file('old-clock.html', without_edit(khtml))); _, _, again = export(); same.append(run(again) == run(ksaved))
+        check('Downloads from before 0.6 open again with the same settings – words, dial and the time', all(same), json.dumps(same))
+        check('Each file opened is added to the presets', len(tiles()) == 5, json.dumps(tiles()))
+        pg.get_by_role('button', name='Open Dial one', exact=True).click(); wait(300)
+        mac, _ = download(lambda: pg.get_by_role('button', name='Download for Mac').click())
+        win, _ = download(lambda: pg.get_by_role('button', name='Download for Windows').click())
+        open_file(put_file('Dial one screen saver for Mac.zip', mac)); _, _, fm = export()
+        open_file(put_file('Dial one screen saver for Windows.zip', win)); _, _, fw = export()
+        open_file(put_file('Dial one.scr', zipfile.ZipFile(io.BytesIO(win)).read('Dial one.scr'))); _, _, fs = export()
+        check('Mac and Windows downloads (and a .scr on its own) open again too', run(fm) == run(fw) == run(fs) == run(dsaved))
+        open_file(put_file('not-tempo.html', '<html><body>hello</body></html>'))
+        check('Anything else is turned away politely', 'isn’t a Tempo screen saver' in pg.locator('#toast').inner_text(), pg.locator('#toast').inner_text())
+        n0 = len(tiles())
+        pg.evaluate("""([name,b64])=>{const bin=atob(b64),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);
+          const dt=new DataTransfer();dt.items.add(new File([u],name,{type:'text/html'}));window.dispatchEvent(new DragEvent('drop',{dataTransfer:dt,bubbles:true,cancelable:true}));}""",
+          ['words-one-screensaver.html', base64.b64encode(whtml).decode()])
+        for _ in range(20): wait(50); time.sleep(.02)
+        check('A screen saver dropped on the page opens as a preset – the one it came from, not a copy', len(tiles()) == n0 and pg.locator('#toast').inner_text() == 'Opened Words one' and pressed_tile() == ['Words one'], pg.locator('#toast').inner_text())
+        # Download all, delete, and the backup brings them all back
+        ball, bfn = download(lambda: pg.get_by_role('button', name='Download all').click())
+        before = tiles(); bj = json.loads(ball); once = True
+        for n in before:
+            pg.get_by_role('button', name='Open ' + n, exact=True).click(); wait(250)
+            n0 = len(tiles()); pg.get_by_role('button', name='Delete', exact=True).click(); wait(100)
+            once = once and len(tiles()) == n0
+            pg.get_by_role('button', name='Delete – sure?').click(); wait(250)
+        check('Delete asks twice, then the preset goes', once and tiles() == [], json.dumps(tiles()))
+        open_file(put_file(bfn, ball))
+        check('Download all saves every preset in one file, and opening it brings them all back', bfn.startswith('tempo-presets-') and len(bj['presets']) == len(before) and tiles() == before, json.dumps(tiles()))
+        pg.get_by_role('button', name='Open Words one', exact=True).click(); wait(300)
+        one, ofn = download(lambda: pg.get_by_role('button', name='Download', exact=True).click())
+        check('One preset downloads as its own file', ofn == 'words-one-tempo-preset.json' and json.loads(one)['preset']['name'] == 'Words one', ofn)
+        # tiles are drawn, and drawn differently
+        wait(500); pics = pg.evaluate("[...document.querySelectorAll('#panel .thumbs .thumb canvas')].map(c=>c.toDataURL())")
+        check('Each preset is drawn on its tile', len(set(pics)) >= 4 and all(len(x) > 3000 for x in pics), f'{len(set(pics))} different tiles')
+        # built-in presets (tempo/presets.json): the screen savers that ship
+        bi = b.new_context(viewport={'width': 1440, 'height': 960}, screen={'width': 1680, 'height': 1050}); pb = bi.new_page(); eb = []
+        pb.on('pageerror', lambda e: eb.append(str(e)))
+        pb.route('**/opentype.min.js', lambda r: r.fulfill(body=ot, content_type='application/javascript'))
+        pb.route('**/tempo/presets.json', lambda r: r.fulfill(body=json.dumps({'presets': [dict(wsaved['edit'], name='Shipped words'), dict(dsaved['edit'], name='Shipped dial')]}), content_type='application/json'))
+        pb.goto(base + 'docs/tempo/'); time.sleep(1); pb.evaluate("localStorage.clear();indexedDB.deleteDatabase('tempo')"); pb.reload(); time.sleep(1.5)
+        bt = tiles(pb)
+        pb.get_by_role('button', name='Open Shipped dial', exact=True).click(); time.sleep(.5)
+        check('Built-in presets show under Built in and open; they can’t be deleted', bt == ['Shipped words', 'Shipped dial'] and 'Shipped dial' in status(pb) and pb.get_by_role('group', name='Show').locator('button[aria-pressed=true]').all_inner_texts() == ['As a dial']
+              and not pb.get_by_role('button', name='Delete', exact=True).is_visible() and not eb, status(pb))
+        bi.close()
 
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()

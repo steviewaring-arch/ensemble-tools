@@ -6,7 +6,7 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 |---|---|---|
 | **Tutti** 6.0 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
 | **Rubato** 1.0 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
-| **Tempo** 0.5 | A clock screen saver for Mac and Windows – the time in your own typefaces, as figures or written out in words with other fonts mixed in, or as a dial with no type at all | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
+| **Tempo** 0.6 | A clock screen saver for Mac and Windows – the time in your own typefaces, as figures or written out in words with other fonts mixed in, or as a dial with no type at all. Save presets and reopen anything you've downloaded | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
@@ -65,7 +65,7 @@ Then:
 ```
 python3 tests/parity.py        # Rubato and Tempo against v0.8.1 – writes tests/out/report.md
 python3 tests/split_check.py   # Rubato and Tempo kept apart
-python3 tests/tempo_check.py   # Tempo: the time in words, fonts mixed in, tracking per font, the dial, preview, exports
+python3 tests/tempo_check.py   # Tempo: the time in words, fonts mixed in, tracking per font, the dial, presets, preview, exports
 python3 tests/rubato_regress.py   # Rubato 1.0 draws exactly what 0.9 drew, for 0.9's settings
 python3 tests/rubato_features.py  # Rubato 1.0's new features
 python3 tests/decentish_check.py  # Decentish logic and voice, all sources faked

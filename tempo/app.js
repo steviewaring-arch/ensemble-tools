@@ -491,9 +491,194 @@ const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDi
   howText.innerHTML='<p>Open it in any browser and click to go full screen. It also works with WebViewScreenSaver on a Mac and Lively Wallpaper on Windows, if you already use them.</p>';
   how.append(sm,howText);b.append(how);
 }
-/* What the screen saver is called: the name typed under Export, else the core
-   font's family – or, for a dial, Tempo Dial. */
-function defaultName(){if(dl(S))return 'Tempo Dial';return anyLoaded()?F(baseSlot()).family:'Tempo';}
+/* ================= Presets: screen savers saved to come back to =================
+   A preset is every Tempo setting, plus the fonts it uses described by name and
+   file (a browser's own font ids mean nothing elsewhere), which of them shuffle
+   in, and their tracking – so it opens the same in another browser once those
+   fonts are loaded. Exports carry one too (cfg.edit), so a downloaded screen
+   saver opens again, ready to edit; older exports are read back from their
+   settings blocks. Kept under 'tempo:presets'; the one open under 'tempo:active'. */
+const PART_KEYS=[...M_PARTS.map(x=>x[0]),...N_PARTS.map(x=>x[0])];
+const fontDesc=st=>({name:st.face.name,family:st.face.family||'',file:fileOf(st)||''});
+function snapshot(name,keys){
+  const s={};for(const k of (keys||tempoKeys()))if(k!=='ssName')s[k]=S[k];s.baseSlot=baseSlot();
+  const on=styles.filter(x=>!x.off),fonts={},tracks={};
+  on.forEach(st=>{fonts[st.id]=fontDesc(st);if(TRACKS[st.id])tracks[st.id]=TRACKS[st.id];});
+  return{tempo:1,name:name||'',exportName:S.ssName||'',settings:s,fonts,on:on.map(x=>x.id),pool:on.filter(x=>x.swap!==false&&x.id!==s.baseSlot).map(x=>x.id),tracks,themes:getThemes()};}
+/* what makes two screen savers the same: settings, fonts on, the shuffle, tracking */
+const sigOf=p=>JSON.stringify([p.settings,p.exportName||'',p.on,p.pool,p.tracks]);
+const sigNow=()=>sigOf(snapshot());
+/* a preset's fonts, found among those loaded here: by id (same browser), file, then name */
+function resolveFonts(p){const map={},missing=[];
+  for(const [id,d] of Object.entries(p.fonts||{})){
+    const st=styles.find(x=>x.id===id&&x.face.name===d.name)||(d.file&&styles.find(x=>fileOf(x)===d.file))||styles.find(x=>x.face.name===d.name);
+    if(st)map[id]=st.id;else missing.push(d.name);}
+  return{map,missing};}
+function applyPresetSettings(p,m){
+  const src=p.settings||{},s=sanitise(src),id=x=>m.map[x]||null;
+  for(const k of tempoKeys())if(k in s&&k!=='baseSlot'&&k!=='ssName')S[k]=s[k];
+  S.ssName=typeof p.exportName==='string'?p.exportName:'';
+  const core=id(src.baseSlot);if(core)S.baseSlot=core;
+  for(const k of PART_KEYS){const v=S[k];if(v&&v!=='base'&&v!=='shuffle')S[k]=id(v)||'base';}}
+function openPreset(p,quiet){
+  const m=resolveFonts(p);applyPresetSettings(p,m);
+  if(Array.isArray(p.on)){const id=x=>m.map[x]||null,on=new Set(p.on.map(id).filter(Boolean)),pool=new Set((p.pool||[]).map(id).filter(Boolean));
+    for(const st of styles){if(on.has(st.id))st.off=false;if(st.id!==S.baseSlot)st.swap=pool.has(st.id);}
+    for(const x of p.on){const n=id(x);if(!n)continue;const v=(p.tracks||{})[x];if(v)TRACKS[n]=v;else delete TRACKS[n];}
+    LS.set('tracks',TRACKS);}
+  if(Array.isArray(p.themes)&&p.themes.length){const q=getThemes();let add=false;
+    for(const T of p.themes)if(T&&T.name&&Array.isArray(T.p)&&!q.some(t=>t.name===T.name)&&!PALETTES.some(P=>P.name===T.name)){q.push(T);add=true;}if(add)LS.set('themes',q);}
+  sortFonts();saveStyles();applyStyles();themesRefresh();ssDirty=true;autosave();refreshAll();
+  if(!quiet)toast(m.missing.length?`Opened ${p.name} – load ${m.missing.join(', ')} in Fonts to see it as saved.`:`Opened ${p.name}`);
+  return m;}
+let PRESETS=Array.isArray(LS.get('presets'))?LS.get('presets'):[],ACTIVE=LS.get('active')||null,BUILTIN_P=[],presetVer=0,BACK=LS.get('back')||null;
+/* BACK: what was on screen, unsaved, before a preset was opened over it – kept until it's brought back or replaced */
+const keepBack=b=>{BACK=b;LS.set('back',b);};
+const savePresets=()=>{LS.set('presets',PRESETS);presetVer++;};
+const setActive=(id,builtin)=>{ACTIVE=id?{id,builtin:!!builtin,sig:sigNow()}:null;LS.set('active',ACTIVE);};
+const activePreset=()=>ACTIVE&&(ACTIVE.builtin?BUILTIN_P.find(p=>p.id===ACTIVE.id):PRESETS.find(p=>p.id===ACTIVE.id))||null;
+const changedSince=()=>!ACTIVE||ACTIVE.sig!==sigNow();
+const uniqueName=n=>{n=n||'Screen saver';if(!PRESETS.some(p=>p.name===n))return n;const m=/^(.*\S) (\d+)$/.exec(n),root=m?m[1]:n;let i=m?+m[2]+1:2;while(PRESETS.some(p=>p.name===root+' '+i))i++;return root+' '+i;};
+const presetId=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,5);
+fetch('presets.json').then(r=>r.ok?r.json():null).then(j=>{BUILTIN_P=((j&&j.presets)||[]).map((p,i)=>Object.assign({},p,{id:'b'+i}));presetVer++;refreshAll();}).catch(()=>{});
+/* open one, keeping what was on screen if it wasn't saved */
+function openFromList(p,builtin){
+  if(changedSince())keepBack({snap:snapshot(),active:ACTIVE,name:p.name});
+  openPreset(p);setActive(p.id,builtin);presetVer++;refreshAll();}
+function saveNew(name){
+  const n=(name||'').trim()||uniqueName(exportName()),ex=PRESETS.find(p=>p.name===n);
+  const p=Object.assign(snapshot(n),{id:ex?ex.id:presetId(),saved:Date.now()});
+  if(ex)PRESETS[PRESETS.indexOf(ex)]=p;else PRESETS.push(p);
+  savePresets();setActive(p.id);refreshAll();toast(ex?`Saved over ${n}`:`Saved ${n}`);return p;}
+function saveChanges(){const a=activePreset();if(!a||ACTIVE.builtin)return;
+  const p=Object.assign(snapshot(a.name),{id:a.id,saved:Date.now()});PRESETS[PRESETS.indexOf(a)]=p;savePresets();setActive(p.id);refreshAll();toast(`Saved ${a.name}`);}
+function deletePreset(p){PRESETS=PRESETS.filter(x=>x!==p);savePresets();if(ACTIVE&&ACTIVE.id===p.id)setActive(null);refreshAll();toast(`Deleted ${p.name}`);}
+const pslug=n=>String(n||'tempo').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tempo';
+function downloadPreset(p){const o=Object.assign({},p);delete o.id;saveFile(pslug(p.name)+'-tempo-preset.json',new Blob([JSON.stringify({tempo:'preset',v:1,preset:o},null,1)],{type:'application/json'}));}
+function downloadAll(){const d=new Date(),day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  saveFile('tempo-presets-'+day+'.json',new Blob([JSON.stringify({tempo:'presets',v:1,saved:d.toISOString(),presets:PRESETS,themes:getThemes()},null,1)],{type:'application/json'}));}
+/* ---- reading a downloaded screen saver back: its settings, from its config ---- */
+const W_MAP=[['lead','ssWLead'],['h24','ssWH24'],['time','ssWTime'],['secs','ssWSecs'],['weekday','ssWWeekday'],['daynum','ssWDayNum'],['month','ssWMonth'],['year','ssWYear'],['stop','ssWStop'],
+  ['case','ssWCase'],['zero','ssWZero'],['sep','ssWSep'],['layout','ssWLayout'],['fit','ssWFit'],['space','ssWSpace'],['optical','ssWOptical'],['dateCol','ssWDateCol'],['hi','ssWHi'],['size','ssWSize'],
+  ['leading','ssWLeading'],['tracking','ssWTracking'],['measure','ssWMeasure'],['align','ssWAlign'],['valign','ssWVAlign'],['margin','ssWMargin'],['change','ssWChange'],['by','ssWBy'],['feel','ssWFeel'],
+  ['len','ssWLen'],['glide','ssWGlide'],['bg','ssWBg'],['ink','ssWInk'],['soft','ssWSoft'],['rotate','ssWRotate']];
+const WN_MAP=[['time','ssWNumTime'],['sec','ssWNumSec'],['date','ssWNumDate'],['year','ssWNumYear']];
+const MX_MAP=[['mode','MMode'],['when','MWhen'],['each','MEach'],['match','MMatch'],['order','MOrder'],['amount','MAmount']];
+const MW_PARTS=[['lead','ssMLead'],['time','ssMTime'],['sec','ssMSec'],['weekday','ssMWeekday'],['day','ssMDay'],['month','ssMMonth'],['year','ssMYear']];
+const MN_PARTS=[['h1','ssNH1'],['h2','ssNH2'],['m1','ssNM1'],['m2','ssNM2'],['s1','ssNS1'],['s2','ssNS2'],['line2','ssNLine2']];
+const DL_MAP=[['face','ssDialFace'],['detail','ssDialDetail'],['hole','ssDialHole'],['tick','ssDialTick'],['ring','ssDialRing'],['line','ssDialLine'],['key','ssDialKey'],['hand','ssDialHand'],
+  ['secs','ssDialSecs'],['secMove','ssDialSecMove'],['minMove','ssDialMinMove'],['feel','ssDialFeel'],['len','ssDialLen'],['trail','ssDialTrail'],['tails','ssDialTails'],['centre','ssDialCentre'],
+  ['size','ssDialSize'],['rotate','ssDialRotate']];
+function presetFromConfig(cfg,name){
+  const s={ssVer:4},b=cfg.base||{},put=(k,v)=>{if(v!==undefined&&v!==null)s[k]=v;};
+  for(const k in b)if((/^ss[A-Z0-9]/.test(k)&&!/^ssW|^ss[MN][A-Z]|^ssDial|^ssName$/.test(k))||k==='baseSlot')s[k]=b[k];
+  s.ssShow=cfg.show==='words'||cfg.show==='dial'?cfg.show:'clock';put('ssDrift',cfg.drift);
+  const c=cfg.clock||{},N=c.mixed;
+  if(N){MX_MAP.forEach(([a,k])=>put('ssN'+k.slice(1),N[a]));MN_PARTS.forEach(([a,k])=>put(k,(N.parts||{})[a]));}
+  const w=cfg.words;
+  if(w){W_MAP.forEach(([a,k])=>put(k,w[a]));
+    if(w.nums)WN_MAP.forEach(([a,k])=>put(k,w.nums[a]));else if(w.num)WN_MAP.forEach(([,k])=>put(k,w.num));
+    const M=w.mixed;if(M){MX_MAP.forEach(([a,k])=>put('ss'+k,M[a]));put('ssMLittle',M.little);MW_PARTS.forEach(([a,k])=>put(k,(M.parts||{})[a]));}}
+  const d=cfg.dial;
+  if(d){DL_MAP.forEach(([a,k])=>put(k,d[a]));const col=d.colours||{};D_COLS.forEach(([k,t])=>put(k,col[t]));}
+  const fonts={},list=cfg.fonts||[];list.forEach(f=>{fonts[f.id]={name:f.name,family:f.family||'',file:''};});
+  return{tempo:1,name:name||'Screen saver',exportName:'',settings:s,fonts,on:list.map(f=>f.id),pool:list.filter(f=>f.swap!==false&&f.id!==s.baseSlot).map(f=>f.id),tracks:Object.assign({},cfg.tracks||{}),themes:[]};}
+/* the page inside a Windows .scr: [host][name][page][24-byte footer: RBTOSCR1, name length, page length, colour, 0] */
+function pageFromScr(u){const n=u.length;if(n<24)return null;const dv=new DataView(u.buffer,u.byteOffset,u.byteLength);
+  if(new TextDecoder().decode(u.subarray(n-24,n-16))!=='RBTOSCR1')return null;const hl=dv.getUint32(n-12,true);return new TextDecoder().decode(u.subarray(n-24-hl,n-24));}
+function presetFromPage(html){
+  const m=/window\.__(?:TEMPO|RUBATO)__=(\{[\s\S]*?\});<\/script>/.exec(html);if(!m)return null;
+  const cfg=JSON.parse(m[1]),t=/<title>([\s\S]*?) – screensaver<\/title>/.exec(html),title=t?t[1].trim():'';
+  if(cfg.edit&&cfg.edit.settings)return Object.assign({},cfg.edit,{name:cfg.edit.name||title||'Screen saver'});
+  return presetFromConfig(cfg,title);}
+/* Open a file: a downloaded screen saver (HTML, Mac or Windows zip, .scr), one preset, or a backup of them all */
+async function openPresetFile(f){
+  let got=[];
+  try{
+    if(/\.json$/i.test(f.name)){const j=JSON.parse(await f.text());
+      if(Array.isArray(j.presets))got=j.presets;else if(j.preset)got=[j.preset];else if(j.settings)got=[j];
+      if(Array.isArray(j.themes)&&j.themes.length)got.forEach(p=>{p.themes=p.themes&&p.themes.length?p.themes:j.themes;});}
+    else if(/\.html?$/i.test(f.name)){const p=presetFromPage(await f.text());if(p)got=[p];}
+    else if(/\.scr$/i.test(f.name)){const h=pageFromScr(new Uint8Array(await f.arrayBuffer()));const p=h&&presetFromPage(h);if(p)got=[p];}
+    else if(/\.zip$/i.test(f.name)){const ents=await unzip(await f.arrayBuffer());
+      for(const z of ents){let h=null;if(/Contents\/Resources\/index\.html$/.test(z.name))h=new TextDecoder().decode(z.data);else if(/\.scr$/i.test(z.name))h=pageFromScr(z.data);
+        const p=h&&presetFromPage(h);if(p){got=[p];break;}}}
+  }catch(e){console.error(e);}
+  got=got.filter(p=>p&&p.settings);
+  if(!got.length){toast(`${f.name} isn’t a Tempo screen saver or preset file.`);return;}
+  const BACKUP=changedSince()?{snap:snapshot(),active:ACTIVE}:null;let last=null,added=0;
+  for(const g of got){const same=PRESETS.find(p=>sigOf(p)===sigOf(g));if(same){last=same;continue;}/* already here: open that one */
+    const p=Object.assign({},g,{id:g.id&&!PRESETS.some(x=>x.id===g.id)?g.id:presetId(),name:uniqueName(g.name),saved:g.saved||Date.now()});PRESETS.push(p);last=p;added++;}
+  savePresets();
+  if(got.length===1){const p=last||PRESETS.find(x=>x.id===got[0].id);if(BACKUP)keepBack(Object.assign(BACKUP,{name:p.name}));openPreset(p);setActive(p.id);presetVer++;refreshAll();}
+  else{refreshAll();toast(added?`Added ${added} preset${added>1?'s':''} from ${f.name}`:'Those presets are already here.');}}
+/* Dropped on the page: Tempo's own downloads and preset files open as presets; anything else goes to Fonts */
+function appDropFiles(fs){const mine=f=>/\.(html?|json|scr)$/i.test(f.name)||/screen saver for (mac|windows)\.zip$/i.test(f.name);
+  const take=fs.filter(mine);(async()=>{for(const f of take)await openPresetFile(f);})();return fs.filter(f=>!mine(f));}
+/* live tiles: each preset drawn as it would play, at this minute */
+function configFor(p){const m=resolveFonts(p),keep=S;let cfg;
+  try{S=Object.assign(fresh(),keep);applyPresetSettings(p,m);cfg=saverConfig();}finally{S=keep;}
+  const core=m.map[(p.settings||{}).baseSlot];if(core)cfg.base.baseSlot=core;
+  if(Array.isArray(p.on)){const id=x=>m.map[x]||null;cfg.__pool=new Set((p.pool||[]).map(id).filter(Boolean));}
+  return cfg;}
+function drawTile(c,p){
+  const W=384,H=240;c.width=W;c.height=H;const x=c.getContext('2d');
+  try{const cfg=configFor(p),e=createEngine(),pool=cfg.__pool;delete cfg.__pool;cfg.drift=0;
+    if(cfg.dial)for(const k of ['line','key','hand'])cfg.dial[k]*=2.5;/* hairlines would vanish at this size */
+    e.setFaces(eng.faceList().map(f=>pool?Object.assign({},f,{swap:pool.has(f.id)}):f));createSaver(e,cfg).frame(x,W,H,performance.now(),0);}
+  catch(err){console.error(err);x.fillStyle='#888';x.fillRect(0,0,W,H);}}
+/* Exports carry their own preset – every setting, not only those for what it shows – so they open again exactly and nothing is lost */
+function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
+{const b=card('ss-presets','Presets',null,'saver');
+  const status=el('p','p-status');addCustom(b,null,status);
+  const actRow=el('div','ctl btn-row'),upd=el('button','pill small primary','Save changes'),dlb=el('button','pill small','Download'),del=el('button','pill small','Delete');actRow.append(upd,dlb,del);addCustom(b,null,actRow);
+  const backRow=el('div','ctl btn-row'),back=el('button','pill small','Back to what you had');backRow.append(back);addCustom(b,null,backRow);
+  const yh=el('div','sub-head','Yours'),grid=el('div','thumbs');grid.setAttribute('role','group');grid.setAttribute('aria-label','Your presets');addCustom(b,null,yh);addCustom(b,null,grid);
+  const empty=addHint(b,'Nothing saved yet. Save what’s on screen to come back to it – your twelve start here.');
+  const bh=el('div','sub-head','Built in'),bgrid=el('div','thumbs');bgrid.setAttribute('role','group');bgrid.setAttribute('aria-label','Built-in presets');addCustom(b,null,bh);addCustom(b,null,bgrid);
+  const row=el('div','ctl btn-row'),nm=el('input');nm.type='text';nm.placeholder='Name';nm.setAttribute('aria-label','Preset name');nm.style.flex='1';
+  const sv=el('button','pill small primary','Save as new');row.append(nm,sv);addCustom(b,null,row);
+  const fr=el('div','ctl btn-row'),op=el('button','pill small','Open a file'),all=el('button','pill small','Download all');fr.append(op,all);addCustom(b,null,fr);
+  addHint(b,'Kept in this browser – Download all now and then for a copy. Open a file brings back a screen saver you downloaded (the HTML, Mac or Windows file) or a preset file, ready to edit.');
+  sv.onclick=()=>{saveNew(nm.value);nm.value='';};nm.onkeydown=e=>{if(e.key==='Enter')sv.onclick();};
+  upd.onclick=saveChanges;dlb.onclick=()=>{const a=activePreset();if(a)downloadPreset(a);};
+  let armed=0,armedFor=null;const disarm=()=>{armed=0;armedFor=null;del.textContent='Delete';};
+  del.onclick=()=>{const a=activePreset();if(!a||ACTIVE.builtin)return;if(armedFor===a.id&&Date.now()-armed<4000){disarm();deletePreset(a);return;}
+    armed=Date.now();armedFor=a.id;del.textContent='Delete – sure?';setTimeout(()=>{if(Date.now()-armed>=3990)disarm();},4000);};
+  back.onclick=()=>{if(!BACK)return;const B=BACK;keepBack(null);openPreset(B.snap,true);ACTIVE=B.active;LS.set('active',ACTIVE);presetVer++;refreshAll();toast('Back to what you had');};
+  op.onclick=()=>$('#presetfile').click();
+  $('#presetfile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(f)await openPresetFile(f);};
+  all.onclick=downloadAll;
+  let drawn='';
+  const tiles=(host,list,builtin)=>{host.textContent='';list.forEach(p=>{const t=el('button','thumb');t.type='button';t.setAttribute('aria-label','Open '+p.name);t.dataset.id=p.id;
+    const c=el('canvas');t.append(c,el('span',null,p.name));t.onclick=()=>openFromList(p,builtin);host.append(t);});};
+  controls.push({d:{},w:b,update(){
+    const key=presetVer+'|'+faceVer+'|'+PRESETS.length+'|'+BUILTIN_P.length;
+    if(key!==drawn){drawn=key;lastSt='';tiles(grid,PRESETS,false);tiles(bgrid,BUILTIN_P,true);paintTiles();}
+    presetStatus();}});
+  setInterval(()=>{if(!document.hidden)presetStatus();},700);
+  let lastSt='';
+  function presetStatus(){
+    const a=activePreset(),ch=a?changedSince():true,st=[a&&a.id,ch,!!BACK,PRESETS.length,BUILTIN_P.length].join('|');if(st===lastSt&&a)return;lastSt=st;
+    if(!a||a.id!==armedFor)disarm();
+    [...grid.children,...bgrid.children].forEach(t=>t.setAttribute('aria-pressed',!!(a&&t.dataset.id===a.id)));
+    status.textContent='';
+    if(a){status.append('Open: ',el('b',null,a.name),' – '+(ACTIVE.builtin?(ch?'changed – save as new to keep it':'built in'):(ch?'changed since saved':'saved')));}
+    else status.textContent=PRESETS.length?'What’s on screen isn’t saved yet.':'';
+    actRow.hidden=!a||!!ACTIVE.builtin;upd.disabled=!ch;upd.hidden=!a||!ch;
+    backRow.hidden=!BACK;if(BACK)back.textContent='Back to what you had before '+BACK.name;
+    grid.hidden=yh.hidden=!PRESETS.length;empty.w.hidden=!!PRESETS.length;bh.hidden=bgrid.hidden=!BUILTIN_P.length;
+  }
+  /* redraw the tiles each minute, a few at a time so the panel stays quick */
+  let queue=[];
+  function paintTiles(){queue=[...grid.children,...bgrid.children];step();}
+  function step(){const t=queue.shift();if(!t)return;const p=PRESETS.find(x=>x.id===t.dataset.id)||BUILTIN_P.find(x=>x.id===t.dataset.id);if(p)drawTile(t.querySelector('canvas'),p);setTimeout(step,0);}
+  setInterval(()=>{if(!document.hidden&&grid.offsetParent)paintTiles();},60000);
+  panel.insertBefore(b.parentElement,panel.firstChild);/* the front door, as in Rubato */
+}
+/* What the screen saver is called: the name typed under Export, else the preset
+   open, else the core font's family – or, for a dial, Tempo Dial. */
+function defaultName(){const a=activePreset();if(a)return a.name;if(dl(S))return 'Tempo Dial';return anyLoaded()?F(baseSlot()).family:'Tempo';}
 const exportName=()=>(S.ssName||'').trim()||defaultName();
 function saverConfig(){
   /* the words and mixing settings travel in their own blocks below */
@@ -542,6 +727,7 @@ function bakeFonts(chars){
 function saverHTML(){
   const cfg=saverConfig();
   cfg.fonts=cfg.dial?[]:bakeFonts(saverChars(cfg));/* a dial has no type */
+  cfg.edit=editBlock();/* so the file opens again, ready to edit */
   const title=exportName().replace(/[<&]/g,'');
   const json=JSON.stringify(cfg).replace(/</g,'\\u003c');
   const bg=saverBg(cfg);

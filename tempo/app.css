@@ -1,0 +1,11 @@
+  /* Presets: saved screen savers as live tiles (as Rubato's) */
+  .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin:0 0 12px}
+  .thumb{display:flex;flex-direction:column;gap:4px;padding:3px 3px 6px;border:1px solid var(--keyline);border-radius:12px;background:var(--btn);cursor:pointer;color:var(--ink);text-align:left;min-width:0}
+  .thumb:hover{background:var(--btn-hover)}
+  .thumb:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  .thumb[aria-pressed="true"]{border-color:var(--fill-ink);box-shadow:0 0 0 1px var(--fill-ink)}
+  .thumb canvas{display:block;width:100%;aspect-ratio:8/5;border-radius:8px;pointer-events:none}
+  .thumb span{font-size:0.76rem;padding:0 4px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .thumb:hover span,.thumb[aria-pressed="true"] span{color:var(--ink)}
+  .p-status{font-size:0.82rem;color:var(--muted);margin:0 0 8px}
+  .p-status b{color:var(--ink);font-weight:500}

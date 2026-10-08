@@ -20,7 +20,9 @@
    font's axis controls go in. appFontList(list) – add to the list after the
    rows. appFontsLoaded(newStyles,manifest) – after fonts are added (manifest:
    the JSON file found in a .zip of fonts, if any). appFontsRestored() – once
-   the saved fonts are back after a reload.
+   the saved fonts are back after a reload. appDropFiles(files) – files dropped
+   on the page; returns those left for the fonts (Tempo takes its own screen
+   savers and preset files).
 */
 /* ---------------- settings ---------------- */
 const D={texts:['Lazaar'],seq:false,tracking:0,leading:1.05,
@@ -327,7 +329,7 @@ let fontList,fontNote;
   const cardEl=b.parentElement;
   cardEl.addEventListener('dragover',e=>{e.preventDefault();e.stopPropagation();cardEl.classList.add('drag');});
   cardEl.addEventListener('dragleave',e=>{if(!cardEl.contains(e.relatedTarget))cardEl.classList.remove('drag');});
-  cardEl.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();dragDepth=0;cardEl.classList.remove('drag');$('#drop').classList.remove('on');const fs=[...e.dataTransfer.files];if(fs.length)loadFiles(fs);});
+  cardEl.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();dragDepth=0;cardEl.classList.remove('drag');$('#drop').classList.remove('on');let fs=[...e.dataTransfer.files];if(typeof appDropFiles==='function')fs=appDropFiles(fs);if(fs.length)loadFiles(fs);});
 }
 function refreshFontCard(){
   fontList.textContent='';const bs=eng.baseSlot(),multi=styles.length>1;

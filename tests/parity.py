@@ -327,7 +327,7 @@ SCENARIOS = {'t1': t1, 't2': t2, 't3': t3, 't4': t4, 't5': t5, 't6': t6}
 # 1.0 is proven against 0.9 by rubato_regress.py; Tempo 0.3 by tempo_check.py
 # and split_check.py. Everything else must still match 0.8.1 exactly.
 import re as _re
-TEMPO03 = 'Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet) – covered by tempo_check.py'
+TEMPO03 = 'Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py'
 RUBATO10 = "Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9"
 ON_PURPOSE = {
     ('t1', 'Studio panel'): 'Rubato 1.0 regrouped the panel (Presets first, new controls)', ('t2', '? count'): 'Rubato 1.0 has more controls with tips',
@@ -335,7 +335,7 @@ ON_PURPOSE = {
     ('t2', 'randomised (within limits, R key)'): RUBATO10, ('t2', 'settings after R'): RUBATO10, ('t2', 'randomise options'): RUBATO10,
     ('t3', 'screen saver HTML'): TEMPO03, ('t3', 'screen saver HTML (file name)'): 'Tempo 0.3 names the file after the screen saver, not Rubato\'s text',
     ('t3', 'Mac zip'): TEMPO03,
-    ('t4', 'Screensaver panel'): TEMPO03, ('t4', 'saver cards'): 'Tempo 0.4 puts the Screensaver card (The time, In words or, from 0.5, As a dial) first', ('t4', 'looks cards'): 'Saved looks left Tempo in 0.3',
+    ('t4', 'Screensaver panel'): TEMPO03, ('t4', 'saver cards'): 'Tempo 0.4 puts the Screensaver card (The time, In words or, from 0.5, As a dial) first; from 0.6 Presets comes before it', ('t4', 'looks cards'): 'Saved looks left Tempo in 0.3',
     ('t4', 'drift visible in looks'): 'Saved looks left Tempo in 0.3', ('t4', 'Screensaver panel, saved looks'): 'Saved looks left Tempo in 0.3',
     ('t4', 'Windows zip'): TEMPO03, ('t4', 'Mac zip'): TEMPO03,
     ('t5', 'screen saver HTML'): TEMPO03, ('t5', 'screen saver HTML (file name)'): 'Tempo 0.3 names the file after the screen saver, not Rubato\'s text',

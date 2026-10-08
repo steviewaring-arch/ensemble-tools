@@ -16,7 +16,7 @@ let dragDepth=0;
 window.addEventListener('dragenter',e=>{if(e.dataTransfer&&[...e.dataTransfer.types].includes('Files')){dragDepth++;$('#drop').classList.add('on');}});
 window.addEventListener('dragleave',()=>{dragDepth=Math.max(0,dragDepth-1);if(!dragDepth)$('#drop').classList.remove('on');});
 window.addEventListener('dragover',e=>e.preventDefault());
-window.addEventListener('drop',e=>{e.preventDefault();dragDepth=0;$('#drop').classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(!fs.length)return;
+window.addEventListener('drop',e=>{e.preventDefault();dragDepth=0;$('#drop').classList.remove('on');let fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(typeof appDropFiles==='function')fs=appDropFiles(fs);if(!fs.length)return;
   const ims=fs.filter(f=>/^image\//.test(f.type));const fo=fs.filter(f=>!/^image\//.test(f.type));if(ims.length)setImage(ims[0],ims[0].name);if(fo.length)loadFiles(fo);});
 function setTheme(t){document.body.dataset.theme=t;LS.set('theme',t);document.querySelectorAll('#appearance button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));schedulePicker(0);}
 document.querySelectorAll('#appearance button').forEach(b=>b.onclick=()=>setTheme(b.dataset.t));
