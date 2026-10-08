@@ -173,6 +173,12 @@ def main():
     write('decentish/index.html', html)
     ver = re.search(r"const VERSION='([0-9.]+)'", html).group(1)
     print(f'decentish {ver}: docs/decentish/index.html ({len(html.encode()) // 1024} KB, copied after a syntax check)')
+    # UI stream pages (reviews now, the component page later), copied as they are
+    ui = os.path.join(ROOT, 'ui')
+    if os.path.isdir(ui):
+        shutil.rmtree(os.path.join(DOCS, 'ui'), ignore_errors=True)
+        shutil.copytree(ui, os.path.join(DOCS, 'ui'))
+        print('ui: docs/ui/ (UI stream pages, unlisted)')
     shutil.copyfile(os.path.join(ROOT, 'shared/home.html'), os.path.join(DOCS, 'index.html'))
     open(os.path.join(DOCS, '.nojekyll'), 'w').close()
     private_site()

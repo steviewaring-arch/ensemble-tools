@@ -178,6 +178,8 @@ Rules:
 For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the interface here instead of restyling.
 - Tempo: the left panel is too long – Export (and maybe Show and Presets) to a right-hand panel; a touch smaller overall (Steve, 8 Oct).
 
+**UI stream status (8 Oct, round 1):** review and options at `ui/review/` (built to `docs/ui/review/`, unlisted). Audit of all three apps, a three-level depth model (section, group, detail), proposed components and tokens v2 draft, and three live layouts on Tempo's panel. Waiting on Steve's decisions (layout, ruled or cards, base size, corners, help, theme, header) before tokens v2 and the component page. No app code changed.
+
 ## Dial ideas not built yet (0.5)
 - Hand shapes: tapered or rounded ends, a counterweight on the second hand, a ring at the centre instead of a dot.
 - Marks: numerals or a single 12 (would bring type back), a second ring inside, a 24-hour dial, a minute track of dashes.
