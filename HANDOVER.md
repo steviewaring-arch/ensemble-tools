@@ -1,4 +1,4 @@
-# Ensemble Tools – handover (7 October 2026, updated for Rubato 1.0 and Tempo 0.5)
+# Ensemble Tools – handover (8 October 2026, updated for Rubato 1.0 and Tempo 0.5)
 
 Read this and `README.md` before changing anything. Tutti's own notes are in `tutti/HANDOVER.md`.
 
@@ -139,10 +139,20 @@ Rules:
    Done in 0.3 (7 Oct): Rubato taken out of Tempo, the preview shapes, Mixed type folded into In words, tracking per font (Lazaar), a font for each numeral, the Fonts card with Use as core. In 0.4: the font library and pack, in turn, a few at random, words or figures per part, zero or oh, The time / In words first, folds.
    - Alternates: with Rubato gone, Tempo's clock uses every alternate the core font has – there's no way yet to pick which (Rubato's glyph picker did that).
    - Old Mac bitmap fonts can't be used; they need OTF or TTF versions.
-5. A website version of In words that uses the browser's location (place, sun, weather) and the Accuracy and Personality dials – its own project. Code for place, sun and weather is in commit `c0cc72c`.
-6. Tutti onto the shared tokens and UI kit (see `tutti/HANDOVER.md`).
-7. Develop each app in its own chat, from this repo.
-8. Rubato, noted for later: physics per letter (blocks only in 1.0); Lottie export; transparent WebM / PNG sequence; more kinetic tricks and refinements to the three; a trick per block; dragging destinations on the canvas; Sequence and Repeat with blocks; preloaded / Google Fonts; a layers panel; anonymous analytics with an opt-in gallery. Full list in the Project doc `claude/rubato-next.md`.
+5. **Steve's notes for Tempo from the car (8 Oct)**, in rough priority:
+   - **Saving (the main gap).** There's no way back to a screen saver once it's made: only colour themes save. Wanted: saved screen savers (every setting, named, reloadable), a settings file to pass on, and built-in presets – the curated set that ships. Nothing in Tempo is random-seeded except Shuffle and Random colour, which follow the clock, so a saved settings file reproduces a screen saver; a "seed" would only matter if a seeded random variant is added.
+   - **“Everything is twelve”:** twelve screen savers to give away (or six to start), twelve colour themes within a style, twelve dials. The built-in presets above are where this lands.
+   - **Pulse variants** for the separator (now one fade): keep the fade, add a clean tick (hard on and off), and a colon whose top and bottom dots take turns.
+   - **Default font: Timeless** (Sans or Grotesque) in place of Diatype. Timeless is four free variable families – Grotesque, Sans, Serif, Text – from timeless.co/type (Design Compass, 6 Oct 2026). Check the licence wording first: if it allows redistribution it can be built in publicly (`tempo/fonts/fonts.json`), which also settles the “nothing built in” question for the default. It's variable – Tempo handles TrueType variable fonts; CFF2 is untested. Credit it if the licence asks.
+   - **Lyrics, a fourth style** (or part of In words): sixty time-related song lyrics, one a minute through the hour, set big, with artist and year small bottom left. **Licensing is the blocker** – lyrics are copyright, and a screen saver given away is publishing them; even short lines need the publisher's permission. Alternatives: lyrics cleared or written for it, or public-domain lines (published before 1929).
+   - **Mac options:** can the screen saver's settings show in macOS's own Options sheet (colour every minute or second, monochrome)? Not with the current bundle – it's a re-signed WebViewScreenSaver whose sheet only takes a URL. It needs a native screen saver built in Xcode reading the options and passing them to the page (Windows' Settings button is the same story). Scope before promising it in promotion.
+   - **Promotion (later, wants a light roadmap):** give the screen savers away free first and gauge pickup, then perhaps the tool; trackable download links (Bitly or similar); paid Instagram ads; screen recordings of favourites in a clean device mock-up (Apple Studio Display), stitched into motion – nothing fussy.
+   - **UI, parked:** the left panel is long; move Export (and maybe Show) to a right-hand panel and keep the left for tweaking; a touch smaller overall. Not to be done in isolation – one refined UI style shared by Tutti, Tempo, Rubato and what comes next (see 7).
+   - The dial (“time dial looks to come back”) went in as 0.5 on 7 Oct – Steve to review it.
+6. A website version of In words that uses the browser's location (place, sun, weather) and the Accuracy and Personality dials – its own project. Code for place, sun and weather is in commit `c0cc72c`.
+7. Tutti onto the shared tokens and UI kit (see `tutti/HANDOVER.md`) – and, from Steve's 8 Oct notes, one refined UI style across all the tools rather than redesigning each on its own.
+8. Develop each app in its own chat, from this repo.
+9. Rubato, noted for later: physics per letter (blocks only in 1.0); Lottie export; transparent WebM / PNG sequence; more kinetic tricks and refinements to the three; a trick per block; dragging destinations on the canvas; Sequence and Repeat with blocks; preloaded / Google Fonts; a layers panel; anonymous analytics with an opt-in gallery. Full list in the Project doc `claude/rubato-next.md`.
 
 ## Dial ideas not built yet (0.5)
 - Hand shapes: tapered or rounded ends, a counterweight on the second hand, a ring at the centre instead of a dot.
