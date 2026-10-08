@@ -1,5 +1,17 @@
 # Changelog
 
+## 8 October 2026 – Tempo 0.7
+
+**Tempo 0.7** – Timeless built in, and Lazaar Soft drawn properly.
+- **Timeless Sans is Tempo's font.** It comes with Tempo – no loading needed – and is the core font the first time 0.7 opens, also for anyone who used Tempo before. Your own fonts and font packs work as always. On: Sans Regular (core), Sans Medium, Grotesk Medium, Semibold and Black; the variable font (every weight, italics, Grotesk to Sans) is listed, off. The Fonts card credits it: free from timeless.co, under the Timeless Free Font License.
+- **Kept to its licence.** The licence forbids public repositories and servers, so the fonts are never in this repo or `docs/`. They're embedded inside Tempo's page only in a private build (`site/`) – see `LICENCES.md`, including the hosting decision still to make before the live site has them. `tests/licence_check.py` fails if any trace of them reaches the repo.
+- **No more screen savers named after their font.** Unnamed exports are Tempo, Tempo Words or Tempo Dial (or the preset's name).
+- **Fixed: parts of glyphs going missing** – Lazaar Soft's N, M, T, n, t, k, r, 4 and more looked clipped. The font is fine; the path data Tempo made from it wasn't. A coordinate a hair below zero ran two numbers together. Fixed in the shared font loader, so Rubato too. Re-export any screen saver made with Lazaar Soft.
+- A licence or read-me inside a .zip of fonts no longer counts as a font it couldn't read.
+- Tests: `tests/tempo_check.py` 119 of 119 (new: exported outlines draw exactly as the font does, glyph by glyph; fonts embedded in the page load once, as the core, with their credit, and never reach exports; export names); `tests/licence_check.py` 4 of 4.
+
+**Rubato 1.0** – the path fix above (parts of some glyphs no longer go missing); nothing else.
+
 ## 8 October 2026 – Tempo 0.6
 
 **Tempo 0.6** – presets: save a screen saver, come back to it, and open the ones you've downloaded.
@@ -74,7 +86,7 @@
   - Change: Roll, Fade, Type or Cut; whole words or only the letters that changed; small reflows glide, bigger ones leave and arrive like a departure board. Play a change replays one in the preview.
   - Position and colour: align, vertical position, margin and drift; six starter themes (Apricot, from Steve’s reference, then Red, Paper, Night, Signal, Ultraviolet) or your own three colours; optional theme change on the hour.
   - Exports to HTML, Mac and Windows as the clock does. Every letter and figure the sentence can use is baked in.
-- New: **Mixed type**, a fourth option under Show (the four now sit two by two). The time in words, carried by a plain base face (a Swiss face such as Diatype), with display faces coming in and out of it. A first pass with options to try, for Steve to refine.
+- New: **Mixed type**, a fourth option under Show (the four now sit two by two). The time in words, carried by a plain base face (a Swiss grotesk), with display faces coming in and out of it. A first pass with options to try, for Steve to refine.
   - Typefaces card: the base face, then how the display faces come in – **Each part** (It is, time, seconds, day, date, month and year each set to the base face, a face of its own, or Shuffle), **Latest change** (whatever just changed arrives in a display face and goes back at the next change) or **One part at a time** (a single part featured, moving on each change, minute or hour).
   - Shuffle takes a new face when the part's words change, or every minute or hour, and never the same face twice running. Display faces are the styles ticked “Use in style swaps” in Fonts, apart from the base face.
   - Options: a face for each word; little words (on, the, of, in, and) stay in the base face; match cap heights, so every face's capitals stand as tall as the base face's. Tracking tightens the base face only – display faces keep their own spacing.

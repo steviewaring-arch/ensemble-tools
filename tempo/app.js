@@ -132,10 +132,19 @@ function fold(parent,id,title,show,shut){
   head.onclick=()=>{const o=body.hidden;FOLDS[id]=o;LS.set('folds',FOLDS);paint(o);};
   head.append(label,chev);box.append(head,body);addCustom(parent,show||null,box);return body;}
 const openRows=new Set();/* font rows showing their details */
-/* Fonts served with Tempo: tempo/fonts/fonts.json (only fonts cleared to publish) */
-let BUILTIN=[];
-const builtinsP=fetch('fonts/fonts.json').then(r=>r.ok?r.json():null).then(j=>{BUILTIN=(j&&j.fonts)||[];refreshFontCard();}).catch(()=>{});
+/* Fonts that come with Tempo, from two places with the same fields
+   ({file, name, on, core, shuffle, tracking, credit}): fonts embedded in the page
+   itself (data, base64) – for fonts whose licence allows them only as part of the
+   app, never as files of their own, such as Timeless (see LICENCES.md) – and
+   tempo/fonts/fonts.json beside the page, for fonts cleared to publish as files. */
+const EMBEDDED=(()=>{try{const e=document.getElementById('tempo-builtin-fonts');return e?(JSON.parse(e.textContent).fonts||[]):[];}catch(e){return[];}})();
+let BUILTIN=EMBEDDED.slice();
+const builtinsP=fetch('fonts/fonts.json').then(r=>r.ok?r.json():null).then(j=>{for(const f of (j&&j.fonts)||[])if(!BUILTIN.some(b=>b.file===f.file))BUILTIN.push(f);refreshFontCard();}).catch(()=>{});
 const fileOf=st=>(files.get(st.fid)||{}).fileName;
+const isLoaded=bf=>styles.some(s=>fileOf(s)===bf.file||(bf.name&&s.face.name===bf.name));
+async function builtinFile(bf){
+  if(bf.data){const bin=atob(bf.data),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new File([u],bf.file);}
+  const r=await fetch('fonts/'+encodeURIComponent(bf.file));if(!r.ok)throw new Error(r.status);return new File([await r.arrayBuffer()],bf.file);}
 const toggleEl=(label,on,fn)=>{const t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',on);t.setAttribute('aria-label',label);t.append(el('span','box'));t.style.cssText='width:auto;margin:0 0 0 6px;flex:none';t.onclick=fn;return t;};
 /* switch a font on or off – off keeps it in the list but out of everything */
 function fontOnOff(st,on){st.off=!on;
@@ -172,15 +181,13 @@ function appFontRow(st,row,top,rm){
 }
 /* built-in fonts not loaded yet, after the rows */
 function appFontList(list){
-  const have=new Set(styles.map(fileOf));
-  for(const bf of BUILTIN){if(have.has(bf.file))continue;
+  for(const bf of BUILTIN){if(isLoaded(bf))continue;
     const row=el('div','slot'),top=el('div','slot-top'),main=el('div','slot-main');row.style.opacity='.55';
     main.append(el('div','slot-name',bf.name||bf.file),el('div','slot-meta','Built in · off'));top.append(main);
     const t=toggleEl('On – '+(bf.name||bf.file),false,()=>loadBuiltin(bf,true));top.append(t);row.append(top);list.append(row);}
 }
 async function loadBuiltin(bf,on){
-  try{const r=await fetch('fonts/'+encodeURIComponent(bf.file));if(!r.ok)throw new Error(r.status);
-    await loadFiles([new File([await r.arrayBuffer()],bf.file)]);appFontsLoaded([],{fonts:[Object.assign({},bf,{on,core:on&&bf.core})]});}
+  try{await loadFiles([await builtinFile(bf)]);appFontsLoaded([],{fonts:[Object.assign({},bf,{on,core:on&&bf.core})]});}
   catch(e){toast(`Couldn’t load ${bf.name||bf.file}.`);}}
 /* A font pack (a .zip) can carry tempo-fonts.json: {fonts:[{file, on, core,
    shuffle, tracking}]} – which fonts start on, the core, which shuffle in and
@@ -197,12 +204,17 @@ function appFontsLoaded(added,manifest){
 /* the list: the core font, then the others switched on, then those off, each A to Z */
 function sortFonts(){const bs=S.baseSlot,rank=x=>x.id===bs&&!x.off?0:x.off?2:1;
   styles.sort((a,b)=>rank(a)-rank(b)||a.face.name.localeCompare(b.face.name));}
-/* the first time Tempo opens, the built-in fonts marked on come on */
-function appFontsRestored(){builtinsP.then(async()=>{if(LS.get('builtins'))return;
-  const want=BUILTIN.filter(b=>b.on!==false&&!styles.some(s=>fileOf(s)===b.file));const bufs=[];
-  for(const bf of want){try{const r=await fetch('fonts/'+encodeURIComponent(bf.file));if(r.ok)bufs.push(new File([await r.arrayBuffer()],bf.file));}catch(e){}}
-  if(bufs.length){await loadFiles(bufs);appFontsLoaded([],{fonts:BUILTIN});}
-  if(bufs.length===want.length)LS.set('builtins',1);/* only once they're all in */});}
+/* Each built-in font is offered once: the first time Tempo opens with it, those
+   marked on come on (a core one becomes the core). Remove one and it stays out –
+   switch it on again from the list. Done is remembered by file. */
+function appFontsRestored(){builtinsP.then(async()=>{
+  const done=new Set(LS.get('builtinsDone')||[]),fresh=BUILTIN.filter(b=>!done.has(b.file));if(!fresh.length)return;
+  const want=fresh.filter(b=>b.on!==false&&!isLoaded(b)),bufs=[];
+  for(const bf of want){try{bufs.push(await builtinFile(bf));}catch(e){}}
+  if(bufs.length){await loadFiles(bufs);appFontsLoaded([],{fonts:want});}
+  if(bufs.length===want.length){fresh.forEach(b=>done.add(b.file));LS.set('builtinsDone',[...done]);}/* only once they're all in */});}
+/* credit for built-in fonts in use, as their licences ask (Timeless: point people to timeless.co) */
+const fontCredits=()=>[...new Set(BUILTIN.filter(b=>b.credit&&styles.some(s=>!s.off&&(fileOf(s)===b.file||s.face.name===b.name))).map(b=>b.credit))];
 /* Mixing: how the other fonts come in, under the font list */
 function addSelect(parent,d){
   const w=el('div','colour-row'),lb=el('label',null,d.label),sel=el('select');sel.id='c_'+d.k;lb.htmlFor=sel.id;d.group=d.group||curGroup;
@@ -223,6 +235,7 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
 {const b0=fontList.parentElement,mixW=s=>wd(s)&&canMix(),mixN=s=>clk(s)&&canMix();
   addHint(b0,'A .zip of fonts works too – any already in the list are skipped. Switch a font off to keep it for later; click its name for its tracking and more.');
   addHint(b0,'Load a second font to mix it into the core one.',()=>!canMix());
+  {const cr=el('p','hint');addCustom(b0,null,cr);controls.push({d:{},w:cr,update(){const c=fontCredits();cr.textContent=c.join(' ');cr.hidden=!c.length;}});}
   const b=fold(b0,'mixing','Mixing',()=>canMix());
   /* the words */
   build(b,[{t:'seg',k:'ssMMode',label:'Other fonts come in',opts:[['parts','Each part'],['latest','Latest change'],['one','One at a time'],['some','A few at random']],show:mixW}]);
@@ -677,8 +690,9 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
   panel.insertBefore(b.parentElement,panel.firstChild);/* the front door, as in Rubato */
 }
 /* What the screen saver is called: the name typed under Export, else the preset
-   open, else the core font's family – or, for a dial, Tempo Dial. */
-function defaultName(){const a=activePreset();if(a)return a.name;if(dl(S))return 'Tempo Dial';return anyLoaded()?F(baseSlot()).family:'Tempo';}
+   open, else Tempo, Tempo Words or Tempo Dial. Never a font's name – some fonts'
+   licences (Timeless's) don't allow naming a product after them. */
+function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':'Tempo';}
 const exportName=()=>(S.ssName||'').trim()||defaultName();
 function saverConfig(){
   /* the words and mixing settings travel in their own blocks below */

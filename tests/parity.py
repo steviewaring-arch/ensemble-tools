@@ -328,6 +328,7 @@ SCENARIOS = {'t1': t1, 't2': t2, 't3': t3, 't4': t4, 't5': t5, 't6': t6}
 # and split_check.py. Everything else must still match 0.8.1 exactly.
 import re as _re
 TEMPO03 = 'Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py'
+TEMPO07 = "Tempo 0.7 never names a screen saver after its font (Timeless's licence forbids naming a product after it) – Tempo, Tempo Words or Tempo Dial"
 RUBATO10 = "Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9"
 ON_PURPOSE = {
     ('t1', 'Studio panel'): 'Rubato 1.0 regrouped the panel (Presets first, new controls)', ('t2', '? count'): 'Rubato 1.0 has more controls with tips',
@@ -340,6 +341,7 @@ ON_PURPOSE = {
     ('t4', 'Windows zip'): TEMPO03, ('t4', 'Mac zip'): TEMPO03,
     ('t5', 'screen saver HTML'): TEMPO03, ('t5', 'screen saver HTML (file name)'): 'Tempo 0.3 names the file after the screen saver, not Rubato\'s text',
     ('t6', 'Mac zip'): TEMPO03, ('t6', 'Windows zip'): TEMPO03,
+    ('t3', 'Mac zip (file name)'): TEMPO07, ('t4', 'Windows zip (file name)'): TEMPO07, ('t4', 'Mac zip (file name)'): TEMPO07, ('t6', 'Mac zip (file name)'): TEMPO07, ('t6', 'Windows zip (file name)'): TEMPO07,
 }
 # live-preview frames that land on one of two states depending on timing:
 # allowed the difference 0.8.1 itself showed between its own runs (6 Oct 2026)

@@ -1002,7 +1002,10 @@ function makeFace(F0,coords){
   const pd=new Map(),p2=new Map(),adv=new Map(),kc=new Map(),bb=new Map(),glyph=g=>font.glyphs.get(g);
   const advC=(g,c)=>{const k=g+'|'+ck(c);let v=adv.get(k);if(v==null){v=0;try{const gl=glyph(g);v=(gl._advanceWidth!==undefined?gl._advanceWidth:gl.advanceWidth)||0;
     if(c&&F0.hasHvar&&font.variation&&font.variation.getTransform){const t=font.variation.getTransform(gl,c);if(t&&isFinite(t.advanceWidth))v=t.advanceWidth;}}catch(e){console.warn(e);}adv.set(k,v);}return v;};
-  const pathC=(g,c)=>{const k=g+'|'+ck(c);let d=pd.get(k);if(d==null){try{d=glyph(g).getPath(0,0,upm,c?{variation:c}:{},font).toPathData(2)}catch(e){d=''}pd.set(k,d);}return d;};
+  /* opentype.js writes a coordinate a hair below zero as "0" with no space before it ("227.370"),
+     which runs two numbers together and drops parts of a glyph (Lazaar Soft's N, T, M…). Snap those to 0 first. */
+  const snap=P=>{for(const c of P.commands)for(const q of ['x','y','x1','y1','x2','y2'])if(c[q]!==undefined&&Math.abs(c[q])<.005)c[q]=0;return P;};
+  const pathC=(g,c)=>{const k=g+'|'+ck(c);let d=pd.get(k);if(d==null){try{d=snap(glyph(g).getPath(0,0,upm,c?{variation:c}:{},font)).toPathData(2)}catch(e){d=''}pd.set(k,d);}return d;};
   const p2C=(g,c)=>{const k=g+'|'+ck(c);let p=p2.get(k);if(!p){p=new Path2D(pathC(g,c));p2.set(k,p);}return p;};
   const inst=co&&F0.instances.find(i=>axes.every(a=>Math.abs((i.coords[a.tag]!=null?i.coords[a.tag]:a.def)-co[a.tag])<.5));
   const styleName=co?(inst?inst.name:axes.map(a=>a.tag+' '+Math.round(co[a.tag])).join(' ')):F0.sub;
@@ -1055,6 +1058,7 @@ async function loadFiles(list){
     let ents=[];try{ents=await unzip(await f.arrayBuffer());}catch(e){toast(`Couldn't open ${f.name}.`);continue;}
     for(const z of ents){const base=z.name.split('/').pop();if(!base||base.startsWith('.')||/(^|\/)__MACOSX\//.test(z.name))continue;
       if(/\.json$/i.test(base)){try{manifest=JSON.parse(new TextDecoder().decode(z.data));}catch(e){}continue;}
+      if(/\.(txt|md|pdf|rtf|html?)$/i.test(base))continue;/* a licence or read-me travelling with the fonts */
       if(!z.data.length||!/\.(otf|ttf|woff)$/i.test(base)){skipped++;continue;}
       flat.push({name:base,inZip:true,arrayBuffer:async()=>z.data.buffer.slice(z.data.byteOffset,z.data.byteOffset+z.data.byteLength)});}}
   const got=[],seen=new Set(styles.filter(s=>!s.coords).map(s=>{const r=files.get(s.fid);return r?(r.family+'|'+r.sub).toLowerCase():'';}));

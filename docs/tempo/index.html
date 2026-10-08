@@ -213,7 +213,7 @@
 <div class="app">
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.6</span></div>
+      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.7</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -1339,7 +1339,10 @@ function makeFace(F0,coords){
   const pd=new Map(),p2=new Map(),adv=new Map(),kc=new Map(),bb=new Map(),glyph=g=>font.glyphs.get(g);
   const advC=(g,c)=>{const k=g+'|'+ck(c);let v=adv.get(k);if(v==null){v=0;try{const gl=glyph(g);v=(gl._advanceWidth!==undefined?gl._advanceWidth:gl.advanceWidth)||0;
     if(c&&F0.hasHvar&&font.variation&&font.variation.getTransform){const t=font.variation.getTransform(gl,c);if(t&&isFinite(t.advanceWidth))v=t.advanceWidth;}}catch(e){console.warn(e);}adv.set(k,v);}return v;};
-  const pathC=(g,c)=>{const k=g+'|'+ck(c);let d=pd.get(k);if(d==null){try{d=glyph(g).getPath(0,0,upm,c?{variation:c}:{},font).toPathData(2)}catch(e){d=''}pd.set(k,d);}return d;};
+  /* opentype.js writes a coordinate a hair below zero as "0" with no space before it ("227.370"),
+     which runs two numbers together and drops parts of a glyph (Lazaar Soft's N, T, M…). Snap those to 0 first. */
+  const snap=P=>{for(const c of P.commands)for(const q of ['x','y','x1','y1','x2','y2'])if(c[q]!==undefined&&Math.abs(c[q])<.005)c[q]=0;return P;};
+  const pathC=(g,c)=>{const k=g+'|'+ck(c);let d=pd.get(k);if(d==null){try{d=snap(glyph(g).getPath(0,0,upm,c?{variation:c}:{},font)).toPathData(2)}catch(e){d=''}pd.set(k,d);}return d;};
   const p2C=(g,c)=>{const k=g+'|'+ck(c);let p=p2.get(k);if(!p){p=new Path2D(pathC(g,c));p2.set(k,p);}return p;};
   const inst=co&&F0.instances.find(i=>axes.every(a=>Math.abs((i.coords[a.tag]!=null?i.coords[a.tag]:a.def)-co[a.tag])<.5));
   const styleName=co?(inst?inst.name:axes.map(a=>a.tag+' '+Math.round(co[a.tag])).join(' ')):F0.sub;
@@ -1392,6 +1395,7 @@ async function loadFiles(list){
     let ents=[];try{ents=await unzip(await f.arrayBuffer());}catch(e){toast(`Couldn't open ${f.name}.`);continue;}
     for(const z of ents){const base=z.name.split('/').pop();if(!base||base.startsWith('.')||/(^|\/)__MACOSX\//.test(z.name))continue;
       if(/\.json$/i.test(base)){try{manifest=JSON.parse(new TextDecoder().decode(z.data));}catch(e){}continue;}
+      if(/\.(txt|md|pdf|rtf|html?)$/i.test(base))continue;/* a licence or read-me travelling with the fonts */
       if(!z.data.length||!/\.(otf|ttf|woff)$/i.test(base)){skipped++;continue;}
       flat.push({name:base,inZip:true,arrayBuffer:async()=>z.data.buffer.slice(z.data.byteOffset,z.data.byteOffset+z.data.byteLength)});}}
   const got=[],seen=new Set(styles.filter(s=>!s.coords).map(s=>{const r=files.get(s.fid);return r?(r.family+'|'+r.sub).toLowerCase():'';}));
@@ -1727,10 +1731,19 @@ function fold(parent,id,title,show,shut){
   head.onclick=()=>{const o=body.hidden;FOLDS[id]=o;LS.set('folds',FOLDS);paint(o);};
   head.append(label,chev);box.append(head,body);addCustom(parent,show||null,box);return body;}
 const openRows=new Set();/* font rows showing their details */
-/* Fonts served with Tempo: tempo/fonts/fonts.json (only fonts cleared to publish) */
-let BUILTIN=[];
-const builtinsP=fetch('fonts/fonts.json').then(r=>r.ok?r.json():null).then(j=>{BUILTIN=(j&&j.fonts)||[];refreshFontCard();}).catch(()=>{});
+/* Fonts that come with Tempo, from two places with the same fields
+   ({file, name, on, core, shuffle, tracking, credit}): fonts embedded in the page
+   itself (data, base64) – for fonts whose licence allows them only as part of the
+   app, never as files of their own, such as Timeless (see LICENCES.md) – and
+   tempo/fonts/fonts.json beside the page, for fonts cleared to publish as files. */
+const EMBEDDED=(()=>{try{const e=document.getElementById('tempo-builtin-fonts');return e?(JSON.parse(e.textContent).fonts||[]):[];}catch(e){return[];}})();
+let BUILTIN=EMBEDDED.slice();
+const builtinsP=fetch('fonts/fonts.json').then(r=>r.ok?r.json():null).then(j=>{for(const f of (j&&j.fonts)||[])if(!BUILTIN.some(b=>b.file===f.file))BUILTIN.push(f);refreshFontCard();}).catch(()=>{});
 const fileOf=st=>(files.get(st.fid)||{}).fileName;
+const isLoaded=bf=>styles.some(s=>fileOf(s)===bf.file||(bf.name&&s.face.name===bf.name));
+async function builtinFile(bf){
+  if(bf.data){const bin=atob(bf.data),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new File([u],bf.file);}
+  const r=await fetch('fonts/'+encodeURIComponent(bf.file));if(!r.ok)throw new Error(r.status);return new File([await r.arrayBuffer()],bf.file);}
 const toggleEl=(label,on,fn)=>{const t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',on);t.setAttribute('aria-label',label);t.append(el('span','box'));t.style.cssText='width:auto;margin:0 0 0 6px;flex:none';t.onclick=fn;return t;};
 /* switch a font on or off – off keeps it in the list but out of everything */
 function fontOnOff(st,on){st.off=!on;
@@ -1767,15 +1780,13 @@ function appFontRow(st,row,top,rm){
 }
 /* built-in fonts not loaded yet, after the rows */
 function appFontList(list){
-  const have=new Set(styles.map(fileOf));
-  for(const bf of BUILTIN){if(have.has(bf.file))continue;
+  for(const bf of BUILTIN){if(isLoaded(bf))continue;
     const row=el('div','slot'),top=el('div','slot-top'),main=el('div','slot-main');row.style.opacity='.55';
     main.append(el('div','slot-name',bf.name||bf.file),el('div','slot-meta','Built in · off'));top.append(main);
     const t=toggleEl('On – '+(bf.name||bf.file),false,()=>loadBuiltin(bf,true));top.append(t);row.append(top);list.append(row);}
 }
 async function loadBuiltin(bf,on){
-  try{const r=await fetch('fonts/'+encodeURIComponent(bf.file));if(!r.ok)throw new Error(r.status);
-    await loadFiles([new File([await r.arrayBuffer()],bf.file)]);appFontsLoaded([],{fonts:[Object.assign({},bf,{on,core:on&&bf.core})]});}
+  try{await loadFiles([await builtinFile(bf)]);appFontsLoaded([],{fonts:[Object.assign({},bf,{on,core:on&&bf.core})]});}
   catch(e){toast(`Couldn’t load ${bf.name||bf.file}.`);}}
 /* A font pack (a .zip) can carry tempo-fonts.json: {fonts:[{file, on, core,
    shuffle, tracking}]} – which fonts start on, the core, which shuffle in and
@@ -1792,12 +1803,17 @@ function appFontsLoaded(added,manifest){
 /* the list: the core font, then the others switched on, then those off, each A to Z */
 function sortFonts(){const bs=S.baseSlot,rank=x=>x.id===bs&&!x.off?0:x.off?2:1;
   styles.sort((a,b)=>rank(a)-rank(b)||a.face.name.localeCompare(b.face.name));}
-/* the first time Tempo opens, the built-in fonts marked on come on */
-function appFontsRestored(){builtinsP.then(async()=>{if(LS.get('builtins'))return;
-  const want=BUILTIN.filter(b=>b.on!==false&&!styles.some(s=>fileOf(s)===b.file));const bufs=[];
-  for(const bf of want){try{const r=await fetch('fonts/'+encodeURIComponent(bf.file));if(r.ok)bufs.push(new File([await r.arrayBuffer()],bf.file));}catch(e){}}
-  if(bufs.length){await loadFiles(bufs);appFontsLoaded([],{fonts:BUILTIN});}
-  if(bufs.length===want.length)LS.set('builtins',1);/* only once they're all in */});}
+/* Each built-in font is offered once: the first time Tempo opens with it, those
+   marked on come on (a core one becomes the core). Remove one and it stays out –
+   switch it on again from the list. Done is remembered by file. */
+function appFontsRestored(){builtinsP.then(async()=>{
+  const done=new Set(LS.get('builtinsDone')||[]),fresh=BUILTIN.filter(b=>!done.has(b.file));if(!fresh.length)return;
+  const want=fresh.filter(b=>b.on!==false&&!isLoaded(b)),bufs=[];
+  for(const bf of want){try{bufs.push(await builtinFile(bf));}catch(e){}}
+  if(bufs.length){await loadFiles(bufs);appFontsLoaded([],{fonts:want});}
+  if(bufs.length===want.length){fresh.forEach(b=>done.add(b.file));LS.set('builtinsDone',[...done]);}/* only once they're all in */});}
+/* credit for built-in fonts in use, as their licences ask (Timeless: point people to timeless.co) */
+const fontCredits=()=>[...new Set(BUILTIN.filter(b=>b.credit&&styles.some(s=>!s.off&&(fileOf(s)===b.file||s.face.name===b.name))).map(b=>b.credit))];
 /* Mixing: how the other fonts come in, under the font list */
 function addSelect(parent,d){
   const w=el('div','colour-row'),lb=el('label',null,d.label),sel=el('select');sel.id='c_'+d.k;lb.htmlFor=sel.id;d.group=d.group||curGroup;
@@ -1818,6 +1834,7 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
 {const b0=fontList.parentElement,mixW=s=>wd(s)&&canMix(),mixN=s=>clk(s)&&canMix();
   addHint(b0,'A .zip of fonts works too – any already in the list are skipped. Switch a font off to keep it for later; click its name for its tracking and more.');
   addHint(b0,'Load a second font to mix it into the core one.',()=>!canMix());
+  {const cr=el('p','hint');addCustom(b0,null,cr);controls.push({d:{},w:cr,update(){const c=fontCredits();cr.textContent=c.join(' ');cr.hidden=!c.length;}});}
   const b=fold(b0,'mixing','Mixing',()=>canMix());
   /* the words */
   build(b,[{t:'seg',k:'ssMMode',label:'Other fonts come in',opts:[['parts','Each part'],['latest','Latest change'],['one','One at a time'],['some','A few at random']],show:mixW}]);
@@ -2272,8 +2289,9 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
   panel.insertBefore(b.parentElement,panel.firstChild);/* the front door, as in Rubato */
 }
 /* What the screen saver is called: the name typed under Export, else the preset
-   open, else the core font's family – or, for a dial, Tempo Dial. */
-function defaultName(){const a=activePreset();if(a)return a.name;if(dl(S))return 'Tempo Dial';return anyLoaded()?F(baseSlot()).family:'Tempo';}
+   open, else Tempo, Tempo Words or Tempo Dial. Never a font's name – some fonts'
+   licences (Timeless's) don't allow naming a product after them. */
+function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':'Tempo';}
 const exportName=()=>(S.ssName||'').trim()||defaultName();
 function saverConfig(){
   /* the words and mixing settings travel in their own blocks below */

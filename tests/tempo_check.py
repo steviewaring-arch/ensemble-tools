@@ -51,6 +51,7 @@ def main():
         pg.on('pageerror', lambda e: errs.append(str(e)))
         pg.on('console', lambda m: errs.append('CON ' + m.text) if m.type == 'error' and 'ERR_' not in m.text else None)
         pg.route('**/opentype.min.js', lambda r: r.fulfill(body=ot, content_type='application/javascript'))
+        pg.route('**/fixture/*', lambda r: r.fulfill(body=open(f"{FONTS}/{r.request.url.split('/')[-1]}", 'rb').read(), content_type='font/ttf'))
         for u in ['https://fonts.googleapis.com/**', 'https://use.typekit.net/**']:
             pg.route(u, lambda r: r.abort())
         pg.clock.install(time=T0 / 1000)
@@ -127,7 +128,7 @@ def main():
         cfg = config(whtml)
         check('Words export carries the words settings, and nothing about places or weather',
               cfg.get('show') == 'words' and cfg['words']['case'] == 'sentence' and cfg['words']['layout'] == 'para' and not re.search(r'open-meteo|"place"|weather|latitude', whtml.decode()))
-        check('Words export with no font is named Tempo', wfn == 'tempo-screensaver.html' and '<title>Tempo – screensaver</title>' in whtml.decode(), wfn)
+        check('Words export with no font is named Tempo Words', wfn == 'tempo-words-screensaver.html' and '<title>Tempo Words – screensaver</title>' in whtml.decode(), wfn)
         pg.evaluate("c=>{window.__cfg=c}", cfg)
 
         OFF = {'weekday': False, 'daynum': False, 'month': False, 'year': False}
@@ -225,6 +226,12 @@ def main():
         a = p3.evaluate(frame_js, cfg); b2 = pg.evaluate(frame_js, cfg)
         check('Exported words page draws the same frame as Tempo does from that file', a == b2 and len(a) > 5000)
         check('Exported words page runs offline without errors', not e3, '; '.join(e3[:3]))
+        # the outlines in the export draw exactly as the font does (a coordinate a hair below zero once ran two numbers together and lost parts of glyphs)
+        same_ink = pg.evaluate("""async ([C,urls])=>{const bad=[];for(const f of C.fonts){const u=urls[f.name];if(!u)continue;const font=opentype.parse(await (await fetch(u)).arrayBuffer());
+          const px=draw=>{const cv=document.createElement('canvas');cv.width=160;cv.height=160;const x=cv.getContext('2d');x.setTransform(.12,0,0,.12,10,130);draw(x);const d=x.getImageData(0,0,160,160).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>128)n++;return n;};
+          for(const id in f.glyphs){const g=f.glyphs[id],a=px(x=>x.fill(new Path2D(g.d))),b=px(x=>font.glyphs.get(+id).getPath(0,0,f.upm).draw(x));if(Math.abs(a-b)>b*.02+6)bad.push(f.name+' '+(g.n||id));}}return bad;}""",
+          [cfg, {'Poppins Regular': base + 'fixture/Poppins-Regular.ttf', 'Poppins Bold': base + 'fixture/Poppins-Bold.ttf'}])
+        check('Exported outlines draw exactly as the font does, every glyph', not same_ink, ', '.join(same_ink[:6]))
         check('Words export bakes every letter it can need', all(ch in cfg['fonts'][0]['cmap'] for ch in 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:'))
         bold = [f['id'] for f in cfg['fonts'] if f['name'] == 'Poppins Bold']
         check('A part set in another font is carried into the export', bold and cfg['words']['mixed']['parts']['time'] == bold[0] and len(cfg['fonts']) == 2)
@@ -270,7 +277,7 @@ def main():
         mcfg = config(mhtml); M = mcfg['words'].get('mixed') or {}
         ids = {f['id']: f['name'] for f in mcfg['fonts']}
         check('The export carries the mixing and every font', mcfg['show'] == 'words' and ids.get(mcfg['base'].get('baseSlot')) == 'Poppins Regular' and M['parts']['time'] == 'shuffle' and M['parts']['weekday'] == 'shuffle'
-              and len(mcfg['fonts']) == 3 and mfn == 'poppins-screensaver.html' and not re.search(r'"ss[MN][A-Z]', json.dumps(mcfg['base'])) and mcfg['base'].get('ssMargin') is not None, mfn)
+              and len(mcfg['fonts']) == 3 and mfn == 'tempo-words-screensaver.html' and not re.search(r'"ss[MN][A-Z]', json.dumps(mcfg['base'])) and mcfg['base'].get('ssMargin') is not None, mfn)
         p3 = ctx.new_page(); e3 = []
         p3.on('pageerror', lambda e: e3.append(str(e)))
         p3.route('**/*', lambda rt: rt.abort() if rt.request.url.startswith('http') else rt.continue_())
@@ -450,6 +457,31 @@ def main():
         pb.reload(); brows = settle({'Poppins Regular': 'Core', 'Poppins Bold': 'In the mix'})
         check('…switched on with one click, and not loaded again on the next visit', brows == {'Poppins Regular': 'Core', 'Poppins Bold': 'In the mix'} and not eb, json.dumps(brows) + '; '.join(eb[:2]))
         bi.close()
+        # fonts embedded in the page itself – for licences that allow a font only as part of the app (Timeless)
+        emb = b.new_context(viewport={'width': 1440, 'height': 960}, screen={'width': 1680, 'height': 1050}, accept_downloads=True); pe = emb.new_page(); ee = []
+        pe.on('pageerror', lambda e: ee.append(str(e)))
+        pe.route('**/opentype.min.js', lambda r: r.fulfill(body=ot, content_type='application/javascript'))
+        edata = base64.b64encode(open(f'{FONTS}/Poppins-Medium.ttf', 'rb').read()).decode()
+        etag = '<script id="tempo-builtin-fonts" type="application/json">' + json.dumps({'fonts': [{'file': 'Embedded-Medium.ttf', 'name': 'Poppins Medium', 'on': True, 'core': True, 'shuffle': False,
+                                                                                               'credit': 'Poppins Medium comes with this page.', 'data': edata}]}) + '</script>'
+        def inject(route):
+            resp = route.fetch(); route.fulfill(response=resp, body=resp.text().replace('<script id="tempo-engine">', etag + '<script id="tempo-engine">', 1))
+        pe.route('**/docs/tempo/', inject)
+        pe.goto(base + 'docs/tempo/'); time.sleep(1); pe.evaluate("localStorage.clear();indexedDB.deleteDatabase('tempo');indexedDB.deleteDatabase('rubato')"); pe.reload()
+        erows = {}
+        for _ in range(40):
+            erows = dict(pe.evaluate(rowsJS))
+            if erows == {'Poppins Medium': 'Core'}: break
+            time.sleep(.25)
+        time.sleep(.6); pe.evaluate(expand); time.sleep(.3)
+        credit = [t for t in pe.locator('#panel p.hint').all_inner_texts() if 'comes with this page' in t]
+        with pe.expect_download() as d: pe.get_by_role('button', name='Download HTML file').click()
+        ehtml = open(d.value.path(), encoding='utf-8').read()
+        check('Fonts embedded in the page come in the first time, as the core, with their credit shown', erows == {'Poppins Medium': 'Core'} and credit and not ee, json.dumps(erows) + '; '.join(ee[:2]))
+        check('…and exports carry only outlines, never the embedded font itself', edata[1000:1200] not in ehtml and 'tempo-builtin-fonts"' not in ehtml and 'Poppins Medium' in ehtml)
+        pe.reload(); time.sleep(2)
+        check('…and aren’t loaded twice', dict(pe.evaluate(rowsJS)) == {'Poppins Medium': 'Core'}, json.dumps(pe.evaluate(rowsJS)))
+        emb.close()
 
         # 9. Tempo 0.5: As a dial – no type, only lines
         pg.get_by_role('group', name='Show').get_by_role('button', name='As a dial').click(); wait(300)

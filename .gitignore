@@ -3,3 +3,6 @@ tests/package-lock.json
 tests/out/
 __pycache__/
 .DS_Store
+# fonts whose licences forbid public repositories, and the site built with them – never commit (see LICENCES.md)
+private/
+site/

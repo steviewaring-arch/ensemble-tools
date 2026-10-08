@@ -47,7 +47,7 @@ APPS = {
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo – by Ensemble', version='0.6',
+        title='Tempo – by Ensemble', version='0.7',
         body='tempo/app.html', css='tempo/app.css',
         tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
                 ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js')],
@@ -98,6 +98,31 @@ def write(rel, text):
     os.makedirs(os.path.dirname(p), exist_ok=True)
     with open(p, 'w', encoding='utf-8') as f:
         f.write(text)
+
+# Fonts whose licences forbid public repositories and public servers (Timeless,
+# for one) live in private/fonts/ – git-ignored, never committed. When they're
+# there, a second build goes to site/ (also git-ignored): the same as docs/ but
+# with those fonts embedded in Tempo's page as part of the app, never as files of
+# their own. docs/ never gets them. What's deployed from site/, and how, is in
+# LICENCES.md.
+PRIVATE = os.path.join(ROOT, 'private/fonts')
+SITE = os.path.join(ROOT, 'site')
+
+def private_site():
+    man = os.path.join(PRIVATE, 'fonts.json')
+    if not os.path.exists(man):
+        return
+    import json, base64
+    listed = json.load(open(man, encoding='utf-8')).get('fonts', [])
+    fonts = [dict(f, data=base64.b64encode(open(os.path.join(PRIVATE, f['file']), 'rb').read()).decode()) for f in listed]
+    shutil.rmtree(SITE, ignore_errors=True)
+    shutil.copytree(DOCS, SITE)
+    page = os.path.join(SITE, 'tempo/index.html')
+    html = open(page, encoding='utf-8').read()
+    tag = '<script id="tempo-builtin-fonts" type="application/json">' + json.dumps({'fonts': fonts}).replace('<', '\\u003c') + '</script>\n'
+    assert html.count('<script id="tempo-engine">') == 1
+    open(page, 'w', encoding='utf-8').write(html.replace('<script id="tempo-engine">', tag + '<script id="tempo-engine">'))
+    print(f'site/: docs/ plus {len(fonts)} private fonts embedded in Tempo (git-ignored – see LICENCES.md)')
 
 def main():
     ok = True
@@ -150,6 +175,7 @@ def main():
     print(f'decentish {ver}: docs/decentish/index.html ({len(html.encode()) // 1024} KB, copied after a syntax check)')
     shutil.copyfile(os.path.join(ROOT, 'shared/home.html'), os.path.join(DOCS, 'index.html'))
     open(os.path.join(DOCS, '.nojekyll'), 'w').close()
+    private_site()
     if not ok:
         sys.exit(1)
 
