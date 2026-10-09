@@ -40,14 +40,14 @@ ARCHIVE = [('rubato', '0.9', 'archive/rubato-0.9.html', "const APP='rubato';", "
 # the exported page), and the app files that go inside the shared wrapper.
 APPS = {
     'rubato': dict(
-        title='Rubato — by Ensemble', version='1.0',
+        title='Rubato — by Ensemble', version='1.1',
         body='rubato/app.html', css='rubato/app.css',
         tagged=[('rubato-engine', 'rubato/engine.js')],
         before='shared/gif.js',
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo – by Ensemble', version='0.7',
+        title='Tempo – by Ensemble', version='0.8',
         body='tempo/app.html', css='tempo/app.css',
         tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
                 ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js')],

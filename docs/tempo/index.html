@@ -318,8 +318,11 @@
     .scroll{overflow:visible;-webkit-mask-image:none;mask-image:none}
     .resizer{display:none}
     .topbar{max-width:calc(100% - var(--gap)*2)}
-    .island{position:fixed;bottom:calc(var(--gap) + env(safe-area-inset-bottom,0px))}
-    .pcap{position:fixed;bottom:calc(var(--gap) + env(safe-area-inset-bottom,0px))}
+    .island{position:fixed;bottom:calc(var(--gap) + env(safe-area-inset-bottom,0px));left:var(--gap)!important;right:var(--gap);transform:none}
+    .island-row{overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
+    .island-in{margin:0 auto}
+    .pcap{position:fixed;bottom:calc(var(--gap)*2 + var(--h-bar) + env(safe-area-inset-bottom,0px))}
+    .stage-foot span:nth-child(n+2){display:none}
     .island.open,.pcap.open{min-width:min(340px,calc(100vw - 24px))}
   }
   @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
@@ -357,7 +360,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.7</span></div>
+      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.8</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>

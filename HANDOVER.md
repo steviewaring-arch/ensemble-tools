@@ -6,7 +6,7 @@ Read this and `README.md` before changing anything. Tutti's own notes are in `tu
 - **Repo:** `ensemble-tools` – source of truth for Rubato, Tempo and Tutti.
 - **Live:** https://steviewaring-arch.github.io/ensemble-tools/ – GitHub Pages from `docs/` on `main`. Each push to `main` redeploys in a minute or two. Moving to a GitHub Actions deploy of `site/` (docs/ plus Tempo's built-in fonts from a private repo) once Steve has set it up – see `LICENCES.md`.
 - **Last combined app:** `reference/rubato-0.8.1.html` – byte-identical to the v0.8.1 Claude artifact (rechecked 6 October against the live artifact). Kept so the parity tests have something to compare against. Don't edit it.
-- **Versions:** Rubato 1.0, Tempo 0.7, Tutti 6.0. Rubato 0.9 is still live at /rubato/0.9/ (`archive/rubato-0.9.html`).
+- **Versions:** Rubato 1.1, Tempo 0.8, Tutti 6.1 (all three on the UI system, 9 Oct). Rubato 0.9 is still live at /rubato/0.9/ (`archive/rubato-0.9.html`).
 
 ## What changed in the split
 Rubato 0.8.1 was one app with two tabs. It's now two apps on one shared core:
@@ -176,16 +176,26 @@ Rules:
 
 ## UI requests
 For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the interface here instead of restyling.
-- Tempo: the left panel is too long – Export (and maybe Show and Presets) to a right-hand panel; a touch smaller overall (Steve, 8 Oct).
+- Done 9 Oct: Tempo's long panel, with Export, Show and Presets moved out and everything a touch smaller – see the UI system below.
 
-**UI stream status (9 Oct, round 2):** the system is settled and shown live on all three apps at `ui/review/` (built to `docs/ui/review/`, unlisted). No app code changed yet.
-- **Decided (Steve, 9 Oct):** full-bleed stage; frosted left panel (88%, 24 px blur) with card sections that summarise themselves when shut; 15 px base; tight corners (12 panel and sheets, 6 cards, 4 tiles, round controls); By ENSEMBLE stacked under the name (22 / 19 px, grey); chips top right.
-- **The island:** bottom centre, 44 px. It holds the view's controls (Tempo's Show, Rubato's transport and Randomise, Tutti's Pause when the source moves), plus Export. It grows into the Export sheet, shows progress and "Saved", and in full screen shrinks to full screen and light/dark only.
-- **Full screen:** the expanding-arrows button sits beside light/dark in every app and every state. F goes in, Esc comes out. It hides the panel, chips and Presets; the real apps also call the browser's full screen. Tutti's Squarespace iframe needs `allow="fullscreen"` for that.
-- **Presets:** a capsule bottom right, the island's height, opening upward. Only in apps that have presets, so not Tutti for now.
-- **Slider:** the fill carries the value; the tick hides wherever it would cross the label or value.
-- **Next:** tokens v2, components v2, the layout parts of `core.js` (`card()` summary, `island()`, `sheet()`), `shared/UI.md` and the component page at /ui/ for sign-off. Then move Tempo, Rubato, Tutti, and finally Decentish (tokens only).
-- **Contract:** labels and accessible names stay word for word ("Show", "Download for Mac", "Download for Windows", "Download HTML file", …). Sections keep the `.card`, `.card h2` and `.collapsed` hooks the tests use.
+**UI system (9 Oct): live on all three tools.** Tempo 0.8, Rubato 1.1 and Tutti 6.1 are on it. The rules are in `shared/UI.md`; the three rounds of mock-ups and the reasoning are at `ui/review/` (built to `docs/ui/review/`, unlisted).
+- **The frame.** The work fits the clear space; **Preview** (the arrows top right, or F) fills the window with it and leaves the controls in place.
+  - The frosted panel floats on the left.
+  - Top right: chips, then Preview and light/dark.
+  - The island, bottom centre, holds the view's controls and Export, which opens as a sheet. Status shows in the island.
+  - Presets has its own capsule bottom right.
+- **Cards** say what's set when shut. Most start shut (`appCollapseDefault()`); write `SUMMARY[id]` where the automatic line isn't clear.
+- **For app chats:**
+  - Build cards with `card()`. Put a card in a sheet with `cardToSheet(body, 'export' | 'presets')`. Put view controls in the island with `toIsland(node)`. Sheets open with `openSheet(name)`.
+  - A range in a `.ctl` becomes the system slider and segmented controls lay themselves out, so don't restyle these by hand.
+  - Add UI wants here under UI requests.
+- **Tutti** keeps its own page and script. `build.py` puts `shared/tokens.css`, `shared/components.css`, `tutti/frame.css` and `tutti/frame.js` into it. Moving onto the shared core (fonts, controls) is still to do. Its exports were checked byte for byte against 6.0.
+- **Tests** open sheets through `tests/ui_helpers.py`. Labels and accessible names are the contract: rename one only together with its test.
+- **Still to do:**
+  - Check the Squarespace embed of Tutti at its real size.
+  - Decentish takes the tokens only (type and colour).
+  - A component page at /ui/ with every part in every state, if wanted beyond the review page.
+  - Tempo's Fonts card hints are long; trim them with the Tempo chat.
 
 ## Dial ideas not built yet (0.5)
 - Hand shapes: tapered or rounded ends, a counterweight on the second hand, a ring at the centre instead of a dot.

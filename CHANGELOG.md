@@ -1,5 +1,50 @@
 # Changelog
 
+## 9 October 2026 – one interface: Tempo 0.8, Rubato 1.1, Tutti 6.1
+
+The UI stream's system on all three tools (`shared/UI.md`; the reasoning and mock-ups are at `/ui/review/`). Every control does what it did; it has only moved or been restyled.
+
+**All three**
+- **The work fits, then fills.** The work sits in the clear space beside the panel. **Preview** (the expanding arrows top right, or F) fills the window with it. The panel and controls stay where they are; Esc or F comes back.
+- **A frosted panel floats on the left**, top to bottom. Its right edge drags (280–440 px). The header stacks: name and version, then By ENSEMBLE in grey.
+- **Top right:** chips with the size and one fact ("1680 × 1050", "Your local time", "Demo face"), then Preview and light/dark. Light or dark follows the computer the first time, then is remembered.
+- **The island**, bottom centre, holds what you do to the view, then **Export**, which grows into a sheet. Status ("Saved …") shows in the island.
+- **Cards say what's set when shut** ("24-hour · Comma · Leading zero"), and folds inside cards do too. Most cards start shut, except the one for what you're working on. Chevrons replace + and –.
+- **One of each control.**
+  - The slider has its label and value inside the track. The fill carries the value, and the tick steps aside where it would cross the words.
+  - Segmented controls sit in one row or an even grid.
+  - Controls are 32 px high on a 15 px base (was 16.75).
+  - Corners are 12, 6 and 4 px, or fully round.
+  - Grey text is darker in light mode (4.8:1, was 3.3:1).
+- **Tooltips on every control:** hover a row and its tip appears; the ? shows only on hover, or for touch and keyboards.
+
+**Tempo 0.8**
+- **Show** is in the island. **Export** is a sheet from the island. **Presets** has its own capsule bottom right, which names the preset open.
+- Mixing in Fonts starts shut and says how the other fonts come in.
+- The preview chip reads "1680 × 1050"; the full sentence is its tooltip.
+- Inline styles moved into classes.
+
+**Rubato 1.1**
+- The transport is the island: Pause, scrub, Randomise and its options, Undo. **Export** and **Randomise's options** are sheets from the island. **Presets** (starting points and saved looks) has its own capsule.
+
+**Tutti 6.1**
+- On the shared tokens and components (`build.py` puts them in at build time, with `tutti/frame.css` and `tutti/frame.js`). Its exports are unchanged: PNG, SVG and the canvas checked byte for byte against 6.0.
+- Cards fold and say what's set. Randomise, Random and Reset shapes are quiet buttons in their cards.
+- Export (Still or Motion) is a sheet from the island. Recording shows in the island. Pause joins the island for a video.
+
+**Tests**
+- Updated for sheets: `tests/ui_helpers.py` opens the sheet a control is in, as a person would.
+- Card lists no longer include Presets, Screensaver and Export.
+- The chip check reads the tooltip.
+- Mixing is opened before it's used.
+
+Results:
+- `tempo_check` 119 of 119.
+- `rubato_features` 43 of 43.
+- `rubato_regress` all 14 looks identical to 0.9.
+- `split_check` 15 of 15.
+- `parity`: frames and exports as before; panel results differ on purpose.
+
 ## 8 October 2026 – Tempo 0.7
 
 **Tempo 0.7** – Timeless built in, and Lazaar Soft drawn properly.

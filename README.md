@@ -4,25 +4,26 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 
 | Tool | What it does | Live |
 |---|---|---|
-| **Tutti** 6.0 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
-| **Rubato** 1.0 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
-| **Tempo** 0.7 | A clock screen saver for Mac and Windows – the time in your own typefaces, as figures or written out in words with other fonts mixed in, or as a dial with no type at all. Save presets and reopen anything you've downloaded | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
+| **Tutti** 6.1 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
+| **Rubato** 1.1 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
+| **Tempo** 0.8 | A clock screen saver for Mac and Windows – the time in your own typefaces, as figures or written out in words with other fonts mixed in, or as a dial with no type at all. Save presets and reopen anything you've downloaded | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
 **Decentish** 0.4 is also in here, unlisted: a prototype website that gives you a plan for where you are – now, soon or tomorrow, on the doorstep, nearby or further afield, with the way there and back – in a voice you set with a dial. Greater Manchester first. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
 
-Rubato and Tempo share one core (font loading, controls, design system) and nothing else: each has its own type engine, settings and fonts in the browser, so a change in one never reaches the other. Tutti is copied in as it is, and moves onto the shared core later.
+Rubato and Tempo share one core (font loading, controls, design system) and nothing else: each has its own type engine, settings and fonts in the browser, so a change in one never reaches the other. All three share one interface system (`shared/tokens.css`, `shared/components.css`, described in `shared/UI.md`): Tutti keeps its own page and script and takes the shared styles at build time; it moves onto the shared core (fonts, controls) later.
 
 ## How the repo is laid out
 
 ```
 shared/        used by more than one app
-  tokens.css       colours, type, shadows – light and dark
-  components.css   cards, pill sliders, toggles, segmented buttons, tooltips, capsule
+  tokens.css       the UI system's tokens: colour, type, sizes, radii, space – light and dark
+  components.css   the frame (stage, floating panel, top bar, island, sheets, Presets capsule, Preview) and every control
+  UI.md            the UI system: what each part is for, when to use it, and the wording rules
   page.html        the page shell every app is poured into
-  core.js          settings, storage, font loading, image layer, control builders, tooltips, Fonts card
-  core-end.js      downloads, toasts, drag and drop, light/dark, panel resizing, start-up
+  core.js          settings, storage, font loading, image layer, control builders, cards and their summaries, sheets, Preview, tooltips, Fonts card
+  core-end.js      downloads, status in the island, drag and drop, light/dark, Preview and keys, panel width, start-up
   gif.js           GIF encoder
   home.html        the index page that links to all three tools
 rubato/        engine.js (Rubato's type engine: blocks, physics, kerning, Jitter/Assemble/Scramble)
@@ -32,7 +33,7 @@ rubato/        engine.js (Rubato's type engine: blocks, physics, kerning, Jitter
 tempo/         engine.js (Tempo's type engine), app.html, app.js (screen saver cards and exports), saver.js (clock, words and dial runtime)
   mac/             Mac .saver packager (WebViewScreenSaver, Apache 2.0)
   win/             Windows .scr host – C source, built .exe, and its base64 copy (host.js)
-tutti/         index.html – Tutti 6.0, unchanged
+tutti/         index.html – Tutti 6.1 (its own page and script); frame.css and frame.js put it on the shared tokens, components and frame
 decentish/     index.html – Decentish prototype, one self-contained page; NOTES.md
 reference/     rubato-0.8.1.html – the last combined app, kept for the parity tests
 archive/       earlier versions still served live – rubato-0.9.html → docs/rubato/0.9/
@@ -71,6 +72,8 @@ python3 tests/rubato_regress.py   # Rubato 1.0 draws exactly what 0.9 drew, for 
 python3 tests/rubato_features.py  # Rubato 1.0's new features
 python3 tests/decentish_check.py  # Decentish logic and voice, all sources faked
 ```
+
+Export and Presets live in sheets (the island, the Presets capsule), so the tests open the sheet a control is in before using it – `tests/ui_helpers.py`. Labels and accessible names are the contract between the interface and the tests.
 
 The parity tests drive the v0.8.1 reference and the new apps through the same steps, with randomness and the clock pinned, and compare every frame, download and panel read-out byte for byte. They need Chromium (via Playwright) and the Poppins and Lora fonts – set `FONTS=/path/to/folder` if they're not in `/usr/share/fonts/truetype/google-fonts`.
 
