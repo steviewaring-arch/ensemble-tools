@@ -178,7 +178,7 @@ Rules:
 For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the interface here instead of restyling.
 - Done 9 Oct: Tempo's long panel, with Export, Show and Presets moved out and everything a touch smaller – see the UI system below.
 
-**UI system (9 Oct): live on all three tools.** Tempo 0.8, Rubato 1.1 and Tutti 6.1 are on it. The rules are in `shared/UI.md`; the three rounds of mock-ups and the reasoning are at `ui/review/` (built to `docs/ui/review/`, unlisted).
+**UI system (9 Oct): live on all three tools.** Decentish is out of it entirely (Steve, 9 Oct): it's a website, not a tool, and has its own look. Tempo 0.8, Rubato 1.1 and Tutti 6.1 are on it. The rules are in `shared/UI.md`; the three rounds of mock-ups and the reasoning are at `ui/review/` (built to `docs/ui/review/`, unlisted).
 - **The frame.** The work fits the clear space; **Preview** (the arrows top right, or F) fills the window with it and leaves the controls in place.
   - The frosted panel floats on the left.
   - Top right: chips, then Preview and light/dark.
@@ -193,7 +193,6 @@ For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the
 - **Tests** open sheets through `tests/ui_helpers.py`. Labels and accessible names are the contract: rename one only together with its test.
 - **Still to do:**
   - Check the Squarespace embed of Tutti at its real size.
-  - Decentish takes the tokens only (type and colour).
   - A component page at /ui/ with every part in every state, if wanted beyond the review page.
   - Tempo's Fonts card hints are long; trim them with the Tempo chat.
 

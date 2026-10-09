@@ -21,7 +21,7 @@ Design and build one interface system for Ensemble's tools, prove it on a compon
 
   Rubato adds `rubato/app.css` (steppers, dials, path pads, preset tiles, text blocks, chips). Tempo adds `tempo/app.css`, whose preset tiles are a copy of Rubato's.
 - **Tutti has its own copy** of the same styles inside `tutti/index.html`. It isn't on the shared files yet (step 2 in `tutti/HANDOVER.md`).
-- **Decentish** is a phone-first website with its own styles. It's a different kind of thing.
+- **Decentish** is a phone-first website with its own styles and its own look. It is not part of this system (Steve, 9 Oct).
 - **Layout today:** an inset, rounded app with a resizable panel on the left holding every card stacked, and the stage on the right. Rubato and Tutti take their exports from a floating capsule on the stage; Tempo has an Export card at the bottom of the panel. All three open in dark mode. The base type size is `html{font-size:16.75px}`.
 - **Panel length:**
   - Rubato has 9 cards: Presets, Text, Layout, Motion, Variants, Physics, Colour, Export, Fonts.
@@ -58,7 +58,7 @@ Bring mock-ups (rendered HTML with Tempo's real panel), not descriptions.
 2. **`shared/tokens.css` v2.** Colour, a short type scale, spacing, radii and control sizes, each named, and few of them.
 3. **`shared/components.css` v2.** The two-panel frame. Preset tiles move in from the apps. Anything an app builds with inline styles becomes a class.
 4. **`shared/UI.md`.** What each component is for, when to use it, and the wording rules.
-5. **The apps moved across one at a time:** Tempo first (it has the pain), then Rubato, then Tutti (the biggest move – it follows step 2 in `tutti/HANDOVER.md` and gains the shared files). Decentish later, and only its tokens (type and colour), not the panel.
+5. **The apps moved across one at a time:** Tempo first (it has the pain), then Rubato, then Tutti (the biggest move – it follows step 2 in `tutti/HANDOVER.md` and gains the shared files).
 
 ## Working alongside the other chats
 - **Ownership:**
@@ -75,7 +75,6 @@ Bring mock-ups (rendered HTML with Tempo's real panel), not descriptions.
   - `tests/parity.py` (Rubato and Tempo against v0.8.1)
   - `tests/rubato_regress.py` and `tests/rubato_features.py`
   - `tests/tempo_check.py` and `tests/split_check.py`
-  - `tests/decentish_check.py` once Decentish takes the tokens
 
   The tests find controls by their labels, so labels are the contract. Rename one only with the test and the app chat updated together.
 - Before and after screenshots of each app at 1440 × 900 and 1280 × 800, in light and dark.
@@ -85,7 +84,7 @@ Bring mock-ups (rendered HTML with Tempo's real panel), not descriptions.
 ## Not in scope
 - New features or controls, or changes to behaviour.
 - Tempo's dials and presets, Rubato's roadmap and Tutti's roadmap – those stay with their own chats.
-- Decentish's layout (its tokens only, later). Its pre-launch "does it look made with AI?" checklist sits with Decentish, though the two can share findings.
+- Decentish, entirely – a website with its own look, not a tool (Steve, 9 Oct).
 
 ## First steps
 1. Clone the repo and read the files listed at the top.
