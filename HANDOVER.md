@@ -178,7 +178,14 @@ Rules:
 For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the interface here instead of restyling.
 - Tempo: the left panel is too long – Export (and maybe Show and Presets) to a right-hand panel; a touch smaller overall (Steve, 8 Oct).
 
-**UI stream status (8 Oct, round 1):** review and options at `ui/review/` (built to `docs/ui/review/`, unlisted). Audit of all three apps, a three-level depth model (section, group, detail), proposed components and tokens v2 draft, and three live layouts on Tempo's panel. Waiting on Steve's decisions (layout, ruled or cards, base size, corners, help, theme, header) before tokens v2 and the component page. No app code changed.
+**UI stream status (9 Oct, round 2):** the system is settled and shown live on all three apps at `ui/review/` (built to `docs/ui/review/`, unlisted). No app code changed yet.
+- **Decided (Steve, 9 Oct):** full-bleed stage; frosted left panel (88%, 24 px blur) with card sections that summarise themselves when shut; 15 px base; tight corners (12 panel and sheets, 6 cards, 4 tiles, round controls); By ENSEMBLE stacked under the name (22 / 19 px, grey); chips top right.
+- **The island:** bottom centre, 44 px. It holds the view's controls (Tempo's Show, Rubato's transport and Randomise, Tutti's Pause when the source moves), plus Export. It grows into the Export sheet, shows progress and "Saved", and in full screen shrinks to full screen and light/dark only.
+- **Full screen:** the expanding-arrows button sits beside light/dark in every app and every state. F goes in, Esc comes out. It hides the panel, chips and Presets; the real apps also call the browser's full screen. Tutti's Squarespace iframe needs `allow="fullscreen"` for that.
+- **Presets:** a capsule bottom right, the island's height, opening upward. Only in apps that have presets, so not Tutti for now.
+- **Slider:** the fill carries the value; the tick hides wherever it would cross the label or value.
+- **Next:** tokens v2, components v2, the layout parts of `core.js` (`card()` summary, `island()`, `sheet()`), `shared/UI.md` and the component page at /ui/ for sign-off. Then move Tempo, Rubato, Tutti, and finally Decentish (tokens only).
+- **Contract:** labels and accessible names stay word for word ("Show", "Download for Mac", "Download for Windows", "Download HTML file", …). Sections keep the `.card`, `.card h2` and `.collapsed` hooks the tests use.
 
 ## Dial ideas not built yet (0.5)
 - Hand shapes: tapered or rounded ends, a counterweight on the second hand, a ring at the centre instead of a dot.
