@@ -255,18 +255,102 @@ function set(k,v,silent){
   S[k]=v;if(PICKER_KEYS.includes(k)){optCache.clear();schedulePicker(0);}
   dirty=true;autosave();if(!silent)refreshAll();if(['aspect','cw','ch','transparent','ssShape'].includes(k))fitCanvas();
 }
-const COLLAPSE_DEFAULT=['sequence','repeat','image','loop','export','presets','ss-play'];
+/* Which cards start shut. An app can name its own with appCollapseDefault() – shut cards still say what's set. */
+const COLLAPSE_DEFAULT=['sequence','repeat','image','loop','export','presets','ss-play'].concat(typeof appCollapseDefault==='function'?appCollapseDefault():[]);
 const collapsed=LS.get('collapsed')||Object.fromEntries(COLLAPSE_DEFAULT.map(k=>[k,true]));
 let curGroup='';
+/* A card is a section of the panel: a title and, when shut, one line saying what's set. */
+const CHEV='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function card(id,title,show,tab){
   tab=tab||'studio';curGroup=id;
-  const c=el('section','card'+(collapsed[id]?' collapsed':''));c.dataset.tab=tab;const h=el('h2');const b=el('button','card-toggle');
-  const t=el('span',null,title),ch=el('span','chev',collapsed[id]?'+':'–');b.append(t,ch);b.setAttribute('aria-expanded',!collapsed[id]);
-  b.onclick=()=>{const on=!c.classList.toggle('collapsed');collapsed[id]=!on;ch.textContent=on?'–':'+';b.setAttribute('aria-expanded',on);LS.set('collapsed',collapsed);};
+  const c=el('section','card'+(collapsed[id]?' collapsed':''));c.dataset.tab=tab;c.dataset.id=id;const h=el('h2');const b=el('button','card-toggle');
+  const t=el('span',null,title),sm=el('span','sum'),ch=el('span','chev');ch.innerHTML=CHEV;b.append(t,sm,ch);b.setAttribute('aria-expanded',!collapsed[id]);
+  b.onclick=()=>{const on=!c.classList.toggle('collapsed');collapsed[id]=!on;b.setAttribute('aria-expanded',on);LS.set('collapsed',collapsed);if(on)requestAnimationFrame(()=>syncRanges(c));};
   h.append(b);const body=el('div','card-body');c.append(h,body);panel.append(c);
-  controls.push({d:{show:s=>(tab==='both'||s.tab===tab)&&(!show||show(s))},w:c,update(){}});
+  controls.push({d:{show:s=>(tab==='both'||s.tab===tab)&&(!show||show(s))},w:c,update(){},card:id});
   return body;
 }
+/* What a shut card says: the choices made in it, or the app's own line (SUMMARY[id]). */
+const SUMMARY={};
+function optLabel(opts,v){const o=(opts||[]).find(o=>o[0]===v);return o?o[1]:null;}
+function autoSummary(id,inside){
+  const out=[];
+  for(const c of controls){const d=c.d;if(!d||c.card||!d.k||!c.w||!c.w.isConnected||c.w.hidden)continue;if(inside?!inside.contains(c.w):d.group!==id)continue;
+    let t=null;
+    if(Array.isArray(d.opts))t=optLabel(d.opts,S[d.k]);
+    else if(typeof d.optsFn==='function'){try{t=optLabel(d.optsFn(),S[d.k]);}catch(e){}}
+    else if(d.label&&c.w.classList&&c.w.classList.contains('toggle-row')&&S[d.k]===true)t=d.label;
+    if(t&&/^(off|on|none|auto)$/i.test(t)&&d.label)t=d.label+' '+t.toLowerCase();
+    if(t&&!out.includes(t))out.push(t);if(out.length>=3)break;}
+  return out.join(' · ');
+}
+function refreshSummaries(){document.querySelectorAll('section.card[data-id]').forEach(sec=>{const sm=sec.querySelector(':scope>h2 .sum');if(!sm)return;
+  let t='';try{t=SUMMARY[sec.dataset.id]?SUMMARY[sec.dataset.id](S):autoSummary(sec.dataset.id);}catch(e){}if(sm.textContent!==(t||''))sm.textContent=t||'';});
+  /* folds inside cards (groups) say what's set in them too */
+  document.querySelectorAll('.fold-head,.more-toggle').forEach(hd=>{const body=hd.nextElementSibling;if(!body)return;let sm=hd.querySelector('.sum');
+    if(!sm){sm=el('span','sum');hd.insertBefore(sm,hd.querySelector('.chev'));}const t=autoSummary(null,body);if(sm.textContent!==t)sm.textContent=t;});}
+SUMMARY.font=()=>{const on=styles.filter(s=>!s.off);return !on.length?'Demo face':on.length===1?on[0].face.name:on[0].face.name+' + '+(on.length-1);};
+
+/* ---------------- the frame: island, sheets, Presets, Preview ---------------- */
+/* Sheets grow out of the island (Export, Randomise's options) or out of the Presets
+   capsule. One at a time; Esc or a click on the work closes them. */
+const SHEETS={};
+const sheetObs=new MutationObserver(ms=>{for(const m of ms){const n=m.target;if(!n.hidden)for(const k in SHEETS)if(SHEETS[k].el!==n)SHEETS[k].el.hidden=true;}syncSheets();});
+function addSheet(name,node,opener){
+  node.classList.add('sheet');node.dataset.sheet=name;node.hidden=true;
+  $(name==='presets'?'#pcapSheets':'#islandSheets').append(node);SHEETS[name]={el:node,opener:opener||(name==='presets'?$('#pcapOpen'):name==='export'?$('#exportOpen'):null)};
+  if(name==='presets')$('#pcap').hidden=false;if(name==='export')$('#exportOpen').hidden=false;
+  sheetObs.observe(node,{attributes:true,attributeFilter:['hidden']});return node;}
+/* a card built with card() becomes a sheet: same controls, same labels */
+function cardToSheet(body,name){const sec=body.parentElement;sec.classList.remove('card','collapsed');const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=null;return addSheet(name,sec);}
+function hideCard(body){const sec=body.parentElement;const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=()=>false;sec.hidden=true;}
+function toIsland(node){$('#islandMain').append(node);return node;}
+function openSheet(name){if(!SHEETS[name])return;for(const k in SHEETS)SHEETS[k].el.hidden=k!==name;syncSheets();}
+function closeSheets(){for(const k in SHEETS)SHEETS[k].el.hidden=true;syncSheets();}
+const anySheet=()=>Object.values(SHEETS).some(s=>!s.el.hidden);
+function syncSheets(){
+  const open={island:false,pcap:false};
+  for(const k in SHEETS){const s=SHEETS[k],o=!s.el.hidden;open[k==='presets'?'pcap':'island']||=o;if(s.opener)s.opener.setAttribute('aria-expanded',o);}
+  $('#island').classList.toggle('open',open.island);$('#pcap').classList.toggle('open',open.pcap);layoutUI();
+  if(open.island||open.pcap)requestAnimationFrame(()=>{syncRanges(document);layoutUI();});}
+/* the island sits centred under the work, clear of the panel and of Presets */
+function layoutUI(){
+  const app=$('.app'),isl=$('#island'),pc=$('#pcap');if(!app||!isl)return;
+  const g=12,narrow=innerWidth<=860,W=narrow?innerWidth:app.clientWidth,pw=narrow?0:$('#panelBox').offsetWidth;
+  const L=narrow?g:g*2+pw,R=W-g;let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
+  let limit=R;if(pc&&!pc.hidden){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
+  let x=(L+R)/2;if(x+iw/2>limit)x=limit-iw/2;if(x-iw/2<L)x=L+iw/2;isl.style.left=Math.round(x)+'px';}
+const ICON_EXPAND='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M11.5 2.5 7.8 6.2M5.5 11.5h-3v-3M2.5 11.5l3.7-3.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const ICON_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.5 5.5h-3v-3M8.5 5.5l3.3-3.3M2.5 8.5h3v3M5.5 8.5l-3.3 3.3" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+/* Preview: the work fills the window; the panel, island and Presets stay where they are */
+function setPreview(on){$('.app').classList.toggle('preview',on);const b=$('#previewBtn');if(!b)return;b.setAttribute('aria-pressed',on);b.innerHTML=on?ICON_COLLAPSE:ICON_EXPAND;
+  const t=on?'Fit to the clear space – F':'Preview – fill the window – F';b.dataset.tip=t;b.setAttribute('aria-label',t);}
+window.ensembleUI={open:openSheet,close:closeSheets,preview:setPreview,
+  reveal(n){const s=n&&n.closest&&n.closest('.sheet');if(s&&s.hidden)openSheet(s.dataset.sheet);return true;}};
+
+/* ---------------- controls, upgraded where they appear ---------------- */
+/* A range in a .ctl becomes the system slider: label and value inside the track, the fill
+   carries the value, and the tick steps aside where it would cross the words. */
+function syncRange(box){const inp=box.querySelector('input[type=range]');if(!inp)return;
+  const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,p=mx>mn?Math.max(0,Math.min(1,(+inp.value-mn)/(mx-mn))):0;box.style.setProperty('--p',p);
+  const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const hh=box.offsetHeight,x=hh/2+(w-hh/2)*p,head=box.querySelector('.ctl-head');let over=false;
+  if(head)for(const e of head.children){if(!e.offsetWidth)continue;const l=head.offsetLeft+e.offsetLeft,r=l+e.offsetWidth;if(x>l-6&&x<r+6){over=true;break;}}
+  tick.classList.toggle('away',over);}
+function syncRanges(root){(root||document).querySelectorAll('.rng-box').forEach(syncRange);}
+function upgradeRange(inp){const ctl=inp.parentElement;if(!ctl||!ctl.classList.contains('ctl')||inp.closest('.rng-box'))return;
+  const head=ctl.querySelector(':scope>.ctl-head'),box=el('div','rng-box');ctl.classList.add('rng');ctl.insertBefore(box,head||inp);
+  box.append(el('span','rng-fill'),el('span','rng-tick'));if(head)box.append(head);box.append(inp);
+  inp.addEventListener('input',()=>syncRange(box));inp.addEventListener('dblclick',()=>{const l=box.querySelector('label');if(l&&l.ondblclick)l.ondblclick();});
+  requestAnimationFrame(()=>syncRange(box));}
+/* Segmented controls: up to four short options in a row, otherwise an even grid. */
+function fitSeg(g){const bs=[...g.children].filter(b=>b.tagName==='BUTTON'),n=bs.length;if(!n)return;
+  const longest=Math.max(...bs.map(b=>(b.textContent||'').trim().length)),fits=c=>longest<=Math.floor((254/c-16)/6.6);
+  let cols=1;if(g.closest('.isl-main'))cols=n;else for(let c=Math.min(n,4);c>=1;c--)if(fits(c)&&(n%c===0||n%c>=c-1)){cols=c;break;}
+  if(cols>=n){g.classList.remove('wrap');g.style.removeProperty('--cols');}else{g.classList.add('wrap');g.style.setProperty('--cols',cols);}}
+function enhance(root){if(!root||root.nodeType!==1)return;
+  if(root.matches('.ctl>input[type=range]'))upgradeRange(root);root.querySelectorAll('.ctl>input[type=range]').forEach(upgradeRange);
+  if(root.matches('.seg'))fitSeg(root);root.querySelectorAll('.seg').forEach(fitSeg);}
+new MutationObserver(ms=>{for(const m of ms){if(m.target.classList&&m.target.classList.contains('seg'))fitSeg(m.target);m.addedNodes.forEach(enhance);}}).observe(document.body,{childList:true,subtree:true});
 const roundTo=(v,st)=>{const d=(String(st).split('.')[1]||'').length;return +(Math.round(v/st)*st).toFixed(d);};
 function addRange(parent,d){
   const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,d.label),val=el('span','val');
@@ -308,18 +392,23 @@ function addCustom(parent,show,node){const c={d:{show},w:node,update(){}};parent
 function addHint(parent,text,show){const p=el('p','hint',text);return addCustom(parent,show,p);}
 function build(parent,list){for(const d of list){if(d.t==='range')addRange(parent,d);else if(d.t==='seg')addSeg(parent,d);else if(d.t==='toggle')addToggle(parent,d);else if(d.t==='colour')addColour(parent,d);else if(d.t==='segdyn')addSegDyn(parent,d);else if(d.t==='hint')addHint(parent,d.text,d.show);}}
 function refreshVis(){for(const c of controls){if(!c.d.show)continue;c.w.hidden=!c.d.show(S);}}
-function refreshAll(){for(const c of controls)c.update();refreshVis();refreshNotes();}
+function refreshAll(){for(const c of controls)c.update();refreshVis();refreshNotes();refreshSummaries();syncRanges(panel);}
 const pct=v=>Math.round(v*100)+'%',em=v=>roundTo(v,1)+'% em',deg=v=>roundTo(v,1)+'°',ofLoop=v=>pct(v)+' of loop',ofStep=v=>pct(v)+' of step';
 
 /* ---------------- tooltips ---------------- */
 const TIPS={};/* each app adds its own with Object.assign(TIPS,{…}) */
 function qMark(d){const t=d.tip||TIPS[d.k];if(!t)return null;const q=el('button','q','?');q.type='button';q.dataset.tip=t;q.setAttribute('aria-label',(d.label?d.label+': ':'')+t);return q;}
 const tipEl=el('div','tip');tipEl.setAttribute('role','tooltip');document.body.append(tipEl);let tipFor=null;
-function showTip(q){tipFor=q;tipEl.textContent=q.dataset.tip;tipEl.classList.add('on');const r=q.getBoundingClientRect(),tw=tipEl.offsetWidth,th=tipEl.offsetHeight;
+function showTip(q,text,at){tipFor=q;tipEl.textContent=text||q.dataset.tip;q=at||q;tipEl.classList.add('on');const r=q.getBoundingClientRect(),tw=tipEl.offsetWidth,th=tipEl.offsetHeight;
   tipEl.style.left=clamp(r.left+r.width/2-tw/2,8,innerWidth-tw-8)+'px';let y=r.top-th-8;if(y<8)y=r.bottom+8;tipEl.style.top=y+'px';}
 function hideTip(){tipFor=null;tipEl.classList.remove('on');}
-document.addEventListener('mouseover',e=>{const q=e.target.closest&&e.target.closest('.q');if(q){if(q!==tipFor)showTip(q);}else if(tipFor&&document.activeElement!==tipFor)hideTip();});
-document.addEventListener('focusin',e=>{const q=e.target.closest&&e.target.closest('.q');if(q)showTip(q);else if(tipFor)hideTip();});
+let rowTipT=0;
+document.addEventListener('mouseover',e=>{const t=e.target.closest?e.target:null;if(!t)return;const q=t.closest('.q');clearTimeout(rowTipT);
+  if(q){if(q!==tipFor)showTip(q);return;}
+  const row=t.closest('[data-tip],.ctl,.toggle-row,.colour-row,.slot-top');const src=row&&(row.dataset.tip?row:row.querySelector('.q'));
+  if(src&&src!==tipFor){rowTipT=setTimeout(()=>showTip(src,src.dataset.tip,src.offsetParent?src:row),src===row?400:550);return;}
+  if(!src&&tipFor&&document.activeElement!==tipFor)hideTip();});
+document.addEventListener('focusin',e=>{const q=e.target.closest&&e.target.closest('.q,[data-tip]');if(q&&(q.classList.contains('q')||e.target.matches(':focus-visible')))showTip(q);else if(tipFor)hideTip();});
 document.addEventListener('click',e=>{const q=e.target.closest&&e.target.closest('.q');if(q){e.preventDefault();if(tipFor===q)hideTip();else showTip(q);}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&tipFor)hideTip();});
 $('#panel').addEventListener('scroll',()=>{if(tipFor)hideTip();},{passive:true});

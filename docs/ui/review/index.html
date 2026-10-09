@@ -293,7 +293,7 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
 .u-chip{display:inline-flex;align-items:center;height:var(--h-sm);padding:0 var(--s3);border-radius:999px;font-size:var(--fs-small);color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
 .u-chip:not(.glass){box-shadow:inset 0 0 0 1px var(--rule);background:var(--app)}
 
-/* the island – bottom centre; grows into a sheet, shows status, shrinks to two icons in full screen */
+/* the island – bottom centre; grows into a sheet, shows status */
 .isl,.pcap{position:absolute;bottom:var(--s3);z-index:6;border-radius:22px;display:flex;flex-direction:column;overflow:hidden;
   transition:left .42s cubic-bezier(.2,.85,.25,1),width .42s cubic-bezier(.2,.85,.25,1),opacity .3s}
 .isl.static,.pcap.static{position:relative;bottom:auto;left:auto;right:auto;width:fit-content}
@@ -321,10 +321,8 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
 .g-status .st-bar i{display:block;height:100%;width:0;background:var(--fill);transition:width .2s linear}
 .isl[data-m="status"] .g-status{display:flex}
 .isl[data-m="status"] .g-main,.isl[data-m="status"] .g-export,.isl[data-m="status"] .d1{display:none}
-.isl[data-m="full"] .g-main,.isl[data-m="full"] .g-export,.isl[data-m="full"] .d1,.isl[data-m="full"] .d2{display:none}
 .isl[data-compact] .lbl{display:none}
 .isl[data-compact] .scrub{width:calc(80px*var(--k))}
-.isl[data-m="full"] .isl-row{justify-content:flex-end}
 .isl.dim{opacity:.4}
 .isl.dim:hover{opacity:1}
 .isl.yield{opacity:0;pointer-events:none}
@@ -349,9 +347,11 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
 .mock.notrans *{transition:none!important}
 .m-stage{position:absolute;inset:0;background:var(--app)}
 .m-left{position:absolute;left:var(--s3);top:var(--s3);bottom:var(--s3);width:calc(300px*var(--k));border-radius:var(--r-frame);display:flex;flex-direction:column;overflow:hidden;z-index:5;transition:transform .45s cubic-bezier(.2,.85,.25,1),opacity .3s}
-.mock.full .m-left{transform:translateX(calc(-100% - 24px));opacity:0;pointer-events:none}
-.m-chips{position:absolute;right:var(--s3);top:var(--s3);display:flex;gap:var(--s1);z-index:4;transition:opacity .3s}
-.mock.full .m-chips,.mock.full .pcap{opacity:0;pointer-events:none}
+.m-top{position:absolute;right:var(--s3);top:var(--s3);display:flex;gap:var(--s1);align-items:center;z-index:6}
+.m-top .u-chip{height:calc(28px*var(--k))}
+.m-tools{display:flex;gap:2px;border-radius:999px;padding:2px}
+.m-tools .u-icon{width:calc(28px*var(--k));height:calc(28px*var(--k))}
+.mock.preview .board{box-shadow:none}
 .board{position:absolute;overflow:hidden;container-type:size;background:#fff;box-shadow:0 0 0 1px var(--rule);transition:left .45s cubic-bezier(.2,.85,.25,1),top .45s cubic-bezier(.2,.85,.25,1),width .45s cubic-bezier(.2,.85,.25,1),height .45s cubic-bezier(.2,.85,.25,1)}
 .board canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .pv{position:absolute;inset:0;background:var(--pv-bg);container-type:size;overflow:hidden;transition:background .4s}
@@ -374,24 +374,26 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
 
 <div class="wrap">
   <header class="doc-head">
-    <div class="eyebrow">Ensemble Tools<br>UI stream – round 2</div>
+    <div class="eyebrow">Ensemble Tools<br>UI stream – round 3</div>
     <div>
       <h1>One interface for the tools</h1>
-      <p class="lede">The system, settled: the work fills the window, a frosted panel floats on the left for making, and an island at the bottom does the showing and the taking away. Then the same system on Tempo, Rubato and Tutti.</p>
-      <div class="meta"><span>9 October 2026</span><span>Tutti 6.0 · Rubato 1.0 · Tempo 0.7</span><span>Round 1 picks: full-bleed, card sections, 15 px, tight corners, frosted</span></div>
+      <p class="lede">The system, settled: the work fits the clear space, a frosted panel floats on the left for making, and an island at the bottom does the showing and the taking away. Preview fills the window with the work and leaves the controls where they are.</p>
+      <div class="meta"><span>9 October 2026</span><span>Tutti 6.0 · Rubato 1.0 · Tempo 0.7</span><span>Fitted by default, Preview fills the window</span></div>
     </div>
   </header>
 
   <section class="sec" id="changed">
-    <h2>Since round 1<small>Your notes, and what each became</small></h2>
+    <h2>Changes<small>Your notes, and what each became</small></h2>
     <div class="sec-body">
       <ul class="list">
-        <li><b>Full screen, always there</b><span>Expanding arrows beside light and dark, at the island’s right end. They take the work to the whole window, and in the real apps to the whole screen. F goes in, Esc comes out. In full screen only those two icons stay, and they dim when the mouse is still. <em>The hide-panels icon is gone – this does its job.</em></span></li>
+        <li><b>Fitted by default</b><span>In every app the work sits in the clear space beside the panel and above the island, as Tutti’s did – Tempo’s preview at the screen’s shape, Rubato’s artboard, Tutti’s canvas. <em>Round 3.</em></span></li>
+        <li><b>Preview fills the window</b><span>The expanding arrows take the work edge to edge behind the panel, island and Presets, which all stay put. F goes in and out. <em>Round 3.</em></span></li>
+        <li><b>Preview and light/dark top right</b><span>Beside the chips, so the island only holds what you do to the work and what you take away. <em>Round 3.</em></span></li>
         <li><b>Presets bottom right</b><span>A capsule of their own, the island’s height, sitting on the same bottom line. It opens upward into the tiles and Save.</span></li>
         <li><b>Export, island style</b><span>Export is a button in the island. The island grows into the Export sheet, then shows progress (“Making GIF”, “Recording 0:03”) and “Saved” before settling back. Nothing else sits on the work.</span></li>
         <li><b>The slider’s line</b><span>The fill now carries the value on its own, a shade stronger. The tick shows only where it’s clear of the words, and steps aside as it passes under the label or the number.</span></li>
         <li><b>By ENSEMBLE stacked</b><span>Under the name, left-aligned, same face and tracking: 19 px under 22, in the version’s grey.</span></li>
-        <li><b>Chips back</b><span>Top right: the size, and one fact – your local time, the demo face, the source. They hide in full screen.</span></li>
+        <li><b>Chips back</b><span>Top right: the size, and one fact – your local time, the demo face, the source.</span></li>
         <li><b>Also fixed</b><span>Segmented labels clipping (“Proposec”). The rule now: if the options don’t fit, it’s a menu.</span></li>
       </ul>
       <p class="note">One change from what you tried: the frost is 88% rather than 62%. The work still shows at the edges of the panel, and grey labels hold 4.5:1 over Noon’s yellow and Night’s black.</p>
@@ -399,7 +401,7 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
   </section>
 
   <section class="sec" id="system">
-    <h2>The system<small>Live. Switch app and state, or just use it – open sections, Export, Presets, Show, full screen (F).</small></h2>
+    <h2>The system<small>Live. Switch app and state, or just use it – open sections, Export, Presets, Show, Preview (F).</small></h2>
     <div class="sec-body"><p class="big">Three apps, one frame. Each keeps what makes it itself: Tempo’s screen-sized preview, Rubato’s transport, Tutti’s recording.</p></div>
     <div class="full-row">
       <div class="opt-bar u" id="optBar"></div>
@@ -410,13 +412,13 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
         <button type="button" data-hl="chips"><b>Chips</b><span>Facts, top right. Size and one thing worth knowing.</span></button>
         <button type="button" data-hl="isl"><b>Island</b><span>Showing and taking away. Grows into Export, shows progress, shrinks back.</span></button>
         <button type="button" data-hl="pcap"><b>Presets</b><span>Choosing. Bottom right, the island’s height. Only where an app has them.</span></button>
-        <button type="button" data-hl="const"><b>Full screen, light and dark</b><span>Always there, even in full screen.</span></button>
+        <button type="button" data-hl="const"><b>Preview, light and dark</b><span>Top right, beside the chips. Preview fills the window; everything else stays.</span></button>
       </div>
     </div>
   </section>
 
   <section class="sec" id="island">
-    <h2>The island<small>One object, five states. Same height everywhere: 44 px, controls 36 px inside.</small></h2>
+    <h2>The island<small>One object, four states. Same height everywhere: 44 px, controls 36 px inside.</small></h2>
     <div class="sec-body">
       <div class="islands u" id="islands"></div>
       <div class="prose">
@@ -440,10 +442,10 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
           <div><h3>Tempo<small>0.7 · moves first</small></h3><button class="u-btn see" type="button" data-app="tempo">See it above</button></div>
           <dl class="kv">
             <dt>Panel</dt><dd>Fonts, then whatever Show needs – Clock and Numerals, or Words, or Face and Hands – then Change, Position and Colour.</dd>
-            <dt>Island</dt><dd>Show (The time, In words, As a dial) · Export · full screen · light and dark.</dd>
+            <dt>Island</dt><dd>Show (The time, In words, As a dial) · Export.</dd>
             <dt>Presets</dt><dd>Bottom right. Saved screen savers as live tiles; Save as new, Open a file, Download all.</dd>
             <dt>Chips</dt><dd>The preview size and “Your local time”. “Demo face” only until a font is loaded.</dd>
-            <dt>Stays its own</dt><dd>The output is the screen, so the stage <em>is</em> the screen saver, edge to edge, and full screen is a true preview. Each font is a list row with its Detail (Use as core, Shuffle in, Tracking). Mixing is a group in Fonts; Your colours a group in Colour.</dd>
+            <dt>Stays its own</dt><dd>The preview keeps the screen’s shape and fits the clear space like the others. Preview fills the window with it – as close to the real screen saver as a browser gets. Each font is a list row with its Detail (Use as core, Shuffle in, Tracking). Mixing is a group in Fonts; Your colours a group in Colour.</dd>
             <dt>In the code</dt><dd>Show moves from the Screensaver card into the island, still a group named “Show”, which the tests look for. The Presets and Export cards become sheets. <code>fold()</code> and its inline style become the shared group. Each card gains a one-line summary.</dd>
           </dl>
         </div>
@@ -451,10 +453,10 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
           <div><h3>Rubato<small>1.0 · second</small></h3><button class="u-btn see" type="button" data-app="rubato">See it above</button></div>
           <dl class="kv">
             <dt>Panel</dt><dd>Fonts, Text, Layout, Motion, Variants, Physics, Colour.</dd>
-            <dt>Island</dt><dd>Pause, scrub and time · Randomise, its options, Undo · Export · full screen · light and dark.</dd>
+            <dt>Island</dt><dd>Pause, scrub and time · Randomise, its options, Undo · Export.</dd>
             <dt>Presets</dt><dd>Bottom right. Starting points (the twelve live tiles) and Saved; Save settings file, Load settings file.</dd>
             <dt>Chips</dt><dd>1080 × 1080 px; “Demo face” until a font is loaded.</dd>
-            <dt>Stays its own</dt><dd>The output is a format, so the artboard sits in the clear space on the app’s ground and refits when the panel goes. Kerning and physics guides still draw over it. Steppers, dials, path pads and the In/Hold/Out bars stay Rubato’s, on the shared tokens. More folds become groups.</dd>
+            <dt>Stays its own</dt><dd>The output is a format, so the artboard sits in the clear space on the app’s ground, and fills the window in Preview. Kerning and physics guides still draw over it. Steppers, dials, path pads and the In/Hold/Out bars stay Rubato’s, on the shared tokens. More folds become groups.</dd>
             <dt>In the code</dt><dd>The transport capsule becomes the island; the Randomise pop becomes an island sheet. The Export card becomes a sheet, with GIF and Video as groups. <code>rubato/app.css</code> moves onto the tokens.</dd>
           </dl>
         </div>
@@ -462,11 +464,11 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
           <div><h3>Tutti<small>6.0 · biggest move, last</small></h3><button class="u-btn see" type="button" data-app="tutti">See it above</button></div>
           <dl class="kv">
             <dt>Panel</dt><dd>Source, Canvas, Shape, Mapping, Advanced.</dd>
-            <dt>Island</dt><dd>Export (Still or Motion inside) · full screen · light and dark. Pause joins when the source moves – try Camera in the mock-up.</dd>
+            <dt>Island</dt><dd>Export, with Still or Motion inside. Pause joins when the source moves – try Camera in the mock-up.</dd>
             <dt>Presets</dt><dd>None yet, so no capsule. When Tutti has them, they slot in bottom right.</dd>
             <dt>Chips</dt><dd>Canvas size; the source.</dd>
             <dt>Stays its own</dt><dd>Its export capsule already swaps to recording progress and back. That behaviour becomes the island’s for every app. Mapping bands become list rows (swatch, name, SVG tag). Randomise and Reset shapes become icon buttons. The black brand module gives way to the stacked header.</dd>
-            <dt>In the code</dt><dd>Tutti joins the shared files first (step 2 in <code>tutti/HANDOVER.md</code>), then the frame. The Squarespace iframe needs <code>allow="fullscreen"</code> for the full screen button to reach the whole screen. Without it, the button still clears the panels.</dd>
+            <dt>In the code</dt><dd>Tutti joins the shared files first (step 2 in <code>tutti/HANDOVER.md</code>), then the frame. Then check the Squarespace embed at its real size.</dd>
           </dl>
         </div>
       </div>
@@ -477,10 +479,10 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
     <h2>The rules<small>For these three and whatever comes next</small></h2>
     <div class="sec-body">
       <ul class="list">
-        <li><b>The work is the ground</b><span>If the output is the screen, it fills the window. If it’s a format, its artboard sits in the clear space on the app’s colour and refits when panels move.</span></li>
-        <li><b>Four things float</b><span>Panel (left, making), island (bottom centre, showing and taking away), Presets (bottom right, choosing), chips (top right, facts). 12 px from the edges, bottoms aligned, frosted at 88%.</span></li>
+        <li><b>The work fits, then fills</b><span>By default the work fits the clear space beside the panel and above the island, on the app’s own colour. Preview fills the window with it, and the controls stay on top.</span></li>
+        <li><b>Four things float</b><span>Panel (left, making), island (bottom centre, showing and taking away), Presets (bottom right, choosing), chips with Preview and light/dark (top right). 12 px from the edges, bottoms aligned, frosted at 88%.</span></li>
         <li><b>Sheets grow from their source</b><span>One at a time. Esc or a click on the work closes them.</span></li>
-        <li><b>Full screen is constant</b><span>Expanding arrows and light/dark sit at the island’s right end in every app, every state.</span></li>
+        <li><b>Preview and light/dark, top right</b><span>Same place in every app, beside the chips. F for Preview.</span></li>
         <li><b>Status lives in the island</b><span>Progress, recording, saved. No other toasts.</span></li>
         <li><b>Only what applies</b><span>No presets, no capsule. No video, no transport. Controls that depend on something switched off disappear, and the space closes up.</span></li>
         <li><b>Three levels of depth</b><span>Section card, group, detail. Shut sections say what’s set.</span></li>
@@ -533,7 +535,7 @@ h3{font-size:19px;font-weight:400;letter-spacing:-0.03em;line-height:1.2;margin:
             <tr><td class="num">40 px</td><td>Section title row; the one big action in a sheet</td></tr>
             <tr><td class="num">36 px</td><td>Controls inside the island</td></tr>
             <tr><td class="num">32 px</td><td>Every control in the panel</td></tr>
-            <tr><td class="num">24 px</td><td>Chips</td></tr>
+            <tr><td class="num">28 px</td><td>Chips, Preview and light/dark</td></tr>
           </table></div>
         </div>
         <div>
@@ -730,7 +732,7 @@ const M={app:'tempo',state:'rest',win:'1280',mode:'light',
   tempo:{show:'The time',theme:'Noon',preset:'Noon'},rubato:{preset:'Hover',playing:true},tutti:{src:'image'}};
 
 const APPS={
- tempo:{name:'Tempo',ver:'0.7',stage:'screen',
+ tempo:{name:'Tempo',ver:'0.7',stage:{ratio:'screen'},
   presets:{name:()=>M.tempo.preset,thumb:()=>tempoTile(TEMPO_PRESETS.find(p=>p.name===M.tempo.preset)||TEMPO_PRESETS[0])},
   chips:(w,hh)=>[w+' × '+hh,'Your local time'],
   work:{text:'Downloaded – Tempo for Mac',bar:false,live:false,done:true},
@@ -845,13 +847,10 @@ function buildIsland(app,ctx,o){o=o||{};
   const gStat=h('div','isl-g g-status',live,stTxt,stBar,stop);
   const exp=btn('Export','primary',null,'Save or download what’s on the stage');exp.setAttribute('aria-expanded','false');
   exp.onclick=e=>{e.stopPropagation();ctx.toggleSheet('export');};
-  const gExp=h('div','isl-g g-export',exp),d2=h('span','isl-div d2');
-  const full=iconBtn('expand','Full screen – F');full.onclick=e=>{e.stopPropagation();ctx.setFull(!ctx.isFull());};
-  const th=iconBtn('theme','Light or dark');th.onclick=e=>{e.stopPropagation();ctx.toggleMode();};
-  const gConst=h('div','isl-g g-const',full,th);
-  row.append(gMain,d1,gStat,gExp,d2,gConst);isl.append(sheet,row);
+  const gExp=h('div','isl-g g-export',exp);
+  row.append(gMain,d1,gStat,gExp);isl.append(sheet,row);
   isl.addEventListener('click',e=>e.stopPropagation());
-  return {el:isl,sc,exp,full,gConst,stTxt,live,stBar,bar,stop,
+  return {el:isl,sc,exp,stTxt,live,stBar,bar,stop,
     status(s){live.hidden=!s.live;stBar.hidden=!s.bar;stop.hidden=!s.stop;stTxt.textContent=s.text;bar.style.width=(typeof s.bar==='number'?s.bar*100:0)+'%';}};
 }
 function buildPcap(app,ctx){
@@ -877,7 +876,10 @@ function renderMock(){
   const left=h('aside','m-left u-panel glass');left.setAttribute('aria-label',app.name+' controls');
   const brand=h('div','u-brand',h('div','l1',h('span','nm',app.name),h('span','vr',app.ver)),h('span','by','By ENSEMBLE'));
   const scroll=h('div','u-scroll');left.append(brand,scroll);
-  const chips=h('div','m-chips');
+  const top=h('div','m-top');const chips=h('div','m-chips',null);chips.style.cssText='display:flex;gap:4px';
+  const pvBtn=iconBtn('expand','Preview – fill the window – F',{'aria-pressed':'false'});pvBtn.onclick=e=>{e.stopPropagation();ctx.setFull(!ctx.full);};
+  const thBtn=iconBtn('theme','Light or dark');thBtn.onclick=e=>{e.stopPropagation();ctx.toggleMode();};
+  const tools=h('div','m-tools glass',pvBtn,thBtn);top.append(chips,tools);ctx.pvBtn=pvBtn;ctx.tools=tools;ctx.chips=chips;
   ctx.rebuildLeft=()=>{scroll.replaceChildren(...app.left(ctx));requestAnimationFrame(()=>paintSliders(scroll));};
   ctx.rebuildAll=()=>{const keepState=M.state;renderMock();};
   ctx.isFull=()=>ctx.full;
@@ -885,31 +887,31 @@ function renderMock(){
   ctx.done=(b,text)=>{b.addEventListener('click',()=>ctx.flash({text,done:true}));return b;};
   ctx.work=(b,s)=>{b.addEventListener('click',()=>ctx.runWork(s));return b;};
   ctx.refreshPcap=()=>{ctx.pcap&&ctx.pcap.refresh();ctx.layout();};
-  mk.append(left,chips);
+  mk.append(left,top);
   const isl=buildIsland(app,ctx);ctx.isl=isl;mk.append(isl.el);
   if(app.presets){ctx.pcap=buildPcap(app,ctx);mk.append(ctx.pcap.el);}
   ctx.rebuildLeft();
   app.chips(W,H).forEach(t=>chips.append(h('span','u-chip glass',t)));
   // stage content
-  if(app.stage==='screen'){const pv=h('div','pv');stage.append(pv);ctx.pv=pv;}
-  else{const b=h('div','board');stage.append(b);ctx.board=b;
+  {const b=h('div','board');stage.append(b);ctx.board=b;
+    if(app.stage.ratio==='screen'){const pv=h('div','pv');b.append(pv);ctx.pv=pv;}
     if(M.app==='rubato'){const rb=h('div','rb'+(M.rubato.playing?'':' paused'));'Lazaar'.split('').forEach((c,i)=>{const s=h('span',null,c);s.style.animationDelay=(i*.14)+'s';rb.append(s);});b.append(rb);}
-    else{const cv=h('canvas');cv.setAttribute('aria-label','Halftone of a lit sphere');cv.setAttribute('role','img');b.append(cv);ctx.cv=cv;drawHalftone(cv,0);}}
+    else if(M.app==='tutti'){const cv=h('canvas');cv.setAttribute('aria-label','Halftone of a lit sphere');cv.setAttribute('role','img');b.append(cv);ctx.cv=cv;drawHalftone(cv,0);}}
   stage.addEventListener('click',()=>{if(ctx.sheet)ctx.toggleSheet(null);});
   // sheets
-  ctx.toggleSheet=which=>{if(isl.el.dataset.m==='status'){ctx.clearTimers();isl.el.dataset.m=ctx.full?'full':'rest';}const next=ctx.sheet===which?null:which;ctx.sheet=next;if(ctx.full&&next)ctx.setFull(false,true);
+  ctx.toggleSheet=which=>{if(isl.el.dataset.m==='status'){ctx.clearTimers();isl.el.dataset.m='rest';}const next=ctx.sheet===which?null:which;ctx.sheet=next;
     isl.el.classList.toggle('open',next==='export'||next==='random');isl.exp.setAttribute('aria-expanded',next==='export');if(ctx.optBtn)ctx.optBtn.setAttribute('aria-expanded',next==='random');
     if(next==='export')isl.sc.replaceChildren(...app.exportSheet(ctx));if(next==='random')isl.sc.replaceChildren(...app.randomSheet(ctx));
     if(ctx.pcap){ctx.pcap.el.classList.toggle('open',next==='presets');ctx.pcap.row.setAttribute('aria-expanded',next==='presets');if(next==='presets')ctx.pcap.sc.replaceChildren(...app.presetsSheet(ctx));}
     requestAnimationFrame(()=>paintSliders(mk));
     M.state=next==='export'?'export':next==='presets'?'presets':ctx.full?'full':'rest';syncBar();ctx.layout();};
-  ctx.setFull=(on,quiet)=>{ctx.full=on;mk.classList.toggle('full',on);if(on&&ctx.sheet){ctx.sheet=null;isl.el.classList.remove('open');ctx.pcap&&ctx.pcap.el.classList.remove('open');isl.exp.setAttribute('aria-expanded','false');}
-    isl.full.replaceChildren(icon(on?'collapse':'expand'));const t=on?'Leave full screen – Esc':'Full screen – F';isl.full.dataset.tip=t;isl.full.setAttribute('aria-label',t);
-    isl.el.dataset.m=on?'full':'rest';if(!quiet){M.state=on?'full':'rest';syncBar();}ctx.layout();idle();};
+  ctx.setFull=(on,quiet)=>{ctx.full=on;mk.classList.toggle('preview',on);
+    ctx.pvBtn.replaceChildren(icon(on?'collapse':'expand'));const t=on?'Fit to the clear space – F':'Preview – fill the window – F';ctx.pvBtn.dataset.tip=t;ctx.pvBtn.setAttribute('aria-label',t);ctx.pvBtn.setAttribute('aria-pressed',on);
+    if(!quiet){M.state=on?'full':'rest';syncBar();}ctx.layout();};
   // status: working then done
   ctx.clearTimers=()=>{ctx.timers.forEach(clearTimeout);ctx.timers.forEach(clearInterval);ctx.timers=[];};
   ctx.flash=s=>{ctx.clearTimers();if(ctx.sheet)ctx.toggleSheet(null);isl.status(s);isl.el.dataset.m='status';ctx.layout();
-    ctx.timers.push(setTimeout(()=>{isl.el.dataset.m=ctx.full?'full':'rest';M.state=ctx.full?'full':'rest';syncBar();ctx.layout();},2200));};
+    ctx.timers.push(setTimeout(()=>{isl.el.dataset.m='rest';M.state=ctx.full?'full':'rest';syncBar();ctx.layout();},2200));};
   ctx.runWork=(s,sticky)=>{ctx.clearTimers();if(ctx.sheet)ctx.toggleSheet(null);isl.el.dataset.m='status';let p=0,sec=0;
     const paint=()=>isl.status({text:s.live?`${s.text} · 0:0${Math.min(9,sec)}`:s.text,live:s.live,bar:s.bar?p:false,stop:s.stop});paint();ctx.layout();
     if(sticky){p=.4;sec=3;paint();ctx.layout();return;}
@@ -917,7 +919,7 @@ function renderMock(){
     isl.stop.onclick=()=>{ctx.clearTimers();ctx.flash({text:s.then,done:true});};};
   // layout: everything positioned in mock pixels
   ctx.layout=(instant)=>{
-    const full=ctx.full,L=full?G:G+PANEL+G,R=W-G;
+    const full=ctx.full,L=G+PANEL+G,R=W-G;
     const iel=isl.el,pel=ctx.pcap&&ctx.pcap.el;
     const prevI=iel.offsetWidth,prevP=pel?pel.offsetWidth:0;
     iel.style.transition='none';if(pel)pel.style.transition='none';
@@ -925,14 +927,14 @@ function renderMock(){
       let pw=0;if(pel){pel.style.width='max-content';pw=pel.offsetWidth;if(pel.classList.contains('open'))pw=Math.max(pw,M.app==='rubato'?330:310);}return [iw,pw];};
     delete iel.dataset.compact;if(pel)delete pel.dataset.compact;iel.classList.remove('yield');
     let [iw,pw]=measure();const centre=(L+R)/2;let x;
-    const place=()=>{x=centre-iw/2;const limit=pel&&!full?R-pw-G:R;if(x+iw>limit)x=limit-iw;return x>=L;};
+    const place=()=>{x=centre-iw/2;const limit=pel?R-pw-G:R;if(x+iw>limit)x=limit-iw;return x>=L;};
     if(!place()&&pel){pel.dataset.compact='';[iw,pw]=measure();}
     if(!place()){iel.dataset.compact='';[iw,pw]=measure();}
     if(!place()){x=L;iel.classList.add('yield');}
     iel.style.width=(instant?iw:prevI||iw)+'px';if(pel)pel.style.width=(instant?pw:prevP||pw)+'px';
     void iel.offsetWidth;iel.style.transition='';if(pel)pel.style.transition='';
     iel.style.width=iw+'px';iel.style.left=x+'px';if(pel)pel.style.width=pw+'px';
-    if(ctx.board){const r=APPS[M.app].stage.ratio;let a=full?{x:24,y:24,w:W-48,h:H-24-(G+44+G)}:{x:L+G,y:G+24+G,w:R-L-2*G,h:H-(G+24+G)-(G+44+G)};
+    if(ctx.board){const r0=APPS[M.app].stage.ratio,r=r0==='screen'?W/H:r0;let a=full?{x:0,y:0,w:W,h:H}:{x:L+G,y:G+28+G,w:R-L-2*G,h:H-(G+28+G)-(G+44+G)};
       let bw=a.w,bh=bw/r;if(bh>a.h){bh=a.h;bw=bh*r;}Object.assign(ctx.board.style,{left:(a.x+(a.w-bw)/2)+'px',top:(a.y+(a.h-bh)/2)+'px',width:bw+'px',height:bh+'px'});}
   };
   wrap.append(mk);fit();paintStage();ctx.layout(true);
@@ -941,7 +943,7 @@ function renderMock(){
   requestAnimationFrame(()=>{requestAnimationFrame(()=>{mk.classList.remove('notrans');applyState(st);});});
   note();
 }
-function applyState(s){const c=CTX;if(!c)return;c.clearTimers();if(c.isl.el.dataset.m==='status')c.isl.el.dataset.m=c.full?'full':'rest';
+function applyState(s){const c=CTX;if(!c)return;c.clearTimers();if(c.isl.el.dataset.m==='status')c.isl.el.dataset.m='rest';
   if(s==='full'){if(c.sheet)c.toggleSheet(null);c.setFull(true);return;}
   if(c.full)c.setFull(false,true);
   if(s==='rest'){if(c.sheet)c.toggleSheet(null);else{M.state='rest';syncBar();c.layout();}return;}
@@ -956,10 +958,8 @@ function paintStage(){const c=CTX;if(!c)return;
 }
 function fit(){const wrap=$('#mockWrap'),mk=$('.mock',wrap);if(!mk)return;const [W]=WINS[M.win];mk.style.transform=`scale(${wrap.clientWidth/W})`;}
 new ResizeObserver(()=>fit()).observe($('#mockWrap'));
-/* full-screen idle dim */
-let idleT=0;function idle(){const c=CTX;if(!c)return;c.isl.el.classList.remove('dim');clearTimeout(idleT);if(c.full)idleT=setTimeout(()=>c.isl.el.classList.add('dim'),2000);}
-$('#mockWrap').addEventListener('pointermove',idle);
-/* keys: F for full screen, Esc to close or leave */
+
+/* keys: F for Preview, Esc to close a sheet or leave Preview */
 document.addEventListener('keydown',e=>{if(!CTX||e.target.closest('input,textarea,select'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;
   const r=$('#mockWrap').getBoundingClientRect();if(r.bottom<0||r.top>innerHeight)return;
   if(e.key==='f'||e.key==='F'){CTX.setFull(!CTX.full);e.preventDefault();}
@@ -975,30 +975,32 @@ const BAR={};
 function syncBar(){if(BAR.state)BAR.state._set(M.state);if(BAR.mode)BAR.mode._set(M.mode);if(BAR.app)BAR.app._set(M.app);}
 function optBar(){const bar=$('#optBar');bar.innerHTML='';
   BAR.app=seg({label:'App',opts:[['tempo','Tempo'],['rubato','Rubato'],['tutti','Tutti']],value:M.app,onChange:v=>{M.app=v;M.state='rest';optBar();renderMock();}});
-  const states=[['rest','At rest'],...(APPS[M.app].presets?[['presets','Presets']]:[]),['export','Export'],['work','Working'],['full','Full screen']];
+  const states=[['rest','At rest'],...(APPS[M.app].presets?[['presets','Presets']]:[]),['export','Export'],['work','Working'],['full','Preview']];
   BAR.state=seg({label:'State',opts:states,value:M.state,row:true,onChange:v=>applyState(v)});
   const win=seg({label:'Window width',opts:['1440','1280','1024'],value:M.win,onChange:v=>{M.win=v;renderMock();}});
   BAR.mode=seg({label:'Theme',opts:[['light','Light'],['dark','Dark']],value:M.mode,onChange:v=>{M.mode=v;if(CTX)CTX.mk.dataset.mode=v;}});
   bar.append(BAR.app,BAR.state,win,BAR.mode);}
-function note(){const n={tempo:'Tempo – the stage is the screen saver itself. Try a preset, Show, or F.',rubato:'Rubato – the artboard sits in the clear space and refits in full screen. Try Randomise’s options (the chevron).',tutti:'Tutti – no presets, so no capsule. Try Camera in Source, then Export › Motion › Record.'}[M.app];
+function note(){const n={tempo:'Tempo – the preview keeps the screen’s shape. Try a preset, Show, or Preview (F) to fill the window.',rubato:'Rubato – the artboard fits the clear space; Preview fills the window. Try Randomise’s options (the chevron).',tutti:'Tutti – no presets, so no capsule. Try Camera in Source, then Export › Motion › Record.'}[M.app];
   $('#mockNote').textContent=n+(M.win==='1024'?' At 1024, Presets shrinks to its tile and labels in the island become icons.':'');}
 optBar();renderMock();
 /* legend highlights */
-document.querySelectorAll('#legend button').forEach(b=>{const on=v=>{const c=CTX;if(!c)return;const t={left:c.mk.querySelector('.m-left'),chips:c.mk.querySelector('.m-chips'),isl:c.isl.el,pcap:c.pcap&&c.pcap.el,const:c.isl.gConst}[b.dataset.hl];if(t)t.classList.toggle('hl',v);};
+document.querySelectorAll('#legend button').forEach(b=>{const on=v=>{const c=CTX;if(!c)return;const t={left:c.mk.querySelector('.m-left'),chips:c.chips,isl:c.isl.el,pcap:c.pcap&&c.pcap.el,const:c.tools}[b.dataset.hl];if(t)t.classList.toggle('hl',v);};
   b.addEventListener('pointerenter',()=>on(true));b.addEventListener('pointerleave',()=>on(false));b.addEventListener('focus',()=>on(true));b.addEventListener('blur',()=>on(false));});
 document.querySelectorAll('[data-app]').forEach(b=>b.onclick=()=>{M.app=b.dataset.app;M.state='rest';optBar();renderMock();$('#system').scrollIntoView({behavior:'smooth',block:'start'});});
 
 /* ---------- island specimens ---------- */
 (function(){const host=$('#islands');const dummy=a=>({mk:document.body,rebuildLeft(){},layout(){},toggleSheet(){},setFull(){},isFull:()=>false,toggleMode(){},done:b=>b,work:b=>b,refreshPcap(){}});
-  const add=(tag,sub,appKey,mode,status,full)=>{const ctx=dummy();const i=buildIsland(APPS[appKey],ctx);i.el.classList.add('static');i.el.dataset.m=mode;if(status)i.status(status);
-    if(full){i.full.replaceChildren(icon('collapse'));}host.append(h('div','tag',h('b',null,tag),sub),h('div',null,i.el));};
+  const add=(tag,sub,appKey,mode,status)=>{const ctx=dummy();const i=buildIsland(APPS[appKey],ctx);i.el.classList.add('static');i.el.dataset.m=mode;if(status)i.status(status);
+    host.append(h('div','tag',h('b',null,tag),sub),h('div',null,i.el));};
   add('At rest','Tempo – Show and Export','tempo','rest');
   add('At rest','Rubato – transport and Randomise','rubato','rest');
   add('Working','Rubato – making a GIF','rubato','status',{text:'Making GIF',bar:.4});
   add('Working','Tutti – recording','tutti','status',{text:'Recording · 0:03',live:true,stop:true});
   add('Done','Any app, for two seconds','tutti','status',{text:'MP4 saved'});
-  add('Full screen','Only the constants, dimmed when still','tempo','full',null,true);
   const pc=buildPcap(APPS.tempo,{toggleSheet(){}});pc.el.classList.add('static');host.append(h('div','tag',h('b',null,'Presets'),'Its own capsule, same height'),h('div',null,pc.el));
+  const tl=h('div','m-tools glass',iconBtn('expand','Preview – fill the window – F'),iconBtn('theme','Light or dark'));tl.style.display='inline-flex';
+  const tr=h('div',null);tr.style.cssText='display:flex;gap:4px;align-items:center';[ '1280 × 800','Your local time'].forEach(t=>{const c=h('span','u-chip glass',t);c.style.height='28px';tr.append(c);});tr.append(tl);
+  host.append(h('div','tag',h('b',null,'Top right'),'Chips, Preview, light and dark'),h('div',null,tr));
 })();
 
 /* ---------- component specimens ---------- */

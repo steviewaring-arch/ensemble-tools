@@ -1,11 +1,24 @@
   /* Presets: saved screen savers as live tiles (as Rubato's) */
   .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin:0 0 12px}
-  .thumb{display:flex;flex-direction:column;gap:4px;padding:3px 3px 6px;border:1px solid var(--keyline);border-radius:12px;background:var(--btn);cursor:pointer;color:var(--ink);text-align:left;min-width:0}
+  .thumb{display:flex;flex-direction:column;gap:4px;padding:3px 3px 6px;border:0;box-shadow:inset 0 0 0 1px var(--keyline);border-radius:var(--r-card);background:var(--btn);cursor:pointer;color:var(--ink);text-align:left;min-width:0}
   .thumb:hover{background:var(--btn-hover)}
   .thumb:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
-  .thumb[aria-pressed="true"]{border-color:var(--fill-ink);box-shadow:0 0 0 1px var(--fill-ink)}
-  .thumb canvas{display:block;width:100%;aspect-ratio:8/5;border-radius:8px;pointer-events:none}
+  .thumb[aria-pressed="true"]{box-shadow:inset 0 0 0 2px var(--fill-ink)}
+  .thumb canvas{display:block;width:100%;aspect-ratio:8/5;border-radius:var(--r-inner);pointer-events:none}
   .thumb span{font-size:0.76rem;padding:0 4px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .thumb:hover span,.thumb[aria-pressed="true"] span{color:var(--ink)}
   .p-status{font-size:0.82rem;color:var(--muted);margin:0 0 8px}
   .p-status b{color:var(--ink);font-weight:500}
+  /* font rows */
+  .slot.off{opacity:.55}
+  .slot-det{padding-top:8px}
+  .slot-top .row-chev{cursor:pointer;margin:0 2px}
+  .row-chev.up svg{transform:rotate(180deg)}
+  .toggle.inline{width:auto;margin:0 0 0 6px;flex:none}
+  .btn-row>input[type=text]{flex:1}
+  /* colour themes */
+  .sw-set{flex:none;display:inline-flex;gap:3px}
+  .sw-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 1px var(--keyline)}
+  /* Presets in their sheet */
+  .sheet .thumbs{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
+  .slot-main[role=button]{cursor:pointer}

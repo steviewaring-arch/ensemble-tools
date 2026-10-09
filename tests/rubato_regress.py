@@ -15,6 +15,7 @@ from playwright.sync_api import sync_playwright
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from serve import start, ROOT
 from parity import POP, LORA, OPENTYPE, SEED
+from ui_helpers import btn, reveal, sheet
 
 IMG = os.path.join(ROOT, 'tests/out/regress-image.png')
 P, L = POP, [LORA]
@@ -66,7 +67,7 @@ def run(p, base, path, st, fonts, ot, img):
         out[f'frame {ph}'] = hashlib.sha1(pg.evaluate("document.querySelector('#cv').toDataURL()").encode()).hexdigest()
     pg.evaluate(scrub, .37)
     for name in ('SVG frame', 'PNG frame'):
-        with pg.expect_download() as dl: pg.get_by_role('button', name=name, exact=True).click()
+        with pg.expect_download() as dl: btn(pg, name, True).click()
         out[name] = hashlib.sha1(open(dl.value.path(), 'rb').read()).hexdigest()
     b.close(); return out, errs
 

@@ -123,6 +123,8 @@ function applyTab(){if(window.closeRandPop)closeRandPop();refreshVis();fitCanvas
 if(!('physics' in collapsed))collapsed.physics=true;
 
 /* Presets – the front door. Built here, moved to the top of the panel. */
+/* Cards that start shut (each says what's set): all but Text */
+function appCollapseDefault(){return ['layout','motion','variants','physics','colour'];}
 let presetCard;
 const PRESET_BASE={mode:'none',vMode:'off',rOn:false,stretch:false,axOn:false,qClear:true};
 const BUILTIN={
@@ -468,9 +470,9 @@ function refreshImageCard(){if(!imgNameEl)return;imgNameEl.textContent=img?imgNa
   const prog=el('div','progress');const bar=el('i');prog.append(bar);prog.hidden=true;b.append(prog);
   window.exportUI={bar,prog,btns:[png,svg,gif,vid]};
   png.onclick=()=>exportPNG();svg.onclick=()=>exportSVG();gif.onclick=()=>exportGIF();vid.onclick=()=>exportVideo();
+  cardToSheet(b,'export');/* Export grows out of the island */
 }
-/* Presets first, then Fonts and the rest */
-panel.prepend(presetCard);
+cardToSheet(presetCard.querySelector('.card-body'),'presets');/* Presets: bottom right, opening upward */
 
 /* ---------------- glyph picker ---------------- */
 let pickTimer=0,pickRows=new Map();
@@ -521,7 +523,7 @@ function refreshNotes(){
     if((S.vMode==='alts'||S.vMode==='both')){const f=F(baseSlot());if(!anyLoaded())t='The demo face has no alternates. Add your font to use them.';else if(!f.altChars.length)t='No alternates found in this style.';}
     if((S.vMode==='weights'||S.vMode==='both')&&anyLoaded()&&availSlots().length<2)t=(t?t+' ':'')+'Add another style in Fonts, or tick Use in style swaps, to change between styles.';
     window.variantNote.textContent=t;window.variantNote.hidden=!t;}
-  $('#note').textContent=anyLoaded()?'':'Demo face. Load your font in the Font panel.';
+  const n=$('#note');n.textContent=anyLoaded()?'':'Demo face';n.title=n.textContent?'Demo face – load your font in Fonts':'';
   if(textsHost)refreshBlocksUI();
 }
 
@@ -562,7 +564,7 @@ function randomise(){
   const tg=RAND_GROUPS.map(([k,l])=>{const b=el('button','toggle');b.setAttribute('role','switch');b.append(el('span','box'),el('span',null,l));
     b.onclick=()=>{RS.groups[k]=!RS.groups[k];if(!Object.values(RS.groups).some(Boolean)){RS.groups[k]=true;toast('Keep at least one area.');}LS.set('rand',RS);paint();};list.append(b);return[k,b];});
   const go=el('button','pill primary','Randomise');go.onclick=randomise;
-  pop.append(el('div','rp-title','Randomise'),lanes,lh,el('div','sub-head','Include'),list,go,el('p','hint','Press R to randomise with these settings, and ⌘Z or Ctrl+Z to undo.'));$('#stage').append(pop);
+  pop.append(el('div','rp-title','Randomise'),lanes,lh,el('div','sub-head','Include'),list,go,el('p','hint','Press R to randomise with these settings, and ⌘Z or Ctrl+Z to undo.'));addSheet('random',pop,$('#randOpt'));
   function paint(){lv.forEach(([v,b])=>b.setAttribute('aria-pressed',RS.level===v));tg.forEach(([k,b])=>b.setAttribute('aria-checked',!!RS.groups[k]));
     lh.textContent=RS.level==='full'?'Any value a control allows, plus every option and switch in the areas you include. Expect some wild results.':'Values stay in ranges that usually look good, and most switches are left as you set them.';}
   paint();

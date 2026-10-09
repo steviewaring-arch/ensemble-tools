@@ -84,7 +84,7 @@ class Run:
                 self.pg.goto(self.base + 'reference/rubato-0.8.1.html')
                 self.loaded = True
             else:
-                self.pg.get_by_role('button', name='Studio', exact=True).click()
+                btn(self.pg, 'Studio', True).click()
         else:
             self.pg.goto(self.base + 'docs/rubato/')
         self.wait(800)
@@ -94,7 +94,7 @@ class Run:
         if self.kind == 'ref':
             if not getattr(self, 'loaded', False):
                 self.pg.goto(self.base + 'reference/rubato-0.8.1.html'); self.loaded = True; self.wait(800)
-            self.pg.get_by_role('button', name='Screensaver', exact=True).click()
+            btn(self.pg, 'Screensaver', True).click()
         else:
             self.wait(400)  # let Rubato's pending saves land first
             self.pg.goto(self.base + 'docs/tempo/')
@@ -166,15 +166,15 @@ def t1(r):
     r.fonts(POP + [LORA])
     r.put('styles', json.dumps(pg.locator('.font-list .slot-name').all_inner_texts()))
     r.put('axis controls', f"{pg.locator('.axes input[type=range]').count()} sliders, {pg.locator('.axes select').count()} menus")
-    pg.get_by_role('button', name='+ Another instance').click(); r.wait(500)
+    btn(pg, '+ Another instance').click(); r.wait(500)
     r.put('after + Another instance', json.dumps(pg.locator('.font-list .slot-name').all_inner_texts()))
-    pg.get_by_role('button', name='Set text in Lora Regular').click(); r.wait(400)
+    btn(pg, 'Set text in Lora Regular').click(); r.wait(400)
     r.put('axis switch visible', str(pg.get_by_role('switch', name='Animate an axis').is_visible()))
     pg.get_by_role('switch', name='Animate an axis').click(); r.wait(300)
-    pg.get_by_role('button', name='Still', exact=True).click()
+    btn(pg, 'Still', True).click()
     for v in (0, 250, 500):
         r.scrub(v); r.canvas(f'axis frame {v}')
-    r.download('axis SVG', lambda: pg.get_by_role('button', name='SVG frame').click())
+    r.download('axis SVG', lambda: btn(pg, 'SVG frame').click())
     pg.locator('.axes input[type=range]').first.evaluate("e=>{e.value=650;e.dispatchEvent(new Event('input'))}"); r.wait(300)
     r.put('after axis slider', json.dumps(pg.locator('.font-list .slot-name').all_inner_texts()))
     pg.get_by_role('switch', name='Animate an axis').click()
@@ -189,7 +189,7 @@ def t2(r):
     """Sequence transitions, stretch and repeat, tooltips, randomise and undo."""
     pg = r.page(); r.studio(); r.clear(); r.expand()
     r.fonts(POP, 1200)
-    pg.get_by_role('button', name='Still', exact=True).click()
+    btn(pg, 'Still', True).click()
     pg.get_by_role('switch', name='Sequence of texts').click(); r.wait(200)
     t = pg.locator('#panel textarea'); t.nth(0).fill('Lazaar'); t.nth(1).fill('Display')
     r.slider('c_qStagger', .5); r.slider('c_qDur', .6)
@@ -214,7 +214,7 @@ def t2(r):
     r.put('? count', str(pg.evaluate("document.querySelectorAll('section.card:not([data-tab=saver]) .q').length")))
     pg.click('#randOpt'); r.wait(300)
     r.put('randomise menu open', str(pg.locator('.rand-pop').is_visible()))
-    pg.get_by_role('button', name='Everything', exact=True).click()
+    btn(pg, 'Everything', True).click()
     pg.locator('.rand-pop').get_by_role('switch', name='Colour').click()
     pg.locator('.rand-pop').get_by_role('switch', name='Layout').click()
     for i in range(6):
@@ -224,9 +224,9 @@ def t2(r):
     r.put('settings after randomise', pg.evaluate("localStorage.getItem('rubato:settings')"))
     pg.keyboard.press('Escape'); r.wait(100)
     r.put('menu after Escape', str(pg.locator('.rand-pop').is_visible()))
-    pg.get_by_role('button', name='Undo', exact=True).click(); r.wait(400)
+    btn(pg, 'Undo', True).click(); r.wait(400)
     r.put('settings after undo', pg.evaluate("localStorage.getItem('rubato:settings')"))
-    pg.click('#randOpt'); pg.get_by_role('button', name='Within limits', exact=True).click(); pg.keyboard.press('Escape')
+    pg.click('#randOpt'); btn(pg, 'Within limits', True).click(); pg.keyboard.press('Escape')
     for i in range(5):
         pg.keyboard.press('r'); r.wait(200)
     r.wait(400)
@@ -255,12 +255,12 @@ def t3(r):
           pg.locator('.font-list .slot').nth(1).locator('.slot-name').inner_text()]))
     r.saver(); r.expand(); r.at(30000); r.wait(1500)
     r.canvas('screen saver preview')
-    r.download('screen saver HTML', lambda: pg.get_by_role('button', name='Download HTML file').click())
-    r.download('Mac zip', lambda: pg.get_by_role('button', name='Download for Mac').click())
+    r.download('screen saver HTML', lambda: btn(pg, 'Download HTML file').click())
+    r.download('Mac zip', lambda: btn(pg, 'Download for Mac').click())
     r.studio(); r.expand()
-    r.download('GIF', lambda: pg.get_by_role('button', name='Make GIF').click(), 180)
+    r.download('GIF', lambda: btn(pg, 'Make GIF').click(), 180)
     r.scrub(300)
-    r.download('PNG', lambda: pg.get_by_role('button', name='PNG frame').click())
+    r.download('PNG', lambda: btn(pg, 'PNG frame').click())
     # the exported page runs on its own, offline
     html = r.results['screen saver HTML']
     p2 = r.ctx.new_page(); errs = []
@@ -289,15 +289,15 @@ def t4(r):
         r.put('drift visible in looks', str(pg.locator('#c_ssDrift').is_visible()))
         r.cards('Screensaver panel, saved looks')
         pg.get_by_role('group', name='Show').get_by_role('button', name='The time').click(); r.wait(300)
-    r.download('Windows zip', lambda: pg.get_by_role('button', name='Download for Windows').click())
-    r.download('Mac zip', lambda: pg.get_by_role('button', name='Download for Mac').click())
+    r.download('Windows zip', lambda: btn(pg, 'Download for Windows').click())
+    r.download('Mac zip', lambda: btn(pg, 'Download for Mac').click())
 
 def t5(r):
     """The exported screen saver page renders the same frames."""
     pg = r.page(); r.studio(); r.clear()
     r.fonts(POP, 1200)
     r.saver(); r.expand(); r.at(30000)
-    r.download('screen saver HTML', lambda: pg.get_by_role('button', name='Download HTML file').click())
+    r.download('screen saver HTML', lambda: btn(pg, 'Download HTML file').click())
     p2 = r.ctx.new_page()
     p2.route('**/*', lambda rt: rt.abort() if rt.request.url.startswith('http') else rt.continue_())
     p2.set_content(r.results['screen saver HTML'].decode()); time.sleep(.6)
@@ -316,8 +316,8 @@ def t6(r):
     pg = r.page(); r.studio(); r.clear()
     r.fonts(POP[:1], 1000)
     r.saver(); r.expand(); r.at(30000)
-    r.download('Mac zip', lambda: pg.get_by_role('button', name='Download for Mac').click())
-    r.download('Windows zip', lambda: pg.get_by_role('button', name='Download for Windows').click())
+    r.download('Mac zip', lambda: btn(pg, 'Download for Mac').click())
+    r.download('Windows zip', lambda: btn(pg, 'Download for Windows').click())
 
 SCENARIOS = {'t1': t1, 't2': t2, 't3': t3, 't4': t4, 't5': t5, 't6': t6}
 
@@ -327,6 +327,7 @@ SCENARIOS = {'t1': t1, 't2': t2, 't3': t3, 't4': t4, 't5': t5, 't6': t6}
 # 1.0 is proven against 0.9 by rubato_regress.py; Tempo 0.3 by tempo_check.py
 # and split_check.py. Everything else must still match 0.8.1 exactly.
 import re as _re
+from ui_helpers import btn, reveal, sheet
 TEMPO03 = 'Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py'
 TEMPO07 = "Tempo 0.7 never names a screen saver after its font (Timeless's licence forbids naming a product after it) – Tempo, Tempo Words or Tempo Dial"
 RUBATO10 = "Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9"

@@ -1,23 +1,36 @@
-<body data-theme="dark">
+<body data-theme="light">
 <div class="app">
+  <main class="stage" id="stage">
+    <div class="view" id="view"><canvas id="cv" width="1080" height="1080" aria-label="Screen saver preview"></canvas></div>
+  </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
       <div class="bline"><span class="mark">Tempo</span><span class="ver">{{version}}</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
+    <div class="resizer" id="resizer" aria-hidden="true"></div>
   </aside>
-  <div class="resizer" id="resizer" aria-hidden="true"></div>
-  <main class="stage" id="stage">
-    <div class="view" id="view"><canvas id="cv" width="1080" height="1080" aria-label="Screen saver preview"></canvas></div>
-    <div class="stage-foot"><span id="dims"></span><span id="note"></span></div>
-    <div class="appearance" id="appearance">
-      <button data-t="light" title="Light mode" aria-label="Light mode"><svg viewBox="0 0 16 16" width="15" height="15"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/></svg></button>
-      <button data-t="dark" title="Dark mode" aria-label="Dark mode"><svg viewBox="0 0 16 16" width="15" height="15"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M8 2.4 A5.6 5.6 0 0 1 8 13.6 Z" fill="currentColor"/></svg></button>
+  <div class="topbar">
+    <div class="stage-foot"><span id="dims"></span><span id="when">Your local time</span><span id="note"></span></div>
+    <div class="tools" id="appearance">
+      <button id="previewBtn" type="button" aria-pressed="false" aria-label="Preview – fill the window – F"></button>
+      <button id="themeBtn" type="button" aria-label="Light or dark"><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.8a5.2 5.2 0 0 1 0 10.4z" fill="currentColor"/></svg></button>
     </div>
-    <div class="drop" id="drop">Drop fonts or a screen saver</div>
-    <div class="status" id="toast" role="status" aria-live="polite"></div>
-  </main>
+  </div>
+  <div class="island" id="island">
+    <div class="sheets"><div id="islandSheets"></div></div>
+    <div class="island-row"><div class="island-in">
+      <div class="isl-main" id="islandMain"></div><span class="ep-div"></span>
+      <div class="status" id="toast" role="status" aria-live="polite"></div>
+      <button class="ebtn primary" id="exportOpen" type="button" aria-expanded="false" aria-controls="islandSheets" hidden>Export</button>
+    </div></div>
+  </div>
+  <div class="pcap" id="pcap" hidden>
+    <div class="sheets"><div id="pcapSheets"></div></div>
+    <button class="pc-row" id="pcapOpen" type="button" aria-expanded="false" aria-controls="pcapSheets" data-tip="Presets"><span class="pc-ic"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="2" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="2" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="8" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="8" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span><span class="pc-t">Presets</span><span class="pc-name" id="pcapName"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 8.5 7 5l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+  </div>
+  <div class="drop" id="drop">Drop fonts or a screen saver</div>
 </div>
 <input type="file" id="fontfile" accept=".otf,.ttf,.woff,.zip,font/otf,font/ttf,font/woff,application/zip" multiple class="vh" tabindex="-1">
 <input type="file" id="presetfile" accept=".html,.htm,.zip,.scr,.json,text/html,application/json,application/zip" class="vh" tabindex="-1">

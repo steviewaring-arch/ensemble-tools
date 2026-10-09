@@ -12,6 +12,7 @@ from playwright.sync_api import sync_playwright
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from serve import start
 from parity import POP, OPENTYPE, FONTS
+from ui_helpers import btn, reveal, sheet
 
 results = []
 def check(name, ok, detail=''):
@@ -33,7 +34,7 @@ def main():
         names = lambda: pg.locator('.font-list .slot-name').all_inner_texts()
         def export():
             with pg.expect_download() as d:
-                pg.get_by_role('button', name='Download HTML file').click()
+                btn(pg, 'Download HTML file').click()
             html = open(d.value.path(), encoding='utf-8').read()
             return html, json.loads(html.split('window.__TEMPO__=')[1].split(';</script>')[0].replace('\\u003c', '<'))
 
@@ -42,13 +43,13 @@ def main():
         pg.evaluate("localStorage.clear();indexedDB.deleteDatabase('rubato');indexedDB.deleteDatabase('tempo')")
         pg.evaluate("localStorage.setItem('rubato:settings',JSON.stringify({texts:['Hello there'],ssSecs:true,ssBg:'#000000',tab:'saver'}))")
         pg.reload(); time.sleep(1)
-        check('Rubato has no Screensaver tab', pg.get_by_role('button', name='Screensaver', exact=True).count() == 0)
+        check('Rubato has no Screensaver tab', btn(pg, 'Screensaver', True).count() == 0)
         check('Rubato opens on Studio even if v0.8.1 was left on Screensaver',
               pg.locator('section.card:visible h2').first.inner_text().startswith(('Presets', 'Fonts')) and pg.locator('section.card:visible h2', has_text='Motion').count() == 1 and pg.locator('#scrub').is_visible())
         pg.set_input_files('#fontfile', POP); time.sleep(1.5)
         pg.evaluate(expand)
-        pg.get_by_label('Preset name').fill('Night look')
-        pg.get_by_role('button', name='Save', exact=True).click(); time.sleep(.5)
+        reveal(pg.get_by_label('Preset name')).fill('Night look')
+        btn(pg, 'Save', True).click(); time.sleep(.5)
 
         # 2. Tempo, the first time: fonts and the screen saver settings come over once
         pg.goto(base + 'docs/tempo/'); time.sleep(1.5)
@@ -77,8 +78,8 @@ def main():
         pg.locator('#panel textarea').first.fill('Changed in Rubato'); time.sleep(.6)
         pg.goto(base + 'docs/tempo/'); time.sleep(1.5); pg.evaluate(expand)
         check('A font added in Rubato later stays in Rubato', names() == ['Poppins Regular', 'Poppins Bold'], json.dumps(names()))
-        pg.get_by_role('button', name='Details – Poppins Bold').click(); time.sleep(.3)  # Remove sits under the name from 0.4
-        pg.get_by_role('button', name='Remove Poppins Bold').click(); time.sleep(.6)
+        btn(pg, 'Details – Poppins Bold').click(); time.sleep(.3)  # Remove sits under the name from 0.4
+        btn(pg, 'Remove Poppins Bold').click(); time.sleep(.6)
         _, cfg2 = export()
         check("Rubato's later changes don't reach Tempo's export", 'Changed in Rubato' not in json.dumps(cfg2) and len(cfg2['fonts']) == 1)
 

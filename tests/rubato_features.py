@@ -12,6 +12,7 @@ from playwright.sync_api import sync_playwright
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from serve import start
 from parity import POP, OPENTYPE, SEED
+from ui_helpers import btn, reveal, sheet
 
 results = []
 def check(name, ok, detail=''):
@@ -50,22 +51,22 @@ def main():
         def box(loc):
             loc.scroll_into_view_if_needed(); return loc.bounding_box()
         def download(name):
-            with pg.expect_download(timeout=90000) as dl: pg.get_by_role('button', name=name, exact=True).click()
+            with pg.expect_download(timeout=90000) as dl: btn(pg, name, True).click()
             return dl.value.suggested_filename, open(dl.value.path(), 'rb').read()
 
         # 1. panel and presets
         fresh()
         titles = [t.strip() for t in pg.locator('section.card h2 .card-toggle span:first-child').all_inner_texts()]
-        check('Panel order', titles == ['Presets', 'Fonts', 'Text', 'Layout', 'Motion', 'Variants', 'Physics', 'Colour', 'Export'], ' / '.join(titles))
-        time.sleep(.6)
+        check('Panel order (Presets in its capsule, Export in the island)', titles == ['Fonts', 'Text', 'Layout', 'Motion', 'Variants', 'Physics', 'Colour'] and pg.locator('#pcap').is_visible() and pg.locator('#exportOpen').is_visible(), ' / '.join(titles))
+        sheet(pg, 'presets'); time.sleep(.6)
         drawn = pg.evaluate("[...document.querySelectorAll('.thumb canvas')].map(c=>{const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=0;i<d.length;i+=4)if(d[i]<128)n++;return n>50})")
         check('Twelve live preset tiles, all drawing', len(drawn) == 12 and all(drawn), f'{sum(drawn)} of {len(drawn)}')
-        pg.get_by_role('button', name='Use the Jitter preset').click()
+        btn(pg, 'Use the Jitter preset').click()
         check('A preset tile applies its look', S()['mode'] == 'jitter')
 
         # 2. blocks and lockups
         fresh({'texts': ['SUMMER SOCIAL'], 'mode': 'none'})
-        pg.get_by_role('button', name='+ Add block').click(); pg.keyboard.type('Friday 8 August')
+        btn(pg, '+ Add block').click(); pg.keyboard.type('Friday 8 August')
         st = S()
         check('Add block', len(st['blocks']) == 2 and st['blocks'][1]['text'] == 'Friday 8 August')
         pg.get_by_label('Block 2 font').select_option(label='Poppins Bold'); st = S()
@@ -99,9 +100,9 @@ def main():
         kern = S()['blocks'][0]['kern']
         check('Arrows kern the pair, Shift for bigger steps', kern == {'WA': -70}, json.dumps(kern))
         check('Kerning shows in the Text card', 'WA' in pg.inner_text('.kern-list'))
-        pg.get_by_role('button', name='Tighten').click(); pg.get_by_role('button', name='Loosen').click(modifiers=['Shift'])
+        btn(pg, 'Tighten').click(); btn(pg, 'Loosen').click(modifiers=['Shift'])
         check('The stage note kerns by click too', S()['blocks'][0]['kern'] == {'WA': -30})
-        pg.get_by_role('button', name='Finish kerning').click(); time.sleep(.2)
+        btn(pg, 'Finish kerning').click(); time.sleep(.2)
         check('Kerning changes the drawing', at(.25) != before)
         pg.keyboard.press('Control+z'); time.sleep(.4)
         check('Undo takes the kerning back', S()['blocks'][0]['kern'] == {})
@@ -123,13 +124,13 @@ def main():
         check('Dial drags', S()['fRot'] > 10)
         v0 = S()['fRot']; pg.locator('.dial[aria-label="Tilt"][aria-valuemax="45"]').press('Shift+ArrowDown'); check('Dial keys, Shift for bigger steps', abs(S()['fRot'] - (v0 - 5)) < 1e-6)
         pg.locator('.dial-row:visible label', has_text='Tilt').dblclick(); check('Double-click resets', S()['fRot'] == 0)
-        pg.get_by_role('button', name='Cycles per loop up').first.click(); check('Stepper', S()['fCycles'] == 2)
+        btn(pg, 'Cycles per loop up').first.click(); check('Stepper', S()['fCycles'] == 2)
         pd = box(pg.locator('.pad').first); pg.mouse.click(pd['x'] + pd['width'] * .9, pd['y'] + pd['height'] * .1)
         st = S(); check('Path pad sets rise and drift together', st['fX'] > 20 and st['fY'] > 40, f"drift {st['fX']}, rise {st['fY']}")
-        pg.get_by_role('button', name='Set text in Lora Regular').click(); time.sleep(.3)
+        btn(pg, 'Set text in Lora Regular').click(); time.sleep(.3)
         tr = box(pg.locator('.pair-track')); pg.mouse.move(tr['x'] + tr['width'] - 15, tr['y'] + 17); pg.mouse.down(); pg.mouse.move(tr['x'] + tr['width'] / 2, tr['y'] + 17, steps=4); pg.mouse.up()
         st = S(); check('Range pair drags one end', st['axFrom'] == 0 and .4 < st['axTo'] < .6, f"{st['axFrom']} → {st['axTo']}")
-        pg.get_by_role('button', name='Transitional', exact=True).click()
+        btn(pg, 'Transitional', True).click()
         bar = box(pg.locator('.lbar:visible').first); s0 = S(); x0 = bar['x'] + bar['width'] * s0['tIn']
         pg.mouse.move(x0, bar['y'] + 17); pg.mouse.down(); pg.mouse.move(x0 + bar['width'] * .1, bar['y'] + 17, steps=4); pg.mouse.up(); st = S()
         check('Loop bar moves one join, trading In for Hold', st['tIn'] > s0['tIn'] and st['tHold'] < s0['tHold'] and st['tOut'] == s0['tOut'])
@@ -152,20 +153,20 @@ def main():
             fn, data = download(n); outs[n] = (fn, len(data))
         check('SVG, PNG and GIF export with blocks and physics', all(v[1] > 1000 for v in outs.values()), ', '.join(v[0] for v in outs.values()))
         check('Exports are named after the trick', outs['PNG frame'][0].endswith('-jitter-frame.png'))
-        pg.get_by_label('Preset name').fill('Party'); pg.get_by_role('button', name='Save', exact=True).click()
+        reveal(pg.get_by_label('Preset name')).fill('Party'); btn(pg, 'Save', True).click()
         fn, data = download('Save settings file'); path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out', 'features-settings.json')
         os.makedirs(os.path.dirname(path), exist_ok=True); open(path, 'wb').write(data)
         pg.evaluate("localStorage.setItem('rubato:settings','{}')"); pg.reload(); time.sleep(1)
         pg.set_input_files('#jsonfile', path); time.sleep(.5); st = S()
         check('Settings file keeps blocks', len(st['blocks']) == 3 and st['blocks'][2]['text'] == '7pm till late')
-        pg.get_by_role('button', name='Remove block 3').click(); time.sleep(.3)
-        pg.locator('.preset-item', has_text='Party').get_by_role('button', name='Load').click(); time.sleep(.4)
+        btn(pg, 'Remove block 3').click(); time.sleep(.3)
+        sheet(pg, 'presets'); pg.locator('.preset-item', has_text='Party').get_by_role('button', name='Load').click(); time.sleep(.4)
         check('A saved look brings blocks back', len(S()['blocks']) == 3)
 
         # 9. the archived 0.9 keeps its own settings
         pg.goto(base + 'docs/rubato/0.9/'); time.sleep(.8)
         pg.evaluate("document.querySelectorAll('section.card.collapsed .card-toggle').forEach(b=>b.click())")
-        pg.get_by_role('button', name='Snappy', exact=True).click(); time.sleep(.5)
+        btn(pg, 'Snappy', True).click(); time.sleep(.5)
         old = pg.evaluate("JSON.parse(localStorage.getItem('rubato-0.9:settings')||'{}')"); new = pg.evaluate("JSON.parse(localStorage.getItem('rubato:settings'))")
         check('0.9 saves its own settings and leaves 1.0’s alone', old.get('mode') == 'snappy' and new.get('mode') == 'jitter' and len(new['blocks']) == 3)
 

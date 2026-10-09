@@ -11,9 +11,9 @@
 
 const MORE=Object.assign({},LS.get('more')||{});
 function moreSection(parent,id){
-  const row=el('button','more-toggle'),lab=el('span',null,'More'),chev=el('span','chev');row.append(lab,chev);row.type='button';
+  const row=el('button','more-toggle'),lab=el('span',null,'More'),chev=el('span','chev');chev.innerHTML=CHEV;row.append(lab,chev);row.type='button';
   const inner=el('div','more-body'),kids=[];
-  const paint=()=>{const on=!!MORE[id];inner.hidden=!on;chev.textContent=on?'–':'+';row.setAttribute('aria-expanded',on);};
+  const paint=()=>{const on=!!MORE[id];inner.hidden=!on;row.setAttribute('aria-expanded',on);if(on)requestAnimationFrame(()=>syncRanges(inner));};
   row.onclick=()=>{MORE[id]=!MORE[id];LS.set('more',MORE);paint();};
   parent.append(row,inner);paint();
   controls.push({d:{show:s=>kids.some(d=>!d.show||d.show(s))},w:row,update(){}});

@@ -59,7 +59,7 @@ addEventListener('pagehide',()=>{if(unsaved)try{saveSettings();}catch(e){}});
 function onSettingsChange(){ssDirty=true;unsaved=true;}
 function schedulePicker(){}
 function refreshImageCard(){}
-function refreshNotes(){$('#note').textContent=anyLoaded()||S.ssShow==='dial'?'':'Demo face. Load a font in Fonts.';}
+function refreshNotes(){const n=$('#note');n.textContent=anyLoaded()||S.ssShow==='dial'?'':'Demo face';n.title=n.textContent?'Demo face – load a font in Fonts':'';}
 /* each font's own tracking, in thousandths of an em, by style id */
 const TRACKS=Object.assign({},LS.get('tracks')||{});
 const tracksNow=()=>{const o={};for(const {id} of eng.faceList())if(TRACKS[id])o[id]=TRACKS[id];return o;};
@@ -122,13 +122,15 @@ const PALETTES=[
 ];
 const clk=s=>s.ssShow!=='words'&&s.ssShow!=='dial',wd=s=>s.ssShow==='words',dl=s=>s.ssShow==='dial';
 
+/* Cards that start shut (each says what's set): all but the one for what's showing */
+function appCollapseDefault(){return ['ss-num','ss-change','ss-wtype','ss-wchange','ss-dhands','ss-pos','ss-colour','ss-wcolour','ss-dcolour'];}
 /* ---------------- Fonts: the core font, the others mixed in ---------------- */
 /* Sub-sections that fold inside a card. Open or shut is remembered. */
 const FOLDS=Object.assign({},LS.get('folds')||{});
 function fold(parent,id,title,show,shut){
   const box=el('div'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');head.type='button';
-  head.style.cssText='display:flex;width:100%;align-items:center;justify-content:space-between;background:none;border:0;border-top:1px solid var(--keyline);padding:14px 0 12px;margin:2px 0 10px;color:var(--muted);font-size:0.85rem;cursor:pointer;text-align:left';
-  const open=FOLDS[id]!=null?FOLDS[id]:!shut,paint=o=>{body.hidden=!o;chev.textContent=o?'–':'+';head.setAttribute('aria-expanded',o);};paint(open);
+  chev.innerHTML=CHEV;
+  const open=FOLDS[id]!=null?FOLDS[id]:!shut,paint=o=>{body.hidden=!o;head.setAttribute('aria-expanded',o);if(o)requestAnimationFrame(()=>syncRanges(body));};paint(open);
   head.onclick=()=>{const o=body.hidden;FOLDS[id]=o;LS.set('folds',FOLDS);paint(o);};
   head.append(label,chev);box.append(head,body);addCustom(parent,show||null,box);return body;}
 const openRows=new Set();/* font rows showing their details */
@@ -145,7 +147,7 @@ const isLoaded=bf=>styles.some(s=>fileOf(s)===bf.file||(bf.name&&s.face.name===b
 async function builtinFile(bf){
   if(bf.data){const bin=atob(bf.data),u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return new File([u],bf.file);}
   const r=await fetch('fonts/'+encodeURIComponent(bf.file));if(!r.ok)throw new Error(r.status);return new File([await r.arrayBuffer()],bf.file);}
-const toggleEl=(label,on,fn)=>{const t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',on);t.setAttribute('aria-label',label);t.append(el('span','box'));t.style.cssText='width:auto;margin:0 0 0 6px;flex:none';t.onclick=fn;return t;};
+const toggleEl=(label,on,fn)=>{const t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',on);t.setAttribute('aria-label',label);t.append(el('span','box'));t.classList.add('inline');t.onclick=fn;return t;};
 /* switch a font on or off – off keeps it in the list but out of everything */
 function fontOnOff(st,on){st.off=!on;
   if(!on&&eng.baseSlot()===st.id){const next=styles.find(s=>!s.off&&s!==st);S.baseSlot=next?next.id:'';}
@@ -157,13 +159,13 @@ function appFontRow(st,row,top,rm){
   const on=!st.off,live=styles.filter(s=>!s.off),isCore=on&&eng.baseSlot()===st.id,name=st.face.name,multi=live.length>1,trk=TRACKS[st.id]||0;
   const main=top.querySelector('.slot-main'),meta=top.querySelector('.slot-meta'),nm=top.querySelector('.slot-name');
   meta.textContent=[!on?'Off':isCore?'Core':st.swap!==false?'In the mix':'Not in the mix',trk?'tracking '+(trk>0?'+':'')+trk:''].filter(Boolean).join(' · ');
-  if(!on)row.style.opacity='.55';
+  if(!on)row.classList.add('off');
   if(on&&multi){const c=el('button','pill small',isCore?'Core':'Use as core');c.setAttribute('aria-pressed',isCore);c.setAttribute('aria-label','Use as core – '+name);
     c.title='The core font carries the time and the sentence. The others mix in.';c.onclick=()=>{if(!isCore){S.baseSlot=st.id;sortFonts();saveStyles();set('baseSlot',st.id);applyStyles();}};top.insertBefore(c,rm);}
   top.insertBefore(toggleEl('On – '+name,on,()=>fontOnOff(st,!on)),rm);rm.remove();
   /* the details, folded under the name */
-  const det=el('div');det.hidden=!openRows.has(st.id);det.style.paddingTop='8px';
-  const chev=el('span','chev',det.hidden?'+':'\u2013');chev.style.cssText='flex:none;padding:0 6px;color:var(--muted);cursor:pointer';chev.onclick=()=>main.onclick();top.insertBefore(chev,main.nextSibling);main.style.cursor='pointer';main.setAttribute('role','button');main.setAttribute('aria-label','Details – '+name);main.tabIndex=0;
+  const det=el('div','slot-det');det.hidden=!openRows.has(st.id);
+  const chev=el('span','chev row-chev');chev.innerHTML=CHEV;if(!det.hidden)chev.classList.add('up');chev.onclick=()=>main.onclick();top.insertBefore(chev,main.nextSibling);main.setAttribute('role','button');main.setAttribute('aria-label','Details – '+name);main.tabIndex=0;
   main.onclick=()=>{if(openRows.has(st.id))openRows.delete(st.id);else openRows.add(st.id);refreshFontCard();};
   main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();main.onclick();}};
   if(on&&multi&&!isCore){const w=el('div','toggle-row'),t=el('button','toggle');t.setAttribute('role','switch');t.setAttribute('aria-checked',st.swap!==false);t.setAttribute('aria-label','Shuffle in – '+name);
@@ -182,7 +184,7 @@ function appFontRow(st,row,top,rm){
 /* built-in fonts not loaded yet, after the rows */
 function appFontList(list){
   for(const bf of BUILTIN){if(isLoaded(bf))continue;
-    const row=el('div','slot'),top=el('div','slot-top'),main=el('div','slot-main');row.style.opacity='.55';
+    const row=el('div','slot'),top=el('div','slot-top'),main=el('div','slot-main');row.classList.add('off');
     main.append(el('div','slot-name',bf.name||bf.file),el('div','slot-meta','Built in · off'));top.append(main);
     const t=toggleEl('On – '+(bf.name||bf.file),false,()=>loadBuiltin(bf,true));top.append(t);row.append(top);list.append(row);}
 }
@@ -218,7 +220,7 @@ const fontCredits=()=>[...new Set(BUILTIN.filter(b=>b.credit&&styles.some(s=>!s.
 /* Mixing: how the other fonts come in, under the font list */
 function addSelect(parent,d){
   const w=el('div','colour-row'),lb=el('label',null,d.label),sel=el('select');sel.id='c_'+d.k;lb.htmlFor=sel.id;d.group=d.group||curGroup;
-  sel.style.cssText='width:auto;max-width:64%;margin-left:auto;padding:7px 12px';w.append(lb);const q=qMark(d);if(q)w.append(q);w.append(sel);
+  w.append(lb);const q=qMark(d);if(q)w.append(q);w.append(sel);
   parent.append(w);let sig='';
   sel.onchange=()=>set(d.k,sel.value);
   const c={d,w,update(){const opts=d.optsFn();const ns=JSON.stringify(opts);if(ns!==sig){sig=ns;sel.textContent='';opts.forEach(([v,t])=>{const o=el('option',null,t);o.value=v;sel.append(o);});}
@@ -236,7 +238,7 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
   addHint(b0,'A .zip of fonts works too – any already in the list are skipped. Switch a font off to keep it for later; click its name for its tracking and more.');
   addHint(b0,'Load a second font to mix it into the core one.',()=>!canMix());
   {const cr=el('p','hint');addCustom(b0,null,cr);controls.push({d:{},w:cr,update(){const c=fontCredits();cr.textContent=c.join(' ');cr.hidden=!c.length;}});}
-  const b=fold(b0,'mixing','Mixing',()=>canMix());
+  const b=fold(b0,'mixing','Mixing',()=>canMix(),true);/* shut to start; it says how the other fonts come in */
   /* the words */
   build(b,[{t:'seg',k:'ssMMode',label:'Other fonts come in',opts:[['parts','Each part'],['latest','Latest change'],['one','One at a time'],['some','A few at random']],show:mixW}]);
   for(const [k,label,on] of M_PARTS){const c=addSelect(b,{k,label,optsFn:partOpts('ssMOrder')});c.d.show=s=>mixW(s)&&s.ssMMode==='parts'&&s[on]&&(k!=='ssMSec'||s.ssWTime);}
@@ -266,7 +268,7 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
 /* Show */
 {const b=card('ss-show','Screensaver',null,'saver');
   build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['dial','As a dial']]}]);
-  panel.insertBefore(b.parentElement,panel.firstChild);/* the first choice: the time in figures, in words, or as a dial */
+  toIsland(b.firstChild);hideCard(b);/* the first choice – the time in figures, in words, or as a dial – lives in the island */
 }
 /* A dial has no type, so Fonts steps aside */
 {const fc=controls.find(c=>c.w===fontList.closest('section'));if(fc){const was=fc.d.show;fc.d.show=s=>was(s)&&!dl(s);}}
@@ -416,7 +418,7 @@ const marked=s=>dl(s)&&s.ssDialFace!=='none';
     {t:'colour',k:'ssP3',labelFn:lab(2),label:'Colour 3',show:s=>manual(s)&&s.ssColBy!=='single'},
     {t:'colour',k:'ssP4',labelFn:lab(3),label:'Colour 4',show:s=>manual(s)&&s.ssColBy!=='single'&&s.ssColBy!=='type'},
   ]);
-  const saveRow=el('div','ctl btn-row');const tn=el('input');tn.type='text';tn.placeholder='Name this theme';tn.setAttribute('aria-label','Theme name');tn.style.flex='1';
+  const saveRow=el('div','ctl btn-row');const tn=el('input');tn.type='text';tn.placeholder='Name this theme';tn.setAttribute('aria-label','Theme name');
   const ts=el('button','pill small primary','Save theme');saveRow.append(tn,ts);addCustom(cf,manual,saveRow);
   const mine=el('div','preset-list');addCustom(b,null,mine);
   build(b,[{t:'seg',k:'ssRotate',label:'Change theme every hour',opts:[['off','Off'],['all','All themes'],['mine','My themes']]}]);
@@ -424,8 +426,8 @@ const marked=s=>dl(s)&&s.ssDialFace!=='none';
   const cur=()=>({bg:S.ssBg,p:[S.ssP1,S.ssP2,S.ssP3,S.ssP4]});
   const same=T=>T.bg.toLowerCase()===S.ssBg.toLowerCase()&&T.p.every((c,i)=>c.toLowerCase()===[S.ssP1,S.ssP2,S.ssP3,S.ssP4][i].toLowerCase());
   window.themesRefresh=()=>{themeRow.textContent='';[...PALETTES,...getThemes()].forEach(T=>{const p=el('button','pill small',T.name);p.setAttribute('aria-pressed',same(T));p.onclick=()=>{apply(T);themesRefresh();};themeRow.append(p);});
-    mine.textContent='';getThemes().forEach((T,i)=>{const it=el('div','preset-item'),sw=el('span');sw.style.cssText='flex:none;display:inline-flex;gap:3px';
-      [T.bg,...T.p].forEach(c=>{const d=el('i');d.style.cssText=`width:12px;height:12px;border-radius:50%;background:${c};box-shadow:0 0 0 1px var(--keyline)`;sw.append(d);});
+    mine.textContent='';getThemes().forEach((T,i)=>{const it=el('div','preset-item'),sw=el('span','sw-set');
+      [T.bg,...T.p].forEach(c=>{const d=el('i','sw-dot');d.style.background=c;sw.append(d);});
       const nm=el('span',null,T.name),del=el('button','pill small','Delete');del.onclick=()=>{const q=getThemes();q.splice(i,1);LS.set('themes',q);themesRefresh();ssDirty=true;};it.append(sw,nm,del);mine.append(it);});};
   ts.onclick=()=>{const n=tn.value.trim()||('Theme '+(getThemes().length+1));const q=getThemes().filter(t=>t.name!==n&&!PALETTES.some(P=>P.name===n));q.push(Object.assign({name:n},cur()));LS.set('themes',q);tn.value='';themesRefresh();ssDirty=true;toast(`Saved ${n}`);};
 }
@@ -484,7 +486,7 @@ const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDi
 /* Export */
 {const b=card('ss-export','Export',null,'saver');
   addHint(b,'No font loaded, so exports will use the demo face. Add your font in Fonts first.',s=>!anyLoaded()&&!dl(s));
-  const nr=el('div','ctl'),nh=el('div','ctl-head'),nl=el('label',null,'Name'),nm=el('input');nm.type='text';nm.id='c_ssName';nl.htmlFor=nm.id;nm.style.width='100%';
+  const nr=el('div','ctl'),nh=el('div','ctl-head'),nl=el('label',null,'Name'),nm=el('input');nm.type='text';nm.id='c_ssName';nl.htmlFor=nm.id;
   nh.append(nl);const nq=qMark({k:'ssName',label:'Name'});if(nq)nh.append(nq);nr.append(nh,nm);b.append(nr);
   nm.oninput=()=>set('ssName',nm.value,true);
   controls.push({d:{},w:nr,update(){if(document.activeElement!==nm)nm.value=S.ssName;nm.placeholder=defaultName();}});
@@ -493,7 +495,7 @@ const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDi
   b.append(el('p','hint','A .saver you install by double-clicking. The first time, macOS blocks it: allow it under System Settings › Privacy & Security › Open Anyway, then install for all users. The read-me in the zip walks through it.'));
   mac.onclick=exportMac;window.macBtn=mac;
   b.append(el('div','sub-head','Windows'));
-  const win=el('button','pill primary','Download for Windows');const r3=el('div','ctl btn-row');r3.append(win);b.append(r3);
+  const win=el('button','pill','Download for Windows');const r3=el('div','ctl btn-row');r3.append(win);b.append(r3);
   b.append(el('p','hint','A .scr you install by right-clicking and choosing Install. It plays full screen through Microsoft Edge, built into Windows 10 and 11.'));
   win.onclick=exportWin;window.winBtn=win;
   b.append(el('div','sub-head','Any computer'));
@@ -503,6 +505,7 @@ const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDi
   const howText=el('div','hint');
   howText.innerHTML='<p>Open it in any browser and click to go full screen. It also works with WebViewScreenSaver on a Mac and Lively Wallpaper on Windows, if you already use them.</p>';
   how.append(sm,howText);b.append(how);
+  cardToSheet(b,'export');/* Export grows out of the island */
 }
 /* ================= Presets: screen savers saved to come back to =================
    A preset is every Tempo setting, plus the fonts it uses described by name and
@@ -649,7 +652,7 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
   const yh=el('div','sub-head','Yours'),grid=el('div','thumbs');grid.setAttribute('role','group');grid.setAttribute('aria-label','Your presets');addCustom(b,null,yh);addCustom(b,null,grid);
   const empty=addHint(b,'Nothing saved yet. Save what’s on screen to come back to it – your twelve start here.');
   const bh=el('div','sub-head','Built in'),bgrid=el('div','thumbs');bgrid.setAttribute('role','group');bgrid.setAttribute('aria-label','Built-in presets');addCustom(b,null,bh);addCustom(b,null,bgrid);
-  const row=el('div','ctl btn-row'),nm=el('input');nm.type='text';nm.placeholder='Name';nm.setAttribute('aria-label','Preset name');nm.style.flex='1';
+  const row=el('div','ctl btn-row'),nm=el('input');nm.type='text';nm.placeholder='Name';nm.setAttribute('aria-label','Preset name');
   const sv=el('button','pill small primary','Save as new');row.append(nm,sv);addCustom(b,null,row);
   const fr=el('div','ctl btn-row'),op=el('button','pill small','Open a file'),all=el('button','pill small','Download all');fr.append(op,all);addCustom(b,null,fr);
   addHint(b,'Kept in this browser – Download all now and then for a copy. Open a file brings back a screen saver you downloaded (the HTML, Mac or Windows file) or a preset file, ready to edit.');
@@ -675,7 +678,7 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
     const a=activePreset(),ch=a?changedSince():true,st=[a&&a.id,ch,!!BACK,PRESETS.length,BUILTIN_P.length].join('|');if(st===lastSt&&a)return;lastSt=st;
     if(!a||a.id!==armedFor)disarm();
     [...grid.children,...bgrid.children].forEach(t=>t.setAttribute('aria-pressed',!!(a&&t.dataset.id===a.id)));
-    status.textContent='';
+    status.textContent='';$('#pcapName').textContent=a?a.name:'';
     if(a){status.append('Open: ',el('b',null,a.name),' – '+(ACTIVE.builtin?(ch?'changed – save as new to keep it':'built in'):(ch?'changed since saved':'saved')));}
     else status.textContent=PRESETS.length?'What’s on screen isn’t saved yet.':'';
     actRow.hidden=!a||!!ACTIVE.builtin;upd.disabled=!ch;upd.hidden=!a||!ch;
@@ -687,7 +690,7 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
   function paintTiles(){queue=[...grid.children,...bgrid.children];step();}
   function step(){const t=queue.shift();if(!t)return;const p=PRESETS.find(x=>x.id===t.dataset.id)||BUILTIN_P.find(x=>x.id===t.dataset.id);if(p)drawTile(t.querySelector('canvas'),p);setTimeout(step,0);}
   setInterval(()=>{if(!document.hidden&&grid.offsetParent)paintTiles();},60000);
-  panel.insertBefore(b.parentElement,panel.firstChild);/* the front door, as in Rubato */
+  cardToSheet(b,'presets');/* Presets: bottom right, opening upward */
 }
 /* What the screen saver is called: the name typed under Export, else the preset
    open, else Tempo, Tempo Words or Tempo Dial. Never a font's name – some fonts'
@@ -881,7 +884,7 @@ function fitCanvas(){
   const aw=v.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=v.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
   const s=Math.max(.01,Math.min(aw/W,ah/H));cv.style.width=Math.floor(W*s)+'px';cv.style.height=Math.floor(H*s)+'px';
   cv.classList.toggle('checker',!!S.transparent);
-  $('#dims').textContent='Preview at '+W+' × '+H+', the shape of this screen, showing your local time';dirty=true;
+  const dm=$('#dims');dm.textContent=W+' × '+H;dm.title='Preview at '+W+' × '+H+', the shape of this screen, showing your local time';dirty=true;
 }
 let pEng=null,saver=null,pFonts=-1;
 function previewFrame(now,dt){

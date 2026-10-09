@@ -7,7 +7,7 @@ Google Fonts and opentype.js links it has always had):
 
     docs/rubato/index.html   Rubato – type in motion
     docs/tempo/index.html    Tempo – clock screen saver
-    docs/tutti/index.html    Tutti – copied from tutti/index.html unchanged
+    docs/tutti/index.html    Tutti – its own page, on the shared tokens and components
     docs/decentish/index.html  Decentish – prototype, copied after a syntax check
     docs/index.html          a small page linking to all three
     docs/rubato/0.9/         earlier versions kept live, from archive/
@@ -159,9 +159,16 @@ def main():
         n = 0
         write('tempo/presets.json', '{"presets":[]}\n')
     print(f'tempo presets: {n} built in')
-    os.makedirs(os.path.join(DOCS, 'tutti'), exist_ok=True)
-    shutil.copyfile(os.path.join(ROOT, 'tutti/index.html'), os.path.join(DOCS, 'tutti/index.html'))
-    print('tutti: docs/tutti/index.html (copied unchanged)')
+    # Tutti keeps its own page and script; it takes the shared tokens and components
+    # (shared/tokens.css, shared/components.css) and the frame (tutti/frame.css, frame.js)
+    html = read('tutti/index.html')
+    for mark, text in [('/*{{shared-css}}*/', read('shared/tokens.css') + read('shared/components.css')),
+                       ('/*{{tutti-css}}*/', read('tutti/frame.css')), ('/*{{tutti-frame}}*/', read('tutti/frame.js'))]:
+        assert html.count(mark) == 1, mark
+        html = html.replace(mark, strip1(text))
+    ok = check_scripts('tutti', html) and ok
+    write('tutti/index.html', html)
+    print(f'tutti: docs/tutti/index.html ({len(html.encode()) // 1024} KB, on the shared tokens and components)')
     for app, ver, src, a, b in ARCHIVE:
         html = read(src)
         if html.count(a) != 1:
