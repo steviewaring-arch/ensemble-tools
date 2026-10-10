@@ -16,10 +16,13 @@ page and script and takes the same styles at build time, with
 
 - **The work fits, then fills.** By default the work sits in the clear space:
   right of the panel, under the top bar and above the island, on the app's own
-  colour. **Preview** (the expanding arrows, or F) fills the window with it. The
-  panel, island and Presets stay where they are. Esc or F comes back.
-- **Four things float**, 12 px from the edges, frosted (the app colour at 88%,
-  24 px blur, a hairline, a soft shadow):
+  colour. **Preview** (the expanding arrows, or F) fills the window with it, and
+  the panel slides away to the left. The island, Presets and top bar stay. The
+  panel button (top left, Preview only) brings the panel back over the work;
+  a click on the work puts it away again. Esc or F leaves Preview.
+- **Four things float**, 12 px from the edges, frosted (the app colour at 92%,
+  24 px blur) and edged with a hairline. **No drop shadows anywhere**: surfaces
+  are told apart by hairlines and fills, never by shadow.
   - **Panel**, left, top to bottom – making. Its right edge drags (280–440 px,
     remembered).
   - **Top bar**, top right – chips, then Preview and light/dark. The same place
@@ -33,12 +36,20 @@ page and script and takes the same styles at build time, with
   island centres under the work and moves aside for Presets.
 - **Sheets** grow out of whatever opened them: Export and Randomise's options
   from the island, Presets from its capsule. One at a time. Esc, or a click on
-  the work, closes them. A card built with `card()` becomes a sheet with
+  the work, closes them – and that click only closes; it never reaches the work
+  (it won't start Rubato's kerning, say). An open sheet's surface goes almost
+  solid, so the work behind doesn't smudge its text. A card built with `card()` becomes a sheet with
   `cardToSheet(body, 'export' | 'presets')`, with the same controls and labels.
-- **Light and dark:** the computer's setting the first time, then remembered per
-  tool.
+- **Light and dark:** light by default. Dark only once someone chooses it with the
+  button, then remembered per tool (`<app>:mode`, written only by the button).
 - **Phones** (860 px and under): the stage sits on top and the panel runs below
-  it. The island and Presets stay on screen at the bottom.
+  it. The island runs along the bottom: its view controls scroll sideways (the
+  far end fades when there's more), Export stays at its right end, and Presets
+  shrinks to its icon beside it. An open sheet takes the full width.
+- **Embedded:** in an iframe on another page (the Ensemble site), a tool shows as
+  a framed object – rounded, hairline, on that page's colour (`html.embed`, set in
+  the page's head). `?app` in its URL opts out, for a full-page embed that should
+  fill its iframe edge to edge. Embed code for the site is in `tutti/EMBED.md`.
 
 ## Depth – three levels, never four
 
@@ -62,8 +73,12 @@ tooltip, a sheet.
   value. The tick shows only where it won't cross the words. Any `.ctl` holding
   an `input[type=range]` is upgraded automatically. Double-click resets.
 - **Segmented control.** Up to four short options in one row. Otherwise an even
-  grid, with no straggler left on its own. Each control is laid out to fit from
-  its labels (`fitSeg`). Long labels or many options: use a menu.
+  grid, and the last row's options share its width, so none is left on its own.
+  Each control is laid out to fit from its labels (`fitSeg`). Long labels or
+  many options: use a menu. A row of pill buttons that pick one thing (colour
+  themes) gets the class `choice` and looks and lays out the same.
+- **Pairs.** A handful of one-off actions (Rubato's colour presets) sit in an even
+  two-column grid (`btn-row pairs`), never a ragged wrap.
 - **Menu** (`select`). Under its label when the label is long, beside it when it's
   short.
 - **Toggle.** The round tick. Anything that depends on it appears only while it's
@@ -81,8 +96,8 @@ tooltip, a sheet.
 ## Sizes
 
 - **Type:** one weight.
-  - 22 px – name and version.
-  - 19 px – "By ENSEMBLE", in grey.
+  - 22 px – name and version, and "By ENSEMBLE" under them in grey, the same
+    size and tracking.
   - 16 px – card titles.
   - 14 px – everything you read or set.
   - 12 px – summaries, hints, chips.
@@ -106,13 +121,17 @@ tooltip, a sheet.
 ## Help
 
 - Every control has a tooltip. Hovering the row shows it after a beat; tabbing
-  to it shows it at once. The ? stays for touch screens and keyboards, and on
-  screens with a pointer it shows only when its row is hovered.
+  to it shows it at once. A click always clears it, and a control you've just
+  pressed stays quiet until the pointer leaves it. The ? stays for touch screens
+  and keyboards, and on screens with a pointer it shows only when its row is
+  hovered.
 - A hint is one line and explains a situation ("No font loaded yet"). Anything
   longer is a detail or a tooltip.
 
 ## Wording
 
+- One weight: emphasis is colour (ink against grey), never bold. `b` and `strong`
+  are set to the surrounding weight.
 - Plain and short, UK English, en dashes with spaces.
 - Name things by what people see, not how they're built.
 - A button says what it does ("Download for Mac"). Status says what happened

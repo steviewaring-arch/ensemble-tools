@@ -178,7 +178,7 @@ function appFontRow(st,row,top,rm){
   const put=v=>{if(v)TRACKS[st.id]=v;else delete TRACKS[st.id];LS.set('tracks',TRACKS);ssDirty=true;show(v);};
   inp.value=trk;show(trk);inp.oninput=()=>put(+inp.value);inp.onchange=()=>refreshFontCard();lb.ondblclick=()=>{inp.value=0;put(0);refreshFontCard();};
   hd.append(lb,qMark({label:'Tracking',tip:'This font’s own letter spacing, wherever it’s used – for a display face drawn too tight or too loose. The tracking under Type and Clock tightens the core font on top of this.'}),val);w.append(hd,inp);det.append(w);
-  const r=el('div','ctl btn-row');rm.textContent='Remove';r.append(rm);det.append(r);
+  const r=el('div','ctl btn-row');rm.className='pill small';rm.textContent='Remove';delete rm.dataset.tip;r.append(rm);det.append(r);
   row.append(det);return det;
 }
 /* built-in fonts not loaded yet, after the rows */
@@ -406,7 +406,7 @@ const marked=s=>dl(s)&&s.ssDialFace!=='none';
 }
 /* Colour + themes */
 {const b=card('ss-colour','Colour',clk,'saver');
-  const themeRow=el('div','ctl btn-row');addCustom(b,s=>s.ssRotate==='off',themeRow);
+  const themeRow=el('div','ctl btn-row choice');themeRow.setAttribute('role','group');themeRow.setAttribute('aria-label','Theme');addCustom(b,s=>s.ssRotate==='off',themeRow);
   const lab=i=>s=>s.ssColBy==='type'?['Numerals','Punctuation','Letters','Spare'][i]:s.ssColBy==='single'?'Type':s.ssColBy==='line'?'Line '+(i+1):'Colour '+(i+1);
   const manual=s=>s.ssRotate==='off';
   build(b,[{t:'seg',k:'ssColBy',label:'Colour by',opts:[['type','Character type'],['letter','Each letter'],['line','Line'],['random','Random'],['single','One colour']]}]);
@@ -442,7 +442,7 @@ const WORD_THEMES=[
 ];
 const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','date']];
 {const b=card('ss-wcolour','Colour',wd,'saver');
-  const row=el('div','ctl btn-row');addCustom(b,s=>!s.ssWRotate,row);
+  const row=el('div','ctl btn-row choice');row.setAttribute('role','group');row.setAttribute('aria-label','Theme');addCustom(b,s=>!s.ssWRotate,row);
   const same=T=>W_COLS.every(([k,t])=>String(T[t]).toLowerCase()===String(S[k]).toLowerCase());
   const fixed=s=>!s.ssWRotate;
   build(b,[{t:'toggle',k:'ssWRotate',label:'Change theme every hour'}]);
@@ -466,7 +466,7 @@ const DIAL_THEMES=[
 ];
 const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDialQuarter','quarter'],['ssDialHandH','handH'],['ssDialHandM','handM'],['ssDialHandS','handS']];
 {const b=card('ss-dcolour','Colour',dl,'saver');
-  const row=el('div','ctl btn-row');addCustom(b,s=>!s.ssDialRotate,row);
+  const row=el('div','ctl btn-row choice');row.setAttribute('role','group');row.setAttribute('aria-label','Theme');addCustom(b,s=>!s.ssDialRotate,row);
   const same=T=>D_COLS.every(([k,t])=>String(T[t]).toLowerCase()===String(S[k]).toLowerCase());
   const fixed=s=>dl(s)&&!s.ssDialRotate;
   build(b,[{t:'toggle',k:'ssDialRotate',label:'Change theme every hour'}]);

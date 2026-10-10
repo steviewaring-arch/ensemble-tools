@@ -179,11 +179,14 @@ For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the
 - Done 9 Oct: Tempo's long panel, with Export, Show and Presets moved out and everything a touch smaller – see the UI system below.
 
 **UI system (9 Oct): live on all three tools.** Decentish is out of it entirely (Steve, 9 Oct): it's a website, not a tool, and has its own look. Tempo 0.8, Rubato 1.1 and Tutti 6.1 are on it. The rules are in `shared/UI.md`; the three rounds of mock-ups and the reasoning are at `ui/review/` (built to `docs/ui/review/`, unlisted).
-- **The frame.** The work fits the clear space; **Preview** (the arrows top right, or F) fills the window with it and leaves the controls in place.
-  - The frosted panel floats on the left.
+- **The frame.** The work fits the clear space; **Preview** (the arrows top right, or F) fills the window with it and slides the panel away. The panel button (top left, Preview only) brings it back over the work; a click on the work puts it away.
+  - The frosted panel floats on the left. No drop shadows anywhere – hairlines and fills only (10 Oct).
+  - Light by default; dark only once chosen with the button (10 Oct).
   - Top right: chips, then Preview and light/dark.
   - The island, bottom centre, holds the view's controls and Export, which opens as a sheet. Status shows in the island.
   - Presets has its own capsule bottom right.
+  - Phones: the island runs along the bottom with Export pinned at its right end and Presets as an icon beside it.
+  - Embedded (Ensemble site): framed on the page's colour unless the URL has `?app`. Embed code: `tutti/EMBED.md`.
 - **Cards** say what's set when shut. Most start shut (`appCollapseDefault()`); write `SUMMARY[id]` where the automatic line isn't clear.
 - **For app chats:**
   - Build cards with `card()`. Put a card in a sheet with `cardToSheet(body, 'export' | 'presets')`. Put view controls in the island with `toIsland(node)`. Sheets open with `openSheet(name)`.
@@ -192,7 +195,7 @@ For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the
 - **Tutti** keeps its own page and script. `build.py` puts `shared/tokens.css`, `shared/components.css`, `tutti/frame.css` and `tutti/frame.js` into it. Moving onto the shared core (fonts, controls) is still to do. Its exports were checked byte for byte against 6.0.
 - **Tests** open sheets through `tests/ui_helpers.py`. Labels and accessible names are the contract: rename one only together with its test.
 - **Still to do:**
-  - Check the Squarespace embed of Tutti at its real size.
+  - Paste the new embed code from `tutti/EMBED.md` into both Squarespace pages (Steve) and change the overview heading to Tutti 6.1.
   - A component page at /ui/ with every part in every state, if wanted beyond the review page.
   - Tempo's Fonts card hints are long; trim them with the Tempo chat.
 

@@ -1,5 +1,37 @@
 # Changelog
 
+## 10 October 2026 – the interface, refined (same versions: Tempo 0.8, Rubato 1.1, Tutti 6.1)
+
+A refining pass on the system that went live on 9 October, with a glitch review of all three tools in light, dark, Preview, phone width and embedded. No tool does anything new; exports are unchanged.
+
+**All three**
+- **Light by default.** Dark only once someone chooses it with the button, then remembered (it no longer follows the computer).
+- **No drop shadows anywhere.** Surfaces are told apart by hairlines and fills.
+- **Preview slides the panel away.** A panel button top left brings it back over the work; a click on the work puts it away.
+- **A click on the work only closes** an open sheet or panel – it no longer reaches the work too (it used to start Rubato's kerning).
+- **Open sheets go almost solid**, so the work behind doesn't smudge their text.
+- **Tooltips:** a control you've just pressed stays quiet until the pointer leaves it (Preview's tip used to pop up again under the pointer), and the button that opened a sheet doesn't put its tip over it.
+- **Sliders:** the tick hides at either end of the track.
+- **Segmented controls** that wrap share the last row's width, so no option is left on its own; one-column lists size to their labels.
+- **Colour swatches** keep their hairline, so white on white still shows.
+- **Phones:** the island runs along the bottom – view controls scroll sideways (the far end fades when there's more), Export stays at its right end, and Presets shrinks to an icon beside it. An open sheet takes the full width.
+- **Embedded on the Ensemble site:** in an iframe, a tool shows as a framed object on the page's colour; `?app` in the URL keeps it edge to edge. Embed code for both Tutti pages is in `tutti/EMBED.md`.
+- Sheets have their sections divided by hairlines; em dashes are en dashes throughout.
+
+**Tutti 6.1**
+- Export sheet rebuilt on the system: no bold, labelled Format and Countdown, a round tick for Ping-pong. PNG and SVG read **Save PNG** and **Save SVG**, so they read as actions, not a choice.
+- Threshold edges use the system slider; an odd edge out takes the full row.
+- Preview fills the window with the canvas; an empty canvas no longer shows as a blank box.
+- The empty stage says "from the panel" on phones, where the panel is below.
+
+**Rubato 1.1**
+- Font rows: Remove is a small × with a tooltip, so long names have room.
+- The image row's empty state wraps instead of running off.
+
+**Tests**
+- `tempo_check` 119 of 119, `rubato_features` 43 of 43, `rubato_regress` all 14 looks identical to 0.9, `split_check` 15 of 15, `licence_check` 4 of 4, `parity` all match.
+- Tutti's PNG, SVG and canvas are byte for byte the same as 6.0.
+
 ## 9 October 2026 – one interface: Tempo 0.8, Rubato 1.1, Tutti 6.1
 
 The UI stream's system on all three tools (`shared/UI.md`; the reasoning and mock-ups are at `/ui/review/`). Every control does what it did; it has only moved or been restyled.

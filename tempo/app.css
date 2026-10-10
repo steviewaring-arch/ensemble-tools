@@ -8,7 +8,7 @@
   .thumb span{font-size:0.76rem;padding:0 4px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .thumb:hover span,.thumb[aria-pressed="true"] span{color:var(--ink)}
   .p-status{font-size:0.82rem;color:var(--muted);margin:0 0 8px}
-  .p-status b{color:var(--ink);font-weight:500}
+  .p-status b{color:var(--ink)}
   /* font rows */
   .slot.off{opacity:.55}
   .slot-det{padding-top:8px}

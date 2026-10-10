@@ -429,7 +429,7 @@ let pickHost;
 /* Colour – colours, render, image */
 let imgNameEl,imgRemove;
 {const b=card('colour','Colour');
-  const row=el('div','ctl btn-row');
+  const row=el('div','ctl btn-row pairs');
   [['Black on white','#000000','#ffffff'],['White on black','#ffffff','#000000'],['Black on grey','#000000','#f2f2f2']].forEach(([t,ink,bg])=>{const p=el('button','pill small',t);p.onclick=()=>{S.ink=ink;S.bg=bg;set('transparent',false);schedulePicker(0);};row.append(p);});
   const sw=el('button','pill small','Swap');sw.onclick=()=>{const t=S.ink;S.ink=S.bg;set('bg',t);};row.append(sw);
   addCustom(b,null,row);
@@ -455,7 +455,7 @@ let imgNameEl,imgRemove;
     {t:'hint',text:'Images stay in this browser and aren’t saved in presets. SVG export leaves the image out.',show:has},
   ]);
 }
-function refreshImageCard(){if(!imgNameEl)return;imgNameEl.textContent=img?imgName:'Add a PNG, JPG or WebP to blend with the type';imgNameEl.style.whiteSpace=img?'nowrap':'normal';imgNameEl.style.fontSize=img?'':'12px';imgNameEl.style.color=img?'':'var(--muted)';imgRemove.hidden=!img;}
+function refreshImageCard(){if(!imgNameEl)return;imgNameEl.textContent=img?imgName:'Add a PNG, JPG or WebP to blend with the type';imgNameEl.classList.toggle('empty',!img);imgRemove.hidden=!img;}
 /* Export */
 {const b=card('export','Export',null,'studio');
   build(b,[{t:'seg',k:'xScale',label:'Scale for PNG and video',opts:[[.5,'0.5×'],[1,'1×'],[2,'2×']]}]);

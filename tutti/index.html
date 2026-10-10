@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tutti — by Ensemble</title>
+<title>Tutti – by Ensemble</title>
 <link rel="stylesheet" href="https://use.typekit.net/rhx3hsl.css">
+<script>/* in an iframe without ?app: framed, on the host page’s colour (shared/UI.md) */try{if(window.self!==window.top&&!/[?&]app(=|&|$)/.test(location.search))document.documentElement.classList.add('embed');}catch(e){}</script>
 <style>
 /*{{shared-css}}*/
 /*{{tutti-css}}*/
@@ -15,7 +16,7 @@
   <main class="stage" id="stage">
     <div class="view" id="view">
       <div class="canvas-wrap"><canvas id="out" width="1000" height="1000"></canvas></div>
-      <div class="empty" id="empty"><svg class="emptymark" viewBox="0 0 68.092 68.144" width="46" height="46" aria-hidden="true"><path fill="currentColor" d="M18.584,52.076l-8.862,6.439-6.439-8.862,8.862-6.439,6.439,8.862ZM58.37,9.629l-8.862,6.439,6.439,8.862,8.862-6.439-6.439-8.862ZM21.701,54.341l-3.385,10.418,10.418,3.385,3.385-10.418-10.418-3.385ZM39.358,0l-3.385,10.418,10.418,3.385,3.385-10.418L39.358,0ZM35.973,57.726l3.385,10.418,10.418-3.385-3.385-10.418-10.418,3.385ZM18.316,3.385l3.385,10.418,10.418-3.385L28.734,0l-10.418,3.385ZM49.508,52.076l8.862,6.439,6.439-8.862-8.862-6.439-6.439,8.862ZM3.283,18.491l8.862,6.439,6.439-8.862-8.862-6.439-6.439,8.862ZM10.954,28.595H0v10.954h10.954v-10.954ZM68.092,28.595h-10.954v10.954h10.954v-10.954ZM30,28.595h-10.954v10.954h10.954v-10.954ZM49.046,28.595h-10.954v10.954h10.954v-10.954Z"/></svg><div class="empty-s">Choose an image, video, camera or type<br>from the panel on the left</div></div>
+      <div class="empty" id="empty"><svg class="emptymark" viewBox="0 0 68.092 68.144" width="46" height="46" aria-hidden="true"><path fill="currentColor" d="M18.584,52.076l-8.862,6.439-6.439-8.862,8.862-6.439,6.439,8.862ZM58.37,9.629l-8.862,6.439,6.439,8.862,8.862-6.439-6.439-8.862ZM21.701,54.341l-3.385,10.418,10.418,3.385,3.385-10.418-10.418-3.385ZM39.358,0l-3.385,10.418,10.418,3.385,3.385-10.418L39.358,0ZM35.973,57.726l3.385,10.418,10.418-3.385-3.385-10.418-10.418,3.385ZM18.316,3.385l3.385,10.418,10.418-3.385L28.734,0l-10.418,3.385ZM49.508,52.076l8.862,6.439,6.439-8.862-8.862-6.439-6.439,8.862ZM3.283,18.491l8.862,6.439,6.439-8.862-8.862-6.439-6.439,8.862ZM10.954,28.595H0v10.954h10.954v-10.954ZM68.092,28.595h-10.954v10.954h10.954v-10.954ZM30,28.595h-10.954v10.954h10.954v-10.954ZM49.046,28.595h-10.954v10.954h10.954v-10.954Z"/></svg><div class="empty-s">Choose an image, video, camera or type<br>from the panel<span class="on-left"> on the left</span></div></div>
     </div>
     <video id="src" playsinline muted loop></video>
     <img id="srcimg" crossorigin="anonymous">
@@ -69,9 +70,9 @@
     <section class="card" data-id="canvas">
       <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Canvas</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
       <div class="card-body">
-      <div class="row"><label class="lbl">Canvas colour<i class="q" data-tip="The base colour the marks sit on — baked into your PNG and SVG exports.">?</i></label>
+      <div class="row"><label class="lbl">Canvas colour<i class="q" data-tip="The base colour the marks sit on – baked into your PNG and SVG exports.">?</i></label>
         <div class="cswatch" id="bgSwatch"><input type="color" id="bgColor" value="#ffffff"></div></div>
-      <div class="row"><label class="lbl">Ratio<i class="q" data-tip="Shape of the canvas. Custom W:H is handy for type — set a tall poster or a wide banner.">?</i></label>
+      <div class="row"><label class="lbl">Ratio<i class="q" data-tip="Shape of the canvas. Custom W:H is handy for type – set a tall poster or a wide banner.">?</i></label>
         <select id="aspect" style="max-width:170px;margin-left:auto">
           <option value="orig">Original</option><option value="1">1 : 1</option>
           <option value="0.8">4 : 5</option><option value="1.7778">16 : 9</option>
@@ -89,7 +90,7 @@
         </select></div>
       <div class="row"><label class="lbl">Zoom<i class="q" data-tip="Zoom into the source within the frame.">?</i></label><span class="val" id="zoomV">1.00×</span></div>
       <input type="range" id="zoom" min="1" max="3" step="0.01" value="1">
-      <div class="row"><label class="lbl">Source blur<i class="q" data-tip="Softens the source before it's sampled — spreads flat areas like type or logos across more tonal bands.">?</i></label><span class="val" id="sblurV">0</span></div>
+      <div class="row"><label class="lbl">Source blur<i class="q" data-tip="Softens the source before it's sampled – spreads flat areas like type or logos across more tonal bands.">?</i></label><span class="val" id="sblurV">0</span></div>
       <input type="range" id="sblur" min="0" max="40" step="1" value="0">
       </div>
     </section>
@@ -99,7 +100,7 @@
       <div class="card-body">
       <div class="card-tools"><a id="randomAll" title="New shapes and settings, at random">Randomise</a></div>
       <div class="toggle on" id="tFill"><div class="box"></div><span>Fill shapes solid<i class="q" data-tip="Fill each mark, or draw it as an outline.">?</i></span></div>
-      <div class="toggle" id="tInvert"><div class="box"></div><span>Invert mapping<i class="q" data-tip="Swap highlights and shadows — for light marks on a dark ground.">?</i></span></div>
+      <div class="toggle" id="tInvert"><div class="box"></div><span>Invert mapping<i class="q" data-tip="Swap highlights and shadows – for light marks on a dark ground.">?</i></span></div>
       <div class="toggle on" id="tScale"><div class="box"></div><span>Scale with midtones<i class="q" data-tip="Let mark size follow tone: darker areas get bigger marks.">?</i></span></div>
       <div class="row" style="margin-top:8px"><label class="lbl">Min size<i class="q" data-tip="The smallest a mark can shrink to in the lightest areas.">?</i></label><span class="val" id="minV">8%</span></div>
       <input type="range" id="minsize" min="0" max="100" step="1" value="8">
@@ -111,8 +112,8 @@
     <section class="card" data-id="mapping">
       <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Mapping</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
       <div class="card-body">
-      <div class="card-tools"><i class="q" style="margin:0 auto 0 0" data-tip="One shape and colour per tonal band, highlights through to shadows. Add or remove bands below; upload an SVG to swap the dot for your own mark.">?</i><a id="randomColors" title="Random colours for the bands">Random</a><a id="resetShapes" title="Back to dots for every band">Reset shapes</a></div>
-      <div class="toggle" id="tKeepSvg" style="margin-bottom:16px"><div class="box"></div><span>Keep SVG colours<i class="q" data-tip="When on, an uploaded SVG mark keeps its own colours instead of being recoloured to the band colour — for multi-colour marks.">?</i></span></div>
+      <div class="card-tools"><i class="q lead-q" data-tip="One shape and colour per tonal band, highlights through to shadows. Add or remove bands below; upload an SVG to swap the dot for your own mark.">?</i><a id="randomColors" title="Random colours for the bands">Random</a><a id="resetShapes" title="Back to dots for every band">Reset shapes</a></div>
+      <div class="toggle" id="tKeepSvg"><div class="box"></div><span>Keep SVG colours<i class="q" data-tip="When on, an uploaded SVG mark keeps its own colours instead of being recoloured to the band colour – for multi-colour marks.">?</i></span></div>
       <div id="states"></div>
       <div class="stepper"><span>Bands</span>
         <div class="steps"><button id="bandMinus">–</button><span class="count" id="bandCount">6</span><button id="bandPlus">+</button></div>
@@ -130,7 +131,7 @@
         </div>
         <div class="advsec">
           <div class="subttl-row"><span class="subttl">Thresholds<i class="q" data-tip="Where the tonal bands fall. Drag to push contrast into highlights or shadows.">?</i></span><a id="resetEdges">Even</a></div>
-          <div class="row"><label class="lbl">Master<i class="q" data-tip="Shifts every threshold at once — pushes the whole image toward highlights or shadows.">?</i></label><span class="val" id="tlevV">0</span></div>
+          <div class="row"><label class="lbl">Master<i class="q" data-tip="Shifts every threshold at once – pushes the whole image toward highlights or shadows.">?</i></label><span class="val" id="tlevV">0</span></div>
           <input type="range" id="tlev" min="-40" max="40" step="1" value="0">
           <div class="edges" id="edges"></div>
         </div>
@@ -150,7 +151,7 @@
             <label class="btn" for="loadPreset">Load preset</label>
             <input id="loadPreset" type="file" accept=".json,application/json" style="position:absolute;left:-9999px">
           </div>
-          <div class="hint">Saves every setting and your custom band shapes to a JSON file — not the source media. Load a preset, then choose your source.</div>
+          <div class="hint">Saves every setting and your custom band shapes to a JSON file – not the source media. Load a preset, then choose your source.</div>
         </div>
       </div>
     </section>
@@ -158,6 +159,7 @@
     </div>
     <div class="resizer" id="resizer" aria-hidden="true"></div>
   </aside>
+  <button class="panel-btn" id="panelBtn" type="button" aria-expanded="false" aria-controls="panelBox" aria-label="Show the panel"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="2.5" width="10.4" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg></button>
   <div class="topbar">
     <div class="stage-foot" id="foot"><span id="dims">–</span><span id="mode"></span></div>
     <div class="tools" id="appearance">
@@ -168,21 +170,22 @@
   <div class="island" id="exportbar" style="display:none">
     <div class="sheets"><div id="islandSheets">
       <div class="sheet" id="exportSheet" data-sheet="export" hidden>
-        <div class="sheet-h"><b>Export</b></div>
-      <div class="cap-choose" id="capChoose">
-                <div class="lanes"><button class="lane on" id="laneStill">Still</button><button class="lane" id="laneMotion">Motion</button></div>
-                <div class="lane-panel" id="stillPanel">
-          <button class="ebtn primary" id="exportBtn" title="Save a still PNG of the current canvas">PNG</button>
-          <button class="ebtn primary" id="svgBtn" title="Save a scalable vector SVG of the current canvas">SVG</button>
+        <div class="sheet-h">Export</div>
+        <div class="cap-choose" id="capChoose">
+          <div class="lanes" role="group" aria-label="Still or motion"><button class="lane on" id="laneStill" type="button">Still</button><button class="lane" id="laneMotion" type="button">Motion</button></div>
+          <div class="lane-panel" id="stillPanel">
+            <button class="ebtn primary" id="exportBtn" type="button" title="Save a still PNG of the current canvas">Save PNG</button>
+            <button class="ebtn primary" id="svgBtn" type="button" title="Save a scalable vector SVG of the current canvas">Save SVG</button>
+          </div>
+          <div class="lane-panel" id="motionPanel" style="display:none">
+            <div class="ctl"><div class="ctl-head"><span>Format</span></div>
+              <div class="fmt" role="group" aria-label="Format"><button class="seg2 on" id="fmtMp4" type="button" title="Record MP4 video">MP4</button><button class="seg2" id="fmtGif" type="button" title="Record an animated GIF">GIF</button></div></div>
+            <label class="pp" id="ppLabel" style="display:none" title="Loop the GIF forwards then backwards for a seamless bounce"><input type="checkbox" id="gifPP"><span class="ppdot"></span><span class="pptxt">Ping-pong</span></label>
+            <div class="ctl"><div class="ctl-head"><span class="ep-sublabel" title="A run-up before recording starts – time to move your parameters on a still source">Countdown</span></div>
+              <div class="pre" id="preSeg" role="group" aria-label="Countdown"><button class="seg2" data-pre="0" type="button">Off</button><button class="seg2 on" data-pre="3" type="button">3s</button><button class="seg2" data-pre="5" type="button">5s</button></div></div>
+            <button class="rec-btn" id="recBtn" type="button" title="Start recording">Record</button>
+          </div>
         </div>
-        <div class="lane-panel" id="motionPanel" style="display:none">
-          <div class="fmt"><button class="seg2 on" id="fmtMp4" title="Record MP4 video">MP4</button><button class="seg2" id="fmtGif" title="Record an animated GIF">GIF</button></div>
-          <label class="pp" id="ppLabel" style="display:none" title="Loop the GIF forwards then backwards for a seamless bounce"><input type="checkbox" id="gifPP"><span class="ppdot"></span><span class="pptxt">Ping-pong</span></label>
-          <span class="ep-sublabel" title="A run-up before recording starts — time to move your parameters on a still source">Countdown</span>
-          <div class="pre" id="preSeg"><button class="seg2" data-pre="0">Off</button><button class="seg2 on" data-pre="3">3s</button><button class="seg2" data-pre="5">5s</button></div>
-          <button class="rec-btn" id="recBtn" title="Start recording">Record</button>
-        </div>
-      </div>
       </div>
     </div></div>
     <div class="island-row"><div class="island-in">
@@ -345,7 +348,7 @@ $('camBtn').addEventListener('click',async()=>{
     stream=await navigator.mediaDevices.getUserMedia({video:{width:1280,height:720}});
     srcVid.srcObject=stream; srcVid.loop=false; await srcVid.play(); S.kind='cam'; S.baseName=null;
     $('srcName').textContent='Camera live'; setActive($('camBtn')); hideEmpty();
-  }catch(err){ $('srcName').textContent='Camera blocked — open the file directly in a browser'; }
+  }catch(err){ $('srcName').textContent='Camera blocked – open the file directly in a browser'; }
 });
 $('typeBtn').addEventListener('click',()=>{
   stopCam(); S.kind='type'; S.baseName=null; $('typeBlock').style.display='block';
@@ -449,7 +452,7 @@ function computeDims(){
   if(out.height!==H) out.height=H;
   cellX=W/cols; cellY=H/rows; cell=Math.min(cellX,cellY);
   sampleCanvas.width=cols; sampleCanvas.height=rows;
-  $('dims').textContent=W+'×'+H+' px';
+  $('dims').textContent=W+' × '+H+' px';
 }
 function drawCover(ctx,w,h){
   let el,sw,sh;
@@ -673,9 +676,9 @@ function startRecord(){
   if(!S.kind||recording||gifRecording||prerollActive) return;
   if(preRoll>0){
     prerollActive=true; let left=preRoll;
-    showActivity('Get ready — '+left,false,'Cancel');
+    showActivity('Get ready – '+left,false,'Cancel');
     prerollTimer=setInterval(()=>{ if(!prerollActive)return; left--;
-      if(left>0){ showActivity('Get ready — '+left,false,'Cancel'); }
+      if(left>0){ showActivity('Get ready – '+left,false,'Cancel'); }
       else { cancelPreroll(); beginRecord(); } },1000);
   } else beginRecord();
 }
@@ -687,7 +690,7 @@ $('stopBtn').onclick=()=>{
   if(gifRecording){ stopGif(); return; }
 };
 
-/* video record — MP4 preferred, min 2000px */
+/* video record – MP4 preferred, min 2000px */
 let recorder=null, chunks=[], recording=false, prevRes=null, recElapsed=null;
 function pickMime(){
   const c=['video/mp4;codecs=avc1.640028','video/mp4','video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm'];
@@ -719,7 +722,7 @@ function startVideo(){
 }
 srcVid.addEventListener('ended',()=>{ if(recording&&S.kind==='video'&&recorder) recorder.stop(); });
 
-/* GIF — live capture, limitless, optional ping-pong */
+/* GIF – live capture, limitless, optional ping-pong */
 let GIFLIB=null, gifWorkerURL=null;
 let gifRecording=false, gifTick=null, gifElapsed=null, gifPingpong=false, gifGW=0, gifGH=0, gifFrames=[];
 const GIF_FPS=10, GIF_MAXPX=560, GIF_MAXFRAMES=150;

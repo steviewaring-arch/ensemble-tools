@@ -24,7 +24,7 @@
     const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,p=mx>mn?Math.max(0,Math.min(1,(+inp.value-mn)/(mx-mn))):0;box.style.setProperty('--p',p);
     const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const hh=box.offsetHeight,x=hh/2+(w-hh/2)*p,head=box.querySelector('.row');let over=false;
     if(head)for(const e of head.querySelectorAll('.lbl,.val')){if(!e.offsetWidth)continue;const l=head.offsetLeft+e.offsetLeft,r=l+e.offsetWidth;if(x>l-6&&x<r+6){over=true;break;}}
-    tick.classList.toggle('away',over);}
+    tick.classList.toggle('away',over||p<.03||p>.97);}
   function syncRanges(root){$$('.rng-box',root).forEach(syncRange);}
   $$('input[type=range]').forEach(inp=>{const row=inp.previousElementSibling;if(!row||!row.classList.contains('row')||!row.querySelector('.val')||inp.closest('.edges'))return;
     const ctl=document.createElement('div'),box=document.createElement('div');ctl.className='ctl rng';box.className='rng-box';
@@ -32,33 +32,43 @@
     const f=document.createElement('span'),t=document.createElement('span');f.className='rng-fill';t.className='rng-tick';
     row.classList.add('ctl-head');row.style.removeProperty('margin-top');box.append(f,t,row,inp);
     inp.addEventListener('input',()=>syncRange(box));});
+  /* the threshold Edges are rebuilt whenever the bands change: give each the system slider too */
+  function upgradeEdge(d){if(d.querySelector('.rng-box'))return;const lab=d.querySelector('label'),inp=d.querySelector('input'),v=lab&&lab.querySelector('span');if(!lab||!inp||!v)return;
+    const t=document.createElement('span');t.className='lbl';t.textContent=(lab.firstChild&&lab.firstChild.nodeType===3?lab.firstChild.textContent:'').trim();v.classList.add('val');
+    const head=document.createElement('div');head.className='row ctl-head';head.append(t,v);
+    const box=document.createElement('div'),f=document.createElement('span'),k=document.createElement('span');box.className='rng-box';f.className='rng-fill';k.className='rng-tick';
+    box.append(f,k,head,inp);d.replaceChildren(box);inp.addEventListener('input',()=>syncRange(box));syncRange(box);}
+  const edges=$('edges');if(edges){const up=()=>edges.querySelectorAll('.edge').forEach(upgradeEdge);new MutationObserver(up).observe(edges,{childList:true});up();}
   setInterval(()=>{syncRanges();summaries();},400);
 
   /* Export: a sheet that grows out of the island */
-  const setSheet=open=>{sheet.hidden=!open;island.classList.toggle('open',open);opener.setAttribute('aria-expanded',open);layout();};
+  const setSheet=open=>{sheet.hidden=!open;island.classList.toggle('open',open);opener.setAttribute('aria-expanded',open);opener.title=open?'':'Save or download what’s on the stage';layout();};
   opener.addEventListener('click',e=>{e.stopPropagation();setSheet(sheet.hidden);});
-  document.querySelector('.stage').addEventListener('pointerdown',()=>{if(!sheet.hidden)setSheet(false);});
+  document.querySelector('.stage').addEventListener('pointerdown',e=>{if(!sheet.hidden){setSheet(false);e.stopPropagation();}else if(app.classList.contains('peek')){setPanel(false);e.stopPropagation();}},true);
 
   /* the island sits centred under the work, clear of the panel */
-  function layout(){const narrow=innerWidth<=860,g=12,W=narrow?innerWidth:app.clientWidth,pw=narrow?0:document.querySelector('.panel').offsetWidth,L=narrow?g:g*2+pw,R=W-g;
-    let iw=island.querySelector('.island-in').offsetWidth;if(island.classList.contains('open'))iw=Math.max(iw,340);
+  function layout(){const narrow=innerWidth<=860,g=12,W=narrow?innerWidth:app.clientWidth,away=app.classList.contains('preview')&&!app.classList.contains('peek'),pw=narrow||away?0:document.querySelector('.panel').offsetWidth,L=narrow||away?g:g*2+pw,R=W-g;
+    let iw=island.querySelector('.island-in').offsetWidth;if(island.classList.contains('open'))iw=Math.max(iw,340);iw=Math.min(iw,R-L);
     let x=(L+R)/2;if(x+iw/2>R)x=R-iw/2;if(x-iw/2<L)x=L+iw/2;island.style.left=Math.round(x)+'px';}
   const ro=new ResizeObserver(layout);ro.observe(island.querySelector('.island-in'));ro.observe(document.querySelector('.panel'));window.addEventListener('resize',layout);
 
-  /* Preview: the work fills the window; the panel and island stay where they are */
+  /* Preview: the work fills the window and the panel slides away; the panel button (top left) brings it back over the work */
   const EXPAND='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M11.5 2.5 7.8 6.2M5.5 11.5h-3v-3M2.5 11.5l3.7-3.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.5 5.5h-3v-3M8.5 5.5l3.3-3.3M2.5 8.5h3v3M5.5 8.5l-3.3 3.3" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const pb=$('previewBtn');
-  function setPreview(on){app.classList.toggle('preview',on);pb.setAttribute('aria-pressed',on);pb.innerHTML=on?COLLAPSE:EXPAND;
+  const pn=$('panelBtn');
+  function setPanel(open){app.classList.toggle('peek',!!open);pn.setAttribute('aria-expanded',!!open);const t=open?'Hide the panel':'Show the panel';pn.setAttribute('aria-label',t);pn.title=t;layout();}
+  pn.addEventListener('click',e=>{e.stopPropagation();setPanel(!app.classList.contains('peek'));});
+  function setPreview(on){app.classList.toggle('preview',on);setPanel(false);pb.setAttribute('aria-pressed',on);pb.innerHTML=on?COLLAPSE:EXPAND;
     const t=on?'Fit to the clear space – F':'Preview – fill the window – F';pb.setAttribute('aria-label',t);pb.title=t;}
   setPreview(false);pb.addEventListener('click',()=>setPreview(!app.classList.contains('preview')));
 
-  /* light and dark: the computer's choice the first time, then remembered */
-  const tb=$('themeBtn'),K='tutti:theme';
-  function setTheme(t){document.body.setAttribute('data-theme',t);try{localStorage.setItem(K,t);}catch(e){}tb.setAttribute('aria-label',t==='dark'?'Light mode':'Dark mode');}
+  /* light and dark: light unless the person has chosen dark here ('tutti:mode' is only written by the button) */
+  const tb=$('themeBtn'),K='tutti:mode';
+  function setTheme(t,chosen){document.body.setAttribute('data-theme',t);if(chosen){try{localStorage.setItem(K,t);}catch(e){}}tb.setAttribute('aria-label',t==='dark'?'Light mode':'Dark mode');}
   let saved=null;try{saved=localStorage.getItem(K);}catch(e){}
-  setTheme(saved==='light'||saved==='dark'?saved:(window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
-  tb.title='Light or dark';tb.addEventListener('click',()=>setTheme(document.body.getAttribute('data-theme')==='dark'?'light':'dark'));
+  setTheme(saved==='dark'?'dark':'light');
+  tb.title='Light or dark';tb.addEventListener('click',()=>setTheme(document.body.getAttribute('data-theme')==='dark'?'light':'dark',true));
 
   /* keys: F for Preview, Esc closes Export or leaves Preview */
   window.addEventListener('keydown',e=>{const tg=e.target,typing=tg&&(tg.tagName==='TEXTAREA'||tg.tagName==='SELECT'||tg.isContentEditable||(tg.tagName==='INPUT'&&/text|number|search/.test(tg.type)));

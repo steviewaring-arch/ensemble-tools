@@ -274,15 +274,15 @@ function card(id,title,show,tab){
 const SUMMARY={};
 function optLabel(opts,v){const o=(opts||[]).find(o=>o[0]===v);return o?o[1]:null;}
 function autoSummary(id,inside){
-  const out=[];
+  const out=[];let switches=0;
   for(const c of controls){const d=c.d;if(!d||c.card||!d.k||!c.w||!c.w.isConnected||c.w.hidden)continue;if(inside?!inside.contains(c.w):d.group!==id)continue;
     let t=null;
     if(Array.isArray(d.opts))t=optLabel(d.opts,S[d.k]);
     else if(typeof d.optsFn==='function'){try{t=optLabel(d.optsFn(),S[d.k]);}catch(e){}}
-    else if(d.label&&c.w.classList&&c.w.classList.contains('toggle-row')&&S[d.k]===true)t=d.label;
+    else if(d.label&&c.w.classList&&c.w.classList.contains('toggle-row')){switches++;if(S[d.k]===true)t=d.label;}
     if(t&&/^(off|on|none|auto)$/i.test(t)&&d.label)t=d.label+' '+t.toLowerCase();
-    if(t&&!out.includes(t))out.push(t);if(out.length>=3)break;}
-  return out.join(' · ');
+    if(t&&!out.includes(t))out.push(t);if(out.length>=(inside?1:3))break;}
+  return out.length?out.join(' · '):switches?'Off':'';
 }
 function refreshSummaries(){document.querySelectorAll('section.card[data-id]').forEach(sec=>{const sm=sec.querySelector(':scope>h2 .sum');if(!sm)return;
   let t='';try{t=SUMMARY[sec.dataset.id]?SUMMARY[sec.dataset.id](S):autoSummary(sec.dataset.id);}catch(e){}if(sm.textContent!==(t||''))sm.textContent=t||'';});
@@ -314,16 +314,21 @@ function syncSheets(){
   $('#island').classList.toggle('open',open.island);$('#pcap').classList.toggle('open',open.pcap);layoutUI();
   if(open.island||open.pcap)requestAnimationFrame(()=>{syncRanges(document);layoutUI();});}
 /* the island sits centred under the work, clear of the panel and of Presets */
+/* phones: when the island's view controls run on past Export, their far end fades to say so */
+function islMore(){const m=$('#islandMain');if(m)m.classList.toggle('more',innerWidth<=860&&m.scrollLeft+m.clientWidth<m.scrollWidth-1);}
 function layoutUI(){
   const app=$('.app'),isl=$('#island'),pc=$('#pcap');if(!app||!isl)return;
-  const g=12,narrow=innerWidth<=860,W=narrow?innerWidth:app.clientWidth,pw=narrow?0:$('#panelBox').offsetWidth;
-  const L=narrow?g:g*2+pw,R=W-g;let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
-  let limit=R;if(pc&&!pc.hidden){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
+  if(innerWidth<=860){isl.style.left='';islMore();return;}/* phones: the stylesheet places it along the bottom */
+  const g=12,narrow=false,W=narrow?innerWidth:app.clientWidth,away=app.classList.contains('preview')&&!app.classList.contains('peek'),pw=narrow||away?0:$('#panelBox').offsetWidth;
+  const L=narrow||away?g:g*2+pw,R=W-g;let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
+  iw=Math.min(iw,R-L);/* on a phone the island scrolls; Presets sits above it */
+  let limit=R;if(pc&&!pc.hidden&&!narrow){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
   let x=(L+R)/2;if(x+iw/2>limit)x=limit-iw/2;if(x-iw/2<L)x=L+iw/2;isl.style.left=Math.round(x)+'px';}
 const ICON_EXPAND='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M11.5 2.5 7.8 6.2M5.5 11.5h-3v-3M2.5 11.5l3.7-3.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.5 5.5h-3v-3M8.5 5.5l3.3-3.3M2.5 8.5h3v3M5.5 8.5l-3.3 3.3" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /* Preview: the work fills the window; the panel, island and Presets stay where they are */
-function setPreview(on){$('.app').classList.toggle('preview',on);const b=$('#previewBtn');if(!b)return;b.setAttribute('aria-pressed',on);b.innerHTML=on?ICON_COLLAPSE:ICON_EXPAND;
+function setPanel(open){const app=$('.app');app.classList.toggle('peek',!!open);const p=$('#panelBtn');if(p){p.setAttribute('aria-expanded',!!open);const t=open?'Hide the panel':'Show the panel';p.dataset.tip=t;p.setAttribute('aria-label',t);}layoutUI();}
+function setPreview(on){$('.app').classList.toggle('preview',on);setPanel(false);const b=$('#previewBtn');if(!b)return;b.setAttribute('aria-pressed',on);b.innerHTML=on?ICON_COLLAPSE:ICON_EXPAND;
   const t=on?'Fit to the clear space – F':'Preview – fill the window – F';b.dataset.tip=t;b.setAttribute('aria-label',t);}
 window.ensembleUI={open:openSheet,close:closeSheets,preview:setPreview,
   reveal(n){const s=n&&n.closest&&n.closest('.sheet');if(s&&s.hidden)openSheet(s.dataset.sheet);return true;}};
@@ -335,7 +340,7 @@ function syncRange(box){const inp=box.querySelector('input[type=range]');if(!inp
   const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,p=mx>mn?Math.max(0,Math.min(1,(+inp.value-mn)/(mx-mn))):0;box.style.setProperty('--p',p);
   const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const hh=box.offsetHeight,x=hh/2+(w-hh/2)*p,head=box.querySelector('.ctl-head');let over=false;
   if(head)for(const e of head.children){if(!e.offsetWidth)continue;const l=head.offsetLeft+e.offsetLeft,r=l+e.offsetWidth;if(x>l-6&&x<r+6){over=true;break;}}
-  tick.classList.toggle('away',over);}
+  tick.classList.toggle('away',over||p<.03||p>.97);}
 function syncRanges(root){(root||document).querySelectorAll('.rng-box').forEach(syncRange);}
 function upgradeRange(inp){const ctl=inp.parentElement;if(!ctl||!ctl.classList.contains('ctl')||inp.closest('.rng-box'))return;
   const head=ctl.querySelector(':scope>.ctl-head'),box=el('div','rng-box');ctl.classList.add('rng');ctl.insertBefore(box,head||inp);
@@ -343,14 +348,15 @@ function upgradeRange(inp){const ctl=inp.parentElement;if(!ctl||!ctl.classList.c
   inp.addEventListener('input',()=>syncRange(box));inp.addEventListener('dblclick',()=>{const l=box.querySelector('label');if(l&&l.ondblclick)l.ondblclick();});
   requestAnimationFrame(()=>syncRange(box));}
 /* Segmented controls: up to four short options in a row, otherwise an even grid. */
-function fitSeg(g){const bs=[...g.children].filter(b=>b.tagName==='BUTTON'),n=bs.length;if(!n)return;
+function fitSeg(g){const bs=[...g.children].filter(b=>b.tagName==='BUTTON'&&!b.hidden),n=bs.length;if(!n)return;
   const longest=Math.max(...bs.map(b=>(b.textContent||'').trim().length)),fits=c=>longest<=Math.floor((254/c-16)/6.6);
   let cols=1;if(g.closest('.isl-main'))cols=n;else for(let c=Math.min(n,4);c>=1;c--)if(fits(c)&&(n%c===0||n%c>=c-1)){cols=c;break;}
+  g.classList.toggle('loose',cols===1&&n>1);
   if(cols>=n){g.classList.remove('wrap');g.style.removeProperty('--cols');}else{g.classList.add('wrap');g.style.setProperty('--cols',cols);}}
 function enhance(root){if(!root||root.nodeType!==1)return;
   if(root.matches('.ctl>input[type=range]'))upgradeRange(root);root.querySelectorAll('.ctl>input[type=range]').forEach(upgradeRange);
-  if(root.matches('.seg'))fitSeg(root);root.querySelectorAll('.seg').forEach(fitSeg);}
-new MutationObserver(ms=>{for(const m of ms){if(m.target.classList&&m.target.classList.contains('seg'))fitSeg(m.target);m.addedNodes.forEach(enhance);}}).observe(document.body,{childList:true,subtree:true});
+  if(root.matches('.seg,.choice'))fitSeg(root);root.querySelectorAll('.seg,.choice').forEach(fitSeg);}
+new MutationObserver(ms=>{for(const m of ms){if(m.target.classList&&(m.target.classList.contains('seg')||m.target.classList.contains('choice')))fitSeg(m.target);m.addedNodes.forEach(enhance);}}).observe(document.body,{childList:true,subtree:true});
 const roundTo=(v,st)=>{const d=(String(st).split('.')[1]||'').length;return +(Math.round(v/st)*st).toFixed(d);};
 function addRange(parent,d){
   const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,d.label),val=el('span','val');
@@ -399,16 +405,20 @@ const pct=v=>Math.round(v*100)+'%',em=v=>roundTo(v,1)+'% em',deg=v=>roundTo(v,1)
 const TIPS={};/* each app adds its own with Object.assign(TIPS,{…}) */
 function qMark(d){const t=d.tip||TIPS[d.k];if(!t)return null;const q=el('button','q','?');q.type='button';q.dataset.tip=t;q.setAttribute('aria-label',(d.label?d.label+': ':'')+t);return q;}
 const tipEl=el('div','tip');tipEl.setAttribute('role','tooltip');document.body.append(tipEl);let tipFor=null;
-function showTip(q,text,at){tipFor=q;tipEl.textContent=text||q.dataset.tip;q=at||q;tipEl.classList.add('on');const r=q.getBoundingClientRect(),tw=tipEl.offsetWidth,th=tipEl.offsetHeight;
+function showTip(q,text,at){if(q&&q.getAttribute&&q.getAttribute('aria-expanded')==='true')return;tipFor=q;tipEl.textContent=text||q.dataset.tip;q=at||q;tipEl.classList.add('on');const r=q.getBoundingClientRect(),tw=tipEl.offsetWidth,th=tipEl.offsetHeight;
   tipEl.style.left=clamp(r.left+r.width/2-tw/2,8,innerWidth-tw-8)+'px';let y=r.top-th-8;if(y<8)y=r.bottom+8;tipEl.style.top=y+'px';}
 function hideTip(){tipFor=null;tipEl.classList.remove('on');}
-let rowTipT=0;
+let rowTipT=0,byKeys=false,tipMute=null;/* a control you've just pressed stays quiet until the pointer leaves it */
+function tipRow(t){const row=t.closest('[data-tip],.ctl,.toggle-row,.colour-row,.slot-top');return row&&(row.dataset.tip?row:row.querySelector('.q'));}
+document.addEventListener('keydown',()=>{byKeys=true;},true);
+document.addEventListener('pointerdown',e=>{byKeys=false;clearTimeout(rowTipT);hideTip();const t=e.target.closest?e.target:null;tipMute=t&&!t.closest('.q')?tipRow(t):null;},true);
 document.addEventListener('mouseover',e=>{const t=e.target.closest?e.target:null;if(!t)return;const q=t.closest('.q');clearTimeout(rowTipT);
-  if(q){if(q!==tipFor)showTip(q);return;}
+  if(q){tipMute=null;if(q!==tipFor)showTip(q);return;}
   const row=t.closest('[data-tip],.ctl,.toggle-row,.colour-row,.slot-top');const src=row&&(row.dataset.tip?row:row.querySelector('.q'));
+  if(src&&src===tipMute)return;tipMute=null;
   if(src&&src!==tipFor){rowTipT=setTimeout(()=>showTip(src,src.dataset.tip,src.offsetParent?src:row),src===row?400:550);return;}
-  if(!src&&tipFor&&document.activeElement!==tipFor)hideTip();});
-document.addEventListener('focusin',e=>{const q=e.target.closest&&e.target.closest('.q,[data-tip]');if(q&&(q.classList.contains('q')||e.target.matches(':focus-visible')))showTip(q);else if(tipFor)hideTip();});
+  if(!src&&tipFor&&!(byKeys&&document.activeElement===tipFor))hideTip();});
+document.addEventListener('focusin',e=>{const q=e.target.closest&&e.target.closest('.q,[data-tip]');if(q&&byKeys)showTip(q);else if(tipFor)hideTip();});
 document.addEventListener('click',e=>{const q=e.target.closest&&e.target.closest('.q');if(q){e.preventDefault();if(tipFor===q)hideTip();else showTip(q);}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&tipFor)hideTip();});
 $('#panel').addEventListener('scroll',()=>{if(tipFor)hideTip();},{passive:true});
@@ -433,7 +443,7 @@ function refreshFontCard(){
     const own=typeof appFontRow==='function';
     if(multi&&!own){const def=el('button','pill small',bs===st.id?'Default':'Use');def.setAttribute('aria-pressed',bs===st.id);def.title='Set your text in this style';def.setAttribute('aria-label','Set text in '+f.name);
       def.onclick=()=>{set('baseSlot',st.id);refreshFontCard();};top.append(def);}
-    const rm=el('button','pill small','Remove');rm.setAttribute('aria-label','Remove '+f.name);rm.onclick=()=>removeStyle(st.id);top.append(rm);
+    const rm=el('button','pill small icon');rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+f.name);rm.onclick=()=>removeStyle(st.id);top.append(rm);
     row.append(top);
     let axBox=null;
     if(own)axBox=appFontRow(st,row,top,rm);
