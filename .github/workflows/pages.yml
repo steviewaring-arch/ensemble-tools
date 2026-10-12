@@ -7,9 +7,8 @@ name: Publish the site
 
 on:
   workflow_dispatch:
-  # Switched on once the first run has worked:
-  # push:
-  #   branches: [main]
+  push:
+    branches: [main]
 
 permissions:
   contents: read
