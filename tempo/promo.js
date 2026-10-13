@@ -15,9 +15,13 @@ const P_SHAPES={'16:9':[3840,2160,1920,1080],'16:10':[2880,1800,1920,1200],'1:1'
 /* run fn as if it were ms o'clock: the saver reads the time through Date */
 function atTime(ms,fn){const R=Date;class D extends R{constructor(...a){if(a.length===0)super(ms);else super(...a);}static now(){return ms;}}
   D.UTC=R.UTC;D.parse=R.parse;window.Date=D;try{return fn();}finally{window.Date=R;}}
+/* Real time: a random moment – any day in the coming year, any hour – playing as it happens.
+   One moment per export (and per pack, so its GIF and MP4 match). */
+let realAt=0;const newMoment=()=>{const d=new Date();d.setHours(0,0,0,0);realAt=d.getTime()+Math.floor(Math.random()*365)*864e5+Math.floor(Math.random()*86400)*1000;return realAt;};
 /* the loop's own clock: t (ms into the loop) → the time it shows */
 function promoPlan(){
   const k=kindNow(S),K=THEMES[k],hourly=K.on(S),ev=everyOf(k),q=hourly?setNames(k):[],len=q.length||1,D=PROMO.len*1000;
+  if(PROMO.moves==='real'){const b=realAt||newMoment();return{D,steps:0,real:true,at:t=>b+t,hourly};}
   const day=new Date();day.setHours(0,0,0,0);
   /* start on the first theme of the day's list, at a daytime hour where possible */
   let h0=9;if(hourly){h0=-1;for(let h=8;h<24;h++)if(Math.floor(h/ev)%len===0){h0=h;break;}if(h0<0)h0=0;}
@@ -28,43 +32,67 @@ function promoPlan(){
 function promoSaver(){const e=createEngine();e.setFaces(eng.faceList());const cfg=saverConfig();cfg.drift=0;return createSaver(e,cfg);}
 /* draw frames from t0 to t1 (ms into the loop), at fps; each(t) after each */
 async function promoRun(sv,ctx,W,H,plan,t0,t1,fps,each,offset){const dt=1000/fps;let i=0;
-  for(let t=t0;t<t1-1e-6;t+=dt){const lt=((t%plan.D)+plan.D)%plan.D;atTime(Math.round(plan.at(lt)),()=>sv.frame(ctx,W,H,(offset||0)+t,dt));if(each)await each(lt,i++);}}
+  for(let t=t0;t<t1-1e-6;t+=dt){const lt=plan.real?t:((t%plan.D)+plan.D)%plan.D;atTime(Math.round(plan.at(lt)),()=>sv.frame(ctx,W,H,(offset||0)+t,dt));if(each)await each(lt,i++);}}
 /* the preview, playing the loop */
 let promoT0=0,pSv=null;
 function promoPreviewFrame(now){if(!PROMO.playing)return false;if(!pSv||ssDirty){pSv=promoSaver();ssDirty=false;}
   const plan=promoPlan(),t=(now-promoT0)%plan.D;atTime(Math.round(plan.at(t)),()=>pSv.frame(ctx,cv.width,cv.height,now,16));return true;}
 {const was=previewFrame;previewFrame=(now,dt)=>{if(!promoPreviewFrame(now))was(now,dt);};}
+/* ---- the device (0.9.1): a transparent PNG with the screen cut out. The screen saver
+   goes behind it, the background is #F5F5F3, and the PNG's size and placing never change.
+   Loaded once and kept in this browser; the screen is found from the PNG's own transparency. */
+const DEV_BG='#F5F5F3';let DEVICE=null;
+function deviceFrom(url){return new Promise((res,rej)=>{const im=new Image();im.onload=()=>{const c=canvasOf(im.width,im.height),x=c.getContext('2d');x.drawImage(im,0,0);
+  const a=x.getImageData(0,0,im.width,im.height).data,A=(px,py)=>a[(py*im.width+px)*4+3],cx=im.width>>1,cy=im.height>>1;
+  if(A(cx,cy)>=128)return rej(new Error('the middle of that PNG isn’t see-through – it needs the screen cut out'));
+  let l=cx,r=cx,t=cy,b=cy;while(l>0&&A(l-1,cy)<128)l--;while(r<im.width-1&&A(r+1,cy)<128)r++;while(t>0&&A(cx,t-1)<128)t--;while(b<im.height-1&&A(cx,b+1)<128)b++;
+  if(l===0||t===0)return rej(new Error('couldn’t find the edge of the screen in that PNG'));
+  res({img:im,url,w:im.width,h:im.height,screen:{x:l,y:t,w:r-l+1,h:b-t+1}});};im.onerror=()=>rej(new Error('that isn’t an image'));im.src=url;});}
+{const u=LS.get('promoDevice');if(u)deviceFrom(u).then(d=>{DEVICE=d;refreshAll();}).catch(()=>{});}
+/* where frames are drawn: the screen on its own (out = the saver's canvas), or the screen behind the device */
+function makeTarget(device,ow,oh,crisp){
+  if(!device){const c=canvasOf(ow,oh);return{out:c,sc:c,sw:ow,sh:oh,compose(){}};}
+  const D=DEVICE,k=ow/D.w,r=D.screen,q=crisp||1,sw=Math.round(r.w*k*q),sh=Math.round(r.h*k*q),out=canvasOf(ow,Math.round(D.h*k)),sc=canvasOf(sw,sh),ox=out.getContext('2d',{willReadFrequently:true});
+  return{out,sc,sw,sh,compose(){ox.globalAlpha=1;ox.fillStyle=DEV_BG;ox.fillRect(0,0,out.width,out.height);ox.imageSmoothingQuality='high';ox.drawImage(sc,r.x*k,r.y*k,r.w*k,r.h*k);ox.drawImage(D.img,0,0,out.width,out.height);}};}
 /* ---- the files ---- */
-const promoName=()=>safeName();
+/* Tempo_ScreenSaver_Ensemble_Design_Studio_<name>_<number> */
+const promoName=()=>'Tempo_ScreenSaver_Ensemble_Design_Studio_'+safeName().replace(/\s+/g,'_');
+const num=i=>String(i).padStart(2,'0');
 function canvasOf(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
 const toBlob=(c,type,q)=>new Promise(r=>c.toBlob(r,type||'image/png',q));
-/* three moments: one per colour change when the day has themes (else three times), on three different dates */
-function stillTimes(){const k=kindNow(S),K=THEMES[k],hourly=K.on(S),ev=everyOf(k),q=hourly?setNames(k):[],len=q.length||1;
-  const day=new Date();day.setHours(0,0,0,0);const at=(dd,h,m,s)=>day.getTime()+dd*864e5+(h*3600+m*60+s)*1000;
-  if(!hourly)return[at(0,9,41,12),at(9,14,27,38),at(23,22,58,3)];
-  const pick=[0,Math.floor(len/3),Math.floor(2*len/3)].map(i=>{for(let h=0;h<24;h++)if(Math.floor(h/ev)%len===i&&h>=7)return h;for(let h=0;h<24;h++)if(Math.floor(h/ev)%len===i)return h;return 9;});
-  return[at(0,pick[0],41,12),at(9,pick[1],27,38),at(23,pick[2],58,3)];}
-async function promoStills(){const [W,H]=P_SHAPES[PROMO.shape],out=[];
-  for(const ms of stillTimes()){const sv=promoSaver(),c=canvasOf(W,H),x=c.getContext('2d');
+/* the moments for stills: every theme in the day when there's more than one (at least three stills), each on its own date and at its own time */
+function stillTimes(){const k=kindNow(S),K=THEMES[k],hourly=K.on(S),ev=everyOf(k),q=hourly?setNames(k):[],len=Math.min(24,q.length||1);
+  const day=new Date();const at=(dd,h,m,s)=>new Date(day.getFullYear(),day.getMonth(),day.getDate()+dd,h,m,s).getTime();/* by the calendar, so a clock change between dates doesn't shift the hour */
+  const MS=[[41,12],[27,38],[58,3],[9,47],[33,21],[16,54],[50,30],[4,16]];
+  if(!hourly||len<2)return[at(0,9,41,12),at(9,14,27,38),at(23,22,58,3)];
+  const hourOf=i=>{for(let h=7;h<24;h++)if(Math.floor(h/ev)%len===i)return h;for(let h=0;h<24;h++)if(Math.floor(h/ev)%len===i)return h;return-1;};
+  const idx=len>=3?[...Array(len).keys()]:[0,1,0];
+  return idx.map((i,n)=>{const h=hourOf(i);const [m,s]=MS[n%MS.length];return h<0?null:at(n*9%60,h,m,s);}).filter(x=>x!=null);}
+async function promoStills(device,progress){if(device&&!DEVICE)throw new Error('load the device PNG first');
+  const [W,H]=device?[DEVICE.w,DEVICE.h]:P_SHAPES[PROMO.shape],out=[],times=stillTimes();
+  for(const ms of times){const sv=promoSaver(),T=makeTarget(device,W,H,2),x=T.sc.getContext('2d');
     /* settle: a few seconds of frames before, so nothing is mid-change */
-    const plan={D:1e12,at:t=>ms-3000+t};await promoRun(sv,x,W,H,plan,0,3000,12,null);out.push(await toBlob(c));await nextTick();}
+    const plan={D:1e12,at:t=>ms-3000+t};await promoRun(sv,x,T.sw,T.sh,plan,0,3000,12,null);T.compose();out.push(await toBlob(T.out));if(progress)progress(out.length/times.length);await nextTick();}
   return out;}
 const nextTick=()=>new Promise(r=>setTimeout(r,0));
-async function promoFrames(W,H,fps,each){const plan=promoPlan(),sv=promoSaver(),c=canvasOf(W,H),x=c.getContext('2d',{willReadFrequently:true});
-  /* one loop first, so the end leads into the start exactly */
-  await promoRun(sv,x,W,H,plan,0,plan.D,Math.min(fps,15),null,-plan.D);
-  await promoRun(sv,x,W,H,plan,0,plan.D,fps,(t,i)=>each(c,x,i),0);return plan;}
-async function promoGIF(progress){const [,, vw,vh]=P_SHAPES[PROMO.shape],k=960/Math.max(vw,vh),w=Math.round(vw*k),h=Math.round(vh*k),fps=20,n=Math.round(PROMO.len*fps);
+async function promoFrames(device,W,H,fps,each){const plan=promoPlan(),sv=promoSaver(),T=makeTarget(device,W,H,1),x=T.sc.getContext('2d',{willReadFrequently:true});
+  /* a loop: one whole loop first, so the end leads into the start exactly; real time: a few seconds to settle */
+  if(plan.real)await promoRun(sv,x,T.sw,T.sh,plan,-3000,0,15,null);else await promoRun(sv,x,T.sw,T.sh,plan,0,plan.D,Math.min(fps,15),null,-plan.D);
+  await promoRun(sv,x,T.sw,T.sh,plan,0,plan.D,fps,(t,i)=>{T.compose();const ox=T.out.getContext('2d',{willReadFrequently:true});return each(T.out,ox,i);},0);return plan;}
+const vidSize=device=>device?[DEVICE.w,DEVICE.h]:P_SHAPES[PROMO.shape].slice(2);
+async function promoGIF(device,progress){if(device&&!DEVICE)throw new Error('load the device PNG first');
+  const [vw,vh]=vidSize(device),k=960/Math.max(vw,vh),w=Math.round(vw*k),h=Math.round(vh*k),fps=20,n=Math.round(PROMO.len*fps);
   /* palette from a pass over the loop */
-  const hist=new Uint32Array(32768);let pass=0;
-  await promoFrames(w,h,4,(c,x)=>{const d=x.getImageData(0,0,w,h).data;for(let j=0;j<d.length;j+=8)hist[((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3)]++;pass++;});
-  const {pal,count}=medianCut(hist,256),near=makeLut(pal,count),buf=new ByteBuf();gifHeader(buf,w,h,pal);const idx=new Uint8Array(w*h);
-  await promoFrames(w,h,fps,async(c,x,i)=>{const d=x.getImageData(0,0,w,h).data;for(let a=0,j=0;a<idx.length;a++,j+=4)idx[a]=near(((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3));
-    gifFrame(buf,w,h,idx,Math.round(100/fps));if(progress)progress((i+1)/n);if(i%10===9)await nextTick();});
+  const hist=new Uint32Array(32768);
+  await promoFrames(device,w,h,4,(c,x)=>{const d=x.getImageData(0,0,c.width,c.height).data;for(let j=0;j<d.length;j+=8)hist[((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3)]++;});
+  const {pal,count}=medianCut(hist,256),near=makeLut(pal,count),buf=new ByteBuf();let idx=null,gw=0,gh=0;
+  await promoFrames(device,w,h,fps,async(c,x,i)=>{if(!idx){gw=c.width;gh=c.height;gifHeader(buf,gw,gh,pal);idx=new Uint8Array(gw*gh);}
+    const d=x.getImageData(0,0,gw,gh).data;for(let a=0,j=0;a<idx.length;a++,j+=4)idx[a]=near(((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3));
+    gifFrame(buf,gw,gh,idx,Math.round(100/fps));if(progress)progress((i+1)/n);if(i%10===9)await nextTick();});
   buf.b(0x3B);return new Blob([buf.out()],{type:'image/gif'});}
-async function promoMP4(progress){
+async function promoMP4(device,progress){if(device&&!DEVICE)throw new Error('load the device PNG first');
   if(!window.VideoEncoder||!window.Mp4Muxer)throw new Error('This browser can’t write MP4 – try Chrome, Edge or Safari');
-  const [,,w,h]=P_SHAPES[PROMO.shape],fps=30,n=Math.round(PROMO.len*fps);
+  let [w,h]=vidSize(device);w-=w%2;h-=h%2;const fps=30,n=Math.round(PROMO.len*fps);
   /* H.264 where the browser has it (Chrome and Safari on a Mac do); otherwise VP9 in the same MP4 – fine in browsers, not in QuickTime */
   let codec=null,kind='avc';for(const c of ['avc1.640028','avc1.4d0028','avc1.42002a','vp09.00.40.08']){try{const r=await VideoEncoder.isConfigSupported({codec:c,width:w,height:h,bitrate:12e6,framerate:fps});if(r.supported){codec=c;kind=c.startsWith('vp09')?'vp9':'avc';break;}}catch(e){}}
   if(!codec)throw new Error('This browser can’t encode video');
@@ -72,7 +100,7 @@ async function promoMP4(progress){
   const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:kind,width:w,height:h,frameRate:fps},fastStart:'in-memory'});
   let err=null;const enc=new VideoEncoder({output:(chunk,meta)=>muxer.addVideoChunk(chunk,meta),error:e=>{err=e;}});
   enc.configure(Object.assign({codec,width:w,height:h,bitrate:12e6,framerate:fps},kind==='avc'?{avc:{format:'avc'}}:{}));
-  await promoFrames(w,h,fps,async(c,x,i)=>{if(err)throw err;const f=new VideoFrame(c,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps)});enc.encode(f,{keyFrame:i%fps===0});f.close();
+  await promoFrames(device,w,h,fps,async(c,x,i)=>{if(err)throw err;const f=new VideoFrame(c,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),visibleRect:{x:0,y:0,width:w,height:h}});enc.encode(f,{keyFrame:i%fps===0});f.close();
     if(progress)progress((i+1)/n);while(enc.encodeQueueSize>6)await new Promise(r=>setTimeout(r,2));});
   await enc.flush();enc.close();if(err)throw err;muxer.finalize();return new Blob([muxer.target.buffer],{type:'video/mp4'});}
 /* the sheet: every setting showing in the panel for this screen saver, card by card, then its colours hour by hour */
@@ -97,37 +125,63 @@ function promoSpecs(){
     lines.push('','Hour by hour:');for(let h=0;h<24;h+=ev){const T=themeAt(k,h);lines.push(`  ${String(h).padStart(2,'0')}:00–${String((h+ev)%24).padStart(2,'0')}:00  ${T.name}`);}
     for(const n of q){const T=findTheme(k,n);lines.push('',`${n}${T.builtin?' (built in)':''}`,...colLines(T).map(x=>'  '+x));}}
   else{const T=selOf(k);lines.push(`One theme: ${T?T.name:'own colours'}`);if(k==='clock')lines.push(`Colour by: ${optLabel([['type','Character type'],['letter','Each letter'],['line','Line'],['random','Random'],['single','One colour']],S.ssColBy)}`);lines.push(...colLines(fromS(k,'')).map(x=>'  '+x));}
-  lines.push('','Promo files: three stills at '+P_SHAPES[PROMO.shape].slice(0,2).join(' × ')+', and a '+PROMO.len+'-second loop ('+(PROMO.moves==='lapse'?'time-lapse round the clock':'stepping through the hours')+') as GIF and MP4 at '+P_SHAPES[PROMO.shape].slice(2).join(' × ')+'.');
+  lines.push('','Promo files: '+stillTimes().length+' stills at '+P_SHAPES[PROMO.shape].slice(0,2).join(' × ')+(DEVICE?' and in the device at '+DEVICE.w+' × '+DEVICE.h+' on '+DEV_BG:'')+', and a '+PROMO.len+'-second '+(PROMO.moves==='real'?'stretch in real time from a random moment':'loop ('+(PROMO.moves==='lapse'?'time-lapse round the clock':'stepping through the hours')+')')+' as GIF and MP4.');
   lines.push('','All settings (for Tempo):',JSON.stringify(snapshot(name).settings));
   return lines.join('\n')+'\n';}
 /* ---- the card ---- */
 {const b=card('ss-promo','Promo',null,'saver');
   addHint(b,'Internal – for Ensemble’s own promotion. Comes out before Tempo goes public.');
   const segP=(label,key,opts)=>{const w=el('div','ctl'),hd=el('div','ctl-head');hd.append(el('span',null,label));const g=el('div','seg');g.setAttribute('role','group');g.setAttribute('aria-label',label);
-    const bs=opts.map(([v,t])=>{const x=el('button','pill small',t);x.onclick=()=>{PROMO[key]=v;savePromo();pSv=null;refreshAll();};g.append(x);return[v,x];});w.append(hd,g);addCustom(b,null,w);
+    const bs=opts.map(([v,t])=>{const x=el('button','pill small',t);x.onclick=()=>{PROMO[key]=v;savePromo();pSv=null;if(key==='moves'&&v==='real')newMoment();refreshAll();};g.append(x);return[v,x];});w.append(hd,g);addCustom(b,null,w);
     controls.push({d:{},w,update(){bs.forEach(([v,x])=>x.setAttribute('aria-pressed',PROMO[key]===v));}});};
   segP('Shape','shape',[['16:9','16:9'],['16:10','16:10'],['1:1','Square'],['4:5','4:5']]);
-  segP('Loop','len',[[5,'5 s'],[10,'10 s'],[20,'20 s']]);
-  segP('The loop moves','moves',[['hours','Through the hours'],['lapse','Time-lapse']]);
+  segP('Length','len',[[5,'5 s'],[10,'10 s'],[20,'20 s']]);
+  segP('Moves','moves',[['hours','Through the hours'],['lapse','Time-lapse'],['real','Real time']]);
   const info=el('p','hint');addCustom(b,null,info);
-  const r1=el('div','ctl btn-row'),play=el('button','pill small','Play the loop');r1.append(play);addCustom(b,null,r1);
-  const r2=el('div','ctl btn-row'),st=el('button','pill small','Stills'),gf=el('button','pill small','GIF'),mp=el('button','pill small','MP4'),sp=el('button','pill small','Specs');r2.append(st,gf,mp,sp);addCustom(b,null,r2);
-  const r3=el('div','ctl btn-row'),pk=el('button','pill small primary','Promo pack');r3.append(pk);addCustom(b,null,r3);
-  addHint(b,'Promo pack: the specs, three stills, the GIF and the MP4 in one zip. Name the screen saver under Export first – the files take its name.');
-  controls.push({d:{},w:info,update(){const p=promoPlan(),[W,H,vw,vh]=P_SHAPES[PROMO.shape];
-    info.textContent=(p.steps?`${p.steps} steps of ${(p.D/p.steps/1000).toFixed(2)} s – ${p.hourly?'one for each theme in the day':'an hour at a time'}. `:'Twelve hours round the clock. ')+`Stills ${W} × ${H}; MP4 ${vw} × ${vh}; GIF 960 wide.`+(p.steps>6&&PROMO.len<20?' With this many themes, 20 seconds reads better.':'');
-    play.textContent=PROMO.playing?'Stop the loop':'Play the loop';play.setAttribute('aria-pressed',PROMO.playing);}});
+  const r1=el('div','ctl btn-row'),play=el('button','pill small','Play'),again=el('button','pill small','Another moment');r1.append(play,again);addCustom(b,null,r1);
+  b.append(el('div','sub-head','The screen'));
+  const r2=el('div','ctl btn-row'),st=el('button','pill small','Stills'),gf=el('button','pill small','GIF'),mp=el('button','pill small','MP4');r2.append(st,gf,mp);addCustom(b,null,r2);
+  b.append(el('div','sub-head','In the device'));
+  const dinfo=el('p','hint');addCustom(b,null,dinfo);
+  const r4=el('div','ctl btn-row'),dl=el('button','pill small','Load device PNG'),dst=el('button','pill small','Stills'),dgf=el('button','pill small','GIF'),dmp=el('button','pill small','MP4');r4.append(dl,dst,dgf,dmp);addCustom(b,null,r4);
+  dst.setAttribute('aria-label','Device stills');dgf.setAttribute('aria-label','Device GIF');dmp.setAttribute('aria-label','Device MP4');
+  const fin=el('input');fin.type='file';fin.accept='image/png';fin.className='vh';fin.tabIndex=-1;document.body.append(fin);
+  b.append(el('div','sub-head','Everything'));
+  const r3=el('div','ctl btn-row'),sp=el('button','pill small','Specs'),pk=el('button','pill small primary','Promo pack');r3.append(sp,pk);addCustom(b,null,r3);
+  addHint(b,'Promo pack: the specs, the stills, the GIF and the MP4 – on their own and in the device, if one is loaded – in one zip. Files are named Tempo_ScreenSaver_Ensemble_Design_Studio_ then the name under Export, then a number.');
+  controls.push({d:{},w:info,update(){const p=promoPlan(),[W,H,vw,vh]=P_SHAPES[PROMO.shape],n=stillTimes().length;
+    const when=p.real?new Date(p.at(0)).toLocaleString('en-GB',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'';
+    info.textContent=(p.real?`Real time from ${when} – a new moment each time you choose Another moment. `:p.steps?`${p.steps} steps of ${(p.D/p.steps/1000).toFixed(2)} s – ${p.hourly?'one for each theme in the day':'an hour at a time'}, joining up seamlessly. `:'Twelve hours round the clock, joining up seamlessly. ')+`${n} stills (${W} × ${H}); MP4 ${vw} × ${vh}; GIF 960 wide.`+(p.steps>6&&PROMO.len<20?' With this many themes, 20 seconds reads better.':'');
+    again.hidden=!p.real;play.textContent=PROMO.playing?'Stop':'Play';play.setAttribute('aria-label',PROMO.playing?'Stop the loop':'Play the loop');play.setAttribute('aria-pressed',PROMO.playing);
+    dinfo.textContent=DEVICE?`Device: ${DEVICE.w} × ${DEVICE.h}, its screen ${DEVICE.screen.w} × ${DEVICE.screen.h} – the screen saver goes behind it, on ${DEV_BG}.`:'Load a transparent PNG of a device with its screen cut out; it’s kept in this browser.';
+    [dst,dgf,dmp].forEach(x=>x.disabled=!DEVICE);}});
   play.onclick=()=>{PROMO.playing=!PROMO.playing;promoT0=performance.now();pSv=null;ssDirty=true;refreshAll();};
-  const busy=async(btn,fn)=>{if(btn.disabled)return;const all=[st,gf,mp,sp,pk];all.forEach(x=>x.disabled=true);const label=btn.textContent;
-    try{await fn(p=>{btn.textContent=Math.round(p*100)+'%';});}catch(e){console.error(e);toast('Couldn’t make it: '+(e.message||e));}finally{all.forEach(x=>x.disabled=false);btn.textContent=label;ssDirty=true;}};
-  const nm=()=>promoName(),enc=new TextEncoder();
-  st.onclick=()=>busy(st,async()=>{const ims=await promoStills();for(let i=0;i<ims.length;i++)await saveFile(`${nm()} ${i+1}.png`,ims[i]);});
-  gf.onclick=()=>busy(gf,async pr=>{await saveFile(`${nm()}.gif`,await promoGIF(pr));});
-  mp.onclick=()=>busy(mp,async pr=>{await saveFile(`${nm()}.mp4`,await promoMP4(pr));});
-  sp.onclick=()=>busy(sp,async()=>{await saveFile(`${nm()} – specs.txt`,new Blob([promoSpecs()],{type:'text/plain'}));});
-  pk.onclick=()=>busy(pk,async pr=>{const n=nm(),files=[{path:`${n} – specs.txt`,data:enc.encode(promoSpecs())}];
-    const ims=await promoStills();for(let i=0;i<ims.length;i++)files.push({path:`${n} ${i+1}.png`,data:new Uint8Array(await ims[i].arrayBuffer())});pr(.1);
-    files.push({path:`${n}.gif`,data:new Uint8Array(await (await promoGIF(p=>pr(.1+.45*p))).arrayBuffer())});
-    try{files.push({path:`${n}.mp4`,data:new Uint8Array(await (await promoMP4(p=>pr(.55+.45*p))).arrayBuffer())});}catch(e){toast(String(e.message||e)+' – the pack has the rest.');}
-    await saveFile(`${n} – promo.zip`,SaverPack.zip(files));});
+  again.onclick=()=>{newMoment();pSv=null;ssDirty=true;promoT0=performance.now();refreshAll();};
+  dl.onclick=()=>fin.click();
+  fin.onchange=async()=>{const f=fin.files[0];fin.value='';if(!f)return;const url=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(f);});
+    try{DEVICE=await deviceFrom(url);try{LS.set('promoDevice',url);}catch(e){toast('The device is loaded, but too big to keep for next time.');}refreshAll();toast(`Device loaded – its screen is ${DEVICE.screen.w} × ${DEVICE.screen.h}`);}
+    catch(e){toast('Couldn’t use it: '+e.message);}};
+  const all=[st,gf,mp,dst,dgf,dmp,sp,pk];
+  const busy=async(btn,fn)=>{if(btn.disabled)return;all.forEach(x=>x.disabled=true);const label=btn.textContent;
+    try{await fn(p=>{btn.textContent=Math.round(p*100)+'%';});}catch(e){console.error(e);toast('Couldn’t make it: '+(e.message||e));}finally{all.forEach(x=>x.disabled=false);btn.textContent=label;ssDirty=true;refreshAll();}};
+  const nm=()=>promoName(),enc=new TextEncoder(),u8=async bl=>new Uint8Array(await bl.arrayBuffer());
+  /* numbers: the screen's stills from 01, the device's straight after; motion: 01 the screen, 02 the device */
+  const stillsN=()=>stillTimes().length;
+  const fresh=()=>{if(PROMO.moves==='real')newMoment();};
+  st.onclick=()=>busy(st,async pr=>{const ims=await promoStills(false,pr);for(let i=0;i<ims.length;i++)await saveFile(`${nm()}_${num(i+1)}.png`,ims[i]);});
+  dst.onclick=()=>busy(dst,async pr=>{const ims=await promoStills(true,pr),o=stillsN();for(let i=0;i<ims.length;i++)await saveFile(`${nm()}_${num(o+i+1)}.png`,ims[i]);});
+  gf.onclick=()=>busy(gf,async pr=>{fresh();await saveFile(`${nm()}_Motion_01.gif`,await promoGIF(false,pr));});
+  mp.onclick=()=>busy(mp,async pr=>{fresh();await saveFile(`${nm()}_Motion_01.mp4`,await promoMP4(false,pr));});
+  dgf.onclick=()=>busy(dgf,async pr=>{fresh();await saveFile(`${nm()}_Motion_02.gif`,await promoGIF(true,pr));});
+  dmp.onclick=()=>busy(dmp,async pr=>{fresh();await saveFile(`${nm()}_Motion_02.mp4`,await promoMP4(true,pr));});
+  sp.onclick=()=>busy(sp,async()=>{await saveFile(`${nm()}_Specs.txt`,new Blob([promoSpecs()],{type:'text/plain'}));});
+  pk.onclick=()=>busy(pk,async pr=>{fresh();const n=nm(),files=[{path:`${n}_Specs.txt`,data:enc.encode(promoSpecs())}],dev=!!DEVICE,parts=dev?6:3;let step=0;const sub=p=>pr((step+p)/parts);
+    const ims=await promoStills(false,sub);ims.forEach((x,i)=>files.push({path:`${n}_${num(i+1)}.png`,blob:x}));step++;
+    if(dev){const d=await promoStills(true,sub);d.forEach((x,i)=>files.push({path:`${n}_${num(ims.length+i+1)}.png`,blob:x}));step++;}
+    files.push({path:`${n}_Motion_01.gif`,blob:await promoGIF(false,sub)});step++;
+    if(dev){files.push({path:`${n}_Motion_02.gif`,blob:await promoGIF(true,sub)});step++;}
+    try{files.push({path:`${n}_Motion_01.mp4`,blob:await promoMP4(false,sub)});step++;if(dev){files.push({path:`${n}_Motion_02.mp4`,blob:await promoMP4(true,sub)});step++;}}
+    catch(e){toast(String(e.message||e)+' – the pack has the rest.');}
+    for(const f of files)if(f.blob){f.data=await u8(f.blob);delete f.blob;}
+    await saveFile(`${n}_Promo.zip`,SaverPack.zip(files));});
 }

@@ -498,7 +498,7 @@ def main():
         # 9. Tempo 0.5: As a dial – no type, only lines
         pg.get_by_role('group', name='Show').get_by_role('button', name='As a dial').click(); wait(300); pg.evaluate(expand)
         cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]
-        check('As a dial: its own cards, and Fonts steps aside', cards == ['Face', 'Hands', 'Position', 'Colour', 'Promo'], json.dumps(cards))
+        check('As a dial: its own cards, and Fonts steps aside', cards == ['Face', 'Fill', 'Hands', 'Position', 'Colour', 'Promo'], json.dumps(cards))
         dcol = pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour'))
         dthemes = dcol.locator('.theme-tile').evaluate_all('ts=>ts.map(t=>t.getAttribute("aria-label"))')
         check('Dial colour themes, Paper (after the red-handed drawing) first and chosen', dthemes == ['Paper', 'Dawn', 'Noon', 'Night', 'Signal'] and dcol.get_by_role('button', name='Paper', exact=True).get_attribute('aria-pressed') == 'true', json.dumps(dthemes))

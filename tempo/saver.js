@@ -443,15 +443,24 @@ function dialFrame(ctx,W,H,K){
   const marks=face==='none'?[]:dMarks(R,u);
   /* 0.9: the face fills like a pie chart behind a hand – from 12 round to the hand,
      starting empty each turn, or filling one turn and emptying the next */
-  const fillOn=o.fill&&o.fill!=='off',drawFill=()=>{const d=new Date(),ms=d.getTime()-d.getTimezoneOffset()*6e4;
-    const per=o.fill==='hour'?432e5:o.fill==='second'?6e4:36e5,turn=Math.floor(ms/per),f=o.fill==='hour'?pos.h:o.fill==='second'?pos.s:pos.m;
-    const a0=-Math.PI/2,a1=a0+((f%1)+1)%1*TAU,r=Math.max(.02,Math.min(1,o.fillR==null?1:o.fillR))*R,empty=o.fillTurn==='turn'&&turn%2===1;
-    ctx.save();ctx.globalAlpha=o.fillA==null?1:o.fillA;ctx.globalCompositeOperation=o.fillBlend&&o.fillBlend!=='normal'?o.fillBlend:'source-over';
-    ctx.beginPath();ctx.moveTo(cx,cy);if(empty)ctx.arc(cx,cy,r,a1,a0+TAU);else ctx.arc(cx,cy,r,a0,a1);ctx.closePath();ctx.fillStyle=P.fill||P.handM;ctx.fill();ctx.restore();};
-  if(fillOn&&!o.fillOver)drawFill();
+  /* 0.9.1: Sweep follows the hand; In sections fills a wedge at a time (60, or 12 for the
+     hour); Fading sections lets each wedge fade in while the hand crosses it. In front of
+     everything by default, or behind the hands, or behind the marks. */
+  const fillOn=o.fill&&o.fill!=='off',layer=o.fillLayer||(o.fillOver?'hands':'marks')/* 0.9 exports: under the marks unless set over them */,drawFill=()=>{const d=new Date(),ms=d.getTime()-d.getTimezoneOffset()*6e4;
+    const per=o.fill==='hour'?432e5:o.fill==='second'?6e4:36e5,turn=Math.floor(ms/per),f=((o.fill==='hour'?pos.h:o.fill==='second'?pos.s:pos.m)%1+1)%1;
+    const a0=-Math.PI/2,r=Math.max(.02,Math.min(1,o.fillR==null?1:o.fillR))*R,empty=o.fillTurn==='turn'&&turn%2===1,st=o.fillStyle||'sweep';
+    ctx.save();const A=o.fillA==null?1:o.fillA;ctx.globalCompositeOperation=o.fillBlend&&o.fillBlend!=='normal'?o.fillBlend:'source-over';ctx.fillStyle=P.fill||P.handM;
+    const wedge=(b0,b1,al)=>{if(al<=.002||b1<=b0)return;ctx.globalAlpha=A*Math.min(1,al);ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a0+b0*TAU,a0+b1*TAU);ctx.closePath();ctx.fill();};
+    if(st==='sweep'){if(empty)wedge(f,1,1);else wedge(0,f,1);}
+    else{const n=o.fill==='hour'?12:60,at=f*n;
+      /* whole sections in one shape, so no seams show between them; the one fading on its own */
+      let run=-1;for(let i=0;i<=n;i++){let v=i===n?0:st==='fade'?Math.max(0,Math.min(1,at-i)):(i<Math.floor(at+1e-9)?1:0);if(empty&&i<n)v=1-v;
+        if(v>=1){if(run<0)run=i;continue;}if(run>=0){wedge(run/n,i/n,1);run=-1;}if(i<n&&v>0)wedge(i/n,(i+1)/n,v);}}
+    ctx.restore();};
+  if(fillOn&&layer==='marks')drawFill();
   /* the minutes first, then the hours and quarters over them */
   for(const k of ['m','h','q'])dDraw(ctx,cx,cy,marks.filter(x=>x.k===k),u);
-  if(fillOn&&o.fillOver)drawFill();
+  if(fillOn&&layer==='hands')drawFill();
   /* the marks the second hand has passed: filling the minute, or fading behind it */
   if(o.secs&&o.trail&&o.trail!=='off'&&marks.length){const at=pos.s*60;
     dDraw(ctx,cx,cy,marks,u,P.handS,o.trail==='fill'?x=>x.i<=at+1e-6?1:0:x=>{const age=((at-x.i)%60+60)%60;return Math.max(0,1-age/12);});}
@@ -470,6 +479,7 @@ function dialFrame(ctx,W,H,K){
   hand(pos.h,L[0],P.handH,hws[0],'h');hand(pos.m,L[1],P.handM,hws[1],'m');if(o.secs)hand(pos.s,L[2],P.handS,hws[2],'s');
   if(o.centre){ctx.beginPath();ctx.arc(cx,cy,Math.max(hw,hws[1])*(o.centreSize||2.2),0,TAU);ctx.fillStyle=o.secs?P.handS:P.handM;ctx.fill();}
   ctx.restore();
+  if(fillOn&&layer==='front')drawFill();
 }
 /* ---------------- Columns and Rings: the time as lists of words (0.9) ----------------
    Columns: hour, minutes, seconds, day, date, month and year, each a column of every
@@ -514,14 +524,21 @@ function tRings(o){const Z=(o.zero==='oh'?'oh':'zero'),out=[],lw=s=>s.toLowerCas
     if(o.secs!==false){out.push({k:'and',amp:1});ring('st',tens,z=>tIdx(z.s));ring('su',units,z=>uIdx(z.s),1);}}
   else{ring('m',Array.from({length:60},(_,i)=>whole(i)),z=>z.mi);
     if(o.secs!==false){out.push({k:'and',amp:1});ring('s',Array.from({length:60},(_,i)=>wholeS(i)),z=>z.s);}}
+  /* 0.9.1: the date, ring by ring outwards – day, date, month, year (the year a single word that doesn't turn) */
+  const R=o.rparts||{};
+  if(R.day)ring('wd',TDAYS,z=>(z.wd+6)%7);
+  if(R.date)ring('dd',Array.from({length:31},(_,i)=>lw(TORD(i+1))),z=>z.d-1);
+  if(R.month)ring('mo',MONTHS,z=>z.mo);
+  if(R.year){const y=new Date().getFullYear();ring('yr',[lw(say(Math.floor(y/100)%100))+' '+lw(y%100<10?(y%100?Z+' '+T1[y%100]:'hundred'):say(y%100))],()=>0);}
   return out;}
 /* Case: as drawn (Columns in Title Case; Rings with the hours in Title Case, the rest lower case), or one case throughout */
 const tCase=(s,k)=>{const c=C.type.case||'auto';if(c==='upper')return s.toUpperCase();if(c==='lower')return s.toLowerCase();
   if(c==='title')return s.replace(/(^|\s)(\S)/g,(m,a,b)=>a+b.toUpperCase());return s;};
 const tFace=()=>faceById(C.type.font)||baseFace();
 const tShapes=new Map();
-function tShape(f,str){const key=(f.name||'')+'|'+(f.weight||'')+'|'+str;let r=tShapes.get(key);if(r)return r;
-  const gl=[];let x=0,prev=null;for(const ch of Array.from(str)){const id=glyphOf(f,ch);if(prev!==null)x+=f.kern(prev,id);gl.push({id,x});x+=f.adv(id);prev=id;}
+/* tk: tracking in font units – Columns and Rings' own, plus the font's own from Fonts (0.9.1) */
+function tShape(f,str,tk){tk=tk||0;const key=(f.name||'')+'|'+(f.weight||'')+'|'+tk+'|'+str;let r=tShapes.get(key);if(r)return r;
+  const gl=[];let x=0,prev=null;for(const ch of Array.from(str)){const id=glyphOf(f,ch);if(prev!==null)x+=f.kern(prev,id)+tk;gl.push({id,x});x+=f.adv(id);prev=id;}
   r={gl,w:x};if(tShapes.size>3000)tShapes.clear();tShapes.set(key,r);return r;}
 function tText(ctx,M,f,s,size,col,alpha){if(alpha<=.003||!s.gl.length)return;const k=size/f.upm;ctx.globalAlpha=Math.min(1,alpha);ctx.fillStyle=col;
   for(const g of s.gl){ctx.setTransform(M.multiply(new DOMMatrix([k,0,0,k,g.x*k,0])));f.draw(ctx,g.id,false);}}
@@ -539,9 +556,11 @@ function typeFrame(ctx,W,H,now,K){
   const o=C.type,P=tPal(),f=tFace(),z=parts(Date.now());S.bg=P.bg;
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle=P.bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
   if(!f)return;const capU=f.cap>0?f.cap:f.upm*.7,far=o.far==='fade';
+  /* tracking, and the space between columns and rings: a word space, which follows the tracking */
+  const tk=((o.tracking||0)/1000+trackOf(faceById(o.font)?o.font:baseId()))*f.upm,sp=(f.adv(glyphOf(f,' '))||f.upm*.25)*(o.space==null?100:o.space)/100+tk;
   if(isCols()){
-    const cols=tCols(o),sp=f.adv(glyphOf(f,' '))||f.upm*.25;
-    cols.forEach(c=>{c.shapes=c.list.map(s=>tShape(f,tCase(s,c.k)));c.w=Math.max(...c.shapes.map(s=>s.w));});
+    const cols=tCols(o);
+    cols.forEach(c=>{c.shapes=c.list.map(s=>tShape(f,tCase(s,c.k),tk));c.w=Math.max(...c.shapes.map(s=>s.w));});
     const lineU=cols.reduce((a,c)=>a+c.w,0)+sp*(cols.length-1),size=Math.max(1,(o.size||60)/100*W/lineU*f.upm),k=size/f.upm,capPx=capU*k,pitch=(o.leading||1.6)*capPx;
     let x=(W-lineU*k)/2;const y0=H/2+capPx/2;
     for(const c of cols){const pos=c.fixed?0:tPos('c.'+c.k,c.at(z),now,0);
@@ -551,9 +570,11 @@ function typeFrame(ctx,W,H,now,K){
       x+=(c.w+sp)*k;}
     ctx.globalAlpha=1;return;}
   /* rings */
-  const rings=tRings(o),cx=W/2,cy=H/2,gapU=1.15*capU;let r=(o.hole==null?7.8:o.hole)*capU;
-  const amp=tShape(f,'&');
-  for(const g of rings){g.r=r;if(g.amp){r+=amp.w+.9*capU;continue;}g.shapes=g.list.map(s=>tShape(f,tCase(s,g.k)));g.w=Math.max(...g.shapes.map(s=>s.w));r+=g.w+gapU;}
+  /* 0.9.1: one word space between rings, measured from the longest word on each, so the
+     worst case is always a single space apart and shorter words have more room */
+  const rings=tRings(o),cx=W/2,cy=H/2,gapU=sp;let r=(o.hole==null?7.8:o.hole)*capU;
+  const amp=tShape(f,'&',tk);
+  for(const g of rings){g.r=r;if(g.amp){r+=amp.w+gapU;continue;}g.shapes=g.list.map(s=>tShape(f,tCase(s,g.k),tk));g.w=Math.max(...g.shapes.map(s=>s.w));r+=g.w+gapU;}
   const outerU=r-gapU,k=Math.max(1e-4,(o.size||71)/100*Math.min(W,H)/2/outerU),size=k*f.upm,capPx=capU*k;
   for(const g of rings){const R=g.r*k;
     if(g.amp){tText(ctx,K.multiply(new DOMMatrix([1,0,0,1,cx+R,cy+capPx/2])),f,amp,size,P.ink,1);continue;}

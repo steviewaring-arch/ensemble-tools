@@ -77,6 +77,11 @@ def main():
               and say(dict(case='lower', parts=dict(time=True, secs=False, day=False, date=False, month=False, year=False)), loc(2026, 10, 22, 11, 47, 0)) == 'eleven forty seven')
         ring = lambda t, ms: pg.evaluate(SAY, [dict(show='rings', base={}, colours={}, type=dict(TYPE, **t)), ms])
         r1 = [ring({}, loc(2026, 10, 22, 13, 0, 0)), ring({}, loc(2026, 10, 22, 10, 9, 45)), ring({'split': True}, loc(2026, 10, 22, 10, 17, 30)), ring({'split': True}, loc(2026, 10, 22, 10, 23, 5)), ring({'secs': False}, loc(2026, 10, 22, 10, 59, 5))]
+        r2 = ring({'rparts': dict(day=True, date=True, month=True, year=True)}, loc(2026, 10, 22, 10, 9, 45))
+        check('Rings can carry the date too, a ring each: day, date, month and year', r2 == 'Ten zero nine & forty five Thursday twenty second October twenty twenty six', r2)
+        DRAWT = SAY.replace('return sv.typeNow().join(\' \');', 'return cv.toDataURL();')
+        dt = lambda t: pg.evaluate(DRAWT, [dict(show='columns', base={}, colours={}, type=dict(TYPE, **t)), loc(2026, 10, 22, 10, 9, 45)])
+        check('Tracking and the space between columns change Columns', dt({'tracking': -60}) != dt({'tracking': 0}) and dt({'space': 200}) != dt({'space': 100}))
         check('Rings: hours in Title Case, minutes and seconds in words; tens and units on rings of their own when split', r1 == ['One o’clock & zero zero', 'Ten zero nine & forty five', 'Ten seventeen & thirty', 'Ten twenty three & zero five', 'Ten fifty nine'], json.dumps(r1))
 
         # 2. the new modes draw, in the panel's own preview, and their cards are there
@@ -145,9 +150,11 @@ def main():
         t0 = loc(2026, 10, 22, 10, 23, 5)
         draw = lambda o: pg.evaluate(DRAW, [dict(dcfg, dial=dict(dcfg['dial'], **o)), t0])
         b0 = draw({})
+        fs = [draw(dict(fill='minute', fillStyle=x)) for x in ('sweep', 'steps', 'fade')] + [draw(dict(fill='minute', fillLayer=x)) for x in ('front', 'hands', 'marks')]
+        check('The fill sweeps, moves in sections or fading sections, and sits in front, behind the hands or behind the marks', len(set(fs)) == 5, str(len(set(fs))))  # sweep in front is drawn twice
         diff = [draw(o) != b0 for o in ({'fill': 'minute'}, {'fill': 'hour', 'fillTurn': 'reset'}, {'cap': 'round', 'hw': [20, 20, 20]}, {'tip': 'dot'}, {'tip': 'ring', 'tipOn': 'all'}, {'weight': True}, {'handA': .4}, {'blend': 'multiply'})]
         check('The dial: fill, round ends, tips, counterweight, opacity and blend each change the frame', all(diff), json.dumps(diff))
-        check('The dial export carries the new settings', all(k in dcfg['dial'] for k in ['fill', 'fillTurn', 'fillR', 'fillA', 'fillBlend', 'cap', 'hw', 'tip', 'tipOn', 'weight', 'handA', 'blend']) and 'fill' in dcfg['dial']['colours'])
+        check('The dial export carries the new settings', all(k in dcfg['dial'] for k in ['fill', 'fillStyle', 'fillLayer', 'fillTurn', 'fillR', 'fillA', 'fillBlend', 'cap', 'hw', 'tip', 'tipOn', 'weight', 'handA', 'blend']) and 'fill' in dcfg['dial']['colours'])
 
         # 7. Download everything: one zip, named as the screen saver
         pg.get_by_role('group', name='Show').get_by_role('button', name='The time').click(); time.sleep(.3)
@@ -162,11 +169,26 @@ def main():
         check('…and the Mac screen saver inside can still run', mode & 0o111 != 0, oct(mode))
 
         # 8. promo (internal): specs and three stills
-        (fn, data), = download(lambda: pg.locator('[data-id=ss-promo] button', has_text='Specs').click())
+        (fn, data), = download(lambda: pg.get_by_role('button', name='Specs', exact=True).click())
         spec = data.decode()
-        check('Promo: the specs name the screen saver and list its colours hour by hour', fn == 'Night Shift – specs.txt' and spec.startswith('Night Shift') and 'Hour by hour:' in spec and 'Theme 2' in spec, fn)
-        shots = download(lambda: pg.locator('[data-id=ss-promo] button', has_text='Stills').click(), 3)
-        check('Promo: three stills, each different', [s[0] for s in shots] == ['Night Shift 1.png', 'Night Shift 2.png', 'Night Shift 3.png'] and len({s[1] for s in shots}) == 3, json.dumps([s[0] for s in shots]))
+        P = 'Tempo_ScreenSaver_Ensemble_Design_Studio_Night_Shift'
+        check('Promo: the specs name the screen saver and list its colours hour by hour', fn == P + '_Specs.txt' and spec.startswith('Night Shift') and 'Hour by hour:' in spec and 'Theme 2' in spec, fn)
+        shots = download(lambda: pg.get_by_role('button', name='Stills', exact=True).click(), 3)
+        check('Promo: a still for each theme in the day (at least three), each different, named Tempo_ScreenSaver_Ensemble_Design_Studio_ with the name and a number',
+              [s[0] for s in shots] == [P + '_01.png', P + '_02.png', P + '_03.png'] and len({s[1] for s in shots}) == 3, json.dumps([s[0] for s in shots]))
+        # the device: a transparent PNG with its screen cut out; the screen saver goes behind it on #F5F5F3
+        from PIL import Image
+        dev = Image.new('RGBA', (1600, 900), (0, 0, 0, 0)); px = dev.load()
+        for x in range(400, 1200):
+            for y in range(200, 650):
+                if not (420 <= x < 1180 and 220 <= y < 630): px[x, y] = (20, 20, 20, 255)
+        dpath = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'out', 'device.png'); dev.save(dpath)
+        pg.set_input_files('input[accept="image/png"]', dpath); time.sleep(.8)
+        dshots = download(lambda: pg.get_by_role('button', name='Device stills').click(), 3)
+        im = Image.open(io.BytesIO(dshots[0][1])).convert('RGB')
+        check('Device stills: the PNG’s size kept, the background #F5F5F3, the screen saver in the screen, numbered after the others',
+              [s[0] for s in dshots] == [P + '_04.png', P + '_05.png', P + '_06.png'] and im.size == (1600, 900) and im.getpixel((10, 10)) == (245, 245, 243) and im.getpixel((410, 210)) == (20, 20, 20) and im.getpixel((800, 600)) != (245, 245, 243),
+              json.dumps([s[0] for s in dshots]))
 
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()

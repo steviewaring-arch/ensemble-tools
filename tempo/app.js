@@ -34,7 +34,9 @@ function tempoDefaults(){return{ssVer:5,
   /* 0.9: Columns and Rings – the time as lists of words (ssT…) */
   ssTFont:'',ssTH24:false,ssTSecs:true,ssTZero:'zero',ssTCase:'auto',ssTTime:true,ssTDay:true,ssTDate:true,ssTMonth:true,ssTYear:true,
   ssTCSize:60,ssTRSize:71,ssTLeading:1.6,ssTHole:7.8,ssTSplit:false,ssTFeel:'smooth',ssTLen:.6,ssTFar:'all',
-  ssTBg:'#FFFFFF',ssTInk:'#000000',ssTSoft:'#D2CDC9',ssTRotate:false,ssTSet:'',ssTEvery:1};}
+  ssTBg:'#FFFFFF',ssTInk:'#000000',ssTSoft:'#D2CDC9',ssTRotate:false,ssTSet:'',ssTEvery:1,
+  /* 0.9.1: tracking and the space between columns and rings; the date on rings too; the fill's movement and layer */
+  ssTTracking:-15,ssTSpace:100,ssTRDay:false,ssTRDate:false,ssTRMonth:false,ssTRYear:false,ssDialFillStyle:'sweep',ssDialFillLayer:'front'};}
 /* (called by shared/core.js before this file's consts exist, so it uses none) */
 function loadSettings(){
   Object.assign(D,tempoDefaults());
@@ -131,7 +133,7 @@ const clk=s=>!['words','dial','columns','rings'].includes(s.ssShow),wd=s=>s.ssSh
 const cols=s=>s.ssShow==='columns',rgs=s=>s.ssShow==='rings',ty=s=>cols(s)||rgs(s);
 
 /* Cards that start shut (each says what's set): all but the one for what's showing */
-function appCollapseDefault(){return ['ss-num','ss-change','ss-wtype','ss-wchange','ss-dhands','ss-pos','ss-tchange'];}/* 0.9: Colour starts open – it's where people look first */
+function appCollapseDefault(){return ['ss-num','ss-change','ss-wtype','ss-wchange','ss-dhands','ss-pos','ss-tchange'];}/* Fill (0.9.1) starts open *//* 0.9: Colour starts open – it's where people look first */
 /* ---------------- Fonts: the core font, the others mixed in ---------------- */
 /* Sub-sections that fold inside a card. Open or shut is remembered. */
 const FOLDS=Object.assign({},LS.get('folds')||{});
@@ -378,19 +380,22 @@ const BLENDS=[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['
     {t:'range',k:'ssDialTick',label:'Tick length',min:.03,max:.3,step:.01,fmt:pct,show:s=>dl(s)&&s.ssDialFace==='ticks'},
     {t:'toggle',k:'ssDialRing',label:'Outer ring'},
   ]);
-  /* 0.9: the face fills behind a hand, like a pie chart */
-  const fill=s=>dl(s)&&s.ssDialFill!=='off';
-  build(fold(b,'d-fill','Fill'),[
-    {t:'seg',k:'ssDialFill',label:'Fill follows',opts:[['off','Off'],['hour','Hour hand'],['minute','Minute hand'],['second','Second hand']]},
-    {t:'seg',k:'ssDialFillTurn',label:'Each turn',opts:[['turn','Fills, then empties'],['reset','Starts empty']],show:fill},
-    {t:'range',k:'ssDialFillR',label:'Reach',min:.1,max:1,step:.01,fmt:pct,show:fill},
-    {t:'range',k:'ssDialFillA',label:'Opacity',min:.05,max:1,step:.01,fmt:pct,show:fill},
-    {t:'seg',k:'ssDialFillBlend',label:'Blend',opts:BLENDS,show:fill},
-    {t:'toggle',k:'ssDialFillOver',label:'Over the marks',show:s=>fill(s)&&s.ssDialFace!=='none'},
-  ]);
   build(fold(b,'d-weight','Line weight'),[
     {t:'range',k:'ssDialLine',label:'Minute marks',min:.5,max:20,step:.1,fmt:v=>v.toFixed(1),show:s=>marked(s)&&s.ssDialDetail==='minutes'},
     {t:'range',k:'ssDialKey',label:'Hours, quarters and ring',min:.5,max:20,step:.1,fmt:v=>v.toFixed(1),show:s=>marked(s)||(dl(s)&&s.ssDialRing)},
+  ]);
+}
+/* As a dial: the fill – a colour sweeping round the face like a pie chart (its own card from 0.9.1, in front of everything to start) */
+{const b=card('ss-dfill','Fill',dl,'saver');const fill=s=>dl(s)&&s.ssDialFill!=='off';
+  build(b,[
+    {t:'seg',k:'ssDialFill',label:'Fill follows',opts:[['off','Off'],['hour','Hour hand'],['minute','Minute hand'],['second','Second hand']]},
+    {t:'seg',k:'ssDialFillStyle',label:'Moves',opts:[['sweep','Sweep'],['steps','In sections'],['fade','Fading sections']],show:fill},
+    {t:'seg',k:'ssDialFillTurn',label:'Each turn',opts:[['turn','Fills, then empties'],['reset','Starts empty']],show:fill},
+    {t:'seg',k:'ssDialFillLayer',label:'Sits',opts:[['front','In front'],['hands','Behind the hands'],['marks','Behind the marks']],show:fill},
+    {t:'range',k:'ssDialFillR',label:'Reach',min:.1,max:1,step:.01,fmt:pct,show:fill},
+    {t:'range',k:'ssDialFillA',label:'Opacity',min:.05,max:1,step:.01,fmt:pct,show:fill},
+    {t:'seg',k:'ssDialFillBlend',label:'Blend',opts:BLENDS,show:fill},
+    {t:'hint',text:'Sixty sections for the minute and second hands, twelve for the hour. Its colour is under Colour.',show:fill},
   ]);
 }
 /* As a dial: the hands, and how they move */
@@ -432,16 +437,24 @@ const typeFont=()=>{const id=S.ssTFont;return id&&eng.faceList().some(x=>x.id===
   const chips=el('div','ctl btn-row');chips.setAttribute('role','group');chips.setAttribute('aria-label','Columns shown');addCustom(b,cols,chips);
   const cs=PIECES.map(([k,t])=>{const p=el('button','pill small',t);p.onclick=()=>set(k,!S[k]);chips.append(p);return[k,p];});
   controls.push({d:{},w:chips,update(){cs.forEach(([k,p])=>{p.setAttribute('aria-pressed',!!S[k]);p.hidden=k==='ssTSecs'&&!S.ssTTime;});}});
+  const RP=[['ssTSecs','Seconds'],['ssTRDay','Day'],['ssTRDate','Date'],['ssTRMonth','Month'],['ssTRYear','Year']];
+  const rchips=el('div','ctl btn-row');rchips.setAttribute('role','group');rchips.setAttribute('aria-label','Rings shown');addCustom(b,rgs,rchips);
+  const rs=RP.map(([k,t])=>{const p=el('button','pill small',t);p.onclick=()=>set(k,!S[k]);rchips.append(p);return[k,p];});
+  controls.push({d:{},w:rchips,update(){rs.forEach(([k,p])=>p.setAttribute('aria-pressed',!!S[k]));}});
   build(b,[
     {t:'hint',text:'Click the parts to choose the columns. The words that are true now sit on one line.',show:cols},
+    {t:'hint',text:'Hours and minutes always; click to add seconds and the date, a ring each, outwards.',show:rgs},
     {t:'hint',text:'Nothing to show. Switch on at least one part.',show:s=>cols(s)&&!(s.ssTTime||s.ssTDay||s.ssTDate||s.ssTMonth||s.ssTYear)},
-    {t:'toggle',k:'ssTSecs',label:'Seconds',show:rgs},
     {t:'seg',k:'ssTSplit',label:'Rings',opts:[[false,'One for each'],[true,'Tens and units']],show:rgs},
     {t:'seg',k:'ssTH24',label:'Format',opts:[[false,'12-hour'],[true,'24-hour']],show:s=>rgs(s)||s.ssTTime},
     {t:'seg',k:'ssTZero',label:'Say 0 as',opts:[['zero','Zero'],['oh','Oh']]},
     {t:'seg',k:'ssTCase',label:'Case',opts:[['auto','As drawn'],['title','Title Case'],['lower','lower case'],['upper','CAPITALS']]},
   ]);
   addSelect(b,{k:'ssTFont',label:'Font',optsFn:()=>[['','Medium, if loaded']].concat(faceOpts())});
+  build(b,[
+    {t:'range',k:'ssTTracking',label:'Tracking',min:-100,max:200,step:1,fmt:v=>(v>0?'+':'')+Math.round(v)},
+    {t:'range',k:'ssTSpace',label:'Space between',min:40,max:300,step:1,fmt:v=>Math.round(v)+'% of a word space'},
+  ]);
   build(b,[{t:'hint',text:'Always this computer’s own time and date, wherever the screen saver is installed.'}]);
 }
 {const b=card('ss-tchange','Change',ty,'saver');
@@ -751,9 +764,9 @@ const MN_PARTS=[['h1','ssNH1'],['h2','ssNH2'],['m1','ssNM1'],['m2','ssNM2'],['s1
 const DL_MAP=[['face','ssDialFace'],['detail','ssDialDetail'],['hole','ssDialHole'],['tick','ssDialTick'],['ring','ssDialRing'],['line','ssDialLine'],['key','ssDialKey'],['hand','ssDialHand'],
   ['secs','ssDialSecs'],['secMove','ssDialSecMove'],['minMove','ssDialMinMove'],['feel','ssDialFeel'],['len','ssDialLen'],['trail','ssDialTrail'],['tails','ssDialTails'],['centre','ssDialCentre'],
   ['size','ssDialSize'],['rotate','ssDialRotate'],['every','ssDialEvery'],['fill','ssDialFill'],['fillTurn','ssDialFillTurn'],['fillR','ssDialFillR'],['fillA','ssDialFillA'],['fillBlend','ssDialFillBlend'],
-  ['fillOver','ssDialFillOver'],['cap','ssDialCap'],['tip','ssDialTip'],['tipOn','ssDialTipOn'],['tipSize','ssDialTipSize'],['weight','ssDialWeight'],['centreSize','ssDialCentreSize'],['handA','ssDialHandA'],['blend','ssDialBlend']];
+  ['fillOver','ssDialFillOver'],['fillStyle','ssDialFillStyle'],['fillLayer','ssDialFillLayer'],['cap','ssDialCap'],['tip','ssDialTip'],['tipOn','ssDialTipOn'],['tipSize','ssDialTipSize'],['weight','ssDialWeight'],['centreSize','ssDialCentreSize'],['handA','ssDialHandA'],['blend','ssDialBlend']];
 const T_MAP=[['h24','ssTH24'],['secs','ssTSecs'],['zero','ssTZero'],['case','ssTCase'],['leading','ssTLeading'],['hole','ssTHole'],['split','ssTSplit'],['feel','ssTFeel'],['len','ssTLen'],['far','ssTFar'],
-  ['bg','ssTBg'],['ink','ssTInk'],['soft','ssTSoft'],['rotate','ssTRotate'],['every','ssTEvery']];
+  ['bg','ssTBg'],['ink','ssTInk'],['soft','ssTSoft'],['rotate','ssTRotate'],['every','ssTEvery'],['tracking','ssTTracking'],['space','ssTSpace']];
 function presetFromConfig(cfg,name){
   const s={ssVer:5},b=cfg.base||{},put=(k,v)=>{if(v!==undefined&&v!==null)s[k]=v;};
   for(const k in b)if((/^ss[A-Z0-9]/.test(k)&&!/^ssW|^ss[MN][A-Z]|^ssDial|^ssName$/.test(k))||k==='baseSlot')s[k]=b[k];
@@ -768,6 +781,7 @@ function presetFromConfig(cfg,name){
   if(d){DL_MAP.forEach(([a,k])=>put(k,d[a]));const col=d.colours||{};D_COLS.forEach(([k,t])=>put(k,col[t]));
     if(Array.isArray(d.hw)){put('ssDialHand',d.hw[0]);put('ssDialWM',d.hw[1]);put('ssDialWS',d.hw[2]);}else if(d.hand!=null){put('ssDialWM',d.hand);put('ssDialWS',d.hand);}}
   const t=cfg.type;if(t){T_MAP.forEach(([a,k])=>put(k,t[a]));const P=t.parts||{};[['time','ssTTime'],['day','ssTDay'],['date','ssTDate'],['month','ssTMonth'],['year','ssTYear']].forEach(([a,k])=>put(k,P[a]));
+    const RP=t.rparts||{};[['day','ssTRDay'],['date','ssTRDate'],['month','ssTRMonth'],['year','ssTRYear']].forEach(([a,k])=>put(k,RP[a]));
     if(t.size!=null)put(cfg.show==='rings'?'ssTRSize':'ssTCSize',t.size);put('ssTFont',t.font);if(cfg.show==='columns'||cfg.show==='rings')s.ssShow=cfg.show;}
   /* the time's colours, and its themes through the day (0.9: read back from older downloads too, which carried them only in their colour block) */
   const co=cfg.colours||{};put('ssColBy',co.by);put('ssBg',co.bg);if(Array.isArray(co.p))['ssP1','ssP2','ssP3','ssP4'].forEach((k,i)=>put(k,co.p[i]));put('ssCEvery',co.every);
@@ -891,12 +905,13 @@ function saverConfig(preview){
     /* only when showing the dial */
     ...(dl(S)?{dial:{face:S.ssDialFace,detail:S.ssDialDetail,hole:S.ssDialHole,tick:S.ssDialTick,ring:S.ssDialRing,line:S.ssDialLine,key:S.ssDialKey,hand:S.ssDialHand,
       secs:S.ssDialSecs,secMove:S.ssDialSecMove,minMove:S.ssDialMinMove,feel:S.ssDialFeel,len:S.ssDialLen,trail:S.ssDialTrail,tails:S.ssDialTails,centre:S.ssDialCentre,size:S.ssDialSize,
-      hw:[S.ssDialHand,S.ssDialWM,S.ssDialWS],fill:S.ssDialFill,fillTurn:S.ssDialFillTurn,fillR:S.ssDialFillR,fillA:S.ssDialFillA,fillBlend:S.ssDialFillBlend,fillOver:S.ssDialFillOver,
+      hw:[S.ssDialHand,S.ssDialWM,S.ssDialWS],fill:S.ssDialFill,fillTurn:S.ssDialFillTurn,fillR:S.ssDialFillR,fillA:S.ssDialFillA,fillBlend:S.ssDialFillBlend,fillOver:S.ssDialFillOver,fillStyle:S.ssDialFillStyle,fillLayer:S.ssDialFillLayer,
       cap:S.ssDialCap,tip:S.ssDialTip,tipOn:S.ssDialTipOn,tipSize:S.ssDialTipSize,weight:S.ssDialWeight,centreSize:S.ssDialCentreSize,handA:S.ssDialHandA,blend:S.ssDialBlend,
       colours:Object.fromEntries(D_COLS.map(([k,t])=>[t,S[k]])),rotate:S.ssDialRotate,themes:setThemes('dial'),every:everyOf('dial')}}:{}),
     /* only for Columns and Rings */
     ...(ty(S)?{type:{font:typeFont(),h24:S.ssTH24,secs:S.ssTSecs,zero:S.ssTZero,case:S.ssTCase,parts:{time:S.ssTTime,secs:S.ssTSecs,day:S.ssTDay,date:S.ssTDate,month:S.ssTMonth,year:S.ssTYear},
-      size:cols(S)?S.ssTCSize:S.ssTRSize,leading:S.ssTLeading,hole:S.ssTHole,split:S.ssTSplit,feel:S.ssTFeel,len:S.ssTLen,far:S.ssTFar,
+      size:cols(S)?S.ssTCSize:S.ssTRSize,leading:S.ssTLeading,hole:S.ssTHole,split:S.ssTSplit,feel:S.ssTFeel,len:S.ssTLen,far:S.ssTFar,tracking:S.ssTTracking,space:S.ssTSpace,
+      rparts:{day:S.ssTRDay,date:S.ssTRDate,month:S.ssTRMonth,year:S.ssTRYear},
       bg:S.ssTBg,ink:S.ssTInk,soft:S.ssTSoft,rotate:S.ssTRotate,themes:setThemes('type'),every:everyOf('type')}}:{}),
     /* only when showing words */
     ...(wd(S)?{words:{lead:S.ssWLead,h24:S.ssWH24,time:S.ssWTime,secs:S.ssWSecs,weekday:S.ssWWeekday,daynum:S.ssWDayNum,month:S.ssWMonth,year:S.ssWYear,
