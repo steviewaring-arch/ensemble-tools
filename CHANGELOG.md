@@ -4,6 +4,7 @@
 
 - **Columns and Rings:** Tracking now works (their own, plus each font's from Fonts), a touch tighter to start, with Space between – the gap between columns and between rings is a word space that follows the tracking. Rings sit one space apart measured from the longest word on each, so the worst case is always one space and shorter words get more room. Rings can add the date: day, date, month and year, a ring each, outwards.
 - **The dial's fill** has its own card under Face and sits in front of everything to start (or behind the hands, or behind the marks). It sweeps, moves in sections, or in fading sections – sixty for the minute and second hands, twelve for the hour.
+- **Promo GIF rebuilt:** the same size and drawing as the stills (the device at its full 1920 × 1080; the screen at the MP4's size), the main colours kept exact – background, device, theme – so a still and its GIF swap in a gallery without a jump; each frame stores only what changed. **Real time:** stills now follow the moment shown too – the first still is that moment, the rest drawn from it – and every export uses the moment shown until Another moment picks a new one.
 - **Promo (internal):** a still for every theme in the day (at least three); everything again inside a device – a transparent PNG you load once, its size and placing kept, on #F5F5F3 – as stills, GIF and MP4; Real time plays from a random moment; files are named Tempo_ScreenSaver_Ensemble_Design_Studio_<name>_<number>.
 
 ## 13 October 2026 – Tempo 0.9

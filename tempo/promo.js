@@ -61,7 +61,15 @@ const num=i=>String(i).padStart(2,'0');
 function canvasOf(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
 const toBlob=(c,type,q)=>new Promise(r=>c.toBlob(r,type||'image/png',q));
 /* the moments for stills: every theme in the day when there's more than one (at least three stills), each on its own date and at its own time */
+/* a repeatable random run from the moment chosen, so stills match what Another moment shows */
+const rngFrom=seed=>{let a=(seed/1000)>>>0;return()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296;};};
 function stillTimes(){const k=kindNow(S),K=THEMES[k],hourly=K.on(S),ev=everyOf(k),q=hourly?setNames(k):[],len=Math.min(24,q.length||1);
+  if(PROMO.moves==='real'){/* Real time: the first still is the moment chosen; the rest are random moments drawn from it – one per theme in the day when there's more than one */
+    const b=realAt||newMoment(),r=rngFrom(b),many=hourly&&len>=2,d0=new Date(b),out=[b],cur=many?Math.floor(d0.getHours()/ev)%len:-1;
+    const hourFor=i=>{const hs=[];for(let h=0;h<24;h++)if(Math.floor(h/ev)%len===i)hs.push(h);return hs.length?hs[Math.floor(r()*hs.length)]:Math.floor(r()*24);};
+    const want=many?[...Array(len).keys()].filter(i=>i!==cur):[-1,-1];while(want.length<2)want.push(-1);
+    for(const i of want){const h=i>=0?hourFor(i):Math.floor(r()*24);out.push(new Date(d0.getFullYear(),d0.getMonth(),d0.getDate()+1+Math.floor(r()*364),h,Math.floor(r()*60),Math.floor(r()*60)).getTime());}
+    return out;}
   const day=new Date();const at=(dd,h,m,s)=>new Date(day.getFullYear(),day.getMonth(),day.getDate()+dd,h,m,s).getTime();/* by the calendar, so a clock change between dates doesn't shift the hour */
   const MS=[[41,12],[27,38],[58,3],[9,47],[33,21],[16,54],[50,30],[4,16]];
   if(!hourly||len<2)return[at(0,9,41,12),at(9,14,27,38),at(23,22,58,3)];
@@ -75,20 +83,38 @@ async function promoStills(device,progress){if(device&&!DEVICE)throw new Error('
     const plan={D:1e12,at:t=>ms-3000+t};await promoRun(sv,x,T.sw,T.sh,plan,0,3000,12,null);T.compose();out.push(await toBlob(T.out));if(progress)progress(out.length/times.length);await nextTick();}
   return out;}
 const nextTick=()=>new Promise(r=>setTimeout(r,0));
-async function promoFrames(device,W,H,fps,each){const plan=promoPlan(),sv=promoSaver(),T=makeTarget(device,W,H,1),x=T.sc.getContext('2d',{willReadFrequently:true});
+async function promoFrames(device,W,H,fps,each,crisp){const plan=promoPlan(),sv=promoSaver(),T=makeTarget(device,W,H,crisp||1),x=T.sc.getContext('2d',{willReadFrequently:true});
   /* a loop: one whole loop first, so the end leads into the start exactly; real time: a few seconds to settle */
   if(plan.real)await promoRun(sv,x,T.sw,T.sh,plan,-3000,0,15,null);else await promoRun(sv,x,T.sw,T.sh,plan,0,plan.D,Math.min(fps,15),null,-plan.D);
   await promoRun(sv,x,T.sw,T.sh,plan,0,plan.D,fps,(t,i)=>{T.compose();const ox=T.out.getContext('2d',{willReadFrequently:true});return each(T.out,ox,i);},0);return plan;}
 const vidSize=device=>device?[DEVICE.w,DEVICE.h]:P_SHAPES[PROMO.shape].slice(2);
+/* GIF (0.9.1, rebuilt): the same size and drawing as the stills (the device at its own size,
+   the screen at the MP4's), so a still and the GIF swap without a jump. The colours that
+   fill most of the picture – the background, the device, the theme's colours – go into the
+   palette exactly; the rest (the edges of type and marks) share what's left. Each frame stores
+   only the rectangle that changed, so a 10-second loop at full size stays a sensible weight. */
 async function promoGIF(device,progress){if(device&&!DEVICE)throw new Error('load the device PNG first');
-  const [vw,vh]=vidSize(device),k=960/Math.max(vw,vh),w=Math.round(vw*k),h=Math.round(vh*k),fps=20,n=Math.round(PROMO.len*fps);
-  /* palette from a pass over the loop */
-  const hist=new Uint32Array(32768);
-  await promoFrames(device,w,h,4,(c,x)=>{const d=x.getImageData(0,0,c.width,c.height).data;for(let j=0;j<d.length;j+=8)hist[((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3)]++;});
-  const {pal,count}=medianCut(hist,256),near=makeLut(pal,count),buf=new ByteBuf();let idx=null,gw=0,gh=0;
-  await promoFrames(device,w,h,fps,async(c,x,i)=>{if(!idx){gw=c.width;gh=c.height;gifHeader(buf,gw,gh,pal);idx=new Uint8Array(gw*gh);}
-    const d=x.getImageData(0,0,gw,gh).data;for(let a=0,j=0;a<idx.length;a++,j+=4)idx[a]=near(((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3));
-    gifFrame(buf,gw,gh,idx,Math.round(100/fps));if(progress)progress((i+1)/n);if(i%10===9)await nextTick();});
+  const [w,h]=vidSize(device),fps=20,n=Math.round(PROMO.len*fps);
+  /* the palette: count colours over a pass of the loop */
+  const counts=new Map(),hist=new Uint32Array(32768);let total=0;
+  await promoFrames(device,w,h,3,(c,x)=>{const d=x.getImageData(0,0,c.width,c.height).data;for(let j=0;j<d.length;j+=12){const v=(d[j]<<16)|(d[j+1]<<8)|d[j+2];counts.set(v,(counts.get(v)||0)+1);total++;}},2);
+  const exact=[...counts.entries()].filter(([,c])=>c>=total*.0004).sort((a,b)=>b[1]-a[1]).slice(0,96).map(([v])=>v),ex=new Set(exact);
+  for(const [v,c] of counts)if(!ex.has(v))hist[((v>>19&31)<<10)|((v>>11&31)<<5)|(v>>3&31)]+=c;
+  const rest=medianCut(hist,256-exact.length),pal=new Uint8Array(768);let count=0;
+  for(const v of exact){pal[count*3]=v>>16&255;pal[count*3+1]=v>>8&255;pal[count*3+2]=v&255;count++;}
+  for(let i=0;i<rest.count&&count<256;i++,count++){pal[count*3]=rest.pal[i*3];pal[count*3+1]=rest.pal[i*3+1];pal[count*3+2]=rest.pal[i*3+2];}
+  const exIdx=new Map(exact.map((v,i)=>[v,i])),near=makeLut(pal,count);
+  const buf=new ByteBuf();gifHeader(buf,w,h,pal);const idx=new Uint8Array(w*h),prev=new Uint8Array(w*h);let first=true;
+  await promoFrames(device,w,h,fps,async(c,x,i)=>{const d=x.getImageData(0,0,w,h).data;
+    for(let a=0,j=0;a<idx.length;a++,j+=4){const v=(d[j]<<16)|(d[j+1]<<8)|d[j+2],e=exIdx.get(v);idx[a]=e!==undefined?e:near(((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3));}
+    /* the rectangle that changed since the last frame (the whole frame first) */
+    let x0=0,y0=0,x1=w-1,y1=h-1;
+    if(!first){x0=w;y0=h;x1=-1;y1=-1;for(let yy=0;yy<h;yy++){const o=yy*w;for(let xx=0;xx<w;xx++)if(idx[o+xx]!==prev[o+xx]){if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(yy<y0)y0=yy;y1=yy;}}
+      if(x1<0){x0=y0=0;x1=y1=0;}}
+    const rw=x1-x0+1,rh=y1-y0+1,sub=new Uint8Array(rw*rh);for(let yy=0;yy<rh;yy++)sub.set(idx.subarray((y0+yy)*w+x0,(y0+yy)*w+x0+rw),yy*rw);
+    buf.b(0x21);buf.b(0xF9);buf.b(4);buf.b(0x04);buf.w(Math.round(100/fps));buf.b(0);buf.b(0);
+    buf.b(0x2C);buf.w(x0);buf.w(y0);buf.w(rw);buf.w(rh);buf.b(0);lzwEncode(buf,sub,8);
+    prev.set(idx);first=false;if(progress)progress((i+1)/n);if(i%4===3)await nextTick();},2);
   buf.b(0x3B);return new Blob([buf.out()],{type:'image/gif'});}
 async function promoMP4(device,progress){if(device&&!DEVICE)throw new Error('load the device PNG first');
   if(!window.VideoEncoder||!window.Mp4Muxer)throw new Error('This browser can’t write MP4 – try Chrome, Edge or Safari');
@@ -101,7 +127,7 @@ async function promoMP4(device,progress){if(device&&!DEVICE)throw new Error('loa
   let err=null;const enc=new VideoEncoder({output:(chunk,meta)=>muxer.addVideoChunk(chunk,meta),error:e=>{err=e;}});
   enc.configure(Object.assign({codec,width:w,height:h,bitrate:12e6,framerate:fps},kind==='avc'?{avc:{format:'avc'}}:{}));
   await promoFrames(device,w,h,fps,async(c,x,i)=>{if(err)throw err;const f=new VideoFrame(c,{timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),visibleRect:{x:0,y:0,width:w,height:h}});enc.encode(f,{keyFrame:i%fps===0});f.close();
-    if(progress)progress((i+1)/n);while(enc.encodeQueueSize>6)await new Promise(r=>setTimeout(r,2));});
+    if(progress)progress((i+1)/n);while(enc.encodeQueueSize>6)await new Promise(r=>setTimeout(r,2));},2);/* drawn as the stills are */
   await enc.flush();enc.close();if(err)throw err;muxer.finalize();return new Blob([muxer.target.buffer],{type:'video/mp4'});}
 /* the sheet: every setting showing in the panel for this screen saver, card by card, then its colours hour by hour */
 function promoSpecs(){
@@ -151,7 +177,7 @@ function promoSpecs(){
   addHint(b,'Promo pack: the specs, the stills, the GIF and the MP4 – on their own and in the device, if one is loaded – in one zip. Files are named Tempo_ScreenSaver_Ensemble_Design_Studio_ then the name under Export, then a number.');
   controls.push({d:{},w:info,update(){const p=promoPlan(),[W,H,vw,vh]=P_SHAPES[PROMO.shape],n=stillTimes().length;
     const when=p.real?new Date(p.at(0)).toLocaleString('en-GB',{weekday:'long',day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'}):'';
-    info.textContent=(p.real?`Real time from ${when} – a new moment each time you choose Another moment. `:p.steps?`${p.steps} steps of ${(p.D/p.steps/1000).toFixed(2)} s – ${p.hourly?'one for each theme in the day':'an hour at a time'}, joining up seamlessly. `:'Twelve hours round the clock, joining up seamlessly. ')+`${n} stills (${W} × ${H}); MP4 ${vw} × ${vh}; GIF 960 wide.`+(p.steps>6&&PROMO.len<20?' With this many themes, 20 seconds reads better.':'');
+    info.textContent=(p.real?`Real time from ${when} – stills and motion use this moment; Another moment picks a new one. `:p.steps?`${p.steps} steps of ${(p.D/p.steps/1000).toFixed(2)} s – ${p.hourly?'one for each theme in the day':'an hour at a time'}, joining up seamlessly. `:'Twelve hours round the clock, joining up seamlessly. ')+`${n} stills (${W} × ${H}); MP4 and GIF ${vw} × ${vh}${DEVICE?`, in the device ${DEVICE.w} × ${DEVICE.h} – stills, GIF and MP4 alike`:''}.`+(p.steps>6&&PROMO.len<20?' With this many themes, 20 seconds reads better.':'');
     again.hidden=!p.real;play.textContent=PROMO.playing?'Stop':'Play';play.setAttribute('aria-label',PROMO.playing?'Stop the loop':'Play the loop');play.setAttribute('aria-pressed',PROMO.playing);
     dinfo.textContent=DEVICE?`Device: ${DEVICE.w} × ${DEVICE.h}, its screen ${DEVICE.screen.w} × ${DEVICE.screen.h} – the screen saver goes behind it, on ${DEV_BG}.`:'Load a transparent PNG of a device with its screen cut out; it’s kept in this browser.';
     [dst,dgf,dmp].forEach(x=>x.disabled=!DEVICE);}});
@@ -167,7 +193,8 @@ function promoSpecs(){
   const nm=()=>promoName(),enc=new TextEncoder(),u8=async bl=>new Uint8Array(await bl.arrayBuffer());
   /* numbers: the screen's stills from 01, the device's straight after; motion: 01 the screen, 02 the device */
   const stillsN=()=>stillTimes().length;
-  const fresh=()=>{if(PROMO.moves==='real')newMoment();};
+  /* Real time: every export uses the moment shown (Another moment picks a new one) */
+  const fresh=()=>{if(PROMO.moves==='real'&&!realAt)newMoment();};
   st.onclick=()=>busy(st,async pr=>{const ims=await promoStills(false,pr);for(let i=0;i<ims.length;i++)await saveFile(`${nm()}_${num(i+1)}.png`,ims[i]);});
   dst.onclick=()=>busy(dst,async pr=>{const ims=await promoStills(true,pr),o=stillsN();for(let i=0;i<ims.length;i++)await saveFile(`${nm()}_${num(o+i+1)}.png`,ims[i]);});
   gf.onclick=()=>busy(gf,async pr=>{fresh();await saveFile(`${nm()}_Motion_01.gif`,await promoGIF(false,pr));});
