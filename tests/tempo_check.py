@@ -29,15 +29,15 @@ SAY = """([ms,o,W,H])=>{const C=Object.assign({},window.__cfg,{show:'words',word
 # Mixed type: run a saver from an exported config across several moments; return each moment's words, faces and layout.
 MIX = """([C,times,W,H])=>{const RealDate=Date;let ms=times[0];const D=function(...a){return a.length?new RealDate(...a):new RealDate(ms)};D.now=()=>ms;D.prototype=RealDate.prototype;
   window.Date=D;const out=[];try{const e=createEngine();e.setFaces(C.fonts.map(d=>({id:d.id,face:e.makeBaked(d),swap:d.swap!==false})));const sv=createSaver(e,C);const cv=document.createElement('canvas');cv.width=W;cv.height=H;
-  for(const t of times){ms=t;sv.frame(cv.getContext('2d'),W,H,0,0);out.push(Object.assign({faces:sv.faces()},sv.lines(W,H)));}}finally{window.Date=RealDate;}return out;}"""
+  for(const t of times){ms=t;sv.frame(cv.getContext('2d'),W,H,t,0);out.push(Object.assign({faces:sv.faces()},sv.lines(W,H)));}}finally{window.Date=RealDate;}return out;}"""
 # The time: the faces given to each numeral, across several moments.
 CLK = """([C,times,W,H])=>{const RealDate=Date;let ms=times[0];const D=function(...a){return a.length?new RealDate(...a):new RealDate(ms)};D.now=()=>ms;D.prototype=RealDate.prototype;
   window.Date=D;const out=[];try{const e=createEngine();e.setFaces(C.fonts.map(d=>({id:d.id,face:e.makeBaked(d),swap:d.swap!==false})));const sv=createSaver(e,C);const cv=document.createElement('canvas');cv.width=W;cv.height=H;
-  for(const t of times){ms=t;sv.frame(cv.getContext('2d'),W,H,0,0);out.push(sv.clockFaces());}}finally{window.Date=RealDate;}return out;}"""
+  for(const t of times){ms=t;sv.frame(cv.getContext('2d'),W,H,t,0);out.push(sv.clockFaces());}}finally{window.Date=RealDate;}return out;}"""
 # The dial: run a saver from an exported config at several moments; return where the hands point, and the frame.
 DIAL = """([C,times,W,H])=>{const RealDate=Date;let ms=times[0];const D=function(...a){return a.length?new RealDate(...a):new RealDate(ms)};D.now=()=>ms;D.prototype=RealDate.prototype;
   window.Date=D;const out=[];try{const e=createEngine();const sv=createSaver(e,C);const cv=document.createElement('canvas');cv.width=W;cv.height=H;
-  for(const t of times){ms=t;sv.frame(cv.getContext('2d'),W,H,0,0);out.push({hands:sv.hands(),png:cv.toDataURL('image/png'),bg:sv.bg()});}}finally{window.Date=RealDate;}return out;}"""
+  for(const t of times){ms=t;sv.frame(cv.getContext('2d'),W,H,t,0);out.push({hands:sv.hands(),png:cv.toDataURL('image/png'),bg:sv.bg()});}}finally{window.Date=RealDate;}return out;}"""
 THIRD = f'{FONTS}/Poppins-LightItalic.ttf'  # a third style, to shuffle between two display faces
 utc = lambda y, mo, d, hh, mm, ss: calendar.timegm((y, mo, d, hh, mm, ss, 0, 0, 0)) * 1000  # London is on GMT for every date used here
 
@@ -99,10 +99,10 @@ def main():
         tall.close()
         show = pg.get_by_role('group', name='Show').get_by_role('button').all_inner_texts()
         panel = pg.locator('#panel').inner_text()
-        check('Show is The time, In words or As a dial; nothing in the panel refers to Rubato', show == ['The time', 'In words', 'As a dial'] and 'Rubato' not in panel
+        check('Show is The time, In words, Columns, Rings or As a dial; nothing in the panel refers to Rubato', show == ['The time', 'In words', 'Columns', 'Rings', 'As a dial'] and 'Rubato' not in panel
               and pg.get_by_role('switch', name='Add Rubato motion').count() == 0, json.dumps(show))
 
-        themes = pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).locator('.btn-row').first.get_by_role('button').all_inner_texts()
+        themes = pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).locator('.theme-tile').evaluate_all('ts=>ts.map(t=>t.getAttribute("aria-label"))')
         cols = pg.evaluate("['#c_ssBg','#c_ssP1','#c_ssP2'].map(s=>document.querySelector(s).value.toUpperCase())")
         check('The time: Noon (grey, yellow, a dark comma) is the first theme and the default; no Ultraviolet', themes[:1] == ['Noon'] and 'Ultraviolet' not in themes
               and cols == ['#D3D5D5', '#F4FD5F', '#1E2023'] and btn(pg, 'Noon').get_attribute('aria-pressed') == 'true', json.dumps(themes) + ' ' + json.dumps(cols))
@@ -129,12 +129,12 @@ def main():
         # 3. In words
         pg.get_by_role('group', name='Show').get_by_role('button', name='In words').click(); wait(400); pg.evaluate(expand)
         cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]
-        check('In words shows its own cards (Show, Presets and Export are in the island and the Presets capsule), and no Looks', cards == ['Fonts', 'Sentence', 'Type', 'Change', 'Position', 'Colour'] and pg.get_by_role('group', name='Looks').count() == 0, json.dumps(cards))
+        check('In words shows its own cards (Show, Presets and Export are in the island and the Presets capsule), and no Looks', cards == ['Fonts', 'Sentence', 'Type', 'Change', 'Position', 'Colour', 'Promo'] and pg.get_by_role('group', name='Looks').count() == 0, json.dumps(cards))
         parts = pg.get_by_role('group', name='Sentence parts').get_by_role('button').all_inner_texts()
         check('Sentence parts are the time and date only', parts == ['It is', 'Time', 'Seconds', 'Day', 'Date', 'Month', 'Year', 'Full stop'], json.dumps(parts))
         own = json.loads(pg.evaluate("localStorage.getItem('tempo:settings')") or '{}')
         check("Words settings live in Tempo's own storage", own.get('ssShow') == 'words' and 'ssWCase' in own and not any(k.startswith('ssW') for k in json.loads(pg.evaluate("localStorage.getItem('rubato:settings')") or '{}')))
-        wthemes = pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).locator('.btn-row').first.get_by_role('button').all_inner_texts()
+        wthemes = pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).locator('.theme-tile').evaluate_all('ts=>ts.map(t=>t.getAttribute("aria-label"))')
         check('In words: Noon replaces Acid, Ultraviolet has gone', wthemes == ['Apricot', 'Red', 'Paper', 'Night', 'Signal', 'Noon'], json.dumps(wthemes))
         whtml, wfn = download(lambda: btn(pg, 'Download HTML file').click())
         cfg = config(whtml)
@@ -279,7 +279,7 @@ def main():
         pg.get_by_role('group', name='Size').get_by_role('button', name='Fit the screen').click()
         mix(); pg.select_option('#c_ssMTime', 'shuffle'); mix(); pg.select_option('#c_ssMWeekday', 'shuffle'); wait(300)
         cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]
-        check('Mixing lives in Fonts: no separate Typefaces card', cards == ['Fonts', 'Sentence', 'Type', 'Change', 'Position', 'Colour'], json.dumps(cards))
+        check('Mixing lives in Fonts: no separate Typefaces card', cards == ['Fonts', 'Sentence', 'Type', 'Change', 'Position', 'Colour', 'Promo'], json.dumps(cards))
         opts = lambda sel: pg.evaluate("s=>[...document.querySelector(s).options].map(o=>o.text)", sel)
         check('Each part offers the core font, every other font, or Shuffle', opts('#c_ssMTime') == ['Core', 'Poppins Bold', 'Poppins Light Italic', 'Shuffle'], json.dumps(opts('#c_ssMTime')))
         fonts_card = pg.locator('section.card:visible').filter(has=pg.locator('h2', has_text='Fonts'))
@@ -498,10 +498,10 @@ def main():
         # 9. Tempo 0.5: As a dial – no type, only lines
         pg.get_by_role('group', name='Show').get_by_role('button', name='As a dial').click(); wait(300); pg.evaluate(expand)
         cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]
-        check('As a dial: its own cards, and Fonts steps aside', cards == ['Face', 'Hands', 'Position', 'Colour'], json.dumps(cards))
+        check('As a dial: its own cards, and Fonts steps aside', cards == ['Face', 'Hands', 'Position', 'Colour', 'Promo'], json.dumps(cards))
         dcol = pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour'))
-        dthemes = dcol.locator('.btn-row').first.get_by_role('button').all_inner_texts()
-        check('Dial colour themes, Paper (after the red-handed drawing) first and chosen', dthemes == ['Paper', 'Dawn', 'Noon', 'Night', 'Signal'] and dcol.get_by_role('button', name='Paper').get_attribute('aria-pressed') == 'true', json.dumps(dthemes))
+        dthemes = dcol.locator('.theme-tile').evaluate_all('ts=>ts.map(t=>t.getAttribute("aria-label"))')
+        check('Dial colour themes, Paper (after the red-handed drawing) first and chosen', dthemes == ['Paper', 'Dawn', 'Noon', 'Night', 'Signal'] and dcol.get_by_role('button', name='Paper', exact=True).get_attribute('aria-pressed') == 'true', json.dumps(dthemes))
         check('The panel names no font and no demo face for a dial', 'Demo face' not in pg.locator('#note').inner_text() and 'demo face' not in pg.locator('#panel').inner_text())
         dhtml, dfn = download(lambda: btn(pg, 'Download HTML file').click()); dcfg = config(dhtml)
         check('Dial export: named Tempo Dial, carries the dial and no fonts', dcfg['show'] == 'dial' and dcfg['fonts'] == [] and dcfg['dial']['face'] == 'rays' and 'words' not in dcfg
@@ -528,9 +528,9 @@ def main():
         seen |= {dial({'face': 'ticks', 'detail': d}, [t0])[0]['png'] for d in ['hours', 'quarters']}
         check('Every face and level of detail draws differently', len(seen) == 8, f'{len(seen)} different frames')
         base_png = dial({}, [t0])[0]['png']
-        diff = [dial(o, [t0])[0]['png'] != base_png for o in ({'trail': 'fill'}, {'trail': 'fade'}, {'ring': True}, {'line': 8}, {'key': 8}, {'hand': 14}, {'tails': False}, {'centre': True}, {'hole': .4}, {'size': 60}, {'secs': False})]
+        diff = [dial(o, [t0])[0]['png'] != base_png for o in ({'trail': 'fill'}, {'trail': 'fade'}, {'ring': True}, {'line': 8}, {'key': 8}, {'hw': [14, 14, 14]}, {'tails': False}, {'centre': True}, {'hole': .4}, {'size': 60}, {'secs': False})]
         check('Trail, ring, line weights, tails, centre dot, space in the middle, size and the second hand each change the frame', all(diff), json.dumps(diff))
-        th = dcfg['dial']['themes']; r = dial({'rotate': True}, [utc(2026, 10, 28, h, 0, 0) for h in range(5)])
+        th = dcfg['dial']['themes']; r = dial({'rotate': True}, [utc(2026, 10, 28, h, 0, 0) + d for h in range(5) for d in (0, 2000)])[1::2]  # 0.9: the colours fade across over 1.5 s on the hour
         check('Change theme every hour runs through the dial themes', [x['bg'] for x in r] == [th[h % len(th)]['bg'] for h in range(5)], json.dumps([x['bg'] for x in r]))
         p3 = ctx.new_page(); e3 = []
         p3.on('pageerror', lambda e: e3.append(str(e)))
@@ -539,7 +539,7 @@ def main():
         a = p3.evaluate(frame_js, dcfg); b2 = pg.evaluate(frame_js, dcfg)
         check('Exported dial page draws the same frame as Tempo does, offline and without errors', a == b2 and len(a) > 5000 and not e3, '; '.join(e3[:3]))
         p3.close()
-        dcol.get_by_role('button', name='Signal').click(); wait(200)
+        dcol.get_by_role('button', name='Signal', exact=True).click(); wait(200)
         pg.get_by_role('group', name='Marks', exact=True).get_by_role('button', name='Ticks').click(); wait(200)
         win, wname = download(lambda: btn(pg, 'Download for Windows').click())
         scr = zipfile.ZipFile(io.BytesIO(win)).read('Tempo Dial.scr')
@@ -549,7 +549,7 @@ def main():
         pg.reload(); wait(1500); pg.evaluate(expand); wait(200)
         check('The dial, its face and its colours are remembered', pg.get_by_role('group', name='Show').locator('button[aria-pressed=true]').all_inner_texts() == ['As a dial']
               and pg.get_by_role('group', name='Marks', exact=True).locator('button[aria-pressed=true]').all_inner_texts() == ['Ticks']
-              and pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).get_by_role('button', name='Signal').get_attribute('aria-pressed') == 'true',
+              and pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).get_by_role('button', name='Signal', exact=True).get_attribute('aria-pressed') == 'true',
               json.dumps([pg.get_by_role('group', name='Show').locator('button[aria-pressed=true]').all_inner_texts(), pg.get_by_role('group', name='Marks', exact=True).locator('button[aria-pressed=true]').all_inner_texts()]))
         own = json.loads(pg.evaluate("localStorage.getItem('tempo:settings')") or '{}')
         check("Dial settings live in Tempo's own storage", own.get('ssShow') == 'dial' and own.get('ssDialFace') == 'ticks' and not any(k.startswith('ssDial') for k in json.loads(pg.evaluate("localStorage.getItem('rubato:settings')") or '{}')), json.dumps({k: own.get(k) for k in ('ssShow', 'ssDialFace', 'ssDialBg')}))
@@ -596,7 +596,7 @@ def main():
         check('Save changes keeps it; exports are named after the preset open', status() == 'Open: Words one – saved' and wfn == 'words-one-screensaver.html' and wsaved['edit']['name'] == 'Words one', f'{status()} {wfn}')
         # a dial alongside it
         show('As a dial'); pg.get_by_role('group', name='Marks', exact=True).get_by_role('button', name='Dots').click()
-        pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).get_by_role('button', name='Night').click(); wait(200)
+        pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).get_by_role('button', name='Night', exact=True).click(); wait(200)
         save_new('Dial one'); dhtml, _, dsaved = export()
         check('A second preset joins the first', tiles() == ['Words one', 'Dial one'] and pressed_tile() == ['Dial one'])
         # change the fonts (not saved), then open the words: everything comes back, and what was on screen is kept

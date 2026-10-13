@@ -218,14 +218,19 @@ function pushGlyph(items,r,base,alpha,clips,size,cy,ascPx,descPx,col){
 function emitBlock(B,p,items,fx){
   const {size,capPx,ascPx,descPx,W}=B,cy=S.anchor==='baseline'?0:-capPx/2,pad=.04*size;
   /* the roll window and the distance a glyph travels are the same height, so a rolled-out glyph is fully clear */
-  const topPx=S.tightMask?Math.max(capPx,B.ink?B.ink.top*size:0):ascPx,botPx=S.tightMask?-(B.ink?B.ink.bot*size:0):descPx,Hw=topPx-botPx+2*pad;
+  const topPx=S.tightMask?Math.max(capPx,B.ink?B.ink.top*size:0):ascPx,botPx=S.tightMask?-(B.ink?B.ink.bot*size:0):descPx;
+  /* Tempo 0.9: the roll window reaches a little past the ink – below, so a figure
+     arriving is whole well before it settles rather than cut flat as it slows; above,
+     so Elastic's overshoot isn't clipped. Never more than half the gap to the next line. */
+  const gap=B.lines.length>1?Math.max(0,B.lines[1].base-B.lines[0].base-topPx+botPx):Infinity;
+  const padB=pad+Math.min(.24*capPx,gap/2),padT=pad+Math.min((S.qEase==='elastic'?.16:.06)*capPx,gap/2),Hw=topPx-botPx+padT+padB;
   const tMask=S.mode==='transit'?S.tMask:'none',am=fx.alpha==null?1:fx.alpha;
   B.lines.forEach((ln,li)=>{
     let xs=[ln.x0];
     if(fx.marq){const span=ln.lw*ln.sx+fx.marq.gap;if(span>1){xs=[];const s0=(((fx.marq.f*span)%span)+span)%span;for(let x=s0-span;x<W+1;x+=span)xs.push(x);}}
     for(const x0 of xs){
       const L=new DOMMatrix().translateSelf(x0,ln.base).scaleSelf(ln.sx,ln.sy);
-      const lineClip={M:L,x:-1e5,y:-topPx-pad,w:2e5,h:Hw};
+      const lineClip={M:L,x:-1e5,y:-topPx-padT,w:2e5,h:Hw};
       ln.recs.forEach((r,ri)=>{
         if(!r.g.vis||(fx.filter&&!fx.filter(li,ri)))return;
         const m=motionState(r.g,r.ord,size,p);
@@ -233,10 +238,10 @@ function emitBlock(B,p,items,fx){
         const ha=hooks&&hooks.alpha?hooks.alpha(r.g):1;
         const alpha=m.alpha*(q?q.a:1)*am*ha;if(alpha<=.002)return;
         const ssx=m.sx*(q?q.sx:1),ssy=m.sy*(q?q.sy:1);if(ssx<1e-3||ssy<1e-3)return;
-        const base=L.multiply(new DOMMatrix().translateSelf(r.x+r.w/2+m.dx,cy+m.dy+(q?q.dy*Hw:0)).rotateSelf(m.rot).scaleSelf(ssx,ssy));
+        const base=L.multiply(new DOMMatrix().translateSelf(r.x+r.w/2+m.dx+(fx.dxAt?fx.dxAt(li,ri,ln):0),cy+m.dy+(q?q.dy*Hw:0)).rotateSelf(m.rot).scaleSelf(ssx,ssy));
         const clips=[];
         if((q&&q.clip)||tMask==='line')clips.push(lineClip);
-        if(tMask==='glyph')clips.push({M:L,x:r.x-pad,y:-topPx-pad,w:r.w+2*pad,h:Hw});
+        if(tMask==='glyph')clips.push({M:L,x:r.x-pad,y:-topPx-padT,w:r.w+2*pad,h:Hw});
         pushGlyph(items,r,base,alpha,clips,size,cy,ascPx,descPx,hooks&&hooks.colour?hooks.colour(r.g):null);
       });
     }
@@ -269,7 +274,10 @@ function buildLive(p,W,H,items){
   const tgOf=(m,x)=>(li,ri)=>clamp((x-st*(m.get(li+'|'+ri)||0))/Math.max(.001,1-st));
   emitBlock(A,p,items,{role:'out',filter:(li,ri)=>cA.has(li+'|'+ri),tgAt:tgOf(rA,tO)});
   emitBlock(B,p,items,{role:'in',filter:(li,ri)=>cB.has(li+'|'+ri),tgAt:tgOf(rB,tI)});
-  emitBlock(B,p,items,{filter:(li,ri)=>!cB.has(li+'|'+ri)});
+  /* 0.9: a character that stays glides from where it was to where it ends up, rather
+     than jumping there as the change starts (with proportional figures, 1 is narrower than 2) */
+  const glide=E.inOut(clamp(t)),at=(X,li,ri)=>{const ln=X.lines[li],r=ln&&ln.recs[ri];return r?ln.x0+(r.x+r.w/2)*ln.sx:null;};
+  emitBlock(B,p,items,{filter:(li,ri)=>!cB.has(li+'|'+ri),dxAt:(li,ri,ln)=>{const a=at(A,li,ri),b=at(B,li,ri);return a==null||b==null?0:(a-b)*(1-glide)/(ln.sx||1);}});
 }
 const gcd=(a,b)=>b?gcd(b,a%b):a,lcm=(a,b)=>a*b/gcd(a,b);
 function buildRepeat(p,W,H,T,items){

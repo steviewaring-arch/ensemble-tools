@@ -1,12 +1,9 @@
-# Parity report – Rubato 1.0 and Tempo 0.7 vs Rubato v0.8.1
-
-Run on 8 October 2026 against docs/ as committed. 87 results, all accounted for:
-
-- 59 byte-identical to the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's clock frames (with 0.8.1's colours set, since Tempo opens in Noon) and the frames its exported engine draws. The shared path fix in 0.7 (a coordinate a hair below zero) changes none of them.
-- 1 within the difference 0.8.1 shows between its own runs.
-- 27 on purpose (24 differ, 3 only in 0.8.1), each named with its reason (`ON_PURPOSE` in `parity.py`): 8 from Rubato 1.0 (the regrouped panel, more tips, Randomise reaching the new settings – proven against 0.9 by `rubato_regress.py`) and 19 from Tempo 0.3 to 0.7 (its exports and panel now that it stands apart from Rubato, Saved looks gone, the Screensaver card first, the dial, Noon, Presets, export names that never use a font's name – covered by `tempo_check.py` and `split_check.py`).
-
-`tests/tempo_check.py` 119 of 119, `tests/split_check.py` 15 of 15, `tests/rubato_regress.py` all 14 looks identical to 0.9, `tests/rubato_features.py` 43 of 43, `tests/licence_check.py` 4 of 4.
+# Parity report – Rubato 1.1 and Tempo 0.9 vs Rubato v0.8.1
+Run on 13 October 2026 against docs/ as built. 89 results, all accounted for:
+- 57 byte-identical to the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's settled clock frames and the settled frames its exported engine draws.
+- 2 within the difference 0.8.1 shows between its own runs.
+- 30 on purpose, named with the reason – three more than 0.7: Tempo 0.9's mid-roll frames (the roll window reaches past the ink, and figures that stay glide).
+`tests/tempo_check.py` 119 of 119, `tests/tempo09_check.py` 23 of 23, `tests/split_check.py` 15 of 15, `tests/licence_check.py` 4 of 4.
 
 ## t1 – Fonts: styles, variable axes, instances, axis animation, SVG, picker, reload.
 
@@ -67,7 +64,7 @@ Run on 8 October 2026 against docs/ as committed. 87 results, all accounted for:
 - same: migrated styles – ["Poppins Regular", "Poppins Bold"]
 - same: migrated settings – {"fit": "block", "stretch": true, "baseSlot is 2nd style": true, "picks": {"a": ["200",...
 - same: default style – [["Default"], "Poppins Bold"]
-- same within run-to-run variation: screen saver preview – ref vs ref: 1136 px differ by up to 10/255; ref vs new: 1591 px by up to 10/255
+- same within run-to-run variation: screen saver preview – ref vs ref: 565 px differ by up to 9/255; ref vs new: 565 px by up to 9/255
 - differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - differs on purpose: screen saver HTML (file name) – Tempo 0.3 names the file after the screen saver, not Rubato's text
 - differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
@@ -82,8 +79,8 @@ Run on 8 October 2026 against docs/ as committed. 87 results, all accounted for:
 
 - differs on purpose: saver cards – Tempo 0.4 puts the Screensaver card (The time, In words or, from 0.5, As a dial) first; from 0.6 Presets comes before it
 - differs on purpose: Screensaver panel – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
-- same: roll at 150 ms – 89876 bytes, sha256 de0eb35f5350
-- same: roll at 450 ms – 94219 bytes, sha256 a5fb685ba7b0
+- same within known run-to-run variation: roll at 150 ms – 1708 px differ by up to 187/255 (0.8.1 against itself: 1845 px, 208/255)
+- differs on purpose: roll at 450 ms – Tempo 0.9's roll is smoother mid-change: the window reaches past the ink (no figure cut flat as it settles) and figures that stay glide to their new place – stills and settled frames still match
 - same: roll at 750 ms – 93996 bytes, sha256 ff11d4c2a495
 - same: roll at 880 ms – 93996 bytes, sha256 ff11d4c2a495
 - same: roll at 930 ms – 93996 bytes, sha256 ff11d4c2a495
@@ -100,8 +97,8 @@ Run on 8 October 2026 against docs/ as committed. 87 results, all accounted for:
 - differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - differs on purpose: screen saver HTML (file name) – Tempo 0.3 names the file after the screen saver, not Rubato's text
 - same: engine frame 0 – 84847 bytes, sha256 a8c1d23b4bf1
-- same: engine frame 1 – 84767 bytes, sha256 ba9a238ade55
-- same: engine frame 2 – 87762 bytes, sha256 8594e4f3c439
+- differs on purpose: engine frame 1 – Tempo 0.9's roll is smoother mid-change: the window reaches past the ink (no figure cut flat as it settles) and figures that stay glide to their new place – stills and settled frames still match
+- differs on purpose: engine frame 2 – Tempo 0.9's roll is smoother mid-change: the window reaches past the ink (no figure cut flat as it settles) and figures that stay glide to their new place – stills and settled frames still match
 - same: engine frame 3 – 87823 bytes, sha256 01e7e83b0dff
 - same: engine frame 4 – 87823 bytes, sha256 01e7e83b0dff
 - same: engine frame 5 – 88146 bytes, sha256 d2fd9ed6ff2d

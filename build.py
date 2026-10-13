@@ -47,12 +47,14 @@ APPS = {
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo – by Ensemble', version='0.8',
+        title='Tempo – by Ensemble', version='0.9',
         body='tempo/app.html', css='tempo/app.css',
         tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
-                ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js')],
-        before=None,
-        parts=['tempo/app.js'],
+                ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js'),
+                ('tempo-mp4', 'tempo/vendor/mp4-muxer.js')],
+        before='shared/gif.js',
+        # promo.js: internal promo tools – remove before Tempo goes public (HANDOVER)
+        parts=['tempo/app.js', 'tempo/promo.js'],
     ),
 }
 

@@ -1,5 +1,5 @@
 /* Every character the time in words can use, so exports bake them all. */
-function saverVocab(){return 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:’\'';}
+function saverVocab(){return 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.:’\'&';}
 function createSaver(eng,C){
 'use strict';
 const TAU=Math.PI*2,FADE=650;
@@ -19,8 +19,28 @@ function timeParts(d){const c=C.clock;let h=d.getHours(),suf='';if(!c.h24){suf=h
   if(!c.h24&&c.ampm)add(suf,[0,0]);
   return{s,per,keys};}
 function line2(d){const c=C.clock;let s=c.line2==='weekday'?d.toLocaleDateString('en-GB',{weekday:'long'}):c.line2==='date'?d.getDate()+' '+d.toLocaleDateString('en-GB',{month:'long'}):'';return c.caps?s.toUpperCase():s;}
-function palette(){if(C.colours.cycle&&C.palettes&&C.palettes.length)return C.palettes[new Date().getHours()%C.palettes.length];return{bg:C.colours.bg,p:C.colours.p};}
-const isClock=()=>!isWords()&&!isDial();
+/* ---- colour themes through the day (0.9) ----
+   A list of themes, each lasting `every` hours (1 unless set), in order from
+   midnight. When the hour turns, the colours fade across over 1.5 seconds. The
+   preview can show one theme on its own (C.force) while it's being edited. */
+const hourTheme=(list,every)=>list[Math.floor(new Date().getHours()/Math.max(1,every||1))%list.length];
+function hex(c){const s=String(c||'');let m=/^#?([0-9a-f]{6})$/i.exec(s);if(m){const v=parseInt(m[1],16);return[v>>16&255,v>>8&255,v&255];}
+  m=/^#?([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(s);if(m)return[1,2,3].map(i=>parseInt(m[i]+m[i],16));
+  m=/rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(s);return m?[+m[1],+m[2],+m[3]]:[0,0,0];}
+const toHex=a=>'#'+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+function mixHex(a,b,t){if(t<=0||a===b)return a;if(t>=1)return b;const A=hex(a),B=hex(b);return toHex(A.map((v,i)=>v+(B[i]-v)*t));}
+function blendPal(a,b,t){if(typeof b==='string')return typeof a==='string'?mixHex(a,b,t):b;
+  if(Array.isArray(b))return b.map((x,i)=>blendPal(Array.isArray(a)?a[i]:x,x,t));
+  if(b&&typeof b==='object'){const o={};for(const k in b)o[k]=a&&k in a?blendPal(a[k],b[k],t):b[k];return o;}return b;}
+const PFADE=1500;let pfA=null,pfB=null,pfT=-1e9,pfK='';
+/* timed on the frame clock, not the time of day, so a clock that jumps (a promo loop) still fades smoothly */
+let fNow=0;
+function eased(P){const k=JSON.stringify(P),now=fNow;
+  if(!pfK){pfK=k;pfB=P;return P;}
+  if(k!==pfK){const tt=(now-pfT)/PFADE;pfA=tt<1?blendPal(pfA,pfB,eng.E.inOut(Math.max(0,tt))):pfB;pfB=P;pfK=k;pfT=now;}
+  const t=(now-pfT)/PFADE;return t>=1||t<0?P:blendPal(pfA,P,eng.E.inOut(t));}
+function palette(){if(C.force)return C.force;if(C.colours.cycle&&C.palettes&&C.palettes.length)return eased(hourTheme(C.palettes,C.colours.every));return{bg:C.colours.bg,p:C.colours.p};}
+const isClock=()=>!isWords()&&!isDial()&&!isType();
 function hooksOn(){
   eng.setHooks({
     pick:(g,o)=>{if(!isClock()||C.clock.alt==='off')return null;if(!/\d/.test(g.ch))return o.def;if(C.clock.alt!=='each'||!o.sel||o.sel.length<2||g.line!==0)return null;
@@ -164,7 +184,7 @@ function fitVariants(toks,o){const M=o.mixed;if(!M)return[toks];
   if(mode==='one')return[...new Set(toks.map(MPART))].filter(p=>p!=='lead').map(p=>v(t=>MPART(t)===p&&!plain(t)?widest(t):null));
   if(mode==='latest'||mode==='some')return[v(t=>t.grp!=='lead'&&!plain(t)?widest(t):null)];
   return[v(t=>{if(plain(t))return null;const s=P[MPART(t)]||'base';return s==='shuffle'?widest(t):s==='base'?null:(faceById(s)?s:null);})];}
-const wPalette=()=>{const o=C.words;if(o.rotate&&o.themes&&o.themes.length)return o.themes[new Date().getHours()%o.themes.length];return{bg:o.bg,ink:o.ink,soft:o.soft,date:o.dateCol};};
+const wPalette=()=>{const o=C.words;if(C.force)return C.force;if(o.rotate&&o.themes&&o.themes.length)return eased(hourTheme(o.themes,o.every));return{bg:o.bg,ink:o.ink,soft:o.soft,date:o.dateCol};};
 const glyphOf=(f,ch)=>{let g=f.base(ch);if(!g&&ch==='’')g=f.base("'");return g;};
 /* what colour a word takes: hi (the highlight), rest, or the date's own colour */
 function roleOf(t,latest){const h=C.words.hi;
@@ -244,8 +264,7 @@ function wLayout(toks,latest,W,H){
   L=wSet(toks,latest,W,H,size);
   if(wCache.size>40)wCache.clear();wCache.set(key,L);return L;
 }
-function hex(c){const m=/^#?([0-9a-f]{6})$/i.exec(c||'');const v=m?parseInt(m[1],16):0;return[v>>16&255,v>>8&255,v&255];}
-function mix(a,b,t){if(t<=0||a===b)return a;if(t>=1)return b;const A=hex(a),B=hex(b);return'rgb('+A.map((v,i)=>Math.round(v+(B[i]-v)*t)).join(',')+')';}
+const mix=mixHex;
 function colOf(r){return r==='hi'||C.words.hi==='none'?wPal.ink:r==='rest'?wPal.soft:(wPal[r]||wPal.soft);}
 function wGlyphs(ctx,K,w,x,y,col,alpha,dy,clip,from,to){
   if(alpha<=.002)return;
@@ -319,7 +338,10 @@ function wordsFrame(ctx,W,H,now,K){
   for(const p of pieces){const r=n>1?order.indexOf(Math.round(p.w.y)+'|'+Math.round(at(p)))/(n-1):0,v=eng.clamp((tc-st*r)/Math.max(.001,1-st));
     const w=p.w,L=p.L,g=p.gi==null?null:w.gl[p.gi],col=colOf(w.hl),end=p.gi==null?null:p.gi+1;
     /* the window runs from this line's cap height down to its descenders, but stops where the next line's window starts */
-    if(roll){const ev=wEase(v),bot=Math.min(Math.max(0,w.bot)+L.pad,Math.max(L.pad,L.lead-L.top-L.pad)),bx=[w.x+(g?g.x:0)-L.pad,w.y-L.top-L.pad,(g?g.w:w.w)+2*L.pad,L.top+L.pad+bot];
+    /* 0.9: the window takes in the whole descender (it used to stop short where lines
+       sit close, so a g or y was cut until the roll ended), plus room below so a word
+       arriving is whole before it slows, and room above for Elastic's overshoot */
+    if(roll){const ev=wEase(v),cap=L.top,bot=Math.max(0,w.bot)+L.pad+.18*cap,up=L.pad+(o.feel==='elastic'?.14:.05)*cap,bx=[w.x+(g?g.x:0)-L.pad,w.y-L.top-up,(g?g.w:w.w)+2*L.pad,L.top+up+bot];
       wGlyphs(ctx,K,w,w.x,w.y,col,1,(p.out?-ev:1-ev)*bx[3],bx,p.gi,end);}
     else wGlyphs(ctx,K,w,w.x,w.y,col,p.out?1-ef(eng.clamp(v*2)):ef(eng.clamp(v*2-1)),0,null,p.gi,end);
   }
@@ -382,7 +404,7 @@ const isDial=()=>C.show==='dial';
 /* each face's hands – hour, minute, second – as a share of the radius */
 const HANDS={rays:[.36,.66,.99],ticks:[.5,.79,1],dots:[.5,.78,.9],none:[.5,.8,.95]};
 let dNow={h:0,m:0,s:0};
-const dPalette=()=>{const o=C.dial;if(o.rotate&&o.themes&&o.themes.length)return o.themes[new Date().getHours()%o.themes.length];return o.colours;};
+const dPalette=()=>{const o=C.dial;if(C.force)return C.force;if(o.rotate&&o.themes&&o.themes.length)return eased(hourTheme(o.themes,o.every));return o.colours;};
 /* how a hand that steps gets there: Snappy lands at once, Smooth eases, Elastic springs and settles */
 const dEase=t=>{if(t>=1)return 1;if(t<=0)return 0;const f=C.dial.feel;return f==='smooth'?eng.E.inOut(t):f==='elastic'?1-Math.exp(-6.5*t)*Math.cos(16*t):eng.E.expoOut(t);};
 /* where each hand points, as a share of a turn from 12. Seconds sweep, tick, or
@@ -419,22 +441,133 @@ function dialFrame(ctx,W,H,K){
   ctx.setTransform(K);
   const cx=W/2,cy=H/2,R=Math.max(1,(o.size||86)/100*Math.min(W,H)/2),u=R/1000,face=o.face||'rays',pos=dNow=dHands(new Date());
   const marks=face==='none'?[]:dMarks(R,u);
+  /* 0.9: the face fills like a pie chart behind a hand – from 12 round to the hand,
+     starting empty each turn, or filling one turn and emptying the next */
+  const fillOn=o.fill&&o.fill!=='off',drawFill=()=>{const d=new Date(),ms=d.getTime()-d.getTimezoneOffset()*6e4;
+    const per=o.fill==='hour'?432e5:o.fill==='second'?6e4:36e5,turn=Math.floor(ms/per),f=o.fill==='hour'?pos.h:o.fill==='second'?pos.s:pos.m;
+    const a0=-Math.PI/2,a1=a0+((f%1)+1)%1*TAU,r=Math.max(.02,Math.min(1,o.fillR==null?1:o.fillR))*R,empty=o.fillTurn==='turn'&&turn%2===1;
+    ctx.save();ctx.globalAlpha=o.fillA==null?1:o.fillA;ctx.globalCompositeOperation=o.fillBlend&&o.fillBlend!=='normal'?o.fillBlend:'source-over';
+    ctx.beginPath();ctx.moveTo(cx,cy);if(empty)ctx.arc(cx,cy,r,a1,a0+TAU);else ctx.arc(cx,cy,r,a0,a1);ctx.closePath();ctx.fillStyle=P.fill||P.handM;ctx.fill();ctx.restore();};
+  if(fillOn&&!o.fillOver)drawFill();
   /* the minutes first, then the hours and quarters over them */
   for(const k of ['m','h','q'])dDraw(ctx,cx,cy,marks.filter(x=>x.k===k),u);
+  if(fillOn&&o.fillOver)drawFill();
   /* the marks the second hand has passed: filling the minute, or fading behind it */
   if(o.secs&&o.trail&&o.trail!=='off'&&marks.length){const at=pos.s*60;
     dDraw(ctx,cx,cy,marks,u,P.handS,o.trail==='fill'?x=>x.i<=at+1e-6?1:0:x=>{const age=((at-x.i)%60+60)%60;return Math.max(0,1-age/12);});}
   if(o.ring){ctx.beginPath();ctx.arc(cx,cy,R,0,TAU);ctx.strokeStyle=P.hour;ctx.lineWidth=Math.max(.25,(o.key||2.2)*u);ctx.stroke();}
   /* the hands, seconds on top */
-  const L=HANDS[face]||HANDS.none,tail=o.tails?.06*R:0,hw=Math.max(.25,(o.hand||6)*u);
-  const hand=(p,len,col)=>{const a=p*TAU,s=Math.sin(a),c=Math.cos(a);ctx.beginPath();ctx.moveTo(cx-tail*s,cy+tail*c);ctx.lineTo(cx+len*R*s,cy-len*R*c);ctx.strokeStyle=col;ctx.lineWidth=hw;ctx.lineCap='butt';ctx.stroke();};
-  hand(pos.h,L[0],P.handH);hand(pos.m,L[1],P.handM);if(o.secs)hand(pos.s,L[2],P.handS);
-  if(o.centre){ctx.beginPath();ctx.arc(cx,cy,hw*2.2,0,TAU);ctx.fillStyle=o.secs?P.handS:P.handM;ctx.fill();}
+  /* the hands: each its own weight (0.9), square or round ends, a dot or ring at
+     the tip, a counterweight on the second hand, and their own opacity and blend */
+  const L=HANDS[face]||HANDS.none,hws=(o.hw||[o.hand,o.hand,o.hand]).map(v=>Math.max(.25,(v==null?o.hand||6:v)*u)),hw=hws[0];
+  const tipOn=o.tip&&o.tip!=='none'?(o.tipOn||'m'):'',tipR=Math.max(1,(o.tipSize||3)*u*4);
+  ctx.save();ctx.globalAlpha=o.handA==null?1:o.handA;ctx.globalCompositeOperation=o.blend&&o.blend!=='normal'?o.blend:'source-over';
+  const hand=(p,len,col,w,k)=>{const a=p*TAU,s=Math.sin(a),c=Math.cos(a),cw=k==='s'&&o.weight,tail=o.tails||cw?(cw?.15:.06)*R:0;
+    ctx.beginPath();ctx.moveTo(cx-tail*s,cy+tail*c);ctx.lineTo(cx+len*R*s,cy-len*R*c);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap=o.cap==='round'?'round':'butt';ctx.stroke();
+    if(cw){ctx.beginPath();ctx.arc(cx-tail*s,cy+tail*c,Math.max(w*2.6,10*u),0,TAU);ctx.fillStyle=col;ctx.fill();}
+    if(tipOn&&(tipOn==='all'||tipOn.includes(k))){const tx=cx+len*R*s,ty=cy-len*R*c;ctx.beginPath();ctx.arc(tx,ty,tipR,0,TAU);
+      if(o.tip==='ring'){ctx.fillStyle=P.bg;ctx.fill();ctx.lineWidth=Math.max(.5,w*.7);ctx.strokeStyle=col;ctx.stroke();}else{ctx.fillStyle=col;ctx.fill();}}};
+  hand(pos.h,L[0],P.handH,hws[0],'h');hand(pos.m,L[1],P.handM,hws[1],'m');if(o.secs)hand(pos.s,L[2],P.handS,hws[2],'s');
+  if(o.centre){ctx.beginPath();ctx.arc(cx,cy,Math.max(hw,hws[1])*(o.centreSize||2.2),0,TAU);ctx.fillStyle=o.secs?P.handS:P.handM;ctx.fill();}
+  ctx.restore();
+}
+/* ---------------- Columns and Rings: the time as lists of words (0.9) ----------------
+   Columns: hour, minutes, seconds, day, date, month and year, each a column of every
+   word it can be, with the one that's true now on a single line across the screen.
+   Rings: hours, minutes and seconds as rings of words round a centre, the current
+   one at three o'clock; or with tens and units on rings of their own.
+   A number is said the way it's written: minutes and seconds as tens then units
+   (Zero Seven, Seventeen, Twenty Three), so a teen or a round ten leaves the units
+   column empty – it rests above its list. Dates the same way in ordinals (Seventh,
+   Seventeenth, Twenty First), years as Twenty Twenty Six. */
+const isCols=()=>C.show==='columns',isRings=()=>C.show==='rings',isType=()=>isCols()||isRings();
+const T1=['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+const T10=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+const TORD=n=>{const w=n<20?T1[n]:T10[Math.floor(n/10)]+(n%10?' '+T1[n%10]:'');const p=w.split(' '),l=p.pop(),o=ORDS[l.toLowerCase()];p.push(o?o[0].toUpperCase()+o.slice(1):l.endsWith('y')?l.slice(0,-1)+'ieth':l+'th');return p.join(' ');};
+const TDAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+const say=n=>n<20?T1[n]:T10[Math.floor(n/10)]+(n%10?' '+T1[n%10]:'');
+/* every list, and which entry is true for a date (-1: none – the column rests above its list) */
+function tCols(o){const Z=o.zero==='oh'?'Oh':'Zero',P=o.parts||{},out=[];
+  const tens=[Z].concat(T1.slice(10),T10.slice(2,6)),tIdx=n=>n<10?0:n<20?n-9:9+Math.floor(n/10);
+  const units=[Z].concat(T1.slice(1,10)),uIdx=n=>n<10?n:n>=20&&n%10?n%10:-1;
+  const col=(k,list,at,fixed)=>out.push({k,list,at,fixed:!!fixed});
+  const time=P.time!==false,secs=time&&o.secs!==false&&P.secs!==false,date=P.day!==false||P.date!==false||P.month!==false||P.year!==false;
+  if(time){if(o.h24)col('h',Array.from({length:24},(_,i)=>say(i)),z=>z.h);else col('h',T1.slice(1,13),z=>(z.h%12||12)-1);
+    col('mt',tens,z=>tIdx(z.mi));col('mu',units,z=>uIdx(z.mi));}
+  if(secs){col('and',['&'],()=>0,1);col('st',tens,z=>tIdx(z.s));col('su',units,z=>uIdx(z.s));col('sec',['Seconds'],()=>0,1);}
+  if(date&&time)col('on',['On'],()=>0,1);
+  if(P.day!==false)col('wd',TDAYS,z=>(z.wd+6)%7);
+  if(P.date!==false){col('dt',Array.from({length:19},(_,i)=>TORD(i+1)).concat(['Twentieth','Twenty','Thirtieth','Thirty']),z=>z.d<20?z.d-1:z.d===20?19:z.d<30?20:z.d===30?21:22);
+    col('du',Array.from({length:9},(_,i)=>TORD(i+1)),z=>z.d>20&&z.d!==30&&z.d%10?z.d%10-1:-1);}
+  if(P.month!==false)col('mo',MONTHS,z=>z.mo);
+  if(P.year!==false){const y=new Date().getFullYear(),short=y>=2020&&y<2050;
+    col('yc',[say(Math.floor(y/100)%100)],()=>0);
+    if(short)col('yd',['Twenty','Thirty','Forty'],z=>Math.floor(z.y%100/10)-2);else col('yd',tens,z=>tIdx(z.y%100));
+    col('yu',T1.slice(1,10),z=>{const lo=z.y%100;return(lo<10||lo>=20)&&lo%10?lo%10-1:-1;});}
+  return out;}
+function tRings(o){const Z=(o.zero==='oh'?'oh':'zero'),out=[],lw=s=>s.toLowerCase();
+  const ring=(k,list,at,blank)=>out.push({k,list:blank?list.concat(['']):list,at:blank?z=>{const i=at(z);return i<0?list.length:i;}:at});
+  if(o.h24)ring('h',Array.from({length:24},(_,i)=>say(i)),z=>z.h);else ring('h',T1.slice(1,13),z=>(z.h%12||12)-1);
+  const whole=n=>n===0?'o’clock':n<10?Z+' '+lw(T1[n]):lw(say(n)),wholeS=n=>n<10?Z+' '+lw(T1[n]):lw(say(n));
+  if(o.split){const tens=[Z].concat(T1.slice(10).map(lw),T10.slice(2,6).map(lw)),tIdx=n=>n<10?0:n<20?n-9:9+Math.floor(n/10),units=[Z].concat(T1.slice(1,10).map(lw)),uIdx=n=>n<10?n:n>=20&&n%10?n%10:-1;
+    ring('mt',tens,z=>tIdx(z.mi));ring('mu',units,z=>uIdx(z.mi),1);
+    if(o.secs!==false){out.push({k:'and',amp:1});ring('st',tens,z=>tIdx(z.s));ring('su',units,z=>uIdx(z.s),1);}}
+  else{ring('m',Array.from({length:60},(_,i)=>whole(i)),z=>z.mi);
+    if(o.secs!==false){out.push({k:'and',amp:1});ring('s',Array.from({length:60},(_,i)=>wholeS(i)),z=>z.s);}}
+  return out;}
+/* Case: as drawn (Columns in Title Case; Rings with the hours in Title Case, the rest lower case), or one case throughout */
+const tCase=(s,k)=>{const c=C.type.case||'auto';if(c==='upper')return s.toUpperCase();if(c==='lower')return s.toLowerCase();
+  if(c==='title')return s.replace(/(^|\s)(\S)/g,(m,a,b)=>a+b.toUpperCase());return s;};
+const tFace=()=>faceById(C.type.font)||baseFace();
+const tShapes=new Map();
+function tShape(f,str){const key=(f.name||'')+'|'+(f.weight||'')+'|'+str;let r=tShapes.get(key);if(r)return r;
+  const gl=[];let x=0,prev=null;for(const ch of Array.from(str)){const id=glyphOf(f,ch);if(prev!==null)x+=f.kern(prev,id);gl.push({id,x});x+=f.adv(id);prev=id;}
+  r={gl,w:x};if(tShapes.size>3000)tShapes.clear();tShapes.set(key,r);return r;}
+function tText(ctx,M,f,s,size,col,alpha){if(alpha<=.003||!s.gl.length)return;const k=size/f.upm;ctx.globalAlpha=Math.min(1,alpha);ctx.fillStyle=col;
+  for(const g of s.gl){ctx.setTransform(M.multiply(new DOMMatrix([k,0,0,k,g.x*k,0])));f.draw(ctx,g.id,false);}}
+/* each list's place, eased: it rolls one entry at a time, always forwards round a ring */
+let tAnim=new Map(),tSig='';
+const tEase=t=>{const f=C.type.feel;return f==='smooth'?eng.E.inOut(t):f==='elastic'?eng.E.backOut(t,1.4):eng.E.expoInOut(t);};
+function tPos(key,target,now,n){let a=tAnim.get(key);
+  if(!a){a={from:target,to:target,t0:-1e9};tAnim.set(key,a);}
+  const len=Math.max(.05,C.type.len||.6)*1000,cur=a.from+(a.to-a.from)*tEase(Math.min(1,(now-a.t0)/len));
+  if(n){/* a ring: unwrapped, forwards */if(((a.to%n)+n)%n!==target){let d=((target-a.to)%n+n)%n;a.from=cur;a.to=a.to+d;a.t0=now;}}
+  else if(a.to!==target){a.from=cur;a.to=target;a.t0=now;}
+  return a.from+(a.to-a.from)*tEase(Math.min(1,(now-a.t0)/len));}
+const tPal=()=>{const o=C.type;if(C.force)return C.force;if(o.rotate&&o.themes&&o.themes.length)return eased(hourTheme(o.themes,o.every));return{bg:o.bg,ink:o.ink,soft:o.soft};};
+function typeFrame(ctx,W,H,now,K){
+  const o=C.type,P=tPal(),f=tFace(),z=parts(Date.now());S.bg=P.bg;
+  ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle=P.bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+  if(!f)return;const capU=f.cap>0?f.cap:f.upm*.7,far=o.far==='fade';
+  if(isCols()){
+    const cols=tCols(o),sp=f.adv(glyphOf(f,' '))||f.upm*.25;
+    cols.forEach(c=>{c.shapes=c.list.map(s=>tShape(f,tCase(s,c.k)));c.w=Math.max(...c.shapes.map(s=>s.w));});
+    const lineU=cols.reduce((a,c)=>a+c.w,0)+sp*(cols.length-1),size=Math.max(1,(o.size||60)/100*W/lineU*f.upm),k=size/f.upm,capPx=capU*k,pitch=(o.leading||1.6)*capPx;
+    let x=(W-lineU*k)/2;const y0=H/2+capPx/2;
+    for(const c of cols){const pos=c.fixed?0:tPos('c.'+c.k,c.at(z),now,0);
+      c.shapes.forEach((s,i)=>{const d=Math.abs(i-pos),y=y0+(i-pos)*pitch;if(y<-pitch||y>H+pitch)return;
+        const col=c.fixed?P.ink:mixHex(P.soft,P.ink,Math.max(0,1-d)),al=far?Math.max(0,1-Math.max(0,d-1)/7):1;
+        tText(ctx,K.multiply(new DOMMatrix([1,0,0,1,x,y])),f,s,size,col,al);});
+      x+=(c.w+sp)*k;}
+    ctx.globalAlpha=1;return;}
+  /* rings */
+  const rings=tRings(o),cx=W/2,cy=H/2,gapU=1.15*capU;let r=(o.hole==null?7.8:o.hole)*capU;
+  const amp=tShape(f,'&');
+  for(const g of rings){g.r=r;if(g.amp){r+=amp.w+.9*capU;continue;}g.shapes=g.list.map(s=>tShape(f,tCase(s,g.k)));g.w=Math.max(...g.shapes.map(s=>s.w));r+=g.w+gapU;}
+  const outerU=r-gapU,k=Math.max(1e-4,(o.size||71)/100*Math.min(W,H)/2/outerU),size=k*f.upm,capPx=capU*k;
+  for(const g of rings){const R=g.r*k;
+    if(g.amp){tText(ctx,K.multiply(new DOMMatrix([1,0,0,1,cx+R,cy+capPx/2])),f,amp,size,P.ink,1);continue;}
+    const n=g.list.length,pos=tPos('r.'+g.k,g.at(z),now,n),step=TAU/n;
+    g.shapes.forEach((s,i)=>{if(!s.gl.length)return;let d=((i-pos)%n+n)%n;if(d>n/2)d-=n;const a=d*step,ad=Math.abs(d);
+      const col=mixHex(P.soft,P.ink,Math.max(0,1-ad)),al=far?Math.max(0,1-Math.max(0,ad-1)/(n/4)):1;
+      const M=K.multiply(new DOMMatrix().translateSelf(cx,cy).rotateSelf(a*180/Math.PI).translateSelf(R,capPx/2));tText(ctx,M,f,s,size,col,al);});}
+  ctx.globalAlpha=1;
 }
 function build(){
-  wCache.clear();wFit.clear();wBuilt++;
+  wCache.clear();wFit.clear();wBuilt++;pfK='';
+  {const k=JSON.stringify([C.show,C.type&&[C.type.split,C.type.h24,C.type.parts,C.type.secs,C.type.zero]]);if(k!==tSig){tSig=k;tAnim=new Map();}}
   {const k=JSON.stringify((C.words||{}).mixed||null);if(k!==mCfg){mCfg=k;mReset();}}
-  if(isWords()||isDial()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
+  if(isWords()||isDial()||isType()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
   const c=C.clock;S=JSON.parse(JSON.stringify(C.base||{}));
   Object.assign(S,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:c.change!=='roll',fit:'cap',size:c.size,align:c.align,valign:c.valign,margin:c.margin,tabular:c.tabular,transparent:false,
     tracking:c.tracking!=null?c.tracking:S.tracking,leading:c.leading!=null?c.leading:S.leading,
@@ -450,11 +583,11 @@ function build(){
   eng.use(S);hooksOn();
 }
 function setConfig(c){C=c;build();}
-function frame(ctx,W,H,now,dt){
-  if(isWords()||isDial()){
+function frame(ctx,W,H,now,dt){fNow=now;
+  if(isWords()||isDial()||isType()){
     const T=Date.now()/1000,a=C.drift||0,k=ctx.canvas.width/W,K=new DOMMatrix([k,0,0,k,0,0]);
     if(a>0){const sc=1-a*.04+a*.04*Math.sin(T/41);K.multiplySelf(new DOMMatrix().translateSelf(W/2+a*.05*W*Math.sin(T/23.7),H/2+a*.05*H*Math.sin(T/31.3+1)).scaleSelf(sc,sc).translateSelf(-W/2,-H/2));}
-    try{if(isDial())dialFrame(ctx,W,H,K);else wordsFrame(ctx,W,H,now,K);}catch(e){if(!wErr){wErr=1;console.error(e);}}
+    try{if(isDial())dialFrame(ctx,W,H,K);else if(isType())typeFrame(ctx,W,H,now,K);else wordsFrame(ctx,W,H,now,K);}catch(e){if(!wErr){wErr=1;console.error(e);}}
     return;
   }
   pal=palette();
@@ -483,5 +616,9 @@ setConfig(C);
 /* read-outs for tests and the preview */
 const lines=(W,H)=>{if(!wCur||!isWords())return{size:0,lines:[],x:[]};const L=wLayout(wCur,wLatest,W,H),out=[],xs=[];
   for(const w of L.words){if(!out[w.li]){out[w.li]=[];xs[w.li]=w.x;}out[w.li].push(w.t.w);}return{size:L.size,lines:out.map(a=>a.join(' ')),x:xs,forced:L.forced};};
-return{frame,setConfig,bg:()=>S&&S.bg,replay,words:()=>(wCur||[]).map(t=>t.w).join(' '),faces:()=>(wCur||[]).map(t=>[t.w,t.fid||'']),clockFaces:()=>({text:cur,l0:cF.l0.slice(),l2:cF.l2}),lines,hands:()=>Object.assign({},dNow)};
+/* Columns and Rings, read out: the words true now, in order (tests) */
+const typeNow=()=>{if(!isType())return[];const z=parts(Date.now());
+  if(isCols())return tCols(C.type).map(c=>{const i=c.fixed?0:c.at(z);return i<0?'':tCase(c.list[i],c.k);}).filter(Boolean);
+  return tRings(C.type).map(g=>g.amp?'&':tCase(g.list[g.at(z)],g.k)).filter(Boolean);};
+return{frame,setConfig,bg:()=>S&&S.bg,replay,typeNow,words:()=>(wCur||[]).map(t=>t.w).join(' '),faces:()=>(wCur||[]).map(t=>[t.w,t.fid||'']),clockFaces:()=>({text:cur,l0:cF.l0.slice(),l2:cF.l2}),lines,hands:()=>Object.assign({},dNow)};
 }

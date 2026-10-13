@@ -1,5 +1,28 @@
 # Changelog
 
+## 13 October 2026 – Tempo 0.9
+
+**Colour**
+- **Themes you can see.** The Colour card shows every theme as a tile in its own colours, built in and yours, with the one in use ringed and its colours always listed below – no more hunting in a fold. The same for The time, In words, the dial, and Columns and Rings.
+- **Change any theme.** Change a colour of a built-in theme and it's kept as a copy among yours (My Noon), the built-in one untouched. Your themes save as you go, and can be renamed or deleted.
+- **Every hour, your way.** Tick the themes to play through the day, in order, and say how long each lasts (1 to 12 hours). A strip shows the whole day; click an hour, or a theme, to see it in the preview and change it. The colours fade across over a second and a half when the hour turns.
+- **Older downloads keep their colours.** A screen saver downloaded before 0.6 whose colours change every hour now opens with its themes, in order, ready to change (they were lost before, and the colour controls hidden).
+
+**The time and In words**
+- A figure rolling in is no longer cut flat at the bottom as it settles, Elastic's overshoot isn't clipped, and figures that stay glide to their new places. In words, descenders roll through whole.
+
+**Columns and Rings** – two new ways to show the time, from Steve's mock-ups: the time and date as columns of words with today's on one line, or hours, minutes and seconds as rings of words – one ring each, or tens and units apart. Timeless Sans Medium when it's loaded; their own themes, starting white, black and warm grey. The mock-ups' wording was checked and corrected (Seventeen, not Seventeen Seven; Forty; Twenty Twenty Six; ordinals for dates).
+
+**The dial**
+- **Fill:** the face fills behind the hour, minute or second hand like a pie chart – filling then emptying, or starting empty each turn – with its reach, opacity, blend and colour.
+- **Hands:** a weight for each, square or round ends, a dot or ring at the tip, a counterweight on the second hand, the centre dot's size, and opacity and blend (multiply, screen, overlay, difference).
+
+**Export**
+- **Download everything:** one zip named as the screen saver, with the Mac and Windows screen savers, the HTML file and one read-me – Made with Tempo by ENSEMBLE, how to install each, the web address and email.
+
+**Promo (internal – comes out before Tempo goes public)**
+- A Promo card: a sheet of each screen saver's settings and colours, three stills on three dates (one per colour change), and a seamless 5, 10 or 20-second loop through the hours (or round the clock) as GIF and MP4 – or all of them in one zip. Play the loop runs it in the preview; with Preview it fills the window.
+
 ## 10 October 2026 – the interface, refined (same versions: Tempo 0.8, Rubato 1.1, Tutti 6.1)
 
 A refining pass on the system that went live on 9 October, with a glitch review of all three tools in light, dark, Preview, phone width and embedded. No tool does anything new; exports are unchanged.

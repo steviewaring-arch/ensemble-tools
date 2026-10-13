@@ -42,6 +42,10 @@ All three were done on 12 October; the first run passed and the workflow now pub
 
 **Still to confirm with Timeless** (hello@timeless.co): that a free public tool may embed Timeless and let people export screen savers that carry its outlines – the digits and letters a screen saver needs, as drawing paths rather than a font file. Our reading is that this is embedding within a work (5.3), but the licence doesn't mention tools, so it's worth asking before the screen savers are given away.
 
+## Code from elsewhere
+- **mp4-muxer** 5.2.2 by Vanilagy (MIT) – `tempo/vendor/`, licence alongside. Writes the MP4 loops in Tempo's promo tools.
+- **WebViewScreenSaver** by Alastair Tse (Apache 2.0) – inside every Mac `.saver`, licence inside the bundle.
+
 ## Other fonts
 
 - **Fonts people load themselves** stay in their own browser and are never uploaded anywhere. Exports carry only the outlines of the glyphs they need, never a font file.

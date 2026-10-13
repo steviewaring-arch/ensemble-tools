@@ -125,7 +125,7 @@ async function build(assets,{name,html,thumbs,readme}){
     {path:root+'Info.plist',data:info},{path:root+'MacOS/WebViewScreenSaver',data:bin,exec:true},{path:root+'_CodeSignature/CodeResources',data:cr}];
   for(const [k,u] of Object.entries(files))entries.push({path:root+k,data:u});
   if(readme)entries.push({path:'Read me first.txt',data:enc.encode(readme)});
-  return{blob:zip(entries),bundle,files,info,cr,bin};
+  return{blob:zip(entries),entries,bundle,files,info,cr,bin};/* entries: so a bigger download can carry the bundle as it is */
 }
 return{build,tiff,zip};
 })();

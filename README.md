@@ -6,7 +6,7 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 |---|---|---|
 | **Tutti** 6.1 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
 | **Rubato** 1.1 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
-| **Tempo** 0.8 | A clock screen saver for Mac and Windows – the time in your own typefaces, as figures or written out in words with other fonts mixed in, or as a dial with no type at all. Save presets and reopen anything you've downloaded | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
+| **Tempo** 0.9 | A clock screen saver for Mac and Windows – the time in your own typefaces, as figures, written out in words with other fonts mixed in, as columns or rings of words, or as a dial with no type at all. Colour themes through the day, presets, and one download with everything | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
@@ -30,14 +30,14 @@ rubato/        engine.js (Rubato's type engine: blocks, physics, kerning, Jitter
                controls.js (steppers, dials, range pair, loop bar, path pad, More folds)
                stage.js (kerning on the preview, physics guides, preset tiles)
                app.js (cards, picker, randomise, presets), export.js, app.html, app.css
-tempo/         engine.js (Tempo's type engine), app.html, app.js (screen saver cards and exports), saver.js (clock, words and dial runtime)
+tempo/         engine.js (Tempo's type engine), app.html, app.js (screen saver cards and exports), saver.js (clock, words, columns, rings and dial runtime), promo.js (internal promo tools – out before a public launch), vendor/ (mp4-muxer, MIT)
   mac/             Mac .saver packager (WebViewScreenSaver, Apache 2.0)
   win/             Windows .scr host – C source, built .exe, and its base64 copy (host.js)
 tutti/         index.html – Tutti 6.1 (its own page and script); frame.css and frame.js put it on the shared tokens, components and frame
 decentish/     index.html – Decentish prototype, one self-contained page; NOTES.md
 reference/     rubato-0.8.1.html – the last combined app, kept for the parity tests
 archive/       earlier versions still served live – rubato-0.9.html → docs/rubato/0.9/
-tests/         parity.py, split_check.py, tempo_check.py, rubato_regress.py, rubato_features.py, legacy/ (the v0.8.1 handover tests)
+tests/         parity.py, split_check.py, tempo_check.py, tempo09_check.py, rubato_regress.py, rubato_features.py, legacy/ (the v0.8.1 handover tests)
 docs/          the built apps – what GitHub Pages serves. Don't edit by hand.
 build.py       stitches each app into one file in docs/
 ```
@@ -67,6 +67,7 @@ Then:
 python3 tests/parity.py        # Rubato and Tempo against v0.8.1 – writes tests/out/report.md
 python3 tests/split_check.py   # Rubato and Tempo kept apart
 python3 tests/tempo_check.py   # Tempo: the time in words, fonts mixed in, tracking per font, the dial, presets, preview, exports
+python3 tests/tempo09_check.py # Tempo 0.9: colour themes, Columns and Rings, the dial's fill and hands, Download everything, promo
 python3 tests/licence_check.py # licensed fonts kept out of this public repo – run before every push
 python3 tests/rubato_regress.py   # Rubato 1.0 draws exactly what 0.9 drew, for 0.9's settings
 python3 tests/rubato_features.py  # Rubato 1.0's new features

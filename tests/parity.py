@@ -330,6 +330,7 @@ import re as _re
 from ui_helpers import btn, reveal, sheet
 TEMPO03 = 'Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py'
 TEMPO07 = "Tempo 0.7 never names a screen saver after its font (Timeless's licence forbids naming a product after it) – Tempo, Tempo Words or Tempo Dial"
+TEMPO09 = "Tempo 0.9's roll is smoother mid-change: the window reaches past the ink (no figure cut flat as it settles) and figures that stay glide to their new place – stills and settled frames still match"
 RUBATO10 = "Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9"
 ON_PURPOSE = {
     ('t1', 'Studio panel'): 'Rubato 1.0 regrouped the panel (Presets first, new controls)', ('t2', '? count'): 'Rubato 1.0 has more controls with tips',
@@ -342,6 +343,7 @@ ON_PURPOSE = {
     ('t4', 'Windows zip'): TEMPO03, ('t4', 'Mac zip'): TEMPO03,
     ('t5', 'screen saver HTML'): TEMPO03, ('t5', 'screen saver HTML (file name)'): 'Tempo 0.3 names the file after the screen saver, not Rubato\'s text',
     ('t6', 'Mac zip'): TEMPO03, ('t6', 'Windows zip'): TEMPO03,
+    ('t4', 'roll at 450 ms'): TEMPO09, ('t5', 'engine frame 1'): TEMPO09, ('t5', 'engine frame 2'): TEMPO09,
     ('t3', 'Mac zip (file name)'): TEMPO07, ('t4', 'Windows zip (file name)'): TEMPO07, ('t4', 'Mac zip (file name)'): TEMPO07, ('t6', 'Mac zip (file name)'): TEMPO07, ('t6', 'Windows zip (file name)'): TEMPO07,
 }
 # live-preview frames that land on one of two states depending on timing:

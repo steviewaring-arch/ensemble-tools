@@ -12,7 +12,7 @@ function tempoKeys(){const gone=['ssShape','ssEvery','ssShuffle','ssReseed','ssS
    ssW… the time in words. ssM… how display faces mix into the words, ssN… into
    the numerals of the time. ssDial… the dial. ssVer marks settings already moved
    up to 0.4. The time opens in Noon (from 0.5); Rubato keeps 0.8.1's colours. */
-function tempoDefaults(){return{ssVer:4,
+function tempoDefaults(){return{ssVer:5,
   ssWLead:true,ssWH24:false,ssWTime:true,ssWSecs:true,ssWWeekday:true,ssWDayNum:true,ssWMonth:true,ssWYear:true,ssWStop:false,
   ssWCase:'sentence',ssWNumTime:'words',ssWNumSec:'words',ssWNumDate:'words',ssWNumYear:'words',ssWZero:'oh',ssWSep:'stop',ssWHi:'time',
   ssWLayout:'para',ssWFit:false,ssWSize:5,ssWLeading:1,ssWTracking:-20,ssWSpace:100,ssWMeasure:100,ssWOptical:true,ssWAlign:'left',ssWVAlign:'top',ssWMargin:2.5,
@@ -25,7 +25,16 @@ function tempoDefaults(){return{ssVer:4,
   ssBg:'#D3D5D5',ssP1:'#F4FD5F',ssP2:'#1E2023',ssP3:'#F4FD5F',ssP4:'#1E2023',
   ssDialFace:'rays',ssDialDetail:'minutes',ssDialHole:.22,ssDialTick:.18,ssDialRing:false,ssDialLine:2.2,ssDialKey:2.2,ssDialHand:6,
   ssDialSecs:true,ssDialSecMove:'sweep',ssDialMinMove:'glide',ssDialFeel:'elastic',ssDialLen:.35,ssDialTrail:'off',ssDialTails:true,ssDialCentre:false,ssDialSize:86,
-  ssDialBg:'#FFFFFF',ssDialMin:'#E7E7E7',ssDialHour:'#A9A9A9',ssDialQuarter:'#181818',ssDialHandH:'#EA2631',ssDialHandM:'#EA2631',ssDialHandS:'#EA2631',ssDialRotate:false};}
+  ssDialBg:'#FFFFFF',ssDialMin:'#E7E7E7',ssDialHour:'#A9A9A9',ssDialQuarter:'#181818',ssDialHandH:'#EA2631',ssDialHandM:'#EA2631',ssDialHandS:'#EA2631',ssDialRotate:false,
+  /* 0.9: themes through the day – which themes (names, '|' between; empty: all of them) and how many hours each lasts */
+  ssCSet:'',ssCEvery:1,ssWSet:'',ssWEvery:1,ssDialSet:'',ssDialEvery:1,
+  /* 0.9: the dial fills like a pie chart, and the hands get more say */
+  ssDialFill:'off',ssDialFillTurn:'turn',ssDialFillR:1,ssDialFillA:1,ssDialFillBlend:'normal',ssDialFillOver:false,ssDialFillC:'#FCE3E4',
+  ssDialCap:'butt',ssDialWM:6,ssDialWS:6,ssDialTip:'none',ssDialTipOn:'m',ssDialTipSize:3,ssDialWeight:false,ssDialCentreSize:2.2,ssDialHandA:1,ssDialBlend:'normal',
+  /* 0.9: Columns and Rings – the time as lists of words (ssT…) */
+  ssTFont:'',ssTH24:false,ssTSecs:true,ssTZero:'zero',ssTCase:'auto',ssTTime:true,ssTDay:true,ssTDate:true,ssTMonth:true,ssTYear:true,
+  ssTCSize:60,ssTRSize:71,ssTLeading:1.6,ssTHole:7.8,ssTSplit:false,ssTFeel:'smooth',ssTLen:.6,ssTFar:'all',
+  ssTBg:'#FFFFFF',ssTInk:'#000000',ssTSoft:'#D2CDC9',ssTRotate:false,ssTSet:'',ssTEvery:1};}
 /* (called by shared/core.js before this file's consts exist, so it uses none) */
 function loadSettings(){
   Object.assign(D,tempoDefaults());
@@ -35,12 +44,16 @@ function loadSettings(){
     localStorage.setItem('tempo:own','1');}}catch(e){}
   const raw=LS.get('settings')||{},own=sanitise(raw),s=fresh();
   for(const k of tempoKeys())if(k in own)s[k]=own[k];
-  if((raw.ssVer||0)<4)upgrade(s,raw);
+  if((raw.ssVer||0)<5)upgrade(s,raw);
   s.tab='saver';return s;
 }
 /* Settings saved by 0.1 and 0.2, made sense of in 0.3 */
 function upgrade(s,raw){
-  s.ssVer=4;
+  s.ssVer=5;
+  /* 0.9: one weight for every hand becomes a weight for each; "My themes" every hour becomes the list of them */
+  if(!('ssDialWM' in raw)){s.ssDialWM=s.ssDialWS=s.ssDialHand;}
+  if(s.ssRotate==='mine'){s.ssCSet=(LS.get('themes')||[]).map(t=>t.name).join('|');s.ssRotate='all';}
+  if((raw.ssVer||0)>=4)return;
   /* 0.4: words or figures part by part */
   if(raw.ssWNum==='figures')s.ssWNumTime=s.ssWNumSec=s.ssWNumDate=s.ssWNumYear='figures';
   if((raw.ssVer||0)>=3)return;
@@ -112,18 +125,13 @@ Object.assign(TIPS,{
 });
 
 /* ================= Screensaver ================= */
-const getThemes=()=>LS.get('themes')||[];
 const SEPS={comma:',',colon:':',stop:'.',space:' '};
-const PALETTES=[
-  {name:'Noon',bg:'#D3D5D5',p:['#F4FD5F','#1E2023','#F4FD5F','#1E2023']},
-  {name:'Night',bg:'#000000',p:['#FFFFFF','#8C8C8C','#FFFFFF','#4D4D4D']},
-  {name:'Paper',bg:'#F2F2F2',p:['#000000','#FF3B1F','#000000','#8C8C8C']},
-  {name:'Signal',bg:'#FF4F1F',p:['#000000','#FFFFFF','#FFF35C','#000000']},
-];
-const clk=s=>s.ssShow!=='words'&&s.ssShow!=='dial',wd=s=>s.ssShow==='words',dl=s=>s.ssShow==='dial';
+const clk=s=>!['words','dial','columns','rings'].includes(s.ssShow),wd=s=>s.ssShow==='words',dl=s=>s.ssShow==='dial';
+/* 0.9: Columns and Rings, the time as lists of words */
+const cols=s=>s.ssShow==='columns',rgs=s=>s.ssShow==='rings',ty=s=>cols(s)||rgs(s);
 
 /* Cards that start shut (each says what's set): all but the one for what's showing */
-function appCollapseDefault(){return ['ss-num','ss-change','ss-wtype','ss-wchange','ss-dhands','ss-pos','ss-colour','ss-wcolour','ss-dcolour'];}
+function appCollapseDefault(){return ['ss-num','ss-change','ss-wtype','ss-wchange','ss-dhands','ss-pos','ss-tchange'];}/* 0.9: Colour starts open – it's where people look first */
 /* ---------------- Fonts: the core font, the others mixed in ---------------- */
 /* Sub-sections that fold inside a card. Open or shut is remembered. */
 const FOLDS=Object.assign({},LS.get('folds')||{});
@@ -267,7 +275,7 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
 }
 /* Show */
 {const b=card('ss-show','Screensaver',null,'saver');
-  build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['dial','As a dial']]}]);
+  build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['columns','Columns'],['rings','Rings'],['dial','As a dial']]}]);
   toIsland(b.firstChild);hideCard(b);/* the first choice – the time in figures, in words, or as a dial – lives in the island */
 }
 /* A dial has no type, so Fonts steps aside */
@@ -361,6 +369,7 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
 /* As a dial: the face */
 const DIAL_FACES=[['rays','Rays'],['ticks','Ticks'],['dots','Dots'],['none','Hands only']];
 const marked=s=>dl(s)&&s.ssDialFace!=='none';
+const BLENDS=[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['difference','Difference']];
 {const b=card('ss-dface','Face',dl,'saver');
   build(b,[
     {t:'seg',k:'ssDialFace',label:'Marks',opts:DIAL_FACES},
@@ -369,10 +378,19 @@ const marked=s=>dl(s)&&s.ssDialFace!=='none';
     {t:'range',k:'ssDialTick',label:'Tick length',min:.03,max:.3,step:.01,fmt:pct,show:s=>dl(s)&&s.ssDialFace==='ticks'},
     {t:'toggle',k:'ssDialRing',label:'Outer ring'},
   ]);
+  /* 0.9: the face fills behind a hand, like a pie chart */
+  const fill=s=>dl(s)&&s.ssDialFill!=='off';
+  build(fold(b,'d-fill','Fill'),[
+    {t:'seg',k:'ssDialFill',label:'Fill follows',opts:[['off','Off'],['hour','Hour hand'],['minute','Minute hand'],['second','Second hand']]},
+    {t:'seg',k:'ssDialFillTurn',label:'Each turn',opts:[['turn','Fills, then empties'],['reset','Starts empty']],show:fill},
+    {t:'range',k:'ssDialFillR',label:'Reach',min:.1,max:1,step:.01,fmt:pct,show:fill},
+    {t:'range',k:'ssDialFillA',label:'Opacity',min:.05,max:1,step:.01,fmt:pct,show:fill},
+    {t:'seg',k:'ssDialFillBlend',label:'Blend',opts:BLENDS,show:fill},
+    {t:'toggle',k:'ssDialFillOver',label:'Over the marks',show:s=>fill(s)&&s.ssDialFace!=='none'},
+  ]);
   build(fold(b,'d-weight','Line weight'),[
     {t:'range',k:'ssDialLine',label:'Minute marks',min:.5,max:20,step:.1,fmt:v=>v.toFixed(1),show:s=>marked(s)&&s.ssDialDetail==='minutes'},
     {t:'range',k:'ssDialKey',label:'Hours, quarters and ring',min:.5,max:20,step:.1,fmt:v=>v.toFixed(1),show:s=>marked(s)||(dl(s)&&s.ssDialRing)},
-    {t:'range',k:'ssDialHand',label:'Hands',min:.5,max:30,step:.1,fmt:v=>v.toFixed(1)},
   ]);
 }
 /* As a dial: the hands, and how they move */
@@ -385,8 +403,52 @@ const marked=s=>dl(s)&&s.ssDialFace!=='none';
     {t:'seg',k:'ssDialFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:stepping},
     {t:'range',k:'ssDialLen',label:'Length',min:.05,max:.9,step:.05,fmt:v=>v.toFixed(2)+' s',show:stepping},
     {t:'seg',k:'ssDialTrail',label:'Marks follow the second hand',opts:[['off','Off'],['fill','Fill the minute'],['fade','Fade behind']],show:s=>s.ssDialSecs&&s.ssDialFace!=='none'},
+  ]);
+  /* 0.9: weight, ends, tips and blend, hand by hand */
+  build(fold(b,'d-handshape','Shape'),[
+    {t:'range',k:'ssDialHand',label:'Hour hand',min:.5,max:40,step:.1,fmt:v=>v.toFixed(1)},
+    {t:'range',k:'ssDialWM',label:'Minute hand',min:.5,max:40,step:.1,fmt:v=>v.toFixed(1)},
+    {t:'range',k:'ssDialWS',label:'Second hand',min:.5,max:40,step:.1,fmt:v=>v.toFixed(1),show:s=>s.ssDialSecs},
+    {t:'seg',k:'ssDialCap',label:'Ends',opts:[['butt','Square'],['round','Round']]},
+    {t:'seg',k:'ssDialTip',label:'Tip',opts:[['none','None'],['dot','Dot'],['ring','Ring']]},
+    {t:'seg',k:'ssDialTipOn',label:'Tip on',opts:[['m','Minute hand'],['s','Second hand'],['ms','Both'],['all','All three']],show:s=>s.ssDialTip!=='none'},
+    {t:'range',k:'ssDialTipSize',label:'Tip size',min:1,max:12,step:.1,fmt:v=>v.toFixed(1),show:s=>s.ssDialTip!=='none'},
     {t:'toggle',k:'ssDialTails',label:'Tails'},
+    {t:'toggle',k:'ssDialWeight',label:'Counterweight on the second hand',show:s=>s.ssDialSecs},
     {t:'toggle',k:'ssDialCentre',label:'Centre dot'},
+    {t:'range',k:'ssDialCentreSize',label:'Centre dot size',min:1,max:6,step:.1,fmt:v=>v.toFixed(1),show:s=>s.ssDialCentre},
+  ]);
+  build(fold(b,'d-handblend','Opacity and blend',null,true),[
+    {t:'range',k:'ssDialHandA',label:'Opacity',min:.05,max:1,step:.01,fmt:pct},
+    {t:'seg',k:'ssDialBlend',label:'Blend',opts:BLENDS},
+  ]);
+}
+/* Columns and Rings: the words */
+/* The font: chosen here, or Timeless Sans Medium when it's loaded (as drawn), else the core font */
+const typeFontAuto=()=>{const L=eng.faceList(),n=x=>x.face.name||'';return(L.find(x=>/timeless/i.test(n(x))&&/medium/i.test(n(x))&&!/grotesk/i.test(n(x)))||L.find(x=>/medium/i.test(n(x)))||{}).id||baseSlot();};
+const typeFont=()=>{const id=S.ssTFont;return id&&eng.faceList().some(x=>x.id===id)?id:typeFontAuto();};
+{const b=card('ss-twords','Words',ty,'saver');
+  const PIECES=[['ssTTime','Time'],['ssTSecs','Seconds'],['ssTDay','Day'],['ssTDate','Date'],['ssTMonth','Month'],['ssTYear','Year']];
+  const chips=el('div','ctl btn-row');chips.setAttribute('role','group');chips.setAttribute('aria-label','Columns shown');addCustom(b,cols,chips);
+  const cs=PIECES.map(([k,t])=>{const p=el('button','pill small',t);p.onclick=()=>set(k,!S[k]);chips.append(p);return[k,p];});
+  controls.push({d:{},w:chips,update(){cs.forEach(([k,p])=>{p.setAttribute('aria-pressed',!!S[k]);p.hidden=k==='ssTSecs'&&!S.ssTTime;});}});
+  build(b,[
+    {t:'hint',text:'Click the parts to choose the columns. The words that are true now sit on one line.',show:cols},
+    {t:'hint',text:'Nothing to show. Switch on at least one part.',show:s=>cols(s)&&!(s.ssTTime||s.ssTDay||s.ssTDate||s.ssTMonth||s.ssTYear)},
+    {t:'toggle',k:'ssTSecs',label:'Seconds',show:rgs},
+    {t:'seg',k:'ssTSplit',label:'Rings',opts:[[false,'One for each'],[true,'Tens and units']],show:rgs},
+    {t:'seg',k:'ssTH24',label:'Format',opts:[[false,'12-hour'],[true,'24-hour']],show:s=>rgs(s)||s.ssTTime},
+    {t:'seg',k:'ssTZero',label:'Say 0 as',opts:[['zero','Zero'],['oh','Oh']]},
+    {t:'seg',k:'ssTCase',label:'Case',opts:[['auto','As drawn'],['title','Title Case'],['lower','lower case'],['upper','CAPITALS']]},
+  ]);
+  addSelect(b,{k:'ssTFont',label:'Font',optsFn:()=>[['','Medium, if loaded']].concat(faceOpts())});
+  build(b,[{t:'hint',text:'Always this computer’s own time and date, wherever the screen saver is installed.'}]);
+}
+{const b=card('ss-tchange','Change',ty,'saver');
+  build(b,[
+    {t:'seg',k:'ssTFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']]},
+    {t:'range',k:'ssTLen',label:'Length',min:.15,max:2,step:.05,fmt:v=>v.toFixed(2)+' s'},
+    {t:'seg',k:'ssTFar',label:'The other words',opts:[['all','All shown'],['fade','Fade with distance']]},
   ]);
 }
 /* Position */
@@ -401,37 +463,27 @@ const marked=s=>dl(s)&&s.ssDialFace!=='none';
     {t:'seg',k:'ssWVAlign',label:'Vertical',opts:[['top','Top'],['middle','Middle'],['bottom','Bottom']],show:wd},
     {t:'range',k:'ssWMargin',label:'Margin',min:0,max:15,step:.5,fmt:v=>roundTo(v,.5)+'%',show:wd},
     {t:'range',k:'ssDialSize',label:'Size',min:20,max:100,step:1,fmt:v=>Math.round(v)+'% of the screen',show:dl},
+    {t:'range',k:'ssTCSize',label:'Size',min:20,max:100,step:1,fmt:v=>'line '+Math.round(v)+'% of the width',show:cols},
+    {t:'range',k:'ssTLeading',label:'Line spacing',min:1.1,max:3,step:.05,fmt:v=>v.toFixed(2)+' × cap',show:cols},
+    {t:'range',k:'ssTRSize',label:'Size',min:20,max:100,step:1,fmt:v=>Math.round(v)+'% of the screen',show:rgs},
+    {t:'range',k:'ssTHole',label:'Space in the middle',min:2,max:20,step:.1,fmt:v=>v.toFixed(1)+' × cap',show:rgs},
     {t:'range',k:'ssDrift',label:'Drift',min:0,max:1,step:.01,fmt:v=>v===0?'Off':pct(v)},
   ]);
 }
-/* Colour + themes */
-{const b=card('ss-colour','Colour',clk,'saver');
-  const themeRow=el('div','ctl btn-row choice');themeRow.setAttribute('role','group');themeRow.setAttribute('aria-label','Theme');addCustom(b,s=>s.ssRotate==='off',themeRow);
-  const lab=i=>s=>s.ssColBy==='type'?['Numerals','Punctuation','Letters','Spare'][i]:s.ssColBy==='single'?'Type':s.ssColBy==='line'?'Line '+(i+1):'Colour '+(i+1);
-  const manual=s=>s.ssRotate==='off';
-  build(b,[{t:'seg',k:'ssColBy',label:'Colour by',opts:[['type','Character type'],['letter','Each letter'],['line','Line'],['random','Random'],['single','One colour']]}]);
-  const cf=fold(b,'c-colours','Your colours',manual);
-  build(cf,[
-    {t:'colour',k:'ssBg',label:'Background',show:manual},
-    {t:'colour',k:'ssP1',labelFn:lab(0),label:'Colour 1',show:manual},
-    {t:'colour',k:'ssP2',labelFn:lab(1),label:'Colour 2',show:s=>manual(s)&&s.ssColBy!=='single'},
-    {t:'colour',k:'ssP3',labelFn:lab(2),label:'Colour 3',show:s=>manual(s)&&s.ssColBy!=='single'},
-    {t:'colour',k:'ssP4',labelFn:lab(3),label:'Colour 4',show:s=>manual(s)&&s.ssColBy!=='single'&&s.ssColBy!=='type'},
-  ]);
-  const saveRow=el('div','ctl btn-row');const tn=el('input');tn.type='text';tn.placeholder='Name this theme';tn.setAttribute('aria-label','Theme name');
-  const ts=el('button','pill small primary','Save theme');saveRow.append(tn,ts);addCustom(cf,manual,saveRow);
-  const mine=el('div','preset-list');addCustom(b,null,mine);
-  build(b,[{t:'seg',k:'ssRotate',label:'Change theme every hour',opts:[['off','Off'],['all','All themes'],['mine','My themes']]}]);
-  const apply=T=>{S.ssBg=T.bg;[S.ssP1,S.ssP2,S.ssP3,S.ssP4]=T.p;set('ssRotate','off');};
-  const cur=()=>({bg:S.ssBg,p:[S.ssP1,S.ssP2,S.ssP3,S.ssP4]});
-  const same=T=>T.bg.toLowerCase()===S.ssBg.toLowerCase()&&T.p.every((c,i)=>c.toLowerCase()===[S.ssP1,S.ssP2,S.ssP3,S.ssP4][i].toLowerCase());
-  window.themesRefresh=()=>{themeRow.textContent='';[...PALETTES,...getThemes()].forEach(T=>{const p=el('button','pill small',T.name);p.setAttribute('aria-pressed',same(T));p.onclick=()=>{apply(T);themesRefresh();};themeRow.append(p);});
-    mine.textContent='';getThemes().forEach((T,i)=>{const it=el('div','preset-item'),sw=el('span','sw-set');
-      [T.bg,...T.p].forEach(c=>{const d=el('i','sw-dot');d.style.background=c;sw.append(d);});
-      const nm=el('span',null,T.name),del=el('button','pill small','Delete');del.onclick=()=>{const q=getThemes();q.splice(i,1);LS.set('themes',q);themesRefresh();ssDirty=true;};it.append(sw,nm,del);mine.append(it);});};
-  ts.onclick=()=>{const n=tn.value.trim()||('Theme '+(getThemes().length+1));const q=getThemes().filter(t=>t.name!==n&&!PALETTES.some(P=>P.name===n));q.push(Object.assign({name:n},cur()));LS.set('themes',q);tn.value='';themesRefresh();ssDirty=true;toast(`Saved ${n}`);};
-}
-/* In words: colour themes */
+/* ================= Colour themes (rebuilt in 0.9) =================
+   Every way of showing the time has its own themes: some built in, and your own.
+   The Colour card shows them all as tiles drawn in their colours. Click one to use it
+   and its colours appear below, ready to change. Change a built-in theme and it's
+   kept as a copy among yours (built-in themes stay as they are); change one of yours
+   and it's saved as you go. Every hour: tick the themes to play through the day, in
+   the order ticked, and say how long each lasts – the strip shows the day hour by
+   hour; click an hour to see it. Imported screen savers bring their themes with them. */
+const PALETTES=[
+  {name:'Noon',bg:'#D3D5D5',p:['#F4FD5F','#1E2023','#F4FD5F','#1E2023']},
+  {name:'Night',bg:'#000000',p:['#FFFFFF','#8C8C8C','#FFFFFF','#4D4D4D']},
+  {name:'Paper',bg:'#F2F2F2',p:['#000000','#FF3B1F','#000000','#8C8C8C']},
+  {name:'Signal',bg:'#FF4F1F',p:['#000000','#FFFFFF','#FFF35C','#000000']},
+];
 const WORD_THEMES=[
   {name:'Apricot',bg:'#FFFFFF',ink:'#181818',soft:'#FDA072',date:'#F7C6AA'},
   {name:'Red',bg:'#FFFFFF',ink:'#FF3B1F',soft:'#181818',date:'#8C8C8C'},
@@ -441,48 +493,155 @@ const WORD_THEMES=[
   {name:'Noon',bg:'#D3D5D5',ink:'#F4FD5F',soft:'#1E2023',date:'#1E2023'},
 ];
 const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','date']];
-{const b=card('ss-wcolour','Colour',wd,'saver');
-  const row=el('div','ctl btn-row choice');row.setAttribute('role','group');row.setAttribute('aria-label','Theme');addCustom(b,s=>!s.ssWRotate,row);
-  const same=T=>W_COLS.every(([k,t])=>String(T[t]).toLowerCase()===String(S[k]).toLowerCase());
-  const fixed=s=>!s.ssWRotate;
-  build(b,[{t:'toggle',k:'ssWRotate',label:'Change theme every hour'}]);
-  build(fold(b,'w-colours','Your colours',fixed),[
-    {t:'colour',k:'ssWBg',label:'Background',show:fixed},
-    {t:'colour',k:'ssWInk',label:'Highlight',labelFn:s=>s.ssWHi==='faces'?'Other fonts':s.ssWHi==='time'||s.ssWHi==='parts'?'The time':s.ssWHi==='latest'?'Latest change':'Type',show:fixed},
-    {t:'colour',k:'ssWDateCol',label:'The date',show:s=>fixed(s)&&s.ssWHi==='parts'},
-    {t:'colour',k:'ssWSoft',label:'Everything else',show:s=>fixed(s)&&s.ssWHi!=='none'},
-  ]);
-  const paint=()=>{row.textContent='';WORD_THEMES.forEach(T=>{const p=el('button','pill small',T.name);p.setAttribute('aria-pressed',same(T));
-    p.onclick=()=>{W_COLS.forEach(([k,t])=>{S[k]=T[t];});set('ssWRotate',false);};row.append(p);});};
-  controls.push({d:{},w:row,update:paint});
-}
-/* As a dial: colour */
 const DIAL_THEMES=[
-  {name:'Paper',bg:'#FFFFFF',min:'#E7E7E7',hour:'#A9A9A9',quarter:'#181818',handH:'#EA2631',handM:'#EA2631',handS:'#EA2631'},
-  {name:'Dawn',bg:'#FFFFFF',min:'#8A8A8A',hour:'#8A8A8A',quarter:'#C2C2C2',handH:'#30FFFE',handM:'#FDA072',handS:'#FEC4FE'},
-  {name:'Noon',bg:'#D3D5D5',min:'#E9EBEB',hour:'#F4FD5F',quarter:'#1E2023',handH:'#F4FD5F',handM:'#F4FD5F',handS:'#1E2023'},
-  {name:'Night',bg:'#000000',min:'#333333',hour:'#8C8C8C',quarter:'#FFFFFF',handH:'#FFFFFF',handM:'#FFFFFF',handS:'#FFF35C'},
-  {name:'Signal',bg:'#FF4F1F',min:'#FF9A7A',hour:'#000000',quarter:'#000000',handH:'#000000',handM:'#000000',handS:'#FFFFFF'},
+  {name:'Paper',bg:'#FFFFFF',min:'#E7E7E7',hour:'#A9A9A9',quarter:'#181818',handH:'#EA2631',handM:'#EA2631',handS:'#EA2631',fill:'#FCE3E4'},
+  {name:'Dawn',bg:'#FFFFFF',min:'#8A8A8A',hour:'#8A8A8A',quarter:'#C2C2C2',handH:'#30FFFE',handM:'#FDA072',handS:'#FEC4FE',fill:'#FFE8DA'},
+  {name:'Noon',bg:'#D3D5D5',min:'#E9EBEB',hour:'#F4FD5F',quarter:'#1E2023',handH:'#F4FD5F',handM:'#F4FD5F',handS:'#1E2023',fill:'#F4FD5F'},
+  {name:'Night',bg:'#000000',min:'#333333',hour:'#8C8C8C',quarter:'#FFFFFF',handH:'#FFFFFF',handM:'#FFFFFF',handS:'#FFF35C',fill:'#222222'},
+  {name:'Signal',bg:'#FF4F1F',min:'#FF9A7A',hour:'#000000',quarter:'#000000',handH:'#000000',handM:'#000000',handS:'#FFFFFF',fill:'#FF9A7A'},
 ];
-const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDialQuarter','quarter'],['ssDialHandH','handH'],['ssDialHandM','handM'],['ssDialHandS','handS']];
-{const b=card('ss-dcolour','Colour',dl,'saver');
-  const row=el('div','ctl btn-row choice');row.setAttribute('role','group');row.setAttribute('aria-label','Theme');addCustom(b,s=>!s.ssDialRotate,row);
-  const same=T=>D_COLS.every(([k,t])=>String(T[t]).toLowerCase()===String(S[k]).toLowerCase());
-  const fixed=s=>dl(s)&&!s.ssDialRotate;
-  build(b,[{t:'toggle',k:'ssDialRotate',label:'Change theme every hour'}]);
-  build(fold(b,'d-colours','Your colours',fixed),[
-    {t:'colour',k:'ssDialBg',label:'Background',show:fixed},
-    {t:'colour',k:'ssDialMin',label:'Minute marks',show:s=>fixed(s)&&s.ssDialFace!=='none'&&s.ssDialDetail==='minutes'},
-    {t:'colour',k:'ssDialHour',label:'Hour marks',labelFn:s=>s.ssDialFace==='none'||s.ssDialDetail==='quarters'?'Ring':'Hour marks',show:s=>fixed(s)&&((s.ssDialFace!=='none'&&s.ssDialDetail!=='quarters')||s.ssDialRing)},
-    {t:'colour',k:'ssDialQuarter',label:'Quarter marks',show:s=>fixed(s)&&s.ssDialFace!=='none'},
-    {t:'colour',k:'ssDialHandH',label:'Hour hand',show:fixed},
-    {t:'colour',k:'ssDialHandM',label:'Minute hand',show:fixed},
-    {t:'colour',k:'ssDialHandS',label:'Second hand',show:s=>fixed(s)&&s.ssDialSecs},
-  ]);
-  const paint=()=>{row.textContent='';DIAL_THEMES.forEach(T=>{const p=el('button','pill small',T.name);p.setAttribute('aria-pressed',same(T));
-    p.onclick=()=>{D_COLS.forEach(([k,t])=>{S[k]=T[t];});set('ssDialRotate',false);};row.append(p);});};
-  controls.push({d:{},w:row,update:paint});
+const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDialQuarter','quarter'],['ssDialHandH','handH'],['ssDialHandM','handM'],['ssDialHandS','handS'],['ssDialFillC','fill']];
+/* Columns and Rings, as drawn: white, black for what's true now, warm grey for the rest */
+const TYPE_THEMES=[
+  {name:'Drawn',bg:'#FFFFFF',ink:'#000000',soft:'#D2CDC9'},
+  {name:'Paper',bg:'#F2F2F2',ink:'#000000',soft:'#BDBDBD'},
+  {name:'Night',bg:'#000000',ink:'#FFFFFF',soft:'#3A3A3A'},
+  {name:'Noon',bg:'#D3D5D5',ink:'#1E2023',soft:'#F4FD5F'},
+  {name:'Signal',bg:'#FF4F1F',ink:'#000000',soft:'#FFB49E'},
+];
+const T_COLS=[['ssTBg','bg'],['ssTInk','ink'],['ssTSoft','soft']];
+const clockLab=i=>s=>s.ssColBy==='type'?['Numerals','Punctuation','Letters','Spare'][i]:s.ssColBy==='single'?'Type':s.ssColBy==='line'?'Line '+(i+1):'Colour '+(i+1);
+const THEMES={
+  clock:{id:'ss-colour',show:clk,store:'themes',builtin:PALETTES,on:s=>s.ssRotate!=='off',turn:v=>set('ssRotate',v?'all':'off'),set:'ssCSet',every:'ssCEvery',
+    cols:[['ssBg','bg','Background'],['ssP1','p.0','Colour 1',clockLab(0)],['ssP2','p.1','Colour 2',clockLab(1),s=>s.ssColBy!=='single'],['ssP3','p.2','Colour 3',clockLab(2),s=>s.ssColBy!=='single'],['ssP4','p.3','Colour 4',clockLab(3),s=>s.ssColBy!=='single'&&s.ssColBy!=='type']]},
+  words:{id:'ss-wcolour',show:wd,store:'wthemes',builtin:WORD_THEMES,on:s=>!!s.ssWRotate,turn:v=>set('ssWRotate',!!v),set:'ssWSet',every:'ssWEvery',
+    cols:[['ssWBg','bg','Background'],['ssWInk','ink','Highlight',s=>s.ssWHi==='faces'?'Other fonts':s.ssWHi==='time'||s.ssWHi==='parts'?'The time':s.ssWHi==='latest'?'Latest change':'Type'],['ssWDateCol','date','The date',null,s=>s.ssWHi==='parts'],['ssWSoft','soft','Everything else',null,s=>s.ssWHi!=='none']]},
+  dial:{id:'ss-dcolour',show:dl,store:'dthemes',builtin:DIAL_THEMES,on:s=>!!s.ssDialRotate,turn:v=>set('ssDialRotate',!!v),set:'ssDialSet',every:'ssDialEvery',
+    cols:[['ssDialBg','bg','Background'],['ssDialMin','min','Minute marks',null,s=>s.ssDialFace!=='none'&&s.ssDialDetail==='minutes'],
+      ['ssDialHour','hour','Hour marks',s=>s.ssDialFace==='none'||s.ssDialDetail==='quarters'?'Ring':'Hour marks',s=>(s.ssDialFace!=='none'&&s.ssDialDetail!=='quarters')||s.ssDialRing],
+      ['ssDialQuarter','quarter','Quarter marks',null,s=>s.ssDialFace!=='none'],['ssDialHandH','handH','Hour hand'],['ssDialHandM','handM','Minute hand'],['ssDialHandS','handS','Second hand',null,s=>s.ssDialSecs],
+      ['ssDialFillC','fill','Fill',null,s=>s.ssDialFill!=='off']]},
+  type:{id:'ss-tcolour',show:ty,store:'tthemes',builtin:TYPE_THEMES,on:s=>!!s.ssTRotate,turn:v=>set('ssTRotate',!!v),set:'ssTSet',every:'ssTEvery',
+    cols:[['ssTBg','bg','Background'],['ssTInk','ink','Now'],['ssTSoft','soft','The other words']]},
+};
+const kindNow=s=>wd(s)?'words':dl(s)?'dial':ty(s)?'type':'clock';
+const tget=(T,f)=>f.startsWith('p.')?(T.p||[])[+f.slice(2)]:T[f];
+const tput=(T,f,v)=>{if(f.startsWith('p.')){T.p=T.p||[];T.p[+f.slice(2)]=v;}else T[f]=v;};
+const mineOf=k=>{const v=LS.get(THEMES[k].store);return Array.isArray(v)?v:[];};
+const putMine=(k,list)=>{LS.set(THEMES[k].store,list);};
+const getThemes=()=>mineOf('clock');
+const allOf=k=>THEMES[k].builtin.map(T=>Object.assign({builtin:true},T)).concat(mineOf(k));
+const findTheme=(k,n)=>allOf(k).find(T=>T.name===n)||null;
+const lc=v=>String(v==null?'':v).toLowerCase();
+/* the dial's fill colour only counts when the face fills */
+const sameCols=(k,A,B)=>THEMES[k].cols.every(([,f])=>(k==='dial'&&f==='fill'&&S.ssDialFill==='off')||lc(tget(A,f))===lc(tget(B,f)));
+const fromS=(k,name)=>{const T={name};for(const [key,f] of THEMES[k].cols)tput(T,f,S[key]);return T;};
+const toS=(k,T)=>{for(const [key,f] of THEMES[k].cols){const v=tget(T,f);if(typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v))S[key]=v.toUpperCase();}};
+/* the themes that play through the day: those ticked, in order; none ticked means all of them */
+const setNames=(k,s)=>{s=s||S;const all=allOf(k).map(T=>T.name),v=String(s[THEMES[k].set]||'');if(!v)return all;const q=v.split('|').filter(n=>all.includes(n));return q.length?q:all;};
+const setThemes=(k,s)=>setNames(k,s).map(n=>{const T=Object.assign({},findTheme(k,n));delete T.builtin;return T;});
+const everyOf=(k,s)=>Math.max(1,+(s||S)[THEMES[k].every]||1);
+const themeAt=(k,h,s)=>{const q=setThemes(k,s);return q[Math.floor(h/everyOf(k,s))%q.length];};
+const uniqueTheme=(k,n)=>{const has=x=>allOf(k).some(T=>T.name===x);if(!has(n))return n;const m=/^(.*\S) (\d+)$/.exec(n),root=m?m[1]:n;let i=m?+m[2]+1:2;while(has(root+' '+i))i++;return root+' '+i;};
+/* which theme the colours below belong to; and, every hour, the one the preview shows while it's being looked at */
+const SEL={},LOOK={};
+const selOf=k=>{const n=SEL[k];if(n&&findTheme(k,n))return findTheme(k,n);const cur=fromS(k,'');return allOf(k).find(T=>sameCols(k,T,cur))||null;};
+/* A theme brought in with a preset or an old screen saver: kept among yours, renamed if a different theme has its name. Returns old → new names. */
+function importThemes(k,list){const map={};if(!Array.isArray(list))return map;let mine=mineOf(k),add=false;
+  for(const T0 of list){if(!T0||!T0.name)continue;const T=Object.assign({},T0);delete T.builtin;
+    const same=allOf(k).find(x=>x.name===T.name);if(same&&sameCols(k,same,T))continue;
+    const twin=allOf(k).find(x=>sameCols(k,x,T)&&!same);if(twin){map[T.name]=twin.name;continue;}
+    const n=same?uniqueTheme(k,T.name):T.name;if(n!==T.name)map[T.name]=n;T.name=n;mine=mine.concat([T]);putMine(k,mine);add=true;}
+  return map;}
+const remapSet=(k,map)=>{const key=THEMES[k].set,v=String(S[key]||'');if(!v||!Object.keys(map).length)return;S[key]=v.split('|').map(n=>map[n]||n).join('|');};
+/* tiles: each theme drawn small in its own colours */
+function tilePreview(k,T){const box=el('span','tt-prev');box.style.background=tget(T,'bg');
+  if(k==='clock'){const t=el('span','tt-clock');[['12',0],[',',1],['47',0]].forEach(([x,i])=>{const sp=el('span',null,x);sp.style.color=tget(T,'p.'+(S.ssColBy==='letter'||S.ssColBy==='random'?(x===','?1:0):i));t.append(sp);});box.append(t);}
+  else if(k==='words'){const t=el('span','tt-words'),a=el('span',null,'It is '),b=el('span',null,'twelve'),c=el('span','tt-small',' on Monday');a.style.color=T.soft;b.style.color=T.ink;c.style.color=T.date||T.soft;t.append(a,b,c);box.append(t);}
+  else if(k==='type'){const t=el('span','tt-type');[['Eleven','soft'],['Twelve','ink'],['One','soft']].forEach(([x,f])=>{const sp=el('span',null,x);sp.style.color=T[f];t.append(sp);});box.append(t);}
+  else{const ns='http://www.w3.org/2000/svg',sv=document.createElementNS(ns,'svg');sv.setAttribute('viewBox','-50 -50 100 100');sv.setAttribute('class','tt-dial');
+    const ln=(a,r0,r1,c,w)=>{const l=document.createElementNS(ns,'line'),s=Math.sin(a),co=Math.cos(a);l.setAttribute('x1',r0*s);l.setAttribute('y1',-r0*co);l.setAttribute('x2',r1*s);l.setAttribute('y2',-r1*co);l.setAttribute('stroke',c);l.setAttribute('stroke-width',w);sv.append(l);};
+    const pie=document.createElementNS(ns,'path');pie.setAttribute('d','M0 0 L0 -40 A40 40 0 0 1 34.6 20 Z');pie.setAttribute('fill',T.fill||T.handM);pie.setAttribute('opacity','.9');sv.append(pie);
+    for(let i=0;i<60;i+=5)ln(i/60*Math.PI*2,i%15?30:24,40,i%15?T.hour:T.quarter,i%15?2:3);
+    ln(Math.PI*2*.33,-4,24,T.handH,4);ln(Math.PI*2*.78,-4,36,T.handM,3);ln(Math.PI*2*.55,-6,38,T.handS,1.5);box.append(sv);}
+  return box;}
+function themeCard(k,before){const K=THEMES[k],b=card(K.id,'Colour',K.show,'saver');if(before)before(b);
+  const on=s=>K.show(s)&&K.on(s);
+  build(b,[{t:'seg',k:'__'+k+'Mode',label:'Colours',opts:[[false,'One theme'],[true,'Every hour']]}]);
+  /* the seg above is drawn by build() but stands for K.on – rewire it */
+  {const c=controls[controls.length-1];c.d.k=null;c.w.querySelectorAll('button').forEach((x,i)=>{x.onclick=()=>{K.turn(i===1);LOOK[k]=null;refreshThemes();};});
+    c.update=()=>c.w.querySelectorAll('button').forEach((x,i)=>x.setAttribute('aria-pressed',(i===1)===!!K.on(S)));}
+  const hint=addHint(b,'Tick the themes to play through the day, in the order you tick them. Click a theme to see and change it.',on);
+  const grid=el('div','theme-grid');grid.setAttribute('role','group');grid.setAttribute('aria-label','Themes');addCustom(b,null,grid);
+  /* every hour: how long each lasts, and the day hour by hour */
+  build(b,[{t:'seg',k:K.every,label:'Each theme lasts',opts:[[1,'1 hour'],[2,'2 hours'],[3,'3 hours'],[4,'4 hours'],[6,'6 hours'],[12,'12 hours']],show:on}]);
+  const strip=el('div','hour-strip');strip.setAttribute('role','group');strip.setAttribute('aria-label','The day, hour by hour');addCustom(b,on,strip);
+  const axis=el('div','hs-axis');['00','06','12','18','24'].forEach(x=>axis.append(el('span',null,x)));addCustom(b,on,axis);
+  const look=el('p','hint look-line');addCustom(b,on,look);
+  /* the colours of the theme in use */
+  const head=el('div','sub-head');addCustom(b,null,head);
+  const cf=el('div');addCustom(b,null,cf);
+  build(cf,K.cols.map(([key,,label,lfn,sh])=>({t:'colour',k:key,label,labelFn:lfn||null,show:s=>K.show(s)&&(!sh||sh(s))})));
+  cf.querySelectorAll('input[type=color]').forEach(inp=>inp.addEventListener('input',()=>edited(k)));
+  const nameRow=el('div','ctl btn-row'),nm=el('input');nm.type='text';nm.setAttribute('aria-label','Theme name');const del=el('button','pill small','Delete');nameRow.append(nm,del);addCustom(b,null,nameRow);
+  const newRow=el('div','ctl btn-row'),nb=el('button','pill small','New theme from these colours');newRow.append(nb);addCustom(b,null,newRow);
+  const note=el('p','hint');addCustom(b,null,note);
+  nm.onchange=()=>{const T=selOf(k);if(!T||T.builtin)return;const n=nm.value.trim();if(!n||n===T.name)return refreshThemes();const nn=uniqueTheme(k,n),mine=mineOf(k);
+    const x=mine.find(t=>t.name===T.name);if(x){x.name=nn;putMine(k,mine);remapSet(k,{[T.name]:nn});SEL[k]=nn;if(LOOK[k]===T.name)LOOK[k]=nn;themeChanged();}};
+  nm.onkeydown=e=>{if(e.key==='Enter')nm.blur();};
+  let armed=0;del.onclick=()=>{const T=selOf(k);if(!T||T.builtin)return;if(Date.now()-armed>4000){armed=Date.now();del.textContent='Delete – sure?';setTimeout(()=>{del.textContent='Delete';},4000);return;}
+    armed=0;del.textContent='Delete';putMine(k,mineOf(k).filter(t=>t.name!==T.name));const key=K.set;S[key]=String(S[key]||'').split('|').filter(n=>n&&n!==T.name).join('|');
+    SEL[k]=null;LOOK[k]=null;themeChanged();toast(`Deleted ${T.name}`);};
+  nb.onclick=()=>{const n=uniqueTheme(k,'Theme '+(mineOf(k).length+1)),T=fromS(k,n);putMine(k,mineOf(k).concat([T]));SEL[k]=n;addToSet(k,n);themeChanged();toast(`Saved ${n}`);};
+  function paint(){
+    const sel=selOf(k),names=setNames(k),explicit=!!String(S[K.set]||''),hourly=K.on(S);grid.textContent='';
+    const tiles=allOf(k);
+    tiles.forEach(T=>{const t=el('button','theme-tile');t.type='button';t.setAttribute('aria-pressed',!!(sel&&sel.name===T.name));t.setAttribute('aria-label',T.name);
+      t.append(tilePreview(k,T));const nmS=el('span','tt-name',T.name);t.append(nmS);if(!T.builtin)t.classList.add('mine');
+      if(hourly){const i=names.indexOf(T.name),tk=el('span','tt-tick'+(i>=0?' on':''),i>=0?String(i+1):'');tk.setAttribute('role','checkbox');tk.setAttribute('aria-checked',i>=0);tk.setAttribute('aria-label','Every hour – '+T.name);tk.tabIndex=0;
+        tk.onclick=e=>{e.stopPropagation();toggleSet(k,T.name);};tk.onkeydown=e=>{if(e.key===' '||e.key==='Enter'){e.preventDefault();e.stopPropagation();toggleSet(k,T.name);}};t.append(tk);}
+      t.onclick=()=>{SEL[k]=T.name;toS(k,T);if(hourly)LOOK[k]=T.name;themeChanged();};grid.append(t);});
+    /* the day, hour by hour */
+    strip.textContent='';if(hourly){const now=new Date().getHours(),lk=LOOK[k];
+      for(let h=0;h<24;h++){const T=themeAt(k,h)||{},c=el('button','hs-cell');c.type='button';c.style.background=tget(T,'bg')||'#888';
+        const dot=el('i');dot.style.background=k==='clock'?tget(T,'p.0'):k==='dial'?T.handM:T.ink;c.append(dot);
+        if(h===now)c.classList.add('now');if(lk&&T.name===lk)c.classList.add('look');
+        const lbl=String(h).padStart(2,'0')+':00 – '+(T.name||'');c.dataset.tip=lbl;c.setAttribute('aria-label',lbl);
+        c.onclick=()=>{SEL[k]=T.name;LOOK[k]=T.name;toS(k,T);themeChanged();};strip.append(c);}
+      const n=names.length,ev=everyOf(k),cur=themeAt(k,now);
+      look.textContent='';
+      if(lk){const hrs=[];for(let h=0;h<24;h++)if((themeAt(k,h)||{}).name===lk)hrs.push(String(h).padStart(2,'0')+':00');
+        look.append('Showing ',el('b',null,lk),hrs.length?' – plays at '+(hrs.length>6?hrs.slice(0,6).join(', ')+' and more':hrs.join(', ')):' – not in the day yet. Tick it to add it.',' ');
+        const bk=el('button','pill small','Show the time now');bk.onclick=()=>{LOOK[k]=null;themeChanged();};look.append(bk);}
+      else look.append(`${n} theme${n>1?'s':''}, ${ev===1?'one an hour':'each for '+ev+' hours'}${explicit?'':' (all of them – tick to choose)'}. Now: `,el('b',null,cur?cur.name:''),'.');}
+    head.textContent=sel?(sel.builtin?sel.name+' – built in':sel.name):'Your colours';
+    nameRow.hidden=!sel||!!sel.builtin;if(sel&&!sel.builtin&&document.activeElement!==nm)nm.value=sel.name;
+    newRow.hidden=!!sel;
+    note.textContent=sel&&sel.builtin?'Change a colour and the theme is kept as a copy among yours; the built-in one stays as it is.':!sel?'These colours aren’t a theme yet. Save them to use them every hour.':'Changes to your themes are saved as you go.';}
+  controls.push({d:{},w:grid,update:paint});
 }
+function toggleSet(k,n){const K=THEMES[k],q=String(S[K.set]||'')?setNames(k):[];const i=q.indexOf(n);if(i>=0)q.splice(i,1);else q.push(n);
+  /* unticking the last one goes back to all of them */
+  S[K.set]=q.join('|');themeChanged();}
+function addToSet(k,n){const K=THEMES[k];if(!String(S[K.set]||''))return;const q=setNames(k);if(!q.includes(n)){q.push(n);S[K.set]=q.join('|');}}
+/* a colour changed: write it into the theme it belongs to (a copy, if that one's built in) */
+let copyToast=0;
+function edited(k){const K=THEMES[k],T=selOf(k)||(SEL[k]&&findTheme(k,SEL[k]));if(!T)return refreshThemes();
+  if(T.builtin){const n=uniqueTheme(k,'My '+T.name),C=fromS(k,n);putMine(k,mineOf(k).concat([C]));
+    const key=K.set,v=String(S[key]||'');S[key]=(v?v.split('|'):setNames(k)).map(x=>x===T.name?n:x).join('|');
+    if(!K.on(S))S[key]=v;/* one theme: the day's list stays as it was */
+    SEL[k]=n;if(LOOK[k]===T.name)LOOK[k]=n;if(Date.now()-copyToast>8000){copyToast=Date.now();toast(`Kept as ${n} – ${T.name} stays as it is`);}}
+  else{const mine=mineOf(k),x=mine.find(t=>t.name===T.name);if(x){const C=fromS(k,x.name);Object.assign(x,C);putMine(k,mine);}SEL[k]=T.name;}
+  themeChanged(true);}
+function themeChanged(quiet){ssDirty=true;autosave();if(!quiet)refreshAll();else refreshThemes();}
+function refreshThemes(){for(const c of controls)if(c.w&&c.w.classList&&c.w.classList.contains('theme-grid'))c.update();refreshVis();refreshSummaries();}
+window.themesRefresh=refreshThemes;
+/* the preview: every hour, the theme being looked at stands in for the hour's own */
+function previewForce(){const k=kindNow(S),K=THEMES[k];if(!K.on(S)||!LOOK[k])return null;const T=findTheme(k,LOOK[k]);if(!T)return null;
+  const o=Object.assign({},T);delete o.builtin;delete o.name;if(k==='words'&&!o.date)o.date=o.soft;return o;}
+for(const k of Object.keys(THEMES)){SUMMARY[THEMES[k].id]=s=>{if(THEMES[k].on(s)){const n=setNames(k,s).length;return`Every hour · ${n} theme${n>1?'s':''}`;}const T=selOf(k);return T?T.name:'Your colours';};}
+themeCard('clock',b=>build(b,[{t:'seg',k:'ssColBy',label:'Colour by',opts:[['type','Character type'],['letter','Each letter'],['line','Line'],['random','Random'],['single','One colour']]}]));
+themeCard('words');themeCard('dial');themeCard('type');
 /* Export */
 {const b=card('ss-export','Export',null,'saver');
   addHint(b,'No font loaded, so exports will use the demo face. Add your font in Fonts first.',s=>!anyLoaded()&&!dl(s));
@@ -490,8 +649,12 @@ const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDi
   nh.append(nl);const nq=qMark({k:'ssName',label:'Name'});if(nq)nh.append(nq);nr.append(nh,nm);b.append(nr);
   nm.oninput=()=>set('ssName',nm.value,true);
   controls.push({d:{},w:nr,update(){if(document.activeElement!==nm)nm.value=S.ssName;nm.placeholder=defaultName();}});
+  b.append(el('div','sub-head','Everything'));
+  const all=el('button','pill primary','Download everything');const r0=el('div','ctl btn-row');r0.append(all);b.append(r0);
+  b.append(el('p','hint','One zip, named as above: the Mac and Windows screen savers, the HTML file and a read-me with how to install each.'));
+  all.onclick=exportAll;window.allBtn=all;
   b.append(el('div','sub-head','Mac'));
-  const mac=el('button','pill primary','Download for Mac');const r1=el('div','ctl btn-row');r1.append(mac);b.append(r1);
+  const mac=el('button','pill','Download for Mac');const r1=el('div','ctl btn-row');r1.append(mac);b.append(r1);
   b.append(el('p','hint','A .saver you install by double-clicking. The first time, macOS blocks it: allow it under System Settings › Privacy & Security › Open Anyway, then install for all users. The read-me in the zip walks through it.'));
   mac.onclick=exportMac;window.macBtn=mac;
   b.append(el('div','sub-head','Windows'));
@@ -520,7 +683,7 @@ function snapshot(name,keys){
   const s={};for(const k of (keys||tempoKeys()))if(k!=='ssName')s[k]=S[k];s.baseSlot=baseSlot();
   const on=styles.filter(x=>!x.off),fonts={},tracks={};
   on.forEach(st=>{fonts[st.id]=fontDesc(st);if(TRACKS[st.id])tracks[st.id]=TRACKS[st.id];});
-  return{tempo:1,name:name||'',exportName:S.ssName||'',settings:s,fonts,on:on.map(x=>x.id),pool:on.filter(x=>x.swap!==false&&x.id!==s.baseSlot).map(x=>x.id),tracks,themes:getThemes()};}
+  return{tempo:1,name:name||'',exportName:S.ssName||'',settings:s,fonts,on:on.map(x=>x.id),pool:on.filter(x=>x.swap!==false&&x.id!==s.baseSlot).map(x=>x.id),tracks,themes:getThemes(),themesW:mineOf('words'),themesD:mineOf('dial'),themesT:mineOf('type')};}
 /* what makes two screen savers the same: settings, fonts on, the shuffle, tracking */
 const sigOf=p=>JSON.stringify([p.settings,p.exportName||'',p.on,p.pool,p.tracks]);
 const sigNow=()=>sigOf(snapshot());
@@ -533,6 +696,9 @@ function resolveFonts(p){const map={},missing=[];
 function applyPresetSettings(p,m){
   const src=p.settings||{},s=sanitise(src),id=x=>m.map[x]||null;
   for(const k of tempoKeys())if(k in s&&k!=='baseSlot'&&k!=='ssName')S[k]=s[k];
+  /* saved before 0.9: My themes every hour means the preset's own themes, in order; one weight for every hand */
+  if(s.ssRotate==='mine'){S.ssRotate='all';if(!('ssCSet' in s))S.ssCSet=(p.themes||[]).map(T=>T.name).join('|');}
+  if(!('ssDialWM' in s)&&'ssDialHand' in s){S.ssDialWM=S.ssDialWS=s.ssDialHand;}
   S.ssName=typeof p.exportName==='string'?p.exportName:'';
   const core=id(src.baseSlot);if(core)S.baseSlot=core;
   for(const k of PART_KEYS){const v=S[k];if(v&&v!=='base'&&v!=='shuffle')S[k]=id(v)||'base';}}
@@ -542,8 +708,8 @@ function openPreset(p,quiet){
     for(const st of styles){if(on.has(st.id))st.off=false;if(st.id!==S.baseSlot)st.swap=pool.has(st.id);}
     for(const x of p.on){const n=id(x);if(!n)continue;const v=(p.tracks||{})[x];if(v)TRACKS[n]=v;else delete TRACKS[n];}
     LS.set('tracks',TRACKS);}
-  if(Array.isArray(p.themes)&&p.themes.length){const q=getThemes();let add=false;
-    for(const T of p.themes)if(T&&T.name&&Array.isArray(T.p)&&!q.some(t=>t.name===T.name)&&!PALETTES.some(P=>P.name===T.name)){q.push(T);add=true;}if(add)LS.set('themes',q);}
+  /* the preset's own themes come too (renamed if a different theme here has the name), and its day of themes follows */
+  for(const [k,f] of [['clock','themes'],['words','themesW'],['dial','themesD'],['type','themesT']]){const list=(p[f]||[]).filter(T=>T&&T.name&&(k!=='clock'||Array.isArray(T.p)));remapSet(k,importThemes(k,list));SEL[k]=null;LOOK[k]=null;}
   sortFonts();saveStyles();applyStyles();themesRefresh();ssDirty=true;autosave();refreshAll();
   if(!quiet)toast(m.missing.length?`Opened ${p.name} – load ${m.missing.join(', ')} in Fonts to see it as saved.`:`Opened ${p.name}`);
   return m;}
@@ -572,7 +738,7 @@ function deletePreset(p){PRESETS=PRESETS.filter(x=>x!==p);savePresets();if(ACTIV
 const pslug=n=>String(n||'tempo').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tempo';
 function downloadPreset(p){const o=Object.assign({},p);delete o.id;saveFile(pslug(p.name)+'-tempo-preset.json',new Blob([JSON.stringify({tempo:'preset',v:1,preset:o},null,1)],{type:'application/json'}));}
 function downloadAll(){const d=new Date(),day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  saveFile('tempo-presets-'+day+'.json',new Blob([JSON.stringify({tempo:'presets',v:1,saved:d.toISOString(),presets:PRESETS,themes:getThemes()},null,1)],{type:'application/json'}));}
+  saveFile('tempo-presets-'+day+'.json',new Blob([JSON.stringify({tempo:'presets',v:1,saved:d.toISOString(),presets:PRESETS,themes:getThemes(),themesW:mineOf('words'),themesD:mineOf('dial'),themesT:mineOf('type')},null,1)],{type:'application/json'}));}
 /* ---- reading a downloaded screen saver back: its settings, from its config ---- */
 const W_MAP=[['lead','ssWLead'],['h24','ssWH24'],['time','ssWTime'],['secs','ssWSecs'],['weekday','ssWWeekday'],['daynum','ssWDayNum'],['month','ssWMonth'],['year','ssWYear'],['stop','ssWStop'],
   ['case','ssWCase'],['zero','ssWZero'],['sep','ssWSep'],['layout','ssWLayout'],['fit','ssWFit'],['space','ssWSpace'],['optical','ssWOptical'],['dateCol','ssWDateCol'],['hi','ssWHi'],['size','ssWSize'],
@@ -584,9 +750,12 @@ const MW_PARTS=[['lead','ssMLead'],['time','ssMTime'],['sec','ssMSec'],['weekday
 const MN_PARTS=[['h1','ssNH1'],['h2','ssNH2'],['m1','ssNM1'],['m2','ssNM2'],['s1','ssNS1'],['s2','ssNS2'],['line2','ssNLine2']];
 const DL_MAP=[['face','ssDialFace'],['detail','ssDialDetail'],['hole','ssDialHole'],['tick','ssDialTick'],['ring','ssDialRing'],['line','ssDialLine'],['key','ssDialKey'],['hand','ssDialHand'],
   ['secs','ssDialSecs'],['secMove','ssDialSecMove'],['minMove','ssDialMinMove'],['feel','ssDialFeel'],['len','ssDialLen'],['trail','ssDialTrail'],['tails','ssDialTails'],['centre','ssDialCentre'],
-  ['size','ssDialSize'],['rotate','ssDialRotate']];
+  ['size','ssDialSize'],['rotate','ssDialRotate'],['every','ssDialEvery'],['fill','ssDialFill'],['fillTurn','ssDialFillTurn'],['fillR','ssDialFillR'],['fillA','ssDialFillA'],['fillBlend','ssDialFillBlend'],
+  ['fillOver','ssDialFillOver'],['cap','ssDialCap'],['tip','ssDialTip'],['tipOn','ssDialTipOn'],['tipSize','ssDialTipSize'],['weight','ssDialWeight'],['centreSize','ssDialCentreSize'],['handA','ssDialHandA'],['blend','ssDialBlend']];
+const T_MAP=[['h24','ssTH24'],['secs','ssTSecs'],['zero','ssTZero'],['case','ssTCase'],['leading','ssTLeading'],['hole','ssTHole'],['split','ssTSplit'],['feel','ssTFeel'],['len','ssTLen'],['far','ssTFar'],
+  ['bg','ssTBg'],['ink','ssTInk'],['soft','ssTSoft'],['rotate','ssTRotate'],['every','ssTEvery']];
 function presetFromConfig(cfg,name){
-  const s={ssVer:4},b=cfg.base||{},put=(k,v)=>{if(v!==undefined&&v!==null)s[k]=v;};
+  const s={ssVer:5},b=cfg.base||{},put=(k,v)=>{if(v!==undefined&&v!==null)s[k]=v;};
   for(const k in b)if((/^ss[A-Z0-9]/.test(k)&&!/^ssW|^ss[MN][A-Z]|^ssDial|^ssName$/.test(k))||k==='baseSlot')s[k]=b[k];
   s.ssShow=cfg.show==='words'||cfg.show==='dial'?cfg.show:'clock';put('ssDrift',cfg.drift);
   const c=cfg.clock||{},N=c.mixed;
@@ -596,9 +765,19 @@ function presetFromConfig(cfg,name){
     if(w.nums)WN_MAP.forEach(([a,k])=>put(k,w.nums[a]));else if(w.num)WN_MAP.forEach(([,k])=>put(k,w.num));
     const M=w.mixed;if(M){MX_MAP.forEach(([a,k])=>put('ss'+k,M[a]));put('ssMLittle',M.little);MW_PARTS.forEach(([a,k])=>put(k,(M.parts||{})[a]));}}
   const d=cfg.dial;
-  if(d){DL_MAP.forEach(([a,k])=>put(k,d[a]));const col=d.colours||{};D_COLS.forEach(([k,t])=>put(k,col[t]));}
+  if(d){DL_MAP.forEach(([a,k])=>put(k,d[a]));const col=d.colours||{};D_COLS.forEach(([k,t])=>put(k,col[t]));
+    if(Array.isArray(d.hw)){put('ssDialHand',d.hw[0]);put('ssDialWM',d.hw[1]);put('ssDialWS',d.hw[2]);}else if(d.hand!=null){put('ssDialWM',d.hand);put('ssDialWS',d.hand);}}
+  const t=cfg.type;if(t){T_MAP.forEach(([a,k])=>put(k,t[a]));const P=t.parts||{};[['time','ssTTime'],['day','ssTDay'],['date','ssTDate'],['month','ssTMonth'],['year','ssTYear']].forEach(([a,k])=>put(k,P[a]));
+    if(t.size!=null)put(cfg.show==='rings'?'ssTRSize':'ssTCSize',t.size);put('ssTFont',t.font);if(cfg.show==='columns'||cfg.show==='rings')s.ssShow=cfg.show;}
+  /* the time's colours, and its themes through the day (0.9: read back from older downloads too, which carried them only in their colour block) */
+  const co=cfg.colours||{};put('ssColBy',co.by);put('ssBg',co.bg);if(Array.isArray(co.p))['ssP1','ssP2','ssP3','ssP4'].forEach((k,i)=>put(k,co.p[i]));put('ssCEvery',co.every);
+  const named=(list,pre)=>(Array.isArray(list)?list:[]).filter(Boolean).map((T,i)=>Object.assign({},T,{name:T.name||pre+' '+(i+1)}));
+  const themes=named(cfg.palettes,'Theme'),wt=w&&w.rotate?named(w.themes,'Theme'):[],dt=d&&d.rotate?named(d.themes,'Theme'):[],tt=t&&t.rotate?named(t.themes,'Theme'):[];
+  s.ssRotate=co.cycle&&themes.length?'all':'off';s.ssCSet=co.cycle?themes.map(T=>T.name).join('|'):'';
+  if(w)s.ssWSet=wt.map(T=>T.name).join('|');if(d)s.ssDialSet=dt.map(T=>T.name).join('|');if(t)s.ssTSet=tt.map(T=>T.name).join('|');
   const fonts={},list=cfg.fonts||[];list.forEach(f=>{fonts[f.id]={name:f.name,family:f.family||'',file:''};});
-  return{tempo:1,name:name||'Screen saver',exportName:'',settings:s,fonts,on:list.map(f=>f.id),pool:list.filter(f=>f.swap!==false&&f.id!==s.baseSlot).map(f=>f.id),tracks:Object.assign({},cfg.tracks||{}),themes:[]};}
+  return{tempo:1,name:name||'Screen saver',exportName:'',settings:s,fonts,on:list.map(f=>f.id),pool:list.filter(f=>f.swap!==false&&f.id!==s.baseSlot).map(f=>f.id),tracks:Object.assign({},cfg.tracks||{}),
+    themes:co.cycle?themes:[],themesW:wt,themesD:dt,themesT:tt};}
 /* the page inside a Windows .scr: [host][name][page][24-byte footer: RBTOSCR1, name length, page length, colour, 0] */
 function pageFromScr(u){const n=u.length;if(n<24)return null;const dv=new DataView(u.buffer,u.byteOffset,u.byteLength);
   if(new TextDecoder().decode(u.subarray(n-24,n-16))!=='RBTOSCR1')return null;const hl=dv.getUint32(n-12,true);return new TextDecoder().decode(u.subarray(n-24-hl,n-24));}
@@ -613,7 +792,7 @@ async function openPresetFile(f){
   try{
     if(/\.json$/i.test(f.name)){const j=JSON.parse(await f.text());
       if(Array.isArray(j.presets))got=j.presets;else if(j.preset)got=[j.preset];else if(j.settings)got=[j];
-      if(Array.isArray(j.themes)&&j.themes.length)got.forEach(p=>{p.themes=p.themes&&p.themes.length?p.themes:j.themes;});}
+      for(const f of ['themes','themesW','themesD','themesT'])if(Array.isArray(j[f])&&j[f].length)got.forEach(p=>{p[f]=p[f]&&p[f].length?p[f]:j[f];});}
     else if(/\.html?$/i.test(f.name)){const p=presetFromPage(await f.text());if(p)got=[p];}
     else if(/\.scr$/i.test(f.name)){const h=pageFromScr(new Uint8Array(await f.arrayBuffer()));const p=h&&presetFromPage(h);if(p)got=[p];}
     else if(/\.zip$/i.test(f.name)){const ents=await unzip(await f.arrayBuffer());
@@ -640,7 +819,7 @@ function configFor(p){const m=resolveFonts(p),keep=S;let cfg;
 function drawTile(c,p){
   const W=384,H=240;c.width=W;c.height=H;const x=c.getContext('2d');
   try{const cfg=configFor(p),e=createEngine(),pool=cfg.__pool;delete cfg.__pool;cfg.drift=0;
-    if(cfg.dial)for(const k of ['line','key','hand'])cfg.dial[k]*=2.5;/* hairlines would vanish at this size */
+    if(cfg.dial){for(const k of ['line','key','hand'])cfg.dial[k]*=2.5;if(cfg.dial.hw)cfg.dial.hw=cfg.dial.hw.map(v=>v*2.5);}/* hairlines would vanish at this size */
     e.setFaces(eng.faceList().map(f=>pool?Object.assign({},f,{swap:pool.has(f.id)}):f));createSaver(e,cfg).frame(x,W,H,performance.now(),0);}
   catch(err){console.error(err);x.fillStyle='#888';x.fillRect(0,0,W,H);}}
 /* Exports carry their own preset – every setting, not only those for what it shows – so they open again exactly and nothing is lost */
@@ -695,29 +874,35 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
 /* What the screen saver is called: the name typed under Export, else the preset
    open, else Tempo, Tempo Words or Tempo Dial. Never a font's name – some fonts'
    licences (Timeless's) don't allow naming a product after them. */
-function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':'Tempo';}
+function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':cols(S)?'Tempo Columns':rgs(S)?'Tempo Rings':'Tempo';}
 const exportName=()=>(S.ssName||'').trim()||defaultName();
-function saverConfig(){
+function saverConfig(preview){
   /* the words and mixing settings travel in their own blocks below */
-  const noW=o=>{for(const k in o)if(/^ssW|^ss[MN][A-Z]|^ssDial/.test(k)||k==='ssName')delete o[k];return o;};
+  const noW=o=>{for(const k in o)if(/^ssW|^ss[MN][A-Z]|^ssDial|^ssT[A-Z]|^ssC(Set|Every)$/.test(k)||k==='ssName')delete o[k];return o;};
   const base=noW(Object.assign(fresh(),sanitise(S)));base.transparent=false;
   if(anyLoaded())base.baseSlot=baseSlot();/* the core font, by id */
-  const pals=S.ssRotate==='mine'?getThemes():[...PALETTES,...getThemes()];
-  return{show:wd(S)?'words':dl(S)?'dial':'clock',
+  const pals=setThemes('clock'),force=preview?previewForce():null;
+  return{show:wd(S)?'words':dl(S)?'dial':ty(S)?S.ssShow:'clock',...(force?{force}:{}),
     clock:{h24:S.ssH24,sep:SEPS[S.ssSep]||',',secs:S.ssSecs,zero:S.ssZero,ampm:true,line2:S.ssLine2,caps:S.ssCaps,
       change:S.ssChange,feel:S.ssFeel,len:S.ssLen,align:S.ssAlign,valign:S.ssVAlign,size:S.ssSize,margin:S.ssMargin,tabular:S.ssTabular,tracking:S.ssTracking,leading:S.ssLeading,move:S.ssMove,pulse:S.ssPulse,alt:S.ssAlt,altRate:S.ssAltRate,
       mixed:{mode:S.ssNMode,parts:{h1:S.ssNH1,h2:S.ssNH2,m1:S.ssNM1,m2:S.ssNM2,s1:S.ssNS1,s2:S.ssNS2,line2:S.ssNLine2},when:S.ssNWhen,each:S.ssNEach,match:S.ssNMatch,order:S.ssNOrder,amount:S.ssNAmount}},
-    colours:{by:S.ssColBy,bg:S.ssBg,p:[S.ssP1,S.ssP2,S.ssP3,S.ssP4],cycle:S.ssRotate!=='off'&&pals.length>0},palettes:pals,
+    colours:{by:S.ssColBy,bg:S.ssBg,p:[S.ssP1,S.ssP2,S.ssP3,S.ssP4],cycle:S.ssRotate!=='off'&&pals.length>0,every:everyOf('clock')},palettes:pals,
     base,drift:S.ssDrift,tracks:tracksNow(),
     /* only when showing the dial */
     ...(dl(S)?{dial:{face:S.ssDialFace,detail:S.ssDialDetail,hole:S.ssDialHole,tick:S.ssDialTick,ring:S.ssDialRing,line:S.ssDialLine,key:S.ssDialKey,hand:S.ssDialHand,
       secs:S.ssDialSecs,secMove:S.ssDialSecMove,minMove:S.ssDialMinMove,feel:S.ssDialFeel,len:S.ssDialLen,trail:S.ssDialTrail,tails:S.ssDialTails,centre:S.ssDialCentre,size:S.ssDialSize,
-      colours:Object.fromEntries(D_COLS.map(([k,t])=>[t,S[k]])),rotate:S.ssDialRotate,themes:DIAL_THEMES}}:{}),
+      hw:[S.ssDialHand,S.ssDialWM,S.ssDialWS],fill:S.ssDialFill,fillTurn:S.ssDialFillTurn,fillR:S.ssDialFillR,fillA:S.ssDialFillA,fillBlend:S.ssDialFillBlend,fillOver:S.ssDialFillOver,
+      cap:S.ssDialCap,tip:S.ssDialTip,tipOn:S.ssDialTipOn,tipSize:S.ssDialTipSize,weight:S.ssDialWeight,centreSize:S.ssDialCentreSize,handA:S.ssDialHandA,blend:S.ssDialBlend,
+      colours:Object.fromEntries(D_COLS.map(([k,t])=>[t,S[k]])),rotate:S.ssDialRotate,themes:setThemes('dial'),every:everyOf('dial')}}:{}),
+    /* only for Columns and Rings */
+    ...(ty(S)?{type:{font:typeFont(),h24:S.ssTH24,secs:S.ssTSecs,zero:S.ssTZero,case:S.ssTCase,parts:{time:S.ssTTime,secs:S.ssTSecs,day:S.ssTDay,date:S.ssTDate,month:S.ssTMonth,year:S.ssTYear},
+      size:cols(S)?S.ssTCSize:S.ssTRSize,leading:S.ssTLeading,hole:S.ssTHole,split:S.ssTSplit,feel:S.ssTFeel,len:S.ssTLen,far:S.ssTFar,
+      bg:S.ssTBg,ink:S.ssTInk,soft:S.ssTSoft,rotate:S.ssTRotate,themes:setThemes('type'),every:everyOf('type')}}:{}),
     /* only when showing words */
     ...(wd(S)?{words:{lead:S.ssWLead,h24:S.ssWH24,time:S.ssWTime,secs:S.ssWSecs,weekday:S.ssWWeekday,daynum:S.ssWDayNum,month:S.ssWMonth,year:S.ssWYear,
       stop:S.ssWStop,case:S.ssWCase,nums:{time:S.ssWNumTime,sec:S.ssWNumSec,date:S.ssWNumDate,year:S.ssWNumYear},zero:S.ssWZero,sep:S.ssWSep,layout:S.ssWLayout,fit:S.ssWFit,space:S.ssWSpace,optical:S.ssWOptical,dateCol:S.ssWDateCol,
       hi:S.ssWHi,size:S.ssWSize,leading:S.ssWLeading,tracking:S.ssWTracking,measure:S.ssWMeasure,align:S.ssWAlign,valign:S.ssWVAlign,margin:S.ssWMargin,
-      change:S.ssWChange,by:S.ssWBy,feel:S.ssWFeel,len:S.ssWLen,glide:S.ssWGlide,bg:S.ssWBg,ink:S.ssWInk,soft:S.ssWSoft,rotate:S.ssWRotate,themes:WORD_THEMES,
+      change:S.ssWChange,by:S.ssWBy,feel:S.ssWFeel,len:S.ssWLen,glide:S.ssWGlide,bg:S.ssWBg,ink:S.ssWInk,soft:S.ssWSoft,rotate:S.ssWRotate,themes:setThemes('words').map(T=>Object.assign({date:T.soft},T)),every:everyOf('words'),
       mixed:{mode:S.ssMMode,parts:{lead:S.ssMLead,time:S.ssMTime,sec:S.ssMSec,weekday:S.ssMWeekday,day:S.ssMDay,month:S.ssMMonth,year:S.ssMYear},
         when:S.ssMWhen,each:S.ssMEach,little:S.ssMLittle,match:S.ssMMatch,order:S.ssMOrder,amount:S.ssMAmount}}}:{})};
 }
@@ -727,7 +912,7 @@ function saverChars(cfg){
   const add=s=>{for(const ch of Array.from(s||''))if(ch!=='\n'){chars.add(ch);chars.add(ch.toUpperCase());chars.add(ch.toLowerCase());}};
   for(let i=0;i<7;i++)add(new Date(2026,0,5+i).toLocaleDateString('en-GB',{weekday:'long'}));
   for(let m=0;m<12;m++)add(new Date(2026,m,1).toLocaleDateString('en-GB',{month:'long'}));
-  if(cfg.words)add(saverVocab());
+  if(cfg.words||cfg.type)add(saverVocab());
   return chars;
 }
 
@@ -850,17 +1035,94 @@ delete "${name}.scr".
 
 Made with Tempo by Ensemble.
 `.replace(/\n/g,'\r\n');}
-function saverBg(cfg){if(cfg.dial){const d=cfg.dial;return d.rotate?d.themes[new Date().getHours()%d.themes.length].bg:d.colours.bg;}if(cfg.words){const w=cfg.words;return w.rotate?w.themes[new Date().getHours()%w.themes.length].bg:w.bg;}return cfg.colours.cycle?cfg.palettes[new Date().getHours()%cfg.palettes.length].bg:cfg.colours.bg;}
+function saverBg(cfg){const h=new Date().getHours(),at=(l,e)=>l[Math.floor(h/Math.max(1,e||1))%l.length].bg;
+  if(cfg.dial){const d=cfg.dial;return d.rotate&&d.themes.length?at(d.themes,d.every):d.colours.bg;}if(cfg.words){const w=cfg.words;return w.rotate&&w.themes.length?at(w.themes,w.every):w.bg;}
+  if(cfg.type){const t=cfg.type;return t.rotate&&t.themes.length?at(t.themes,t.every):t.bg;}return cfg.colours.cycle?at(cfg.palettes,cfg.colours.every):cfg.colours.bg;}
+const safeName=()=>exportName().replace(/[^A-Za-z0-9 \-]/g,'').trim()||'Tempo';
+/* the Windows .scr: the host, then the name, the page and a footer saying where each is */
+function winScr(name,html){const enc=new TextEncoder(),nb=enc.encode(name),hb=enc.encode(html);
+  const bin=atob(SAVER_WIN),tpl=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)tpl[i]=bin.charCodeAt(i);
+  const hex=/^#?([0-9a-f]{6})$/i.exec(saverBg(saverConfig())),bg=hex?parseInt(hex[1],16):0;
+  const ft=new Uint8Array(24),dv=new DataView(ft.buffer);ft.set(enc.encode('RBTOSCR1'));dv.setUint32(8,nb.length,true);dv.setUint32(12,hb.length,true);dv.setUint32(16,bg,true);
+  const scr=new Uint8Array(tpl.length+nb.length+hb.length+24);scr.set(tpl,0);scr.set(nb,tpl.length);scr.set(hb,tpl.length+nb.length);scr.set(ft,tpl.length+nb.length+hb.length);return scr;}
+/* 0.9: everything in one zip, named as the screen saver is: the Mac .saver, the
+   Windows .scr, the HTML file and one read-me for all three */
+function packReadme(){const y=new Date().getFullYear();return `Made with Tempo by ENSEMBLE
+===========================
+
+A clock screen saver. In this folder:
+
+  Mac        a .saver file, for macOS 10.13 and later
+  Windows    a .scr file, for Windows 10 and 11
+  HTML       a web page that plays in any browser
+
+
+MAC
+---
+macOS blocks screen savers that don't come from the App Store, so the first
+install takes a few extra clicks. You only do this once.
+
+1. Double-click the .saver file in the Mac folder.
+2. macOS says it couldn't verify it. Click Done (not Move to Bin).
+3. Open System Settings > Privacy & Security. Scroll down to Security, where
+   the screen saver shows as blocked. Click Open Anyway and confirm with your
+   password or Touch ID. (The button shows for about an hour. If it has gone,
+   double-click the .saver again and repeat.)
+4. Double-click the .saver again and choose Open Anyway.
+5. When asked, choose "Install for all users of this computer". This matters:
+   installed for one user only, the screen saver shows a blank screen.
+6. In System Settings > Screen Saver, choose it from the list.
+
+Prefer Terminal? Instead of steps 2-4, type  xattr -cr  and a space, drag the
+.saver into the window, press Return, then double-click it and carry on from
+step 5.
+
+To remove it, delete it from /Library/Screen Savers.
+
+
+WINDOWS
+-------
+1. Before unzipping: right-click the zip > Properties > tick "Unblock" > OK.
+   (If there's no Unblock box, carry on.) Then right-click > Extract All.
+2. Move the .scr file from the Windows folder somewhere it can stay, such as
+   your Documents folder. Windows runs it from wherever it is.
+3. Right-click the .scr and choose Install. Screen Saver Settings opens with
+   it selected. Set the wait time and click OK.
+   If "Windows protected your PC" appears, click More info > Run anyway.
+
+It plays full screen through Microsoft Edge, built into Windows 10 and 11.
+To remove it, choose another screen saver, then delete the .scr.
+
+
+ANY COMPUTER
+------------
+Open the .html file in the HTML folder in any browser and click to go full
+screen.
+
+
+The Mac screen saver contains WebViewScreenSaver by Alastair Tse (Apache
+License 2.0); the licence is inside the .saver.
+
+weareensemble.co.uk
+hello@weareensemble.co.uk
+(c) ${y} Ensemble
+`;}
+async function exportAll(){
+  if(!window.SaverPack||!window.SAVER_ASSETS||!window.SAVER_WIN){toast("The packagers didn't load. Reload and try again.");return;}
+  if(!window.crypto||!crypto.subtle){toast('This browser can\u2019t build the Mac file. Try Chrome, Safari or Firefox.');return;}
+  const btn=window.allBtn;btn.disabled=true;const label=btn.textContent;btn.textContent='Building\u2026';
+  try{const name=safeName(),html=saverHTML(),enc=new TextEncoder();
+    const mac=await SaverPack.build(SAVER_ASSETS,{name,html,thumbs:saverThumbs()});
+    const top=name+'/',entries=[{path:top},{path:top+'Read me.txt',data:enc.encode(packReadme())},{path:top+'Mac/'},...mac.entries.map(e=>Object.assign({},e,{path:top+'Mac/'+e.path})),
+      {path:top+'Windows/'},{path:top+'Windows/'+name+'.scr',data:winScr(name,html)},{path:top+'HTML/'},{path:top+'HTML/'+name+'.html',data:enc.encode(html)}];
+    await saveFile(name+'.zip',SaverPack.zip(entries));}
+  catch(e){console.error(e);toast('Couldn\u2019t build the download: '+(e.message||e));}
+  finally{btn.disabled=false;btn.textContent=label;ssDirty=true;}}
 async function exportWin(){
   if(!window.SaverPack||!window.SAVER_WIN){toast("The Windows packager didn't load. Reload and try again.");return;}
   const btn=window.winBtn;btn.disabled=true;const label=btn.textContent;btn.textContent='Building\u2026';
   try{
-    const name=exportName().replace(/[^A-Za-z0-9 \-]/g,'').trim()||'Tempo';
-    const enc=new TextEncoder(),nb=enc.encode(name),hb=enc.encode(saverHTML());
-    const bin=atob(SAVER_WIN),tpl=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)tpl[i]=bin.charCodeAt(i);
-    const hex=/^#?([0-9a-f]{6})$/i.exec(saverBg(saverConfig())),bg=hex?parseInt(hex[1],16):0;
-    const ft=new Uint8Array(24),dv=new DataView(ft.buffer);ft.set(enc.encode('RBTOSCR1'));dv.setUint32(8,nb.length,true);dv.setUint32(12,hb.length,true);dv.setUint32(16,bg,true);
-    const scr=new Uint8Array(tpl.length+nb.length+hb.length+24);scr.set(tpl,0);scr.set(nb,tpl.length);scr.set(hb,tpl.length+nb.length);scr.set(ft,tpl.length+nb.length+hb.length);
+    const name=safeName(),enc=new TextEncoder(),scr=winScr(name,saverHTML());
     await saveFile(name+' screen saver for Windows.zip',SaverPack.zip([{path:name+'.scr',data:scr},{path:'Read me first.txt',data:enc.encode(winReadme(name))}]));
   }catch(e){console.error(e);toast('Couldn\u2019t build the Windows file: '+(e.message||e));}
   finally{btn.disabled=false;btn.textContent=label;ssDirty=true;}
@@ -890,7 +1152,7 @@ let pEng=null,saver=null,pFonts=-1;
 function previewFrame(now,dt){
   if(!pEng)pEng=createEngine();
   if(pFonts!==faceVer){pEng.setFaces(eng.faceList());pFonts=faceVer;ssDirty=true;}
-  if(!saver){saver=createSaver(pEng,saverConfig());ssDirty=false;}else if(ssDirty){saver.setConfig(saverConfig());ssDirty=false;}
+  if(!saver){saver=createSaver(pEng,saverConfig(true));ssDirty=false;}else if(ssDirty){saver.setConfig(saverConfig(true));ssDirty=false;}
   saver.frame(ctx,cv.width,cv.height,now,dt);
 }
 function tick(now){
