@@ -1,0 +1,24 @@
+# Temporary: Tutti's export checked in Chromium, Firefox and WebKit (Safari's engine). Removed after the check.
+name: Tutti cross-browser check
+on:
+  push:
+    branches: [ci/xbrowser-check]
+permissions:
+  contents: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install playwright pillow && python -m playwright install --with-deps chromium firefox webkit
+      - timeout-minutes: 25
+        run: (python3 -u tests/tutti_check.py webkit firefox; python3 -u tests/xbrowser.py webkit) 2>&1 | tee xb-results.txt
+      - if: always()
+        run: |
+          git config user.name ci; git config user.email ci@users.noreply.github.com
+          git add -f xb-results.txt; git commit -m "xbrowser results [skip ci]"; git push
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: shots, path: tests/out/*.png }
