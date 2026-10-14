@@ -1,0 +1,230 @@
+
+== webkit/direct
+  ok    starts empty, Export out of the way
+  ok    framing: direct
+  ok    Type draws – 1200x675:-499869258
+  ok    Tracking spaces the letters
+  ok    Tracking works without canvas letterSpacing (older Safari)
+  ok    Gradient fill changes the type
+  ok    Export opens the sheet – 340×143
+  ok    Save PNG (type) – Tutti_byENSEMBLE_Tutti.png
+  ok    Save SVG (type) – Tutti_byENSEMBLE_Tutti.svg
+  ok    a save says so – Saved Tutti_byENSEMBLE_Tutti.svg
+  ok    Esc closes Export
+  ok    Image draws – 1200x900:1572685967
+  ok    Export opens on Still for an image
+  ok    Save PNG (image) – Tutti_byENSEMBLE_tutti-photo.png
+  ok    Save SVG (image) – Tutti_byENSEMBLE_tutti-photo.svg
+  ok    Bands add and remove – 6→7→6
+  ok    SVG mark, Keep SVG colours, Reset shapes
+  ok    Random and Randomise
+  ok    Cards fold and say what is set – Original · Grid 72
+  ok    Presets save and load – Tutti_byENSEMBLE_preset-1791973247701.json
+  ok    Preview (F, Esc) and light/dark
+  ok    Video plays and pauses – plays, pauses
+  ok    Export opens on Motion for a video
+  ok    Countdown, and Cancel – Get ready – 3
+  ok    MP4 greyed where video can't be recorded
+  ok    Record GIF, ping-pong (type) – 0:02 → Tutti_byENSEMBLE_Tutti.gif (3 KB)
+  ok    Export opens after recording
+  ok    no script errors
+
+== webkit/embed
+  ok    starts empty, Export out of the way
+  ok    framing: embed
+  ok    Type draws – 1200x675:-499869258
+  ok    Tracking spaces the letters
+  ok    Tracking works without canvas letterSpacing (older Safari)
+  ok    Gradient fill changes the type
+  ok    Export opens the sheet – 340×143
+  ok    Save PNG (type) – Tutti_byENSEMBLE_Tutti.png
+  ok    Save SVG (type) – Tutti_byENSEMBLE_Tutti.svg
+  ok    a save says so – Saved Tutti_byENSEMBLE_Tutti.svg
+  ok    Esc closes Export
+  ok    Image draws – 1200x900:1572685967
+  ok    Export opens on Still for an image
+  ok    Save PNG (image) – Tutti_byENSEMBLE_tutti-photo.png
+  ok    Save SVG (image) – Tutti_byENSEMBLE_tutti-photo.svg
+  ok    Bands add and remove – 6→7→6
+  ok    SVG mark, Keep SVG colours, Reset shapes
+  ok    Random and Randomise
+  ok    Cards fold and say what is set – Original · Grid 72
+  ok    Presets save and load – Tutti_byENSEMBLE_preset-1791973288082.json
+  ok    Preview (F, Esc) and light/dark
+  ok    Video plays and pauses – plays, pauses
+  ok    Export opens on Motion for a video
+  ok    Countdown, and Cancel – Get ready – 3
+  ok    MP4 greyed where video can't be recorded
+  ok    Record GIF, ping-pong (type) – 0:02 → Tutti_byENSEMBLE_Tutti.gif (2 KB)
+  ok    Export opens after recording
+  ok    no script errors
+
+== webkit/app
+  ok    starts empty, Export out of the way
+  ok    framing: app
+  ok    Type draws – 1200x675:-499869258
+  ok    Tracking spaces the letters
+  ok    Tracking works without canvas letterSpacing (older Safari)
+  ok    Gradient fill changes the type
+  ok    Export opens the sheet – 340×143
+  ok    Save PNG (type) – Tutti_byENSEMBLE_Tutti.png
+  ok    Save SVG (type) – Tutti_byENSEMBLE_Tutti.svg
+  ok    a save says so – Saved Tutti_byENSEMBLE_Tutti.svg
+  ok    Esc closes Export
+  ok    Image draws – 1200x900:1572685967
+  ok    Export opens on Still for an image
+  ok    Save PNG (image) – Tutti_byENSEMBLE_tutti-photo.png
+  ok    Save SVG (image) – Tutti_byENSEMBLE_tutti-photo.svg
+  ok    Bands add and remove – 6→7→6
+  ok    SVG mark, Keep SVG colours, Reset shapes
+  ok    Random and Randomise
+  ok    Cards fold and say what is set – Original · Grid 72
+  ok    Presets save and load – Tutti_byENSEMBLE_preset-1791973328609.json
+  ok    Preview (F, Esc) and light/dark
+  ok    Video plays and pauses – plays, pauses
+  ok    Export opens on Motion for a video
+  ok    Countdown, and Cancel – Get ready – 3
+  ok    MP4 greyed where video can't be recorded
+  ok    Record GIF, ping-pong (type) – 0:02 → Tutti_byENSEMBLE_Tutti.gif (3 KB)
+  ok    Export opens after recording
+  ok    no script errors
+
+== firefox/direct
+  ok    starts empty, Export out of the way
+  ok    framing: direct
+  ok    Type draws – 1200x675:1126742964
+  ok    Tracking spaces the letters
+  ok    Tracking works without canvas letterSpacing (older Safari)
+  ok    Gradient fill changes the type
+  ok    Export opens the sheet – 340×143
+  ok    Save PNG (type) – Tutti_byENSEMBLE_Tutti.png
+  ok    Save SVG (type) – Tutti_byENSEMBLE_Tutti.svg
+  ok    a save says so – Saved Tutti_byENSEMBLE_Tutti.svg
+  ok    Esc closes Export
+  ok    Image draws – 1200x900:1611325390
+  ok    Export opens on Still for an image
+  ok    Save PNG (image) – Tutti_byENSEMBLE_tutti-photo.png
+  ok    Save SVG (image) – Tutti_byENSEMBLE_tutti-photo.svg
+  ok    Bands add and remove – 6→7→6
+  ok    SVG mark, Keep SVG colours, Reset shapes
+  ok    Random and Randomise
+  ok    Cards fold and say what is set – Original · Grid 72
+  ok    Presets save and load – Tutti_byENSEMBLE_preset-1791973369183.json
+  ok    Preview (F, Esc) and light/dark
+  ok    Video plays and pauses – plays, pauses
+  ok    Export opens on Motion for a video
+  ok    Countdown, and Cancel – Get ready – 3
+  ok    Record MP4 (video source) – Tutti_byENSEMBLE_tutti-clip.webm, saved itself at the end of the clip
+  ok    Record GIF, ping-pong (type) – 0:02 → Tutti_byENSEMBLE_Tutti.gif (3 KB)
+  ok    Export opens after recording
+  ok    no script errors
+
+== firefox/embed
+  ok    starts empty, Export out of the way
+  ok    framing: embed
+  ok    Type draws – 1200x675:1126742964
+  ok    Tracking spaces the letters
+  ok    Tracking works without canvas letterSpacing (older Safari)
+  ok    Gradient fill changes the type
+  ok    Export opens the sheet – 340×143
+  ok    Save PNG (type) – Tutti_byENSEMBLE_Tutti.png
+  ok    Save SVG (type) – Tutti_byENSEMBLE_Tutti.svg
+  ok    a save says so – Saved Tutti_byENSEMBLE_Tutti.svg
+  ok    Esc closes Export
+  ok    Image draws – 1200x900:1611325390
+  ok    Export opens on Still for an image
+  ok    Save PNG (image) – Tutti_byENSEMBLE_tutti-photo.png
+  ok    Save SVG (image) – Tutti_byENSEMBLE_tutti-photo.svg
+  ok    Bands add and remove – 6→7→6
+  ok    SVG mark, Keep SVG colours, Reset shapes
+  ok    Random and Randomise
+  ok    Cards fold and say what is set – Original · Grid 72
+  ok    Presets save and load – Tutti_byENSEMBLE_preset-1791973417189.json
+  ok    Preview (F, Esc) and light/dark
+  ok    Video plays and pauses – plays, pauses
+  ok    Export opens on Motion for a video
+  ok    Countdown, and Cancel – Get ready – 3
+  ok    Record MP4 (video source) – Tutti_byENSEMBLE_tutti-clip.webm, saved itself at the end of the clip
+  ok    Record GIF, ping-pong (type) – 0:02 → Tutti_byENSEMBLE_Tutti.gif (3 KB)
+  ok    Export opens after recording
+  ok    no script errors
+
+== firefox/app
+  ok    starts empty, Export out of the way
+  ok    framing: app
+  ok    Type draws – 1200x675:1126742964
+  ok    Tracking spaces the letters
+  ok    Tracking works without canvas letterSpacing (older Safari)
+  ok    Gradient fill changes the type
+  ok    Export opens the sheet – 340×143
+  ok    Save PNG (type) – Tutti_byENSEMBLE_Tutti.png
+  ok    Save SVG (type) – Tutti_byENSEMBLE_Tutti.svg
+  ok    a save says so – Saved Tutti_byENSEMBLE_Tutti.svg
+  ok    Esc closes Export
+  ok    Image draws – 1200x900:1611325390
+  ok    Export opens on Still for an image
+  ok    Save PNG (image) – Tutti_byENSEMBLE_tutti-photo.png
+  ok    Save SVG (image) – Tutti_byENSEMBLE_tutti-photo.svg
+  ok    Bands add and remove – 6→7→6
+  ok    SVG mark, Keep SVG colours, Reset shapes
+  ok    Random and Randomise
+  ok    Cards fold and say what is set – Original · Grid 72
+  ok    Presets save and load – Tutti_byENSEMBLE_preset-1791973464207.json
+  ok    Preview (F, Esc) and light/dark
+  ok    Video plays and pauses – plays, pauses
+  ok    Export opens on Motion for a video
+  ok    Countdown, and Cancel – Get ready – 3
+  ok    Record MP4 (video source) – Tutti_byENSEMBLE_tutti-clip.webm, saved itself at the end of the clip
+  ok    Record GIF, ping-pong (type) – 0:02 → Tutti_byENSEMBLE_Tutti.gif (47 KB)
+  ok    Export opens after recording
+  ok    no script errors
+
+168 of 168 passed
+
+== webkit / direct
+   info {'mr': False, 'cap': True, 'mp4': None, 'avc': None, 'webm': None, 'ls': True, 'ua': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/27.2 Safari/605.1.15'}
+   ok   Type source
+   ok   Export opens the sheet -> 143px
+   ok   Save PNG downloads -> Tutti_byENSEMBLE_Tutti.png
+   ok   Save SVG downloads -> Tutti_byENSEMBLE_Tutti.svg
+   ok   closes and opens again -> 143px
+   ok   Image source
+   ok   Save PNG (image) -> Tutti_byENSEMBLE_xb.png
+   ok   Countdown puts the sheet away; Cancel brings Export back -> Export back, sheet 315px
+   ok   MP4 greyed where video can't be recorded -> True
+   ok   Export works after the MP4 -> 315px
+   ok   Record GIF -> '0:02' -> Tutti_byENSEMBLE_xb.gif
+   ok   Export works after the GIF -> 315px
+   ok   Save PNG after recording -> Tutti_byENSEMBLE_xb.png
+
+== webkit / embed
+   ok   Type source
+   ok   Export opens the sheet -> 143px
+   ok   Save PNG downloads -> Tutti_byENSEMBLE_Tutti.png
+   ok   Save SVG downloads -> Tutti_byENSEMBLE_Tutti.svg
+   ok   closes and opens again -> 143px
+   ok   Image source
+   ok   Save PNG (image) -> Tutti_byENSEMBLE_xb.png
+   ok   Countdown puts the sheet away; Cancel brings Export back -> Export back, sheet 315px
+   ok   MP4 greyed where video can't be recorded -> True
+   ok   Export works after the MP4 -> 315px
+   ok   Record GIF -> '0:02' -> Tutti_byENSEMBLE_xb.gif
+   ok   Export works after the GIF -> 315px
+   ok   Save PNG after recording -> Tutti_byENSEMBLE_xb.png
+
+== webkit / app
+   ok   Type source
+   ok   Export opens the sheet -> 143px
+   ok   Save PNG downloads -> Tutti_byENSEMBLE_Tutti.png
+   ok   Save SVG downloads -> Tutti_byENSEMBLE_Tutti.svg
+   ok   closes and opens again -> 143px
+   ok   Image source
+   ok   Save PNG (image) -> Tutti_byENSEMBLE_xb.png
+   ok   Countdown puts the sheet away; Cancel brings Export back -> Export back, sheet 315px
+   ok   MP4 greyed where video can't be recorded -> True
+   ok   Export works after the MP4 -> 315px
+   ok   Record GIF -> '0:02' -> Tutti_byENSEMBLE_xb.gif
+   ok   Export works after the GIF -> 315px
+   ok   Save PNG after recording -> Tutti_byENSEMBLE_xb.png
+
+FAILURES: 0
