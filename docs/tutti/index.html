@@ -507,6 +507,8 @@
   .seg2{border:none;background:transparent;color:var(--muted);font-family:var(--face);font-size:13.5px;height:calc(var(--h-ctl) - 6px);padding:0 8px;border-radius:999px;cursor:pointer;white-space:nowrap;letter-spacing:-0.02em}
   .seg2:hover{color:var(--ink)}
   .seg2.on:hover{color:var(--on-ink)}
+  .seg2:disabled{opacity:.35;cursor:default}
+  .seg2:disabled:hover{color:var(--muted)}
   .seg2:focus-visible,.lane:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
   .ep-sublabel{font-size:var(--fs-body);color:var(--ink)}
   .rec-btn{width:100%;height:var(--h-lg,40px);border:none;background:var(--fill-ink);color:var(--on-ink);font-family:var(--face);font-size:var(--fs-body);letter-spacing:-0.02em;border-radius:999px;cursor:pointer;transition:.14s}
@@ -521,11 +523,12 @@
   .cap-activity{display:none;align-items:center;gap:8px;padding:0 4px 0 12px}
   .live-dot{width:8px;height:8px;border-radius:50%;background:var(--live);display:inline-block;animation:recpulse 1.2s ease-in-out infinite}
   @keyframes recpulse{50%{opacity:.35}}
-  .cap-activity .act-main{font-size:var(--fs-body);color:var(--ink);min-width:0;text-align:left}
+  .cap-activity .act-main{font-size:var(--fs-body);color:var(--ink);min-width:0;text-align:left;font-variant-numeric:tabular-nums}
   .stop{border:0;box-shadow:inset 0 0 0 1px var(--keyline);background:var(--btn);color:var(--ink);font-family:var(--face);font-size:var(--fs-body);height:var(--h-isl);padding:0 14px;border-radius:999px;cursor:pointer}
   .stop:hover{background:var(--btn-hover)}
-  .island-in:has(#capActivity[style*="display: flex"]) #exportOpen,.island-in:has(#capActivity[style*="display: flex"]) .ep-div{display:none}
-  .island:has(#capActivity[style*="display: flex"]) .sheets{grid-template-rows:0fr}
+  /* while counting down, recording or making a file (.busy, set by the script): the island shows that, not Export */
+  .island.busy #exportOpen,.island.busy .island-in>.ep-div{display:none}
+  .island.busy .sheets{grid-template-rows:0fr}
   #foot{display:none}
   /* incidental messages float just above the island */
   #status{position:absolute;left:calc(var(--pw) + var(--gap)*2);right:var(--gap);bottom:calc(var(--gap)*2 + var(--h-bar));margin:0 auto;width:fit-content;max-width:420px;display:block;
@@ -549,7 +552,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.1</span></div>
+      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.1.1</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls">
@@ -729,7 +732,70 @@
   </div>
 
 <script>
-const VERSION="6.1", MAXB=7, MINB=2;
+// ---- GIF encoder (tested standalone) ----
+function ByteBuf(){this.a=new Uint8Array(1<<16);this.n=0;}
+ByteBuf.prototype.need=function(k){if(this.n+k>this.a.length){let s=this.a.length*2;while(s<this.n+k)s*=2;const b=new Uint8Array(s);b.set(this.a.subarray(0,this.n));this.a=b;}};
+ByteBuf.prototype.b=function(v){this.need(1);this.a[this.n++]=v&255;};
+ByteBuf.prototype.w=function(v){this.b(v&255);this.b((v>>8)&255);};
+ByteBuf.prototype.s=function(str){for(let i=0;i<str.length;i++)this.b(str.charCodeAt(i));};
+ByteBuf.prototype.arr=function(x){this.need(x.length);this.a.set(x,this.n);this.n+=x.length;};
+ByteBuf.prototype.out=function(){return this.a.slice(0,this.n);};
+const LZW_DICT=new Int16Array(1<<20);
+function lzwEncode(buf,idx,minCode){
+  buf.b(minCode);
+  const clear=1<<minCode,eoi=clear+1;let size=minCode+1,next=eoi+1;
+  const dict=LZW_DICT;dict.fill(-1);
+  const block=new Uint8Array(255);let bl=0,cur=0,bits=0;
+  const flush=()=>{if(bl){buf.b(bl);buf.arr(block.subarray(0,bl));bl=0;}};
+  const emit=c=>{cur|=c<<bits;bits+=size;while(bits>=8){block[bl++]=cur&255;cur>>>=8;bits-=8;if(bl===255)flush();}};
+  emit(clear);
+  let prefix=idx[0];
+  for(let i=1;i<idx.length;i++){
+    const k=idx[i],key=(prefix<<8)|k,c=dict[key];
+    if(c!==-1){prefix=c;continue;}
+    emit(prefix);
+    if(next<4096){dict[key]=next++;if(next>(1<<size)&&size<12)size++;}
+    else{emit(clear);dict.fill(-1);size=minCode+1;next=eoi+1;}
+    prefix=k;
+  }
+  emit(prefix);emit(eoi);
+  if(bits>0){block[bl++]=cur&255;if(bl===255)flush();}
+  flush();buf.b(0);
+}
+function medianCut(hist,max){
+  const cols=[];for(let i=0;i<32768;i++)if(hist[i])cols.push(i);
+  const ch=(c,j)=>j===0?(c>>10)&31:j===1?(c>>5)&31:c&31;
+  const to8=v=>(v<<3)|(v>>2);
+  let boxes=[cols];
+  const info=bx=>{let mn=[31,31,31],mx=[0,0,0],n=0;for(const c of bx){n+=hist[c];for(let j=0;j<3;j++){const v=ch(c,j);if(v<mn[j])mn[j]=v;if(v>mx[j])mx[j]=v;}}const r=[mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2]];const j=r[0]>=r[1]&&r[0]>=r[2]?0:r[1]>=r[2]?1:2;return{n,range:r[j],j};};
+  if(cols.length>max){
+    while(boxes.length<max){
+      let best=-1,bs=-1,bi=null;
+      boxes.forEach((bx,i)=>{if(bx.length<2)return;const f=info(bx);const sc=f.range*Math.sqrt(f.n);if(sc>bs){bs=sc;best=i;bi=f;}});
+      if(best<0||bs<=0)break;
+      const bx=boxes[best].slice().sort((a,b)=>ch(a,bi.j)-ch(b,bi.j));
+      let acc=0,cut=1;for(let i=0;i<bx.length;i++){acc+=hist[bx[i]];if(acc>=bi.n/2){cut=Math.min(Math.max(i+1,1),bx.length-1);break;}}
+      boxes.splice(best,1,bx.slice(0,cut),bx.slice(cut));
+    }
+  }else boxes=cols.map(c=>[c]);
+  const pal=new Uint8Array(768);
+  boxes.forEach((bx,i)=>{let n=0,r=0,g=0,b=0;for(const c of bx){const w=hist[c];n+=w;r+=to8(ch(c,0))*w;g+=to8(ch(c,1))*w;b+=to8(ch(c,2))*w;}pal[i*3]=Math.round(r/n);pal[i*3+1]=Math.round(g/n);pal[i*3+2]=Math.round(b/n);});
+  return {pal,count:Math.max(1,boxes.length)};
+}
+function makeLut(pal,count){
+  const lut=new Int16Array(32768).fill(-1);
+  return q=>{let v=lut[q];if(v!==-1)return v;const r=((q>>10)&31)<<3|4,g=((q>>5)&31)<<3|4,b=(q&31)<<3|4;let bd=1e9;for(let i=0;i<count;i++){const dr=pal[i*3]-r,dg=pal[i*3+1]-g,db=pal[i*3+2]-b,d=dr*dr*2+dg*dg*3+db*db;if(d<bd){bd=d;v=i;}}lut[q]=v;return v;};
+}
+function gifHeader(buf,w,h,pal){
+  buf.s('GIF89a');buf.w(w);buf.w(h);buf.b(0xF7);buf.b(0);buf.b(0);buf.arr(pal);
+  buf.b(0x21);buf.b(0xFF);buf.b(11);buf.s('NETSCAPE2.0');buf.b(3);buf.b(1);buf.w(0);buf.b(0);
+}
+function gifFrame(buf,w,h,idx,delay){
+  buf.b(0x21);buf.b(0xF9);buf.b(4);buf.b(0x04);buf.w(delay);buf.b(0);buf.b(0);
+  buf.b(0x2C);buf.w(0);buf.w(0);buf.w(w);buf.w(h);buf.b(0);
+  lzwEncode(buf,idx,8);
+}
+const VERSION="6.1.1", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,
@@ -926,7 +992,17 @@ function renderType(){
   x.translate(W/2,H/2); x.transform(S.typeW,0,Math.tan(S.typeSlant),S.typeH,0,0); x.translate(-W/2,-H/2);
   const lines=(S.text||'').split('\n'); const lh=S.tsize*S.tlh;
   let y=H/2-(lines.length-1)*lh/2;
-  lines.forEach(l=>{ x.fillText(l,tx,y); y+=lh; });
+  /* browsers without canvas letterSpacing (Safari before 18.4): place each letter
+     ourselves – widths from the font, so the font's own kerning is kept in each pair */
+  const manual=S.tracking!==0&&!('letterSpacing' in x);
+  lines.forEach(l=>{
+    if(!manual){ x.fillText(l,tx,y); y+=lh; return; }
+    const ch=[...l], tr=S.tracking, full=x.measureText(l).width+tr*Math.max(0,ch.length-1), al=x.textAlign;
+    let px=al==='left'?tx:al==='right'?tx-full:tx-full/2, pre='';
+    x.textAlign='left';
+    ch.forEach((c,i)=>{ x.fillText(c,px+x.measureText(pre).width+tr*i,y); pre+=c; });
+    x.textAlign=al; y+=lh;
+  });
   x.restore();
   if('letterSpacing' in x) x.letterSpacing='0px';
   S.sampleDirty=true;
@@ -1069,13 +1145,20 @@ function baseName(){
   return 'render';
 }
 function fname(ext){ return 'Tutti_byENSEMBLE_'+baseName()+'.'+ext; }
+/* every download goes through here: the link joins the page for the click (some browsers
+   ignore a click on a detached link), and its address is kept long enough for a slow save */
+function saveBlob(name,blob){
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name; a.style.display='none'; document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
 
 /* PNG / SVG */
 $('exportBtn').onclick=()=>{
   if(!S.kind) return;
   computeDims(); if(S.spritesDirty)buildSprites(); sample(); render();
-  out.toBlob(b=>{ const a=document.createElement('a');
-    a.href=URL.createObjectURL(b); a.download=fname('png'); a.click(); },'image/png');
+  const name=fname('png');
+  out.toBlob(b=>{ if(!b){ status('Couldn’t make the PNG – try a smaller resolution'); return; } saveBlob(name,b); status('Saved '+name); },'image/png');
 };
 $('svgBtn').onclick=()=>{
   if(!S.kind) return;
@@ -1097,8 +1180,7 @@ $('svgBtn').onclick=()=>{
     }
   }
   s+='</svg>';
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([s],{type:'image/svg+xml'})); a.download=fname('svg'); a.click();
+  const name=fname('svg'); saveBlob(name,new Blob([s],{type:'image/svg+xml'})); status('Saved '+name);
 };
 
 /* presets */
@@ -1140,8 +1222,7 @@ function syncUI(){
 }
 $('savePreset').onclick=()=>{
   const blob=new Blob([JSON.stringify(getPreset(),null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='Tutti_byENSEMBLE_preset-'+Date.now()+'.json'; a.click();
+  const name='Tutti_byENSEMBLE_preset-'+Date.now()+'.json'; saveBlob(name,blob); status('Saved '+name);
 };
 $('loadPreset').onchange=e=>{
   const f=e.target.files[0]; if(!f)return; const rd=new FileReader();
@@ -1179,19 +1260,22 @@ function setLane(l){ lane=l; $('laneStill').classList.toggle('on',l==='still'); 
 function setFmt(f){ exportFmt=f; $('fmtMp4').classList.toggle('on',f==='mp4'); $('fmtGif').classList.toggle('on',f==='gif'); $('ppLabel').style.display=(f==='gif')?'inline-flex':'none'; }
 $('laneStill').onclick=()=>setLane('still');
 $('laneMotion').onclick=()=>setLane('motion');
-$('fmtMp4').onclick=()=>setFmt('mp4');
+/* video needs MediaRecorder and canvas capture; where they're missing (older Safari), MP4 steps aside and GIF is the format */
+const canVideo=!!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);
+if(!canVideo){ exportFmt='gif'; const b=$('fmtMp4'); b.disabled=true; b.title='This browser can’t record video – GIF works here'; }
+$('fmtMp4').onclick=()=>{ if(canVideo) setFmt('mp4'); };
 $('fmtGif').onclick=()=>setFmt('gif');
 document.querySelectorAll('#preSeg .seg2').forEach(b=>b.onclick=()=>{ preRoll=+b.dataset.pre; document.querySelectorAll('#preSeg .seg2').forEach(x=>x.classList.toggle('on',x===b)); });
 $('gifPP').onchange=()=>{ gifPingpong=$('gifPP').checked; };
 
-function showChoose(){ $('capChoose').style.display='flex'; $('capActivity').style.display='none'; }
+function showChoose(){ $('capChoose').style.display='flex'; $('capActivity').style.display='none'; $('exportbar').classList.remove('busy'); }
 function showActivity(main,live,stopLabel){
-  $('capChoose').style.display='none'; $('capActivity').style.display='flex';
+  $('capChoose').style.display='none'; $('capActivity').style.display='flex'; $('exportbar').classList.add('busy');
   $('actMain').textContent=main;
   $('liveDot').style.display=live?'inline-block':'none';
   const st=$('stopBtn'); if(stopLabel){ st.style.display=''; st.textContent=stopLabel; } else st.style.display='none';
 }
-function capMessage(msg){ showActivity(msg,false,null); setTimeout(()=>{ if(S.kind&&!recording&&!gifRecording&&!prerollActive) showChoose(); },2600); }
+function capMessage(msg){ showActivity(msg,false,null); setTimeout(()=>{ if(S.kind&&!recording&&!gifRecording&&!gifEncoding&&!prerollActive) showChoose(); },2600); }
 function showExportBar(){ $('exportbar').style.display='flex'; setFmt(exportFmt); setLane(isStatic()?'still':'motion'); showChoose(); }
 function abortExports(){ cancelPreroll(); if(recording&&recorder)recorder.stop(); if(gifRecording)stopGif(true); }
 
@@ -1199,7 +1283,7 @@ function abortExports(){ cancelPreroll(); if(recording&&recorder)recorder.stop()
 let prerollActive=false, prerollTimer=null;
 function cancelPreroll(){ prerollActive=false; if(prerollTimer){clearInterval(prerollTimer);prerollTimer=null;} }
 function startRecord(){
-  if(!S.kind||recording||gifRecording||prerollActive) return;
+  if(!S.kind||recording||gifRecording||gifEncoding||prerollActive) return;
   if(preRoll>0){
     prerollActive=true; let left=preRoll;
     showActivity('Get ready – '+left,false,'Cancel');
@@ -1238,60 +1322,68 @@ function startVideo(){
     recording=false; if(recElapsed){clearInterval(recElapsed);recElapsed=null;}
     const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});
     const ext=(blob.type.indexOf('mp4')>-1)?'mp4':'webm';
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname(ext); a.click();
+    const name=fname(ext); saveBlob(name,blob);
     if(prevRes!=null){ S.res=prevRes; prevRes=null; S.sampleDirty=true; S.spritesDirty=true; }
     if(S.kind==='video') srcVid.loop=true;
-    capMessage(ext==='webm'?'Saved as WebM':'Video saved');
+    capMessage('Saved '+name);
   };
   recorder.start();
   if(S.kind==='video'){ srcVid.loop=false; srcVid.currentTime=0; srcVid.play().catch(()=>{}); }
 }
 srcVid.addEventListener('ended',()=>{ if(recording&&S.kind==='video'&&recorder) recorder.stop(); });
 
-/* GIF – live capture, limitless, optional ping-pong */
-let GIFLIB=null, gifWorkerURL=null;
-let gifRecording=false, gifTick=null, gifElapsed=null, gifPingpong=false, gifGW=0, gifGH=0, gifFrames=[];
+/* GIF – live capture, limitless, optional ping-pong. Encoded here with the shared
+   encoder (shared/gif.js, put in by build.py) – nothing is fetched from elsewhere.
+   Each frame is kept as 15-bit colour; one palette is made from all of them at the end. */
+let gifRecording=false, gifEncoding=false, gifTick=null, gifElapsed=null, gifPingpong=false, gifGW=0, gifGH=0, gifFrames=[], gifHist=null, gifGrab=null;
 const GIF_FPS=10, GIF_MAXPX=560, GIF_MAXFRAMES=150;
-function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
-async function ensureGif(){
-  if(GIFLIB&&gifWorkerURL) return true;
-  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js');
-  const wtxt=await (await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js')).text();
-  gifWorkerURL=URL.createObjectURL(new Blob([wtxt],{type:'application/javascript'}));
-  GIFLIB=window.GIF; return !!GIFLIB;
-}
-async function startGif(){
-  if(gifRecording) return;
-  showActivity('Loading GIF…',false,null);
-  let ok=false; try{ ok=await ensureGif(); }catch(e){ ok=false; }
-  if(!ok){ capMessage('GIF needs an internet connection'); return; }
+function startGif(){
+  if(gifRecording||gifEncoding) return;
   computeDims(); if(S.spritesDirty)buildSprites();
   const sc=Math.min(1,GIF_MAXPX/Math.max(out.width,out.height));
   gifGW=Math.max(1,Math.round(out.width*sc)); gifGH=Math.max(1,Math.round(out.height*sc));
-  gifFrames=[]; gifRecording=true;
-  const dl=Math.round(1000/GIF_FPS); let t=0;
+  const gc=document.createElement('canvas'); gc.width=gifGW; gc.height=gifGH; gifGrab=gc.getContext('2d',{willReadFrequently:true});
+  gifFrames=[]; gifHist=new Uint32Array(32768); gifRecording=true;
+  let t=0;
   showActivity(mmss(0),true,'Stop');
   gifElapsed=setInterval(()=>{ t++; if(gifRecording) showActivity(mmss(t),true,'Stop'); },1000);
   gifTick=setInterval(()=>{
-    const c=document.createElement('canvas'); c.width=gifGW; c.height=gifGH;
-    c.getContext('2d').drawImage(out,0,0,gifGW,gifGH);
-    gifFrames.push(c);
+    gifGrab.drawImage(out,0,0,gifGW,gifGH);
+    const d=gifGrab.getImageData(0,0,gifGW,gifGH).data, q=new Uint16Array(gifGW*gifGH);
+    for(let i=0,j=0;i<q.length;i++,j+=4){ const v=((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3); q[i]=v; gifHist[v]++; }
+    gifFrames.push(q);
     if(gifFrames.length>=GIF_MAXFRAMES) stopGif();
-  },dl);
+  },Math.round(1000/GIF_FPS));
 }
-function stopGif(silent){
+async function stopGif(silent){
   if(!gifRecording) return;
   gifRecording=false;
   if(gifTick){clearInterval(gifTick);gifTick=null;}
   if(gifElapsed){clearInterval(gifElapsed);gifElapsed=null;}
-  if(silent || gifFrames.length===0){ gifFrames=[]; if(!silent) showChoose(); return; }
-  showActivity('Rendering GIF…',false,null);
-  const dl=Math.round(1000/GIF_FPS);
-  const gif=new GIFLIB({workers:2,quality:10,width:gifGW,height:gifGH,workerScript:gifWorkerURL,repeat:0});
-  gifFrames.forEach(c=>gif.addFrame(c,{delay:dl}));
-  if(gifPingpong) for(let k=gifFrames.length-2;k>0;k--) gif.addFrame(gifFrames[k],{delay:dl});
-  gif.on('finished',b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fname('gif'); a.click(); capMessage('GIF saved ('+gifGW+'×'+gifGH+')'); gifFrames=[]; });
-  gif.render();
+  if(silent || gifFrames.length===0){ gifFrames=[]; gifHist=null; if(!silent) showChoose(); return; }
+  gifEncoding=true;
+  try{
+    showActivity('Making the GIF…',false,null);
+    await new Promise(r=>setTimeout(r,30));
+    const {pal,count}=medianCut(gifHist,256), near=makeLut(pal,count), w=gifGW, h=gifGH, delay=Math.round(100/GIF_FPS);
+    const order=gifFrames.map((_,i)=>i);
+    if(gifPingpong) for(let k=gifFrames.length-2;k>0;k--) order.push(k);
+    /* a frame the same as the one before only lengthens it – a still source makes a small file */
+    const same=(a,b)=>{ if(a===b) return true; for(let i=0;i<a.length;i++) if(a[i]!==b[i]) return false; return true; };
+    const runs=[]; order.forEach(f=>{ const r=runs[runs.length-1]; if(r&&same(gifFrames[r.f],gifFrames[f])&&r.n<60) r.n++; else runs.push({f,n:1}); });
+    const buf=new ByteBuf(); gifHeader(buf,w,h,pal); const idx=new Uint8Array(w*h), done=new Map();
+    for(let n=0;n<runs.length;n++){
+      const f=runs[n].f;
+      let ix=done.get(f);
+      if(!ix){ const q=gifFrames[f]; ix=new Uint8Array(w*h); for(let i=0;i<ix.length;i++) ix[i]=near(q[i]); if(gifPingpong) done.set(f,ix); }
+      idx.set(ix); gifFrame(buf,w,h,idx,delay*runs[n].n);
+      if(n%4===3){ showActivity('Making the GIF – '+Math.round(100*(n+1)/runs.length)+'%',false,null); await new Promise(r=>setTimeout(r,0)); }
+    }
+    buf.b(0x3B);
+    const name=fname('gif'); saveBlob(name,new Blob([buf.out()],{type:'image/gif'}));
+    capMessage('Saved '+name);
+  }catch(e){ console.error(e); capMessage('Couldn’t make the GIF – try a shorter recording'); }
+  gifFrames=[]; gifHist=null; gifEncoding=false;
 }
 </script>
 <script>
@@ -1341,6 +1433,9 @@ function stopGif(silent){
   /* Export: a sheet that grows out of the island */
   const setSheet=open=>{sheet.hidden=!open;island.classList.toggle('open',open);opener.setAttribute('aria-expanded',open);opener.title=open?'':'Save or download what’s on the stage';layout();};
   opener.addEventListener('click',e=>{e.stopPropagation();setSheet(sheet.hidden);});
+  /* a countdown, recording or file in the making puts the sheet away: the island shows what's
+     happening, then Export comes back shut – it never springs open again on its own */
+  new MutationObserver(()=>{if(island.classList.contains('busy')&&!sheet.hidden)setSheet(false);}).observe(island,{attributes:true,attributeFilter:['class']});
   document.querySelector('.stage').addEventListener('pointerdown',e=>{if(!sheet.hidden){setSheet(false);e.stopPropagation();}else if(app.classList.contains('peek')){setPanel(false);e.stopPropagation();}},true);
 
   /* the island sits centred under the work, clear of the panel */

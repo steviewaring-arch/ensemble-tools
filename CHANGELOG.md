@@ -1,5 +1,22 @@
 # Changelog
 
+## 14 October 2026 – Tutti 6.1.1
+
+A robustness pass on Export after a report that it wasn't working on the live site. It couldn't be reproduced afterwards (most likely a stale copy or a deploy in progress), but checking every path – Chromium, Firefox and WebKit (Safari's engine), on its own, framed (`?embed`) and full screen (`?app`) – turned up these, all fixed. Still exports (PNG, SVG) are byte for byte the same as 6.1.
+
+- **Every save says so.** Save PNG, Save SVG and Save preset show "Saved Tutti_byENSEMBLE_….png" above the island; MP4 and GIF show it in the island. Before, a still save gave no sign at all, so a download the browser held back looked like Export doing nothing.
+- **Recording puts the sheet away.** Starting a countdown or a recording closes the Export sheet; the island shows Get ready, the time and Stop, then Saved …, and Export comes back shut. Before, the sheet hid behind the recording and sprang open again by itself a few seconds after saving – a click on Export in that moment closed it instead.
+- **GIF needs nothing from outside.** GIFs are made by the shared encoder (`shared/gif.js`, the one Rubato and Tempo use, put in by `build.py`) instead of gif.js fetched from cdnjs when Record was pressed – so no "GIF needs an internet connection", nothing from a third party. Frames that don't change are merged into one longer frame: a GIF of a still source went from about 4 MB to a few KB. The island counts up while it's made ("Making the GIF – 60%").
+- **MP4 only where the browser can record video.** Where it can't (older Safari, without MediaRecorder), MP4 is greyed with a tooltip and GIF is the format, instead of "This browser can't record" after pressing Record.
+- **Tracking in older Safari.** Browsers without canvas letter-spacing (Safari before 18.4) now space the letters too, placed one by one with the font's own kerning kept. Elsewhere tracking is drawn exactly as before.
+- **The recording timer** has fixed-width figures, so the island no longer shifts every second and Stop stays put.
+- **Downloads** go through one path that adds the link to the page for the click and keeps its address for a minute, as the shared core does.
+- **Export's state** (counting down, recording, making a file) is a class on the island set by the script, not CSS reading the text of an inline style.
+
+**Tests**
+- `tests/tutti_check.py` – every part of Tutti on its own, framed and full screen: 84 of 84 in Chromium; still-export hashes identical to 6.1.
+- `tests/xbrowser.py` – Export by what a person sees (the sheet's real height, Export showing), before and after a countdown, a recording and a GIF, in Chromium, Firefox and WebKit.
+
 ## 13 October 2026 – Tempo 0.9.1
 
 - **Columns and Rings:** Tracking now works (their own, plus each font's from Fonts), a touch tighter to start, with Space between – the gap between columns and between rings is a word space that follows the tracking. Rings sit one space apart measured from the longest word on each, so the worst case is always one space and shorter words get more room. Rings can add the date: day, date, month and year, a ring each, outwards.

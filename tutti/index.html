@@ -23,7 +23,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.1</span></div>
+      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.1.1</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls">
@@ -203,7 +203,8 @@
   </div>
 
 <script>
-const VERSION="6.1", MAXB=7, MINB=2;
+/*{{shared-gif}}*/
+const VERSION="6.1.1", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,
@@ -400,7 +401,17 @@ function renderType(){
   x.translate(W/2,H/2); x.transform(S.typeW,0,Math.tan(S.typeSlant),S.typeH,0,0); x.translate(-W/2,-H/2);
   const lines=(S.text||'').split('\n'); const lh=S.tsize*S.tlh;
   let y=H/2-(lines.length-1)*lh/2;
-  lines.forEach(l=>{ x.fillText(l,tx,y); y+=lh; });
+  /* browsers without canvas letterSpacing (Safari before 18.4): place each letter
+     ourselves – widths from the font, so the font's own kerning is kept in each pair */
+  const manual=S.tracking!==0&&!('letterSpacing' in x);
+  lines.forEach(l=>{
+    if(!manual){ x.fillText(l,tx,y); y+=lh; return; }
+    const ch=[...l], tr=S.tracking, full=x.measureText(l).width+tr*Math.max(0,ch.length-1), al=x.textAlign;
+    let px=al==='left'?tx:al==='right'?tx-full:tx-full/2, pre='';
+    x.textAlign='left';
+    ch.forEach((c,i)=>{ x.fillText(c,px+x.measureText(pre).width+tr*i,y); pre+=c; });
+    x.textAlign=al; y+=lh;
+  });
   x.restore();
   if('letterSpacing' in x) x.letterSpacing='0px';
   S.sampleDirty=true;
@@ -543,13 +554,20 @@ function baseName(){
   return 'render';
 }
 function fname(ext){ return 'Tutti_byENSEMBLE_'+baseName()+'.'+ext; }
+/* every download goes through here: the link joins the page for the click (some browsers
+   ignore a click on a detached link), and its address is kept long enough for a slow save */
+function saveBlob(name,blob){
+  const url=URL.createObjectURL(blob), a=document.createElement('a');
+  a.href=url; a.download=name; a.style.display='none'; document.body.append(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),60000);
+}
 
 /* PNG / SVG */
 $('exportBtn').onclick=()=>{
   if(!S.kind) return;
   computeDims(); if(S.spritesDirty)buildSprites(); sample(); render();
-  out.toBlob(b=>{ const a=document.createElement('a');
-    a.href=URL.createObjectURL(b); a.download=fname('png'); a.click(); },'image/png');
+  const name=fname('png');
+  out.toBlob(b=>{ if(!b){ status('Couldn’t make the PNG – try a smaller resolution'); return; } saveBlob(name,b); status('Saved '+name); },'image/png');
 };
 $('svgBtn').onclick=()=>{
   if(!S.kind) return;
@@ -571,8 +589,7 @@ $('svgBtn').onclick=()=>{
     }
   }
   s+='</svg>';
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(new Blob([s],{type:'image/svg+xml'})); a.download=fname('svg'); a.click();
+  const name=fname('svg'); saveBlob(name,new Blob([s],{type:'image/svg+xml'})); status('Saved '+name);
 };
 
 /* presets */
@@ -614,8 +631,7 @@ function syncUI(){
 }
 $('savePreset').onclick=()=>{
   const blob=new Blob([JSON.stringify(getPreset(),null,2)],{type:'application/json'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download='Tutti_byENSEMBLE_preset-'+Date.now()+'.json'; a.click();
+  const name='Tutti_byENSEMBLE_preset-'+Date.now()+'.json'; saveBlob(name,blob); status('Saved '+name);
 };
 $('loadPreset').onchange=e=>{
   const f=e.target.files[0]; if(!f)return; const rd=new FileReader();
@@ -653,19 +669,22 @@ function setLane(l){ lane=l; $('laneStill').classList.toggle('on',l==='still'); 
 function setFmt(f){ exportFmt=f; $('fmtMp4').classList.toggle('on',f==='mp4'); $('fmtGif').classList.toggle('on',f==='gif'); $('ppLabel').style.display=(f==='gif')?'inline-flex':'none'; }
 $('laneStill').onclick=()=>setLane('still');
 $('laneMotion').onclick=()=>setLane('motion');
-$('fmtMp4').onclick=()=>setFmt('mp4');
+/* video needs MediaRecorder and canvas capture; where they're missing (older Safari), MP4 steps aside and GIF is the format */
+const canVideo=!!(window.MediaRecorder&&HTMLCanvasElement.prototype.captureStream);
+if(!canVideo){ exportFmt='gif'; const b=$('fmtMp4'); b.disabled=true; b.title='This browser can’t record video – GIF works here'; }
+$('fmtMp4').onclick=()=>{ if(canVideo) setFmt('mp4'); };
 $('fmtGif').onclick=()=>setFmt('gif');
 document.querySelectorAll('#preSeg .seg2').forEach(b=>b.onclick=()=>{ preRoll=+b.dataset.pre; document.querySelectorAll('#preSeg .seg2').forEach(x=>x.classList.toggle('on',x===b)); });
 $('gifPP').onchange=()=>{ gifPingpong=$('gifPP').checked; };
 
-function showChoose(){ $('capChoose').style.display='flex'; $('capActivity').style.display='none'; }
+function showChoose(){ $('capChoose').style.display='flex'; $('capActivity').style.display='none'; $('exportbar').classList.remove('busy'); }
 function showActivity(main,live,stopLabel){
-  $('capChoose').style.display='none'; $('capActivity').style.display='flex';
+  $('capChoose').style.display='none'; $('capActivity').style.display='flex'; $('exportbar').classList.add('busy');
   $('actMain').textContent=main;
   $('liveDot').style.display=live?'inline-block':'none';
   const st=$('stopBtn'); if(stopLabel){ st.style.display=''; st.textContent=stopLabel; } else st.style.display='none';
 }
-function capMessage(msg){ showActivity(msg,false,null); setTimeout(()=>{ if(S.kind&&!recording&&!gifRecording&&!prerollActive) showChoose(); },2600); }
+function capMessage(msg){ showActivity(msg,false,null); setTimeout(()=>{ if(S.kind&&!recording&&!gifRecording&&!gifEncoding&&!prerollActive) showChoose(); },2600); }
 function showExportBar(){ $('exportbar').style.display='flex'; setFmt(exportFmt); setLane(isStatic()?'still':'motion'); showChoose(); }
 function abortExports(){ cancelPreroll(); if(recording&&recorder)recorder.stop(); if(gifRecording)stopGif(true); }
 
@@ -673,7 +692,7 @@ function abortExports(){ cancelPreroll(); if(recording&&recorder)recorder.stop()
 let prerollActive=false, prerollTimer=null;
 function cancelPreroll(){ prerollActive=false; if(prerollTimer){clearInterval(prerollTimer);prerollTimer=null;} }
 function startRecord(){
-  if(!S.kind||recording||gifRecording||prerollActive) return;
+  if(!S.kind||recording||gifRecording||gifEncoding||prerollActive) return;
   if(preRoll>0){
     prerollActive=true; let left=preRoll;
     showActivity('Get ready – '+left,false,'Cancel');
@@ -712,60 +731,68 @@ function startVideo(){
     recording=false; if(recElapsed){clearInterval(recElapsed);recElapsed=null;}
     const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});
     const ext=(blob.type.indexOf('mp4')>-1)?'mp4':'webm';
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=fname(ext); a.click();
+    const name=fname(ext); saveBlob(name,blob);
     if(prevRes!=null){ S.res=prevRes; prevRes=null; S.sampleDirty=true; S.spritesDirty=true; }
     if(S.kind==='video') srcVid.loop=true;
-    capMessage(ext==='webm'?'Saved as WebM':'Video saved');
+    capMessage('Saved '+name);
   };
   recorder.start();
   if(S.kind==='video'){ srcVid.loop=false; srcVid.currentTime=0; srcVid.play().catch(()=>{}); }
 }
 srcVid.addEventListener('ended',()=>{ if(recording&&S.kind==='video'&&recorder) recorder.stop(); });
 
-/* GIF – live capture, limitless, optional ping-pong */
-let GIFLIB=null, gifWorkerURL=null;
-let gifRecording=false, gifTick=null, gifElapsed=null, gifPingpong=false, gifGW=0, gifGH=0, gifFrames=[];
+/* GIF – live capture, limitless, optional ping-pong. Encoded here with the shared
+   encoder (shared/gif.js, put in by build.py) – nothing is fetched from elsewhere.
+   Each frame is kept as 15-bit colour; one palette is made from all of them at the end. */
+let gifRecording=false, gifEncoding=false, gifTick=null, gifElapsed=null, gifPingpong=false, gifGW=0, gifGH=0, gifFrames=[], gifHist=null, gifGrab=null;
 const GIF_FPS=10, GIF_MAXPX=560, GIF_MAXFRAMES=150;
-function loadScript(src){ return new Promise((res,rej)=>{ const s=document.createElement('script'); s.src=src; s.onload=res; s.onerror=rej; document.head.appendChild(s); }); }
-async function ensureGif(){
-  if(GIFLIB&&gifWorkerURL) return true;
-  await loadScript('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.js');
-  const wtxt=await (await fetch('https://cdnjs.cloudflare.com/ajax/libs/gif.js/0.2.0/gif.worker.js')).text();
-  gifWorkerURL=URL.createObjectURL(new Blob([wtxt],{type:'application/javascript'}));
-  GIFLIB=window.GIF; return !!GIFLIB;
-}
-async function startGif(){
-  if(gifRecording) return;
-  showActivity('Loading GIF…',false,null);
-  let ok=false; try{ ok=await ensureGif(); }catch(e){ ok=false; }
-  if(!ok){ capMessage('GIF needs an internet connection'); return; }
+function startGif(){
+  if(gifRecording||gifEncoding) return;
   computeDims(); if(S.spritesDirty)buildSprites();
   const sc=Math.min(1,GIF_MAXPX/Math.max(out.width,out.height));
   gifGW=Math.max(1,Math.round(out.width*sc)); gifGH=Math.max(1,Math.round(out.height*sc));
-  gifFrames=[]; gifRecording=true;
-  const dl=Math.round(1000/GIF_FPS); let t=0;
+  const gc=document.createElement('canvas'); gc.width=gifGW; gc.height=gifGH; gifGrab=gc.getContext('2d',{willReadFrequently:true});
+  gifFrames=[]; gifHist=new Uint32Array(32768); gifRecording=true;
+  let t=0;
   showActivity(mmss(0),true,'Stop');
   gifElapsed=setInterval(()=>{ t++; if(gifRecording) showActivity(mmss(t),true,'Stop'); },1000);
   gifTick=setInterval(()=>{
-    const c=document.createElement('canvas'); c.width=gifGW; c.height=gifGH;
-    c.getContext('2d').drawImage(out,0,0,gifGW,gifGH);
-    gifFrames.push(c);
+    gifGrab.drawImage(out,0,0,gifGW,gifGH);
+    const d=gifGrab.getImageData(0,0,gifGW,gifGH).data, q=new Uint16Array(gifGW*gifGH);
+    for(let i=0,j=0;i<q.length;i++,j+=4){ const v=((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3); q[i]=v; gifHist[v]++; }
+    gifFrames.push(q);
     if(gifFrames.length>=GIF_MAXFRAMES) stopGif();
-  },dl);
+  },Math.round(1000/GIF_FPS));
 }
-function stopGif(silent){
+async function stopGif(silent){
   if(!gifRecording) return;
   gifRecording=false;
   if(gifTick){clearInterval(gifTick);gifTick=null;}
   if(gifElapsed){clearInterval(gifElapsed);gifElapsed=null;}
-  if(silent || gifFrames.length===0){ gifFrames=[]; if(!silent) showChoose(); return; }
-  showActivity('Rendering GIF…',false,null);
-  const dl=Math.round(1000/GIF_FPS);
-  const gif=new GIFLIB({workers:2,quality:10,width:gifGW,height:gifGH,workerScript:gifWorkerURL,repeat:0});
-  gifFrames.forEach(c=>gif.addFrame(c,{delay:dl}));
-  if(gifPingpong) for(let k=gifFrames.length-2;k>0;k--) gif.addFrame(gifFrames[k],{delay:dl});
-  gif.on('finished',b=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=fname('gif'); a.click(); capMessage('GIF saved ('+gifGW+'×'+gifGH+')'); gifFrames=[]; });
-  gif.render();
+  if(silent || gifFrames.length===0){ gifFrames=[]; gifHist=null; if(!silent) showChoose(); return; }
+  gifEncoding=true;
+  try{
+    showActivity('Making the GIF…',false,null);
+    await new Promise(r=>setTimeout(r,30));
+    const {pal,count}=medianCut(gifHist,256), near=makeLut(pal,count), w=gifGW, h=gifGH, delay=Math.round(100/GIF_FPS);
+    const order=gifFrames.map((_,i)=>i);
+    if(gifPingpong) for(let k=gifFrames.length-2;k>0;k--) order.push(k);
+    /* a frame the same as the one before only lengthens it – a still source makes a small file */
+    const same=(a,b)=>{ if(a===b) return true; for(let i=0;i<a.length;i++) if(a[i]!==b[i]) return false; return true; };
+    const runs=[]; order.forEach(f=>{ const r=runs[runs.length-1]; if(r&&same(gifFrames[r.f],gifFrames[f])&&r.n<60) r.n++; else runs.push({f,n:1}); });
+    const buf=new ByteBuf(); gifHeader(buf,w,h,pal); const idx=new Uint8Array(w*h), done=new Map();
+    for(let n=0;n<runs.length;n++){
+      const f=runs[n].f;
+      let ix=done.get(f);
+      if(!ix){ const q=gifFrames[f]; ix=new Uint8Array(w*h); for(let i=0;i<ix.length;i++) ix[i]=near(q[i]); if(gifPingpong) done.set(f,ix); }
+      idx.set(ix); gifFrame(buf,w,h,idx,delay*runs[n].n);
+      if(n%4===3){ showActivity('Making the GIF – '+Math.round(100*(n+1)/runs.length)+'%',false,null); await new Promise(r=>setTimeout(r,0)); }
+    }
+    buf.b(0x3B);
+    const name=fname('gif'); saveBlob(name,new Blob([buf.out()],{type:'image/gif'}));
+    capMessage('Saved '+name);
+  }catch(e){ console.error(e); capMessage('Couldn’t make the GIF – try a shorter recording'); }
+  gifFrames=[]; gifHist=null; gifEncoding=false;
 }
 </script>
 <script>

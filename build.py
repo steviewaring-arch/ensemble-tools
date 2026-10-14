@@ -162,10 +162,12 @@ def main():
         write('tempo/presets.json', '{"presets":[]}\n')
     print(f'tempo presets: {n} built in')
     # Tutti keeps its own page and script; it takes the shared tokens and components
-    # (shared/tokens.css, shared/components.css) and the frame (tutti/frame.css, frame.js)
+    # (shared/tokens.css, shared/components.css), the frame (tutti/frame.css, frame.js) and the
+    # shared GIF encoder (shared/gif.js)
     html = read('tutti/index.html')
     for mark, text in [('/*{{shared-css}}*/', read('shared/tokens.css') + read('shared/components.css')),
-                       ('/*{{tutti-css}}*/', read('tutti/frame.css')), ('/*{{tutti-frame}}*/', read('tutti/frame.js'))]:
+                       ('/*{{tutti-css}}*/', read('tutti/frame.css')), ('/*{{tutti-frame}}*/', read('tutti/frame.js')),
+                       ('/*{{shared-gif}}*/', read('shared/gif.js'))]:
         assert html.count(mark) == 1, mark
         html = html.replace(mark, strip1(text))
     ok = check_scripts('tutti', html) and ok

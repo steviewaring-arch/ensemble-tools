@@ -44,6 +44,9 @@
   /* Export: a sheet that grows out of the island */
   const setSheet=open=>{sheet.hidden=!open;island.classList.toggle('open',open);opener.setAttribute('aria-expanded',open);opener.title=open?'':'Save or download what’s on the stage';layout();};
   opener.addEventListener('click',e=>{e.stopPropagation();setSheet(sheet.hidden);});
+  /* a countdown, recording or file in the making puts the sheet away: the island shows what's
+     happening, then Export comes back shut – it never springs open again on its own */
+  new MutationObserver(()=>{if(island.classList.contains('busy')&&!sheet.hidden)setSheet(false);}).observe(island,{attributes:true,attributeFilter:['class']});
   document.querySelector('.stage').addEventListener('pointerdown',e=>{if(!sheet.hidden){setSheet(false);e.stopPropagation();}else if(app.classList.contains('peek')){setPanel(false);e.stopPropagation();}},true);
 
   /* the island sits centred under the work, clear of the panel */

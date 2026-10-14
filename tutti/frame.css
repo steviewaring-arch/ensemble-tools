@@ -110,6 +110,8 @@
   .seg2{border:none;background:transparent;color:var(--muted);font-family:var(--face);font-size:13.5px;height:calc(var(--h-ctl) - 6px);padding:0 8px;border-radius:999px;cursor:pointer;white-space:nowrap;letter-spacing:-0.02em}
   .seg2:hover{color:var(--ink)}
   .seg2.on:hover{color:var(--on-ink)}
+  .seg2:disabled{opacity:.35;cursor:default}
+  .seg2:disabled:hover{color:var(--muted)}
   .seg2:focus-visible,.lane:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
   .ep-sublabel{font-size:var(--fs-body);color:var(--ink)}
   .rec-btn{width:100%;height:var(--h-lg,40px);border:none;background:var(--fill-ink);color:var(--on-ink);font-family:var(--face);font-size:var(--fs-body);letter-spacing:-0.02em;border-radius:999px;cursor:pointer;transition:.14s}
@@ -124,11 +126,12 @@
   .cap-activity{display:none;align-items:center;gap:8px;padding:0 4px 0 12px}
   .live-dot{width:8px;height:8px;border-radius:50%;background:var(--live);display:inline-block;animation:recpulse 1.2s ease-in-out infinite}
   @keyframes recpulse{50%{opacity:.35}}
-  .cap-activity .act-main{font-size:var(--fs-body);color:var(--ink);min-width:0;text-align:left}
+  .cap-activity .act-main{font-size:var(--fs-body);color:var(--ink);min-width:0;text-align:left;font-variant-numeric:tabular-nums}
   .stop{border:0;box-shadow:inset 0 0 0 1px var(--keyline);background:var(--btn);color:var(--ink);font-family:var(--face);font-size:var(--fs-body);height:var(--h-isl);padding:0 14px;border-radius:999px;cursor:pointer}
   .stop:hover{background:var(--btn-hover)}
-  .island-in:has(#capActivity[style*="display: flex"]) #exportOpen,.island-in:has(#capActivity[style*="display: flex"]) .ep-div{display:none}
-  .island:has(#capActivity[style*="display: flex"]) .sheets{grid-template-rows:0fr}
+  /* while counting down, recording or making a file (.busy, set by the script): the island shows that, not Export */
+  .island.busy #exportOpen,.island.busy .island-in>.ep-div{display:none}
+  .island.busy .sheets{grid-template-rows:0fr}
   #foot{display:none}
   /* incidental messages float just above the island */
   #status{position:absolute;left:calc(var(--pw) + var(--gap)*2);right:var(--gap);bottom:calc(var(--gap)*2 + var(--h-bar));margin:0 auto;width:fit-content;max-width:420px;display:block;

@@ -55,4 +55,4 @@ to the laptop size.
   still asks the visitor first.
 - **Light by default.** Tutti opens light for everyone, and remembers dark only for
   someone who chooses it.
-- **Page copy:** the overview page's heading still says Tutti 6.0. It's now 6.1.
+- **Page copy:** the overview page's heading should say Tutti 6.1.1. Its credit line can drop "Built with gif.js" – Tutti now makes GIFs with Ensemble Tools' own encoder.
