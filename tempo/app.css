@@ -36,8 +36,8 @@
   .tt-dial{width:70%;height:70%}
   .tt-name{font-size:.72rem;padding:0 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .theme-tile.mine .tt-name::after{content:' ·';opacity:.5}
-  .tt-tick{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:var(--panel,#fff);box-shadow:0 0 0 1px var(--keyline);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:600;color:var(--ink);cursor:pointer}
-  .tt-tick.on{background:var(--fill-ink);color:var(--fill-on,#fff);box-shadow:none}
+  .tt-tick{position:absolute;top:6px;right:6px;width:18px;height:18px;border-radius:50%;background:var(--card);box-shadow:0 0 0 1px var(--keyline);display:flex;align-items:center;justify-content:center;font-size:.62rem;font-weight:600;color:var(--ink);cursor:pointer}
+  .tt-tick.on{background:var(--fill-ink);color:var(--on-ink);box-shadow:none}
   .tt-tick:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
   .hour-strip{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;margin:4px 0 4px}
   .hs-cell{position:relative;height:26px;border:0;padding:0;border-radius:3px;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08)}
@@ -47,3 +47,32 @@
   .hs-axis{display:flex;justify-content:space-between;font-size:.62rem;color:var(--muted);margin:-2px 0 8px;font-variant-numeric:tabular-nums}
   .look-line b{color:var(--ink);font-weight:500}
   .look-line .pill{margin-left:6px;vertical-align:baseline}
+  /* Promo devices (0.9.2) */
+  .dev-list{display:flex;flex-direction:column;gap:6px;margin:0 0 10px}
+  .dev-row{display:flex;align-items:center;gap:8px;padding:4px;border-radius:var(--r-inner);box-shadow:inset 0 0 0 1px var(--keyline)}
+  .dev-row img{width:56px;height:36px;object-fit:contain;background:#F5F5F3;border-radius:4px;flex:none}
+  .dev-text{display:flex;flex-direction:column;flex:1;min-width:0}
+  .dev-name{font-size:.8rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .dev-meta{font-size:.7rem;color:var(--muted)}
+  /* the colour picker (0.9.2) */
+  .colour-row{cursor:pointer}
+  .colour-row.picking .cswatch{box-shadow:0 0 0 2px var(--focus)}
+  .cpick{position:fixed;z-index:60;width:216px;padding:14px;border-radius:var(--r-card);background:var(--float);box-shadow:inset 0 0 0 1px var(--keyline);color:var(--ink);display:flex;flex-direction:column;gap:10px}
+  .cpick[hidden]{display:none}
+  .cp-wheelbox{position:relative;width:184px;height:184px;margin:0 auto;touch-action:none}
+  .cp-wheel{display:block;border-radius:50%;cursor:crosshair}
+  .cp-dot{position:absolute;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;box-shadow:0 0 0 2px #fff,0 0 0 3px rgba(0,0,0,.35);pointer-events:none}
+  .cpick .cp-val{-webkit-appearance:none;appearance:none;width:100%;height:10px;margin:0;padding:0;border:0;border-radius:5px;background:linear-gradient(90deg,#000,var(--cp-top,#fff))!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1)!important;outline:none}
+  .cp-val::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+  .cp-val::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:1px solid rgba(0,0,0,.35)}
+  .cp-row{display:flex;align-items:center;gap:8px}
+  .cp-now{width:32px;height:32px;border-radius:var(--r-inner);box-shadow:inset 0 0 0 1px var(--keyline);flex:none}
+  .cp-hex{flex:1;min-width:0;font:inherit;font-size:.82rem;font-variant-numeric:tabular-nums;text-transform:uppercase;padding:6px 8px;border-radius:var(--r-inner);border:0;box-shadow:inset 0 0 0 1px var(--keyline);background:transparent;color:var(--ink)}
+  .cp-drop{width:30px;height:30px;border:0;border-radius:50%;background:var(--btn);color:var(--ink);cursor:pointer;flex:none}
+  .cp-drop svg{width:14px;height:14px}
+  .cp-sub{font-size:.72rem;color:var(--muted);margin-top:2px}
+  .cp-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px}
+  .cp-sw,.cp-add{position:relative;aspect-ratio:1;border:0;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.12);cursor:pointer;padding:0}
+  .cp-add{background:transparent;color:var(--muted);font-size:.9rem;line-height:1;box-shadow:inset 0 0 0 1px var(--keyline)}
+  .cp-x{position:absolute;top:-5px;right:-5px;width:13px;height:13px;border-radius:50%;background:var(--ink);color:var(--on-ink);font-size:9px;line-height:13px;text-align:center;display:none}
+  .cp-sw:hover .cp-x{display:block}

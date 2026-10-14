@@ -1,5 +1,11 @@
 # Changelog
 
+## 14 October 2026 – Tempo 0.9.2
+
+- **Colour picker:** clicking any colour opens Tempo's own picker beside it – a colour wheel, brightness, the hex, a dropper (Chrome and Edge) and **saved colours**, kept for every design. + saves the colour in hand; × removes one.
+- **Themes across designs:** Copy to the other designs puts a theme into The time, In words, the dial and Columns and Rings at once, its colours matched by role (background, ink, accent, soft). Each Colour card lists the themes made for the other designs under From your other designs – click one to bring it in.
+- **Promo – several devices:** add as many device PNGs as you like (a 16:9 screen, a 4:5 crop for social …), switch each on or off; every export makes a set per device on, each at its own size and shape. Kept in this browser.
+- **Promo – MP4 colour:** the browser used to convert frames to video colour its own way and label them loosely, so players showed them duller. Tempo now converts each frame itself (BT.709) and labels the file to match, with the sRGB tone curve; flat colours are set to the nearest code 8-bit video allows – #F5F5F3 plays back within one step in 255.
 ## 14 October 2026 – Tutti 6.1.1
 
 A robustness pass on Export after a report that it wasn't working on the live site. It couldn't be reproduced afterwards (most likely a stale copy or a deploy in progress), but checking every path – Chromium, Firefox and WebKit (Safari's engine), on its own, framed (`?embed`) and full screen (`?app`) – turned up these, all fixed. Still exports (PNG, SVG) are byte for byte the same as 6.1.

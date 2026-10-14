@@ -108,6 +108,13 @@ def main():
         nm = colour().get_by_role('textbox', name='Theme name'); nm.fill('Ink'); nm.press('Enter'); time.sleep(.3)
         check('Your themes can be renamed', 'Ink*' in tiles(), json.dumps(tiles()))
 
+        colour().get_by_role('button', name='Copy to the other designs').click(); time.sleep(.3)
+        wt = pg.evaluate("[JSON.parse(localStorage.getItem('tempo:wthemes')||'[]'),JSON.parse(localStorage.getItem('tempo:dthemes')||'[]'),JSON.parse(localStorage.getItem('tempo:tthemes')||'[]')]")
+        check('A theme can be copied to the other designs, its colours matched by role', all(len(x) == 1 and x[0]['name'] == 'Ink' and x[0]['bg'].upper() == '#654321' for x in wt) and wt[0][0]['ink'].upper() == '#123456', json.dumps(wt[0]))
+        pg.locator('#c_ssP2').click(); time.sleep(.3)
+        check('Clicking a colour opens Tempo’s own picker, with saved colours', pg.locator('.cpick').is_visible() and pg.get_by_role('button', name='Save this colour').count() == 1)
+        pg.get_by_role('button', name='Save this colour').click(); pg.keyboard.press('Escape'); time.sleep(.2)
+        check('…and a saved colour is kept for every design', len(pg.evaluate("JSON.parse(localStorage.getItem('tempo:swatches')||'[]')")) == 1)
         # 4. every hour: tick themes, in order; each lasts n hours; the strip shows the day
         colour().get_by_role('group', name='Colours').get_by_role('button', name='Every hour').click(); time.sleep(.3)
         strip0 = colour().locator('.hs-cell').count()

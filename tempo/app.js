@@ -598,6 +598,12 @@ function themeCard(k,before){const K=THEMES[k],b=card(K.id,'Colour',K.show,'save
   cf.querySelectorAll('input[type=color]').forEach(inp=>inp.addEventListener('input',()=>edited(k)));
   const nameRow=el('div','ctl btn-row'),nm=el('input');nm.type='text';nm.setAttribute('aria-label','Theme name');const del=el('button','pill small','Delete');nameRow.append(nm,del);addCustom(b,null,nameRow);
   const newRow=el('div','ctl btn-row'),nb=el('button','pill small','New theme from these colours');newRow.append(nb);addCustom(b,null,newRow);
+  /* 0.9.2: a theme can go to the other designs – the time, words, the dial, Columns and Rings – its colours matched by role */
+  const shareRow=el('div','ctl btn-row'),shb=el('button','pill small','Copy to the other designs');shareRow.append(shb);addCustom(b,null,shareRow);
+  shb.onclick=()=>{const T=selOf(k)||fromS(k,'Theme');const names=[];for(const k2 of Object.keys(THEMES)){if(k2===k)continue;const n=shareTheme(k,T,k2);if(n)names.push(n);}
+    themeChanged(true);toast(names.length?`${T.name||'These colours'} is now in every design`:'Already in every design');};
+  const others=fold(b,'c-others-'+k,'From your other designs',null,true),ogrid=el('div','theme-grid');ogrid.setAttribute('role','group');ogrid.setAttribute('aria-label','Themes from other designs');addCustom(others,null,ogrid);
+  const ohint=addHint(others,'Themes you’ve made for the other designs show here. Click one to bring it in – its colours are matched by role.');
   const note=el('p','hint');addCustom(b,null,note);
   nm.onchange=()=>{const T=selOf(k);if(!T||T.builtin)return;const n=nm.value.trim();if(!n||n===T.name)return refreshThemes();const nn=uniqueTheme(k,n),mine=mineOf(k);
     const x=mine.find(t=>t.name===T.name);if(x){x.name=nn;putMine(k,mine);remapSet(k,{[T.name]:nn});SEL[k]=nn;if(LOOK[k]===T.name)LOOK[k]=nn;themeChanged();}};
@@ -630,9 +636,24 @@ function themeCard(k,before){const K=THEMES[k],b=card(K.id,'Colour',K.show,'save
     head.textContent=sel?(sel.builtin?sel.name+' – built in':sel.name):'Your colours';
     nameRow.hidden=!sel||!!sel.builtin;if(sel&&!sel.builtin&&document.activeElement!==nm)nm.value=sel.name;
     newRow.hidden=!!sel;
+    ogrid.textContent='';for(const k2 of Object.keys(THEMES)){if(k2===k)continue;for(const T of mineOf(k2)){if(allOf(k).some(x=>sameCols(k,x,mapTheme(k2,T,k))))continue;
+      const t=el('button','theme-tile');t.type='button';t.setAttribute('aria-label',T.name+' – from '+KIND_NAME[k2]);t.append(tilePreview(k2,T),el('span','tt-name',T.name));
+      t.onclick=()=>{const n=shareTheme(k2,T,k);if(n){SEL[k]=n;toS(k,findTheme(k,n));themeChanged();toast(`Brought in ${n}`);}};ogrid.append(t);}}
+    ohint.w.hidden=!!ogrid.children.length;if(!ogrid.children.length)ohint.w.textContent='Themes you make for the other designs show here, ready to bring in.';
     note.textContent=sel&&sel.builtin?'Change a colour and the theme is kept as a copy among yours; the built-in one stays as it is.':!sel?'These colours aren’t a theme yet. Save them to use them every hour.':'Changes to your themes are saved as you go.';}
   controls.push({d:{},w:grid,update:paint});
 }
+/* themes across designs: every colour has a role – background, ink (what's read first), accent,
+   soft (what recedes) – so a theme moves between designs with its colours in sensible places */
+const KIND_NAME={clock:'The time',words:'In words',dial:'The dial',type:'Columns and Rings'};
+const ROLES={clock:{bg:'bg','p.0':'ink','p.1':'accent','p.2':'ink2','p.3':'soft'},words:{bg:'bg',ink:'ink',soft:'soft',date:'accent'},
+  dial:{bg:'bg',min:'soft',hour:'soft2',quarter:'ink',handH:'ink',handM:'ink',handS:'accent',fill:'soft'},type:{bg:'bg',ink:'ink',soft:'soft'}};
+const ROLE_FALL={ink:['ink','accent','ink2','soft'],ink2:['ink2','ink','accent'],accent:['accent','ink2','ink'],soft:['soft','soft2','accent','ink2','ink'],soft2:['soft2','soft','accent','ink'],bg:['bg']};
+function mapTheme(k1,T,k2){const src={};for(const [f,r] of Object.entries(ROLES[k1])){const v=tget(T,f);if(v&&!src[r])src[r]=v;}
+  const out={name:T.name};for(const [,f] of THEMES[k2].cols){const r=ROLES[k2][f],v=(ROLE_FALL[r]||[r]).map(x=>src[x]).find(Boolean)||src.ink||'#000000';tput(out,f,v);}return out;}
+/* put a theme from k1 into k2's own themes (unless one there already has those colours); returns its name there */
+function shareTheme(k1,T,k2){const M=mapTheme(k1,T,k2),have=allOf(k2).find(x=>sameCols(k2,x,M));if(have)return have.name;
+  const n=uniqueTheme(k2,T.name||'Theme');M.name=n;putMine(k2,mineOf(k2).concat([M]));return n;}
 function toggleSet(k,n){const K=THEMES[k],q=String(S[K.set]||'')?setNames(k):[];const i=q.indexOf(n);if(i>=0)q.splice(i,1);else q.push(n);
   /* unticking the last one goes back to all of them */
   S[K.set]=q.join('|');themeChanged();}
@@ -655,6 +676,61 @@ function previewForce(){const k=kindNow(S),K=THEMES[k];if(!K.on(S)||!LOOK[k])ret
 for(const k of Object.keys(THEMES)){SUMMARY[THEMES[k].id]=s=>{if(THEMES[k].on(s)){const n=setNames(k,s).length;return`Every hour · ${n} theme${n>1?'s':''}`;}const T=selOf(k);return T?T.name:'Your colours';};}
 themeCard('clock',b=>build(b,[{t:'seg',k:'ssColBy',label:'Colour by',opts:[['type','Character type'],['letter','Each letter'],['line','Line'],['random','Random'],['single','One colour']]}]));
 themeCard('words');themeCard('dial');themeCard('type');
+/* ================= The colour picker (0.9.2) =================
+   Click any colour and this opens straight away, beside it: a colour wheel, a brightness
+   slider, the hex, a dropper (where the browser has one) – and your saved colours, kept for
+   every design. Save the colour in hand with +; click a saved one to use it; × removes it.
+   It stands in for the browser's own picker, which differs from browser to browser. */
+const SWATCHES=()=>{const v=LS.get('swatches');return Array.isArray(v)?v:[];};
+const putSwatches=v=>LS.set('swatches',v.slice(0,48));
+const hexOk=v=>/^#?[0-9a-f]{6}$/i.test(v||'');
+const toHex6=v=>('#'+String(v).replace('#','')).toUpperCase();
+function rgbOf(h){const n=parseInt(h.slice(1),16);return[n>>16&255,n>>8&255,n&255];}
+function hsvOf([r,g,b]){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let hh=0;
+  if(d){hh=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;hh*=60;if(hh<0)hh+=360;}return[hh,mx?d/mx:0,mx];}
+function hexOfHsv(hh,sv,vv){const c=vv*sv,x=c*(1-Math.abs((hh/60)%2-1)),m=vv-c;let r=0,g=0,b=0;
+  if(hh<60)[r,g,b]=[c,x,0];else if(hh<120)[r,g,b]=[x,c,0];else if(hh<180)[r,g,b]=[0,c,x];else if(hh<240)[r,g,b]=[0,x,c];else if(hh<300)[r,g,b]=[x,0,c];else[r,g,b]=[c,0,x];
+  return'#'+[r,g,b].map(t=>Math.round((t+m)*255).toString(16).padStart(2,'0')).join('').toUpperCase();}
+const picker=(()=>{const box=el('div','cpick');box.hidden=true;box.setAttribute('role','dialog');box.setAttribute('aria-label','Colour');document.body.append(box);
+  const WH=184,wheel=el('canvas','cp-wheel');wheel.width=WH*2;wheel.height=WH*2;wheel.style.width=wheel.style.height=WH+'px';
+  const dot=el('span','cp-dot'),wrap=el('div','cp-wheelbox');wrap.append(wheel,dot);
+  const val=el('input','cp-val');val.type='range';val.min=0;val.max=100;val.setAttribute('aria-label','Brightness');
+  const now=el('span','cp-now'),hex=el('input','cp-hex');hex.type='text';hex.setAttribute('aria-label','Hex');hex.spellcheck=false;
+  const drop=el('button','cp-drop');drop.type='button';drop.setAttribute('aria-label','Pick a colour from the screen');drop.innerHTML='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M9.6 1.9l2.5 2.5-1.3 1.3-.7-.7-5.4 5.4H3.2v-1.5l5.4-5.4-.7-.7z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M2.2 11.8l1-1" stroke="currentColor" stroke-width="1.2"/></svg>';
+  drop.hidden=!window.EyeDropper;
+  const row=el('div','cp-row');row.append(now,hex,drop);
+  const sh=el('div','cp-sub','Saved colours'),grid=el('div','cp-grid'),add=el('button','cp-add','+');add.type='button';add.setAttribute('aria-label','Save this colour');
+  box.append(wrap,val,row,sh,grid);
+  let H=0,Sa=0,V=1,cur='#000000',onPick=null,anchor=null,drawnV=-1;
+  const paintWheel=()=>{if(drawnV===V)return;drawnV=V;const x=wheel.getContext('2d'),N=WH*2,im=x.createImageData(N,N),R=N/2;
+    for(let yy=0;yy<N;yy++)for(let xx=0;xx<N;xx++){const dx=xx-R+.5,dy=yy-R+.5,d=Math.hypot(dx,dy)/R,o=(yy*N+xx)*4;if(d>1){im.data[o+3]=0;continue;}
+      const a=(Math.atan2(dy,dx)*180/Math.PI+360+90)%360,[r,g,b]=rgbOf(hexOfHsv(a,Math.min(1,d),V));im.data[o]=r;im.data[o+1]=g;im.data[o+2]=b;im.data[o+3]=d>.995?Math.round((1-d)*200*255/1):255;}
+    x.putImageData(im,0,0);};
+  const show=()=>{cur=hexOfHsv(H,Sa,V);now.style.background=cur;if(document.activeElement!==hex)hex.value=cur;val.value=Math.round(V*100);
+    val.style.setProperty('--cp-top',hexOfHsv(H,Sa,1));paintWheel();const a=(H-90)*Math.PI/180,r=Sa*WH/2;dot.style.left=(WH/2+Math.cos(a)*r)+'px';dot.style.top=(WH/2+Math.sin(a)*r)+'px';dot.style.background=cur;};
+  const set=(h,keep)=>{[H,Sa,V]=keep?[H,Sa,V]:hsvOf(rgbOf(h));if(keep)return;show();};
+  const emit=()=>{show();if(onPick)onPick(cur);};
+  const grids=()=>{grid.textContent='';for(const c of SWATCHES()){const b=el('button','cp-sw');b.type='button';b.style.background=c;b.title=c;b.setAttribute('aria-label','Use '+c);
+      const x=el('span','cp-x','×');x.setAttribute('aria-label','Remove '+c);x.onclick=e=>{e.stopPropagation();putSwatches(SWATCHES().filter(v=>v!==c));grids();};b.append(x);
+      b.onclick=()=>{[H,Sa,V]=hsvOf(rgbOf(c));emit();};grid.append(b);}
+    grid.append(add);};
+  add.onclick=()=>{const v=SWATCHES().filter(c=>c!==cur);v.unshift(cur);putSwatches(v);grids();};
+  const at=e=>{const r=wheel.getBoundingClientRect(),dx=e.clientX-r.left-WH/2,dy=e.clientY-r.top-WH/2;H=(Math.atan2(dy,dx)*180/Math.PI+360+90)%360;Sa=Math.min(1,Math.hypot(dx,dy)/(WH/2));emit();};
+  wheel.onpointerdown=e=>{wheel.setPointerCapture(e.pointerId);at(e);wheel.onpointermove=at;};wheel.onpointerup=()=>{wheel.onpointermove=null;};
+  val.oninput=()=>{V=val.value/100;emit();};
+  hex.oninput=()=>{if(hexOk(hex.value)){[H,Sa,V]=hsvOf(rgbOf(toHex6(hex.value)));cur=toHex6(hex.value);show();if(onPick)onPick(cur);}};
+  hex.onkeydown=e=>{if(e.key==='Enter')close();};
+  drop.onclick=async()=>{try{const r=await new EyeDropper().open();[H,Sa,V]=hsvOf(rgbOf(toHex6(r.sRGBHex)));emit();}catch(e){}};
+  const close=()=>{box.hidden=true;onPick=null;if(anchor)anchor.classList.remove('picking');anchor=null;};
+  document.addEventListener('pointerdown',e=>{if(!box.hidden&&!box.contains(e.target)&&!(anchor&&anchor.contains(e.target)))close();},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!box.hidden)close();});
+  return{open(a,h,fn){if(anchor)anchor.classList.remove('picking');anchor=a;a.classList.add('picking');onPick=null;[H,Sa,V]=hsvOf(rgbOf(toHex6(h)));drawnV=-1;show();grids();box.hidden=false;
+      const r=a.getBoundingClientRect(),bw=box.offsetWidth,bh=box.offsetHeight;let x=r.right+12,y=r.top-20;if(x+bw>innerWidth-8)x=Math.max(8,r.left-bw-12);if(y+bh>innerHeight-8)y=innerHeight-bh-8;box.style.left=Math.max(8,x)+'px';box.style.top=Math.max(8,y)+'px';onPick=fn;},close,el:box};})();
+/* every colour in the panel opens it, instead of the browser's own */
+panel.addEventListener('click',e=>{const inp=e.target.closest&&e.target.closest('.colour-row input[type=color]');const row=e.target.closest&&e.target.closest('.colour-row');
+  if(!row||!row.querySelector('input[type=color]'))return;const i=inp||row.querySelector('input[type=color]');e.preventDefault();
+  picker.open(row,i.value,h=>{i.value=h;i.dispatchEvent(new Event('input',{bubbles:true}));});},true);
+
 /* Export */
 {const b=card('ss-export','Export',null,'saver');
   addHint(b,'No font loaded, so exports will use the demo face. Add your font in Fonts first.',s=>!anyLoaded()&&!dl(s));
