@@ -179,14 +179,14 @@ def run(p, eng, mode):
         if fmt == 'gif' and not data.endswith(b';'): raise Exception('GIF not finished')
         return f'{msg} → {n} ({len(data)//1024} KB)'
     def countdown():
-        sheet(True); L('#laneMotion').click(); L('#fmtMp4').click(); L('#preSeg [data-pre="3"]').click(); L('#recBtn').click()
+        sheet(True); L('#laneMotion').click(); L('#fmtMp4' if ev('canVideo') else '#fmtGif').click(); L('#preSeg [data-pre="3"]').click(); L('#recBtn').click()
         pg.wait_for_timeout(300); m = L('#actMain').text_content()
         L('#stopBtn').click(); pg.wait_for_timeout(300)
         if not (m or '').startswith('Get ready'): raise Exception(f'no countdown ({m!r})')
         if ev('recording||prerollActive'): raise Exception('Cancel did not cancel')
         return m
     check(tag, 'Countdown, and Cancel', countdown)
-    if ev('!!window.MediaRecorder'):
+    if ev('canVideo'):
         def video_pass():
             # a video source records one pass of the clip (3 s here), then saves itself – no Stop needed
             sheet(True); L('#laneMotion').click(); L('#fmtMp4').click(); L('#preSeg [data-pre="0"]').click()
@@ -196,7 +196,7 @@ def run(p, eng, mode):
             return n + ', saved itself at the end of the clip'
         check(tag, 'Record MP4 (video source)', video_pass)
     else:
-        results.append((tag, 'Record MP4', True, 'no MediaRecorder in this engine')); print('  skip  Record MP4 – no MediaRecorder in this engine')
+        check(tag, 'MP4 greyed where video can\'t be recorded', lambda: L('#fmtMp4').is_disabled() or (_ for _ in ()).throw(Exception('MP4 offered without MediaRecorder')))
     pg.wait_for_timeout(2700)
     pg.wait_for_timeout(3200)
     L('#typeBtn').click(); wait_render()

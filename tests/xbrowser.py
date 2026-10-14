@@ -69,8 +69,9 @@ with sync_playwright() as p:
             step('Image source', lambda: L('#fileIn').set_input_files(img))
             pg.wait_for_timeout(900)
             step('Save PNG (image)', lambda: (open_sheet(), dl('#exportBtn'))[1])
+            can_video = frame.evaluate('canVideo')
             def countdown():
-                open_sheet(); L('#laneMotion').click(timeout=4000); L('#fmtMp4').click(timeout=4000)
+                open_sheet(); L('#laneMotion').click(timeout=4000); L('#fmtMp4' if can_video else '#fmtGif').click(timeout=4000)
                 L('#preSeg [data-pre="3"]').click(timeout=4000); L('#recBtn').click(timeout=4000); pg.wait_for_timeout(400)
                 during = seen()
                 if not during['hidden']: raise Exception(f'the sheet stayed open behind the countdown: {during}')
@@ -86,7 +87,8 @@ with sync_playwright() as p:
                 if not L('#stopBtn').is_visible(): raise Exception(f'no Stop – island says {act!r}')
                 with pg.expect_download(timeout=30000) as d: L('#stopBtn').click(timeout=4000)
                 return f'{act!r} -> {d.value.suggested_filename}'
-            step('Record MP4', lambda: motion('mp4'))
+            if can_video: step('Record MP4', lambda: motion('mp4'))
+            else: step('MP4 greyed where video can\'t be recorded', lambda: (L('#fmtMp4').is_disabled() and L('#fmtGif').evaluate('e=>e.classList.contains("on")')) or (_ for _ in ()).throw(Exception('MP4 offered without MediaRecorder')))
             pg.wait_for_timeout(3200)
             def after_rec():
                 s = seen()
