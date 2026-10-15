@@ -502,7 +502,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.9.6</span></div>
+      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.9.7</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -661,22 +661,40 @@ function opGap(A,B,off,cap){if(!A||!B)return null;const D=.2*cap;let Rm=-Infinit
    pa/ps/pb: profiles; offL: em from A's origin to the separator's; offR: em from the separator's origin to B's;
    trk: the tracking either side (em). Returns how far to move the separator (em). */
 const OP_MIN=.015;
-function opCentre(pa,ps,pb,offL,offR,cap,trk){if(!pa||!ps||!pb)return 0;
-  /* the band: the separator's own rows of ink, and a quarter of a cap height either side (a 4's bar, a 7's foot) */
-  const ext=Math.ceil(.25*cap/OP_STEP),rows=[];
+/* the band a separator is judged in: its own rows of ink, and a quarter of a cap height either side (a 4's bar, a 7's foot) */
+function opBand(ps,cap){const ext=Math.ceil(.25*cap/OP_STEP),rows=[];
   for(let i=0;i<OP_N;i++){const em=OP_HI-(i+.5)*OP_STEP;if(em<-.02||em>cap)continue;
     let near=false;for(let k=-ext;k<=ext;k++){const j=i+k;if(j>=0&&j<OP_N&&ps.L[j]!=null){near=true;break;}}if(near)rows.push(i);}
-  /* within it, a hole counts only so deep (a fifth of a cap), as in opGap */
-  const D=.2*cap,side=(A,B,off)=>{let Rm=-Infinity,Lm=Infinity;for(const i of rows){if(A.R[i]!=null)Rm=Math.max(Rm,A.R[i]);if(B.L[i]!=null)Lm=Math.min(Lm,B.L[i]);}
-    if(!isFinite(Rm)||!isFinite(Lm)){const g=opGap(A,B,off,cap);return g?g.mean:null;}
-    let s=0;for(const i of rows){const r=Math.max(A.R[i]!=null?A.R[i]:-Infinity,Rm-D),l=Math.min(B.L[i]!=null?B.L[i]:Infinity,Lm+D);s+=off+l-r;}return s/rows.length;};
-  if(rows.length<2)return 0;
-  const gl=side(pa,ps,offL),gr=side(ps,pb,offR);if(gl==null||gr==null)return 0;
+  return rows;}
+/* the mean gap across those rows, a hole counting only a fifth of a cap deep (as in opGap) */
+function opSide(A,B,off,rows,cap){const D=.2*cap;let Rm=-Infinity,Lm=Infinity;for(const i of rows){if(A.R[i]!=null)Rm=Math.max(Rm,A.R[i]);if(B.L[i]!=null)Lm=Math.min(Lm,B.L[i]);}
+  if(!isFinite(Rm)||!isFinite(Lm)){const g=opGap(A,B,off,cap);return g?g.mean:null;}
+  let s=0;for(const i of rows){const r=Math.max(A.R[i]!=null?A.R[i]:-Infinity,Rm-D),l=Math.min(B.L[i]!=null?B.L[i]:Infinity,Lm+D);s+=off+l-r;}return s/rows.length;}
+function opCentre(pa,ps,pb,offL,offR,cap,trk){if(!pa||!ps||!pb)return 0;
+  const rows=opBand(ps,cap);if(rows.length<2)return 0;
+  const gl=opSide(pa,ps,offL,rows,cap),gr=opSide(ps,pb,offR,rows,cap);if(gl==null||gr==null)return 0;
   let a=(gr-gl)/2;a=Math.max(-.25,Math.min(.25,a));
   /* never closer than a hair at any height */
   const L0=opGap(pa,ps,offL,cap),R0=opGap(ps,pb,offR,cap);
   if(L0&&isFinite(L0.raw))a=Math.max(a,OP_MIN-trk-L0.raw);if(R0&&isFinite(R0.raw))a=Math.min(a,R0.raw+trk-OP_MIN);
   return a;}
+/* the room a separator gets (0.9.7): how much wider (+) or narrower (−) its slot should be, in em, so that – once it's
+   centred – the tightest pair of figures either side of it sits `t` × the space between two figures (00), judged in
+   the separator's band. Constant for a font and separator, so the figures never move. Hours' last figure 0–9 before
+   it, the tens of minutes or seconds 0–5 after. */
+const sepMemo=new Map();
+function opSepSlot(f,sid,t,trk){if(!f||!f.pathD)return 0;const k=(f.name||'')+'|'+f.upm+'|'+sid+'|'+t+'|'+trk;if(sepMemo.has(k))return sepMemo.get(k);
+  const u=f.upm,cap=(f.cap>0?f.cap:.7*u)/u,ps=opProf(f,sid);let c=0;
+  if(ps){const D=[...'0123456789'].map(d=>{const id=f.base(d);return{d,p:opProf(f,id),a:f.adv(id)/u};});let dw=0;for(const x of D)dw=Math.max(dw,x.a);
+    const as=f.adv(sid)/u,rows=opBand(ps,cap),z=D[0],ref=rows.length?opSide(z.p,z.p,dw,rows,cap):null;
+    if(ref!=null&&D.every(x=>x.p)){let gmin=Infinity,cmin=-Infinity;
+      for(const A of D)for(const B of D.slice(0,6)){const offL=(dw+A.a)/2,offR=as+(dw-B.a)/2,gl=opSide(A.p,ps,offL,rows,cap),gr=opSide(ps,B.p,offR,rows,cap);if(gl==null||gr==null)continue;
+        gmin=Math.min(gmin,(gl+gr)/2);const L0=opGap(A.p,ps,offL,cap),R0=opGap(ps,B.p,offR,cap);
+        if(L0&&R0&&isFinite(L0.raw)&&isFinite(R0.raw))cmin=Math.max(cmin,2*OP_MIN-2*trk-L0.raw-R0.raw);}
+      if(isFinite(gmin))c=Math.max(2*(t*ref-gmin),cmin);}}
+  c=Math.max(-.5,Math.min(.5,c));sepMemo.set(k,c);return c;}
+/* where a figure's ink starts in its cell (em), for lining the time up by its first figure's ink */
+function opInkL(f,id,cell){const p=opProf(f,id);let l=Infinity;if(p)for(const v of p.L)if(v!=null)l=Math.min(l,v);return isFinite(l)?(cell-f.adv(id)/f.upm)/2+l:0;}
 let rankCache={key:'',arr:[]};
 function orderVal(j,n){
   if(n<=1)return 0;const t=j/(n-1);
@@ -758,7 +776,12 @@ function layoutBlock(text,salt,W,H,p,cfg){
   /* the core face's tracking (S.tracking) and each face's own (S.faceTrack) */
   const ftk=S.faceTrack||{},gap0=g=>(g.opt.def.s===bs?trk:0)+(ftk[g.opt.def.s]||0)/1000;
   /* optical (0.9.6): with fixed-width figures, two figures never come closer than a hair, however tight the tracking */
-  const gapU=(g,h)=>{const v=gap0(g);return S.optical&&tab&&h&&isD(g.ch)&&isD(h.ch)&&g.opt.def.s===h.opt.def.s?Math.max(v,figFloor(g.opt.def.s)):v;};
+  /* 0.9.7: and a separator between figures gets the room its setting asks for (half each side) */
+  const isSep=g=>g&&g.vis&&SEP_CH.test(g.ch),sepC=g=>opSepSlot(F(g.opt.def.s),g.opt.def.r,S.sepSpace==null?1:S.sepSpace,gap0(g));
+  const gapU=(g,h)=>{let v=gap0(g);if(!S.optical||!tab||!h)return v;
+    if(isD(g.ch)&&isD(h.ch)&&g.opt.def.s===h.opt.def.s)v=Math.max(v,figFloor(g.opt.def.s));
+    else if(isD(g.ch)&&isSep(h))v+=sepC(h)/2;else if(isSep(g)&&isD(h.ch))v+=sepC(g)/2;
+    return v;};
   /* hooks.fitSlots(): every display face a numeral could take, so the size holds whichever comes in */
   const fitSlots=hooks&&hooks.fitSlots?hooks.fitSlots():null;
   const AX=axisInfo(),axLo=AX?AX.a.min+(AX.a.max-AX.a.min)*Math.min(S.axFrom,S.axTo):0,axHi=AX?AX.a.min+(AX.a.max-AX.a.min)*Math.max(S.axFrom,S.axTo):0;
@@ -792,7 +815,10 @@ function layoutBlock(text,salt,W,H,p,cfg){
       /* each glyph sits centred in its record (a figure's cell, or its own advance) */
       const ox=R=>R.x/size+(R.w/size-(R===A?aa:R===B?ab:as))/2,offL=ox(r)-ox(A),offR=ox(B)-ox(r);
       r.x+=opCentre(opProf(fa,A.g.opt.def.r),opProf(fs,r.g.opt.def.r),opProf(fb,B.g.opt.def.r),offL,offR,cap,gapU(r.g))*size;});
-    const ws=x*sx[li];const x0=S.align==='left'?m:S.align==='right'?W-m-ws:(W-ws)/2;
+    const ws=x*sx[li];let x0=S.align==='left'?m:S.align==='right'?W-m-ws:(W-ws)/2;
+    /* 0.9.7: left-aligned, the line can line up by its first figure's ink (a leading 1 sits in a wide cell) – it glides as that figure rolls */
+    if(S.lead==='ink'&&tab&&S.align==='left'&&recs.length&&recs[0].g.vis&&isD(recs[0].g.ch)){const r=recs[0],s0=r.g.opt.def.s,f0=F(s0),cell=digOf(s0),z=f0.base('0');
+      const off=v=>v&&v.s===s0?opInkL(f0,v.r,cell):opInkL(f0,r.g.opt.def.r,cell),sh=lerp(off(r.sw.a),off(r.sw.b),r.ea)-opInkL(f0,z,cell);x0-=sh*size*sx[li];}
     return{recs,lw:x,x0,base:top+bl[li],sx:sx[li],sy:sy[li]};
   });
   return{lines,size,capPx:capR*size,ascPx:ascR*size,descPx:descR*size,top,blockH,W,H,ink:S.tightMask?inkBounds(text,fitSlots):null};
@@ -953,7 +979,7 @@ function renderFrame(ctx,W,H,p,k,forceBg,pre){
   if(hasImg&&S.iPlace==='above')imgPass(ctx);
 }
 
-return{use(o){S=o;optCache.clear();rankCache={key:'',arr:[]};},fallbacks,F,baseSlot,availSlots,anyLoaded,setFaces,faceList,axisInfo,charOptions,optCache,vkey,renderFrame,buildScene,makeBaked,setImage(i){img=i;},setHooks(h){hooks=h||null;},setLive(l){live=l||null;},lastSize:()=>lastSize,clamp,lerp,E,TAU,optical:{prof:opProf,gap:opGap,centre:opCentre}};
+return{use(o){S=o;optCache.clear();rankCache={key:'',arr:[]};},fallbacks,F,baseSlot,availSlots,anyLoaded,setFaces,faceList,axisInfo,charOptions,optCache,vkey,renderFrame,buildScene,makeBaked,setImage(i){img=i;},setHooks(h){hooks=h||null;},setLive(l){live=l||null;},lastSize:()=>lastSize,clamp,lerp,E,TAU,optical:{prof:opProf,gap:opGap,centre:opCentre,sepSlot:opSepSlot,inkL:opInkL}};
 }
 </script>
 <script id="tempo-saver">
@@ -1594,26 +1620,32 @@ function xSet(o,f,z,M){const t0=(o.tracking||0)/1000+trackOf(faceById(o.font)?o.
   /* tracking: the overall amount plus each line's own fine adjustment (the time, the day, the date and month, the year) */
   const tkOf=r=>(t0+(tl[r]||0)/1000)*f.upm;
   const zeroL=bearings(f,glyphOf(f,'0'))[0],dw=M.digitW;
-  /* figures all take the widest figure's width (tabular), centred in it, so the time never shifts as it counts */
+  /* the time's figures all take the widest figure's width (tabular), centred in it, so the time never shifts as it counts;
+     the date and year use the font's own figures and kerning (0.9.7) – they change once a day, and a 1 then sits on its own ink */
+  const u=f.upm,O=eng.optical,opt=o.optical!==false&&!!O,sepRoom=sid=>opt?O.sepSlot(f,sid,o.sepSpace==null?1:o.sepSpace,tkOf('time')/u)*u:0;
   return lines.map((runs,li)=>{const gl=[];let x=0,prev=null;
-    for(const run of runs)for(const ch of Array.from(run.t)){const id=glyphOf(f,ch),dig=/\d/.test(ch),off=dig?(dw-f.adv(id))/2:0;
-      if(prev!==null){const pd=/\d/.test(prev.ch);let k=0;
-        if(!dig&&!pd)k=f.kern(prev.id,id);
-        /* optical (0.9.6): where a figure meets a letter (30September) the font has no kerning for its tabular figures – space it by eye */
-        else if(o.optical!==false&&dig!==pd&&/\p{L}/u.test(dig?prev.ch:ch))k=xJoin(f,M,gl[gl.length-1],id,x+off,tkOf(run.r));
-        x+=k+(dig&&pd?Math.max(tkOf(run.r),xFig(f,M)):tkOf(run.r));}
+    for(const run of runs)for(const ch of Array.from(run.t)){const id=glyphOf(f,ch),tab=/\d/.test(ch)&&run.r==='time',off=tab?(dw-f.adv(id))/2:0,sep=/^[.:,]$/.test(ch);
+      if(prev!==null){const pt=prev.tab;let k=0;
+        if(!tab&&!pt)k=f.kern(prev.id,id);
+        /* optical (0.9.6): where a fixed-width figure meets a letter the font has no kerning for it – space it by eye */
+        else if(opt&&tab!==pt&&/\p{L}/u.test(tab?prev.ch:ch))k=xJoin(f,M,gl[gl.length-1],id,x+off,tkOf(run.r));
+        /* 0.9.7: a separator between figures gets the room its setting asks for, half each side */
+        if(pt&&sep)k+=sepRoom(id)/2;else if(prev.sep&&tab)k+=sepRoom(prev.id)/2;
+        x+=k+(tab&&pt?Math.max(tkOf(run.r),xFig(f,M)):tkOf(run.r));}
       const [t,b]=ch===' '?[0,0]:M.box(id);
-      const w=dig?dw:f.adv(id);gl.push({id,x:x+off,w:f.adv(id),cell:w,ch,r:run.r,t,b});x+=w;prev={id,ch};}
+      const w=tab?dw:f.adv(id);gl.push({id,x:x+off,w:f.adv(id),cell:w,ch,r:run.r,t,b,tab});x+=w;prev={id,ch,tab,sep};}
     /* optical (0.9.6): a separator between figures sits optically centred between them – the figures don't move */
-    if(o.optical!==false&&eng.optical)for(let j=1;j<gl.length-1;j++){const S0=gl[j],A=gl[j-1],B=gl[j+1];if(!/^[.:,]$/.test(S0.ch)||!/\d/.test(A.ch)||!/\d/.test(B.ch))continue;
-      const u=f.upm,O=eng.optical,sh=O.centre(O.prof(f,A.id),O.prof(f,S0.id),O.prof(f,B.id),(S0.x-A.x)/u,(B.x-S0.x)/u,M.capU/u,tkOf(S0.r)/u);S0.x+=sh*u;}
-    /* optical left edge: the ink lines up, not the side bearing (figures by their 0, so the time doesn't shift as they change) */
-    const first=gl[0],lsb=!first?0:/\d/.test(first.ch)?(dw-f.adv(glyphOf(f,'0')))/2+zeroL:bearings(f,first.id)[0];
+    if(opt)for(let j=1;j<gl.length-1;j++){const S0=gl[j],A=gl[j-1],B=gl[j+1];if(!/^[.:,]$/.test(S0.ch)||!A.tab||!B.tab)continue;
+      const sh=O.centre(O.prof(f,A.id),O.prof(f,S0.id),O.prof(f,B.id),(S0.x-A.x)/u,(B.x-S0.x)/u,M.capU/u,tkOf(S0.r)/u);S0.x+=sh*u;}
+    /* the left edge is the ink, not the side bearing: the time's by its 0 (so it never shifts) – or, set to, by its first
+       figure's own ink (a leading 1 then sits on the edge, and the line moves when that figure changes) */
+    const first=gl[0];let lsb=0;
+    if(first)lsb=first.tab?(o.lead==='ink'?first.x+bearings(f,first.id)[0]:(dw-f.adv(glyphOf(f,'0')))/2+zeroL):first.x+bearings(f,first.id)[0];
     return{gl,w:x,lsb,li};});}
 /* where each line starts, in font units: flush left, or (the day) hanging from the time's last figure, or flush right */
 function xPlace(o,f,lines,blockW){const zeroL=bearings(f,glyphOf(f,'0'))[0],M0=xMetrics(f);
   lines.forEach((L,i)=>{L.x=-L.lsb;
-    if(i===1&&o.dayAt==='figure'){const T=lines[0],last=T.gl[T.gl.length-1],cellX=last?last.x-(last.cell-last.w)/2:0;L.x=(last?cellX+(M0.digitW-f.adv(glyphOf(f,'0')))/2+zeroL:0)-L.lsb;}
+    if(i===1&&o.dayAt==='figure'){const T=lines[0],last=T.gl[T.gl.length-1],cellX=last?last.x-(last.cell-last.w)/2:0;L.x=T.x+(last?cellX+(M0.digitW-f.adv(glyphOf(f,'0')))/2+zeroL:0)-L.lsb;}
     else if(i===1&&o.dayAt==='right'&&blockW!=null){const last=L.gl[L.gl.length-1];L.x=blockW-(last?last.x+last.w-bearings(f,last.id)[1]:L.w);}});
   return lines;}
 /* the layout for the worst case: block width and height, and the baseline step between each pair of lines */
@@ -1670,7 +1702,7 @@ function stackFrame(ctx,W,H,now,K){
   const o=C.stack,P=xPal(),f=xFace(),z=parts(Date.now());S.bg=P.bg;
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle=P.bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
   if(!f)return;
-  const key=(f.name||'')+'|'+JSON.stringify([o.h24,o.zero,o.sep,o.secs,o.day,o.month,o.year,o.dzero,o.dspace,o.lines,o.dayAt,o.gap,o.even,o.tracking,o.tl,o.optical,o.font,new Date().getFullYear()]);
+  const key=(f.name||'')+'|'+JSON.stringify([o.h24,o.zero,o.sep,o.secs,o.day,o.month,o.year,o.dzero,o.dspace,o.lines,o.dayAt,o.gap,o.even,o.tracking,o.tl,o.optical,o.sepSpace,o.lead,o.font,new Date().getFullYear()]);
   if(key!==xMemoKey){xMemoKey=key;xMemo=xBuild(o,f);xAnim=new Map();}
   const B=xMemo,m=(o.margin==null?4:o.margin)/100*Math.min(W,H),aw=W-2*m,ah=H-2*m;
   /* drift: a slow wander away from the corner it's latched to (never towards the edge), up to the margin or 2% of the screen –
@@ -1709,7 +1741,7 @@ function build(){
   {const k=JSON.stringify((C.words||{}).mixed||null);if(k!==mCfg){mCfg=k;mReset();}}
   if(isWords()||isDial()||isType()||isStack()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
   const c=C.clock;S=JSON.parse(JSON.stringify(C.base||{}));
-  Object.assign(S,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:c.change!=='roll',fit:'cap',size:c.size,align:c.align,valign:c.valign,margin:c.margin,tabular:c.tabular,optical:c.optical!==false,transparent:false,
+  Object.assign(S,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:c.change!=='roll',fit:'cap',size:c.size,align:c.align,valign:c.valign,margin:c.margin,tabular:c.tabular,optical:c.optical!==false,sepSpace:c.sepSpace==null?1:c.sepSpace,lead:c.lead||'cell',transparent:false,
     tracking:c.tracking!=null?c.tracking:S.tracking,leading:c.leading!=null?c.leading:S.leading,
     qStyle:c.change,qEase:c.feel,qStagger:.3,qDir:'up',qAxis:'vertical',texts:[cur||' ']});
   if(c.move){const k=minutesNow()%4;S.align=CORNERS[k][0];S.valign=CORNERS[k][1];}
@@ -4398,7 +4430,7 @@ function tempoDefaults(){return{ssVer:5,
   /* 0.9.3: Stack – the time and date as a stack of lines, after Steve's Univers mock-up (ssX…) */
   ssXFont:'',ssXH24:true,ssXZero:true,ssXSep:'stop',ssXSecs:true,ssXDay:'full',ssXMonth:'full',ssXYear:'short',ssXDZero:false,ssXDSpace:false,
   ssXLines:'four',ssXDayAt:'figure',ssXGap:.18,ssXEven:true,ssXSize:70,ssXAnchor:'br',ssXMargin:4,ssXTracking:-65,ssXTkTime:0,ssXTkDay:0,ssXTkDate:0,ssXTkYear:0,ssXChange:'roll',ssXFeel:'smooth',ssXLen:.6,
-  ssOptical:true,ssXOptical:true,ssXBg:'#979C92',ssXTime:'#E9EAEB',ssXDayC:'#343031',ssXDate:'#F69063',ssXYearC:'#6B712F',ssXRotate:false,ssXSet:'',ssXEvery:1};}
+  ssOptical:true,ssXOptical:true,ssSepSpace:1,ssXSepSpace:1,ssLead:'cell',ssXLead:'cell',ssXBg:'#979C92',ssXTime:'#E9EAEB',ssXDayC:'#343031',ssXDate:'#F69063',ssXYearC:'#6B712F',ssXRotate:false,ssXSet:'',ssXEvery:1};}
 /* (called by shared/core.js before this file's consts exist, so it uses none) */
 function loadSettings(){
   Object.assign(D,tempoDefaults());
@@ -4448,7 +4480,7 @@ Object.assign(TIPS,{
   ssLine2:'An optional second line: the weekday or the date.',ssCaps:'Sets the second line in capitals.',
   ssTracking:'Space between letters in the clock, for the core font. Each font’s own tracking is in Fonts.',ssLeading:'Distance between the time and the second line.',
   ssAlt:'New one each change: each figure steps to its next alternate whenever it changes. Keep cycling: the alternates roll continuously.',
-  ssAltRate:'How often the alternates change.',ssTabular:'Every figure gets the same width, so the time doesn’t shuffle sideways. Turn off for the font’s own spacing.',ssOptical:'Sets the separator by eye: optically centred between the figures either side, so 7, doesn’t leave a hole. The figures never move.',
+  ssAltRate:'How often the alternates change.',ssTabular:'Every figure gets the same width, so the time doesn’t shuffle sideways. Turn off for the font’s own spacing.',ssSepSpace:'The space either side of the separator, against the space between two figures. Set once for the font, so the time never moves.',ssLead:'In its cell: the time never moves, but a leading 1 sits in from the edge. On the edge: a leading 1 lines up with the margin, and the time glides over when the hour does (10:00, 20:00).',ssOptical:'Sets the separator by eye: optically centred between the figures either side, so 7, doesn’t leave a hole. The figures never move.',
   ssChange:'How a figure changes. Roll works like an odometer.',ssFeel:'Snappy is fast with a crisp stop. Smooth eases. Elastic overshoots.',ssLen:'How long each change takes.',
   ssMove:'Fades to the next corner each minute, which also protects screens.',ssSize:'The largest the clock can be, as a share of the screen width.',ssMargin:'Space kept clear around the edge.',
   ssColBy:'How colours are shared out across the characters.',ssRotate:'Changes theme on the hour.',
@@ -4720,6 +4752,8 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
     {t:'hint',text:'Uses every alternate the core font has for its figures.',show:s=>s.ssAlt!=='off'},
     {t:'toggle',k:'ssTabular',label:'Fixed-width numerals'},
     {t:'toggle',k:'ssOptical',label:'Optical spacing'},
+    {t:'range',k:'ssSepSpace',label:'Space around the separator',min:0,max:1.5,step:.05,fmt:v=>v===1?'As between figures':Math.round(v*100)+'% of it',show:s=>clk(s)&&s.ssTabular&&s.ssOptical&&s.ssSep!=='space'},
+    {t:'seg',k:'ssLead',label:'A leading 1',opts:[['cell','In its cell'],['ink','On the edge']],show:s=>clk(s)&&s.ssTabular},
     {t:'hint',text:'Fixed-width numerals give every figure the same width, so only changed figures move. Turn it off to use the font’s own spacing and kerning.'},
   ]);
 }
@@ -4859,7 +4893,9 @@ const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id==
     {t:'range',k:'ssXGap',label:'Closest lines come',min:.04,max:.8,step:.01,fmt:v=>Math.round(v*100)+'% of a cap apart'},
     {t:'toggle',k:'ssXEven',label:'Even line spacing'},
     {t:'toggle',k:'ssXOptical',label:'Optical spacing'},
-    {t:'hint',text:'By eye where the font has nothing to go on: the separator centred between the figures either side, and the join where a figure meets a letter (30September). Letters keep the font’s own kerning.',show:s=>stk(s)&&s.ssXOptical},
+    {t:'range',k:'ssXSepSpace',label:'Space around the separator',min:0,max:1.5,step:.05,fmt:v=>v===1?'As between figures':Math.round(v*100)+'% of it',show:s=>stk(s)&&s.ssXOptical&&s.ssXSep!=='space'},
+    {t:'seg',k:'ssXLead',label:'A leading 1',opts:[['cell','In its cell'],['ink','On the edge']],show:stk},
+    {t:'hint',text:'By eye where the font has nothing to go on: the separator centred between the time’s figures, with the room set below. The date and year use the font’s own figures and kerning. Letters keep the font’s own kerning.',show:s=>stk(s)&&s.ssXOptical},
     {t:'hint',text:'Lines sit as close as they can without ink touching – checked shape against shape, over every day, date and month there is, so a descender hangs into the line below only where nothing is there. Even spacing: one regular step, with more only where a descender needs it. Off: every pair as close as it can go.'},
     {t:'seg',k:'ssXChange',label:'When it changes',opts:[['roll','Roll'],['fade','Fade'],['cut','Cut']]},
     {t:'seg',k:'ssXFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:s=>stk(s)&&s.ssXChange==='roll'},
@@ -5276,7 +5312,7 @@ const DL_MAP=[['face','ssDialFace'],['detail','ssDialDetail'],['hole','ssDialHol
   ['size','ssDialSize'],['rotate','ssDialRotate'],['every','ssDialEvery'],['fill','ssDialFill'],['fillTurn','ssDialFillTurn'],['fillR','ssDialFillR'],['fillA','ssDialFillA'],['fillBlend','ssDialFillBlend'],
   ['fillOver','ssDialFillOver'],['fillStyle','ssDialFillStyle'],['fillLayer','ssDialFillLayer'],['cap','ssDialCap'],['tip','ssDialTip'],['tipOn','ssDialTipOn'],['tipSize','ssDialTipSize'],['weight','ssDialWeight'],['centreSize','ssDialCentreSize'],['handA','ssDialHandA'],['blend','ssDialBlend']];
 const X_MAP=[['font','ssXFont'],['h24','ssXH24'],['zero','ssXZero'],['sep','ssXSep'],['secs','ssXSecs'],['day','ssXDay'],['month','ssXMonth'],['year','ssXYear'],['dzero','ssXDZero'],['dspace','ssXDSpace'],
-  ['lines','ssXLines'],['dayAt','ssXDayAt'],['gap','ssXGap'],['even','ssXEven'],['size','ssXSize'],['anchor','ssXAnchor'],['margin','ssXMargin'],['tracking','ssXTracking'],['optical','ssXOptical'],['change','ssXChange'],['feel','ssXFeel'],['len','ssXLen'],['rotate','ssXRotate'],['every','ssXEvery']];
+  ['lines','ssXLines'],['dayAt','ssXDayAt'],['gap','ssXGap'],['even','ssXEven'],['size','ssXSize'],['anchor','ssXAnchor'],['margin','ssXMargin'],['tracking','ssXTracking'],['optical','ssXOptical'],['sepSpace','ssXSepSpace'],['lead','ssXLead'],['change','ssXChange'],['feel','ssXFeel'],['len','ssXLen'],['rotate','ssXRotate'],['every','ssXEvery']];
 const T_MAP=[['h24','ssTH24'],['secs','ssTSecs'],['zero','ssTZero'],['case','ssTCase'],['leading','ssTLeading'],['hole','ssTHole'],['split','ssTSplit'],['feel','ssTFeel'],['len','ssTLen'],['far','ssTFar'],
   ['bg','ssTBg'],['ink','ssTInk'],['soft','ssTSoft'],['rotate','ssTRotate'],['every','ssTEvery'],['tracking','ssTTracking'],['space','ssTSpace']];
 function presetFromConfig(cfg,name){
@@ -5412,7 +5448,7 @@ function saverConfig(preview){
   const pals=setThemes('clock'),force=preview?previewForce():null;
   return{show:wd(S)?'words':dl(S)?'dial':ty(S)||stk(S)?S.ssShow:'clock',...(force?{force}:{}),
     clock:{h24:S.ssH24,sep:SEPS[S.ssSep]||',',secs:S.ssSecs,zero:S.ssZero,ampm:true,line2:S.ssLine2,caps:S.ssCaps,
-      change:S.ssChange,feel:S.ssFeel,len:S.ssLen,align:S.ssAlign,valign:S.ssVAlign,size:S.ssSize,margin:S.ssMargin,tabular:S.ssTabular,optical:S.ssOptical,tracking:S.ssTracking,leading:S.ssLeading,move:S.ssMove,pulse:S.ssPulse,alt:S.ssAlt,altRate:S.ssAltRate,
+      change:S.ssChange,feel:S.ssFeel,len:S.ssLen,align:S.ssAlign,valign:S.ssVAlign,size:S.ssSize,margin:S.ssMargin,tabular:S.ssTabular,optical:S.ssOptical,sepSpace:S.ssSepSpace,lead:S.ssLead,tracking:S.ssTracking,leading:S.ssLeading,move:S.ssMove,pulse:S.ssPulse,alt:S.ssAlt,altRate:S.ssAltRate,
       mixed:{mode:S.ssNMode,parts:{h1:S.ssNH1,h2:S.ssNH2,m1:S.ssNM1,m2:S.ssNM2,s1:S.ssNS1,s2:S.ssNS2,line2:S.ssNLine2},when:S.ssNWhen,each:S.ssNEach,match:S.ssNMatch,order:S.ssNOrder,amount:S.ssNAmount}},
     colours:{by:S.ssColBy,bg:S.ssBg,p:[S.ssP1,S.ssP2,S.ssP3,S.ssP4],cycle:S.ssRotate!=='off'&&pals.length>0,every:everyOf('clock')},palettes:pals,
     base,drift:S.ssDrift,tracks:tracksNow(),
@@ -5424,7 +5460,7 @@ function saverConfig(preview){
       colours:Object.fromEntries(D_COLS.map(([k,t])=>[t,S[k]])),rotate:S.ssDialRotate,themes:setThemes('dial'),every:everyOf('dial')}}:{}),
     /* only for Stack */
     ...(stk(S)?{stack:{font:stackFont(),h24:S.ssXH24,zero:S.ssXZero,sep:S.ssXSep,secs:S.ssXSecs,day:S.ssXDay,month:S.ssXMonth,year:S.ssXYear,dzero:S.ssXDZero,dspace:S.ssXDSpace,
-      lines:S.ssXLines,dayAt:S.ssXDayAt,gap:S.ssXGap,even:S.ssXEven,size:S.ssXSize,anchor:S.ssXAnchor,margin:S.ssXMargin,tracking:S.ssXTracking,optical:S.ssXOptical,tl:{time:S.ssXTkTime,day:S.ssXTkDay,date:S.ssXTkDate,year:S.ssXTkYear},change:S.ssXChange,feel:S.ssXFeel,len:S.ssXLen,
+      lines:S.ssXLines,dayAt:S.ssXDayAt,gap:S.ssXGap,even:S.ssXEven,size:S.ssXSize,anchor:S.ssXAnchor,margin:S.ssXMargin,tracking:S.ssXTracking,optical:S.ssXOptical,sepSpace:S.ssXSepSpace,lead:S.ssXLead,tl:{time:S.ssXTkTime,day:S.ssXTkDay,date:S.ssXTkDate,year:S.ssXTkYear},change:S.ssXChange,feel:S.ssXFeel,len:S.ssXLen,
       colours:{bg:S.ssXBg,time:S.ssXTime,day:S.ssXDayC,date:S.ssXDate,year:S.ssXYearC},rotate:S.ssXRotate,themes:setThemes('stack'),every:everyOf('stack')}}:{}),
     /* only for Columns and Rings */
     ...(ty(S)?{type:{font:typeFont(),h24:S.ssTH24,secs:S.ssTSecs,zero:S.ssTZero,case:S.ssTCase,parts:{time:S.ssTTime,secs:S.ssTSecs,day:S.ssTDay,date:S.ssTDate,month:S.ssTMonth,year:S.ssTYear},

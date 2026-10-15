@@ -635,26 +635,32 @@ function xSet(o,f,z,M){const t0=(o.tracking||0)/1000+trackOf(faceById(o.font)?o.
   /* tracking: the overall amount plus each line's own fine adjustment (the time, the day, the date and month, the year) */
   const tkOf=r=>(t0+(tl[r]||0)/1000)*f.upm;
   const zeroL=bearings(f,glyphOf(f,'0'))[0],dw=M.digitW;
-  /* figures all take the widest figure's width (tabular), centred in it, so the time never shifts as it counts */
+  /* the time's figures all take the widest figure's width (tabular), centred in it, so the time never shifts as it counts;
+     the date and year use the font's own figures and kerning (0.9.7) – they change once a day, and a 1 then sits on its own ink */
+  const u=f.upm,O=eng.optical,opt=o.optical!==false&&!!O,sepRoom=sid=>opt?O.sepSlot(f,sid,o.sepSpace==null?1:o.sepSpace,tkOf('time')/u)*u:0;
   return lines.map((runs,li)=>{const gl=[];let x=0,prev=null;
-    for(const run of runs)for(const ch of Array.from(run.t)){const id=glyphOf(f,ch),dig=/\d/.test(ch),off=dig?(dw-f.adv(id))/2:0;
-      if(prev!==null){const pd=/\d/.test(prev.ch);let k=0;
-        if(!dig&&!pd)k=f.kern(prev.id,id);
-        /* optical (0.9.6): where a figure meets a letter (30September) the font has no kerning for its tabular figures – space it by eye */
-        else if(o.optical!==false&&dig!==pd&&/\p{L}/u.test(dig?prev.ch:ch))k=xJoin(f,M,gl[gl.length-1],id,x+off,tkOf(run.r));
-        x+=k+(dig&&pd?Math.max(tkOf(run.r),xFig(f,M)):tkOf(run.r));}
+    for(const run of runs)for(const ch of Array.from(run.t)){const id=glyphOf(f,ch),tab=/\d/.test(ch)&&run.r==='time',off=tab?(dw-f.adv(id))/2:0,sep=/^[.:,]$/.test(ch);
+      if(prev!==null){const pt=prev.tab;let k=0;
+        if(!tab&&!pt)k=f.kern(prev.id,id);
+        /* optical (0.9.6): where a fixed-width figure meets a letter the font has no kerning for it – space it by eye */
+        else if(opt&&tab!==pt&&/\p{L}/u.test(tab?prev.ch:ch))k=xJoin(f,M,gl[gl.length-1],id,x+off,tkOf(run.r));
+        /* 0.9.7: a separator between figures gets the room its setting asks for, half each side */
+        if(pt&&sep)k+=sepRoom(id)/2;else if(prev.sep&&tab)k+=sepRoom(prev.id)/2;
+        x+=k+(tab&&pt?Math.max(tkOf(run.r),xFig(f,M)):tkOf(run.r));}
       const [t,b]=ch===' '?[0,0]:M.box(id);
-      const w=dig?dw:f.adv(id);gl.push({id,x:x+off,w:f.adv(id),cell:w,ch,r:run.r,t,b});x+=w;prev={id,ch};}
+      const w=tab?dw:f.adv(id);gl.push({id,x:x+off,w:f.adv(id),cell:w,ch,r:run.r,t,b,tab});x+=w;prev={id,ch,tab,sep};}
     /* optical (0.9.6): a separator between figures sits optically centred between them – the figures don't move */
-    if(o.optical!==false&&eng.optical)for(let j=1;j<gl.length-1;j++){const S0=gl[j],A=gl[j-1],B=gl[j+1];if(!/^[.:,]$/.test(S0.ch)||!/\d/.test(A.ch)||!/\d/.test(B.ch))continue;
-      const u=f.upm,O=eng.optical,sh=O.centre(O.prof(f,A.id),O.prof(f,S0.id),O.prof(f,B.id),(S0.x-A.x)/u,(B.x-S0.x)/u,M.capU/u,tkOf(S0.r)/u);S0.x+=sh*u;}
-    /* optical left edge: the ink lines up, not the side bearing (figures by their 0, so the time doesn't shift as they change) */
-    const first=gl[0],lsb=!first?0:/\d/.test(first.ch)?(dw-f.adv(glyphOf(f,'0')))/2+zeroL:bearings(f,first.id)[0];
+    if(opt)for(let j=1;j<gl.length-1;j++){const S0=gl[j],A=gl[j-1],B=gl[j+1];if(!/^[.:,]$/.test(S0.ch)||!A.tab||!B.tab)continue;
+      const sh=O.centre(O.prof(f,A.id),O.prof(f,S0.id),O.prof(f,B.id),(S0.x-A.x)/u,(B.x-S0.x)/u,M.capU/u,tkOf(S0.r)/u);S0.x+=sh*u;}
+    /* the left edge is the ink, not the side bearing: the time's by its 0 (so it never shifts) – or, set to, by its first
+       figure's own ink (a leading 1 then sits on the edge, and the line moves when that figure changes) */
+    const first=gl[0];let lsb=0;
+    if(first)lsb=first.tab?(o.lead==='ink'?first.x+bearings(f,first.id)[0]:(dw-f.adv(glyphOf(f,'0')))/2+zeroL):first.x+bearings(f,first.id)[0];
     return{gl,w:x,lsb,li};});}
 /* where each line starts, in font units: flush left, or (the day) hanging from the time's last figure, or flush right */
 function xPlace(o,f,lines,blockW){const zeroL=bearings(f,glyphOf(f,'0'))[0],M0=xMetrics(f);
   lines.forEach((L,i)=>{L.x=-L.lsb;
-    if(i===1&&o.dayAt==='figure'){const T=lines[0],last=T.gl[T.gl.length-1],cellX=last?last.x-(last.cell-last.w)/2:0;L.x=(last?cellX+(M0.digitW-f.adv(glyphOf(f,'0')))/2+zeroL:0)-L.lsb;}
+    if(i===1&&o.dayAt==='figure'){const T=lines[0],last=T.gl[T.gl.length-1],cellX=last?last.x-(last.cell-last.w)/2:0;L.x=T.x+(last?cellX+(M0.digitW-f.adv(glyphOf(f,'0')))/2+zeroL:0)-L.lsb;}
     else if(i===1&&o.dayAt==='right'&&blockW!=null){const last=L.gl[L.gl.length-1];L.x=blockW-(last?last.x+last.w-bearings(f,last.id)[1]:L.w);}});
   return lines;}
 /* the layout for the worst case: block width and height, and the baseline step between each pair of lines */
@@ -711,7 +717,7 @@ function stackFrame(ctx,W,H,now,K){
   const o=C.stack,P=xPal(),f=xFace(),z=parts(Date.now());S.bg=P.bg;
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle=P.bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
   if(!f)return;
-  const key=(f.name||'')+'|'+JSON.stringify([o.h24,o.zero,o.sep,o.secs,o.day,o.month,o.year,o.dzero,o.dspace,o.lines,o.dayAt,o.gap,o.even,o.tracking,o.tl,o.optical,o.font,new Date().getFullYear()]);
+  const key=(f.name||'')+'|'+JSON.stringify([o.h24,o.zero,o.sep,o.secs,o.day,o.month,o.year,o.dzero,o.dspace,o.lines,o.dayAt,o.gap,o.even,o.tracking,o.tl,o.optical,o.sepSpace,o.lead,o.font,new Date().getFullYear()]);
   if(key!==xMemoKey){xMemoKey=key;xMemo=xBuild(o,f);xAnim=new Map();}
   const B=xMemo,m=(o.margin==null?4:o.margin)/100*Math.min(W,H),aw=W-2*m,ah=H-2*m;
   /* drift: a slow wander away from the corner it's latched to (never towards the edge), up to the margin or 2% of the screen –
@@ -750,7 +756,7 @@ function build(){
   {const k=JSON.stringify((C.words||{}).mixed||null);if(k!==mCfg){mCfg=k;mReset();}}
   if(isWords()||isDial()||isType()||isStack()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
   const c=C.clock;S=JSON.parse(JSON.stringify(C.base||{}));
-  Object.assign(S,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:c.change!=='roll',fit:'cap',size:c.size,align:c.align,valign:c.valign,margin:c.margin,tabular:c.tabular,optical:c.optical!==false,transparent:false,
+  Object.assign(S,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:c.change!=='roll',fit:'cap',size:c.size,align:c.align,valign:c.valign,margin:c.margin,tabular:c.tabular,optical:c.optical!==false,sepSpace:c.sepSpace==null?1:c.sepSpace,lead:c.lead||'cell',transparent:false,
     tracking:c.tracking!=null?c.tracking:S.tracking,leading:c.leading!=null?c.leading:S.leading,
     qStyle:c.change,qEase:c.feel,qStagger:.3,qDir:'up',qAxis:'vertical',texts:[cur||' ']});
   if(c.move){const k=minutesNow()%4;S.align=CORNERS[k][0];S.valign=CORNERS[k][1];}

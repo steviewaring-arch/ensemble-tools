@@ -125,22 +125,40 @@ function opGap(A,B,off,cap){if(!A||!B)return null;const D=.2*cap;let Rm=-Infinit
    pa/ps/pb: profiles; offL: em from A's origin to the separator's; offR: em from the separator's origin to B's;
    trk: the tracking either side (em). Returns how far to move the separator (em). */
 const OP_MIN=.015;
-function opCentre(pa,ps,pb,offL,offR,cap,trk){if(!pa||!ps||!pb)return 0;
-  /* the band: the separator's own rows of ink, and a quarter of a cap height either side (a 4's bar, a 7's foot) */
-  const ext=Math.ceil(.25*cap/OP_STEP),rows=[];
+/* the band a separator is judged in: its own rows of ink, and a quarter of a cap height either side (a 4's bar, a 7's foot) */
+function opBand(ps,cap){const ext=Math.ceil(.25*cap/OP_STEP),rows=[];
   for(let i=0;i<OP_N;i++){const em=OP_HI-(i+.5)*OP_STEP;if(em<-.02||em>cap)continue;
     let near=false;for(let k=-ext;k<=ext;k++){const j=i+k;if(j>=0&&j<OP_N&&ps.L[j]!=null){near=true;break;}}if(near)rows.push(i);}
-  /* within it, a hole counts only so deep (a fifth of a cap), as in opGap */
-  const D=.2*cap,side=(A,B,off)=>{let Rm=-Infinity,Lm=Infinity;for(const i of rows){if(A.R[i]!=null)Rm=Math.max(Rm,A.R[i]);if(B.L[i]!=null)Lm=Math.min(Lm,B.L[i]);}
-    if(!isFinite(Rm)||!isFinite(Lm)){const g=opGap(A,B,off,cap);return g?g.mean:null;}
-    let s=0;for(const i of rows){const r=Math.max(A.R[i]!=null?A.R[i]:-Infinity,Rm-D),l=Math.min(B.L[i]!=null?B.L[i]:Infinity,Lm+D);s+=off+l-r;}return s/rows.length;};
-  if(rows.length<2)return 0;
-  const gl=side(pa,ps,offL),gr=side(ps,pb,offR);if(gl==null||gr==null)return 0;
+  return rows;}
+/* the mean gap across those rows, a hole counting only a fifth of a cap deep (as in opGap) */
+function opSide(A,B,off,rows,cap){const D=.2*cap;let Rm=-Infinity,Lm=Infinity;for(const i of rows){if(A.R[i]!=null)Rm=Math.max(Rm,A.R[i]);if(B.L[i]!=null)Lm=Math.min(Lm,B.L[i]);}
+  if(!isFinite(Rm)||!isFinite(Lm)){const g=opGap(A,B,off,cap);return g?g.mean:null;}
+  let s=0;for(const i of rows){const r=Math.max(A.R[i]!=null?A.R[i]:-Infinity,Rm-D),l=Math.min(B.L[i]!=null?B.L[i]:Infinity,Lm+D);s+=off+l-r;}return s/rows.length;}
+function opCentre(pa,ps,pb,offL,offR,cap,trk){if(!pa||!ps||!pb)return 0;
+  const rows=opBand(ps,cap);if(rows.length<2)return 0;
+  const gl=opSide(pa,ps,offL,rows,cap),gr=opSide(ps,pb,offR,rows,cap);if(gl==null||gr==null)return 0;
   let a=(gr-gl)/2;a=Math.max(-.25,Math.min(.25,a));
   /* never closer than a hair at any height */
   const L0=opGap(pa,ps,offL,cap),R0=opGap(ps,pb,offR,cap);
   if(L0&&isFinite(L0.raw))a=Math.max(a,OP_MIN-trk-L0.raw);if(R0&&isFinite(R0.raw))a=Math.min(a,R0.raw+trk-OP_MIN);
   return a;}
+/* the room a separator gets (0.9.7): how much wider (+) or narrower (−) its slot should be, in em, so that – once it's
+   centred – the tightest pair of figures either side of it sits `t` × the space between two figures (00), judged in
+   the separator's band. Constant for a font and separator, so the figures never move. Hours' last figure 0–9 before
+   it, the tens of minutes or seconds 0–5 after. */
+const sepMemo=new Map();
+function opSepSlot(f,sid,t,trk){if(!f||!f.pathD)return 0;const k=(f.name||'')+'|'+f.upm+'|'+sid+'|'+t+'|'+trk;if(sepMemo.has(k))return sepMemo.get(k);
+  const u=f.upm,cap=(f.cap>0?f.cap:.7*u)/u,ps=opProf(f,sid);let c=0;
+  if(ps){const D=[...'0123456789'].map(d=>{const id=f.base(d);return{d,p:opProf(f,id),a:f.adv(id)/u};});let dw=0;for(const x of D)dw=Math.max(dw,x.a);
+    const as=f.adv(sid)/u,rows=opBand(ps,cap),z=D[0],ref=rows.length?opSide(z.p,z.p,dw,rows,cap):null;
+    if(ref!=null&&D.every(x=>x.p)){let gmin=Infinity,cmin=-Infinity;
+      for(const A of D)for(const B of D.slice(0,6)){const offL=(dw+A.a)/2,offR=as+(dw-B.a)/2,gl=opSide(A.p,ps,offL,rows,cap),gr=opSide(ps,B.p,offR,rows,cap);if(gl==null||gr==null)continue;
+        gmin=Math.min(gmin,(gl+gr)/2);const L0=opGap(A.p,ps,offL,cap),R0=opGap(ps,B.p,offR,cap);
+        if(L0&&R0&&isFinite(L0.raw)&&isFinite(R0.raw))cmin=Math.max(cmin,2*OP_MIN-2*trk-L0.raw-R0.raw);}
+      if(isFinite(gmin))c=Math.max(2*(t*ref-gmin),cmin);}}
+  c=Math.max(-.5,Math.min(.5,c));sepMemo.set(k,c);return c;}
+/* where a figure's ink starts in its cell (em), for lining the time up by its first figure's ink */
+function opInkL(f,id,cell){const p=opProf(f,id);let l=Infinity;if(p)for(const v of p.L)if(v!=null)l=Math.min(l,v);return isFinite(l)?(cell-f.adv(id)/f.upm)/2+l:0;}
 let rankCache={key:'',arr:[]};
 function orderVal(j,n){
   if(n<=1)return 0;const t=j/(n-1);
@@ -222,7 +240,12 @@ function layoutBlock(text,salt,W,H,p,cfg){
   /* the core face's tracking (S.tracking) and each face's own (S.faceTrack) */
   const ftk=S.faceTrack||{},gap0=g=>(g.opt.def.s===bs?trk:0)+(ftk[g.opt.def.s]||0)/1000;
   /* optical (0.9.6): with fixed-width figures, two figures never come closer than a hair, however tight the tracking */
-  const gapU=(g,h)=>{const v=gap0(g);return S.optical&&tab&&h&&isD(g.ch)&&isD(h.ch)&&g.opt.def.s===h.opt.def.s?Math.max(v,figFloor(g.opt.def.s)):v;};
+  /* 0.9.7: and a separator between figures gets the room its setting asks for (half each side) */
+  const isSep=g=>g&&g.vis&&SEP_CH.test(g.ch),sepC=g=>opSepSlot(F(g.opt.def.s),g.opt.def.r,S.sepSpace==null?1:S.sepSpace,gap0(g));
+  const gapU=(g,h)=>{let v=gap0(g);if(!S.optical||!tab||!h)return v;
+    if(isD(g.ch)&&isD(h.ch)&&g.opt.def.s===h.opt.def.s)v=Math.max(v,figFloor(g.opt.def.s));
+    else if(isD(g.ch)&&isSep(h))v+=sepC(h)/2;else if(isSep(g)&&isD(h.ch))v+=sepC(g)/2;
+    return v;};
   /* hooks.fitSlots(): every display face a numeral could take, so the size holds whichever comes in */
   const fitSlots=hooks&&hooks.fitSlots?hooks.fitSlots():null;
   const AX=axisInfo(),axLo=AX?AX.a.min+(AX.a.max-AX.a.min)*Math.min(S.axFrom,S.axTo):0,axHi=AX?AX.a.min+(AX.a.max-AX.a.min)*Math.max(S.axFrom,S.axTo):0;
@@ -256,7 +279,10 @@ function layoutBlock(text,salt,W,H,p,cfg){
       /* each glyph sits centred in its record (a figure's cell, or its own advance) */
       const ox=R=>R.x/size+(R.w/size-(R===A?aa:R===B?ab:as))/2,offL=ox(r)-ox(A),offR=ox(B)-ox(r);
       r.x+=opCentre(opProf(fa,A.g.opt.def.r),opProf(fs,r.g.opt.def.r),opProf(fb,B.g.opt.def.r),offL,offR,cap,gapU(r.g))*size;});
-    const ws=x*sx[li];const x0=S.align==='left'?m:S.align==='right'?W-m-ws:(W-ws)/2;
+    const ws=x*sx[li];let x0=S.align==='left'?m:S.align==='right'?W-m-ws:(W-ws)/2;
+    /* 0.9.7: left-aligned, the line can line up by its first figure's ink (a leading 1 sits in a wide cell) – it glides as that figure rolls */
+    if(S.lead==='ink'&&tab&&S.align==='left'&&recs.length&&recs[0].g.vis&&isD(recs[0].g.ch)){const r=recs[0],s0=r.g.opt.def.s,f0=F(s0),cell=digOf(s0),z=f0.base('0');
+      const off=v=>v&&v.s===s0?opInkL(f0,v.r,cell):opInkL(f0,r.g.opt.def.r,cell),sh=lerp(off(r.sw.a),off(r.sw.b),r.ea)-opInkL(f0,z,cell);x0-=sh*size*sx[li];}
     return{recs,lw:x,x0,base:top+bl[li],sx:sx[li],sy:sy[li]};
   });
   return{lines,size,capPx:capR*size,ascPx:ascR*size,descPx:descR*size,top,blockH,W,H,ink:S.tightMask?inkBounds(text,fitSlots):null};
@@ -417,5 +443,5 @@ function renderFrame(ctx,W,H,p,k,forceBg,pre){
   if(hasImg&&S.iPlace==='above')imgPass(ctx);
 }
 
-return{use(o){S=o;optCache.clear();rankCache={key:'',arr:[]};},fallbacks,F,baseSlot,availSlots,anyLoaded,setFaces,faceList,axisInfo,charOptions,optCache,vkey,renderFrame,buildScene,makeBaked,setImage(i){img=i;},setHooks(h){hooks=h||null;},setLive(l){live=l||null;},lastSize:()=>lastSize,clamp,lerp,E,TAU,optical:{prof:opProf,gap:opGap,centre:opCentre}};
+return{use(o){S=o;optCache.clear();rankCache={key:'',arr:[]};},fallbacks,F,baseSlot,availSlots,anyLoaded,setFaces,faceList,axisInfo,charOptions,optCache,vkey,renderFrame,buildScene,makeBaked,setImage(i){img=i;},setHooks(h){hooks=h||null;},setLive(l){live=l||null;},lastSize:()=>lastSize,clamp,lerp,E,TAU,optical:{prof:opProf,gap:opGap,centre:opCentre,sepSlot:opSepSlot,inkL:opInkL}};
 }

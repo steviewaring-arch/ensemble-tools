@@ -1,5 +1,12 @@
 # Changelog
 
+## 15 October 2026 – Tempo 0.9.7
+
+- **Space around the separator** (The time: Clock card; Stack: Setting card, under Optical spacing): the room either side of the comma, colon or stop, against the space between two figures – 100% by default (as between figures), down to 0% tight. Set once for the font, so the time never moves.
+- **A leading 1** (same cards): In its cell (as before – the time never moves, but a 1 sits in from the edge) or On the edge (a leading 1 lines up with the margin; the time glides over when the hour does, at 10:00 and 20:00). Left-aligned only in The time.
+- **Stack's date and year** use the font's own figures and kerning – they change once a day, so a 1 sits on its own ink (15 October lines up with 26).
+- Stack's day now hangs exactly from the last figure's ink (it sat a hair to the right).
+
 ## 15 October 2026 – Tempo 0.9.6
 
 - **Optical spacing** (on by default, in The time and Stack): fixed-width figures meant the font's kerning never reached the separator, so 7, left a hole and the comma hugged the next figure. Tempo now reads each glyph's shape and sets the separator by eye – optically centred between the figures either side, judged where the separator itself sits. The figures never move; only the separator settles as its neighbours change.

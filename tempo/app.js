@@ -40,7 +40,7 @@ function tempoDefaults(){return{ssVer:5,
   /* 0.9.3: Stack – the time and date as a stack of lines, after Steve's Univers mock-up (ssX…) */
   ssXFont:'',ssXH24:true,ssXZero:true,ssXSep:'stop',ssXSecs:true,ssXDay:'full',ssXMonth:'full',ssXYear:'short',ssXDZero:false,ssXDSpace:false,
   ssXLines:'four',ssXDayAt:'figure',ssXGap:.18,ssXEven:true,ssXSize:70,ssXAnchor:'br',ssXMargin:4,ssXTracking:-65,ssXTkTime:0,ssXTkDay:0,ssXTkDate:0,ssXTkYear:0,ssXChange:'roll',ssXFeel:'smooth',ssXLen:.6,
-  ssOptical:true,ssXOptical:true,ssXBg:'#979C92',ssXTime:'#E9EAEB',ssXDayC:'#343031',ssXDate:'#F69063',ssXYearC:'#6B712F',ssXRotate:false,ssXSet:'',ssXEvery:1};}
+  ssOptical:true,ssXOptical:true,ssSepSpace:1,ssXSepSpace:1,ssLead:'cell',ssXLead:'cell',ssXBg:'#979C92',ssXTime:'#E9EAEB',ssXDayC:'#343031',ssXDate:'#F69063',ssXYearC:'#6B712F',ssXRotate:false,ssXSet:'',ssXEvery:1};}
 /* (called by shared/core.js before this file's consts exist, so it uses none) */
 function loadSettings(){
   Object.assign(D,tempoDefaults());
@@ -90,7 +90,7 @@ Object.assign(TIPS,{
   ssLine2:'An optional second line: the weekday or the date.',ssCaps:'Sets the second line in capitals.',
   ssTracking:'Space between letters in the clock, for the core font. Each font’s own tracking is in Fonts.',ssLeading:'Distance between the time and the second line.',
   ssAlt:'New one each change: each figure steps to its next alternate whenever it changes. Keep cycling: the alternates roll continuously.',
-  ssAltRate:'How often the alternates change.',ssTabular:'Every figure gets the same width, so the time doesn’t shuffle sideways. Turn off for the font’s own spacing.',ssOptical:'Sets the separator by eye: optically centred between the figures either side, so 7, doesn’t leave a hole. The figures never move.',
+  ssAltRate:'How often the alternates change.',ssTabular:'Every figure gets the same width, so the time doesn’t shuffle sideways. Turn off for the font’s own spacing.',ssSepSpace:'The space either side of the separator, against the space between two figures. Set once for the font, so the time never moves.',ssLead:'In its cell: the time never moves, but a leading 1 sits in from the edge. On the edge: a leading 1 lines up with the margin, and the time glides over when the hour does (10:00, 20:00).',ssOptical:'Sets the separator by eye: optically centred between the figures either side, so 7, doesn’t leave a hole. The figures never move.',
   ssChange:'How a figure changes. Roll works like an odometer.',ssFeel:'Snappy is fast with a crisp stop. Smooth eases. Elastic overshoots.',ssLen:'How long each change takes.',
   ssMove:'Fades to the next corner each minute, which also protects screens.',ssSize:'The largest the clock can be, as a share of the screen width.',ssMargin:'Space kept clear around the edge.',
   ssColBy:'How colours are shared out across the characters.',ssRotate:'Changes theme on the hour.',
@@ -362,6 +362,8 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
     {t:'hint',text:'Uses every alternate the core font has for its figures.',show:s=>s.ssAlt!=='off'},
     {t:'toggle',k:'ssTabular',label:'Fixed-width numerals'},
     {t:'toggle',k:'ssOptical',label:'Optical spacing'},
+    {t:'range',k:'ssSepSpace',label:'Space around the separator',min:0,max:1.5,step:.05,fmt:v=>v===1?'As between figures':Math.round(v*100)+'% of it',show:s=>clk(s)&&s.ssTabular&&s.ssOptical&&s.ssSep!=='space'},
+    {t:'seg',k:'ssLead',label:'A leading 1',opts:[['cell','In its cell'],['ink','On the edge']],show:s=>clk(s)&&s.ssTabular},
     {t:'hint',text:'Fixed-width numerals give every figure the same width, so only changed figures move. Turn it off to use the font’s own spacing and kerning.'},
   ]);
 }
@@ -501,7 +503,9 @@ const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id==
     {t:'range',k:'ssXGap',label:'Closest lines come',min:.04,max:.8,step:.01,fmt:v=>Math.round(v*100)+'% of a cap apart'},
     {t:'toggle',k:'ssXEven',label:'Even line spacing'},
     {t:'toggle',k:'ssXOptical',label:'Optical spacing'},
-    {t:'hint',text:'By eye where the font has nothing to go on: the separator centred between the figures either side, and the join where a figure meets a letter (30September). Letters keep the font’s own kerning.',show:s=>stk(s)&&s.ssXOptical},
+    {t:'range',k:'ssXSepSpace',label:'Space around the separator',min:0,max:1.5,step:.05,fmt:v=>v===1?'As between figures':Math.round(v*100)+'% of it',show:s=>stk(s)&&s.ssXOptical&&s.ssXSep!=='space'},
+    {t:'seg',k:'ssXLead',label:'A leading 1',opts:[['cell','In its cell'],['ink','On the edge']],show:stk},
+    {t:'hint',text:'By eye where the font has nothing to go on: the separator centred between the time’s figures, with the room set below. The date and year use the font’s own figures and kerning. Letters keep the font’s own kerning.',show:s=>stk(s)&&s.ssXOptical},
     {t:'hint',text:'Lines sit as close as they can without ink touching – checked shape against shape, over every day, date and month there is, so a descender hangs into the line below only where nothing is there. Even spacing: one regular step, with more only where a descender needs it. Off: every pair as close as it can go.'},
     {t:'seg',k:'ssXChange',label:'When it changes',opts:[['roll','Roll'],['fade','Fade'],['cut','Cut']]},
     {t:'seg',k:'ssXFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:s=>stk(s)&&s.ssXChange==='roll'},
@@ -918,7 +922,7 @@ const DL_MAP=[['face','ssDialFace'],['detail','ssDialDetail'],['hole','ssDialHol
   ['size','ssDialSize'],['rotate','ssDialRotate'],['every','ssDialEvery'],['fill','ssDialFill'],['fillTurn','ssDialFillTurn'],['fillR','ssDialFillR'],['fillA','ssDialFillA'],['fillBlend','ssDialFillBlend'],
   ['fillOver','ssDialFillOver'],['fillStyle','ssDialFillStyle'],['fillLayer','ssDialFillLayer'],['cap','ssDialCap'],['tip','ssDialTip'],['tipOn','ssDialTipOn'],['tipSize','ssDialTipSize'],['weight','ssDialWeight'],['centreSize','ssDialCentreSize'],['handA','ssDialHandA'],['blend','ssDialBlend']];
 const X_MAP=[['font','ssXFont'],['h24','ssXH24'],['zero','ssXZero'],['sep','ssXSep'],['secs','ssXSecs'],['day','ssXDay'],['month','ssXMonth'],['year','ssXYear'],['dzero','ssXDZero'],['dspace','ssXDSpace'],
-  ['lines','ssXLines'],['dayAt','ssXDayAt'],['gap','ssXGap'],['even','ssXEven'],['size','ssXSize'],['anchor','ssXAnchor'],['margin','ssXMargin'],['tracking','ssXTracking'],['optical','ssXOptical'],['change','ssXChange'],['feel','ssXFeel'],['len','ssXLen'],['rotate','ssXRotate'],['every','ssXEvery']];
+  ['lines','ssXLines'],['dayAt','ssXDayAt'],['gap','ssXGap'],['even','ssXEven'],['size','ssXSize'],['anchor','ssXAnchor'],['margin','ssXMargin'],['tracking','ssXTracking'],['optical','ssXOptical'],['sepSpace','ssXSepSpace'],['lead','ssXLead'],['change','ssXChange'],['feel','ssXFeel'],['len','ssXLen'],['rotate','ssXRotate'],['every','ssXEvery']];
 const T_MAP=[['h24','ssTH24'],['secs','ssTSecs'],['zero','ssTZero'],['case','ssTCase'],['leading','ssTLeading'],['hole','ssTHole'],['split','ssTSplit'],['feel','ssTFeel'],['len','ssTLen'],['far','ssTFar'],
   ['bg','ssTBg'],['ink','ssTInk'],['soft','ssTSoft'],['rotate','ssTRotate'],['every','ssTEvery'],['tracking','ssTTracking'],['space','ssTSpace']];
 function presetFromConfig(cfg,name){
@@ -1054,7 +1058,7 @@ function saverConfig(preview){
   const pals=setThemes('clock'),force=preview?previewForce():null;
   return{show:wd(S)?'words':dl(S)?'dial':ty(S)||stk(S)?S.ssShow:'clock',...(force?{force}:{}),
     clock:{h24:S.ssH24,sep:SEPS[S.ssSep]||',',secs:S.ssSecs,zero:S.ssZero,ampm:true,line2:S.ssLine2,caps:S.ssCaps,
-      change:S.ssChange,feel:S.ssFeel,len:S.ssLen,align:S.ssAlign,valign:S.ssVAlign,size:S.ssSize,margin:S.ssMargin,tabular:S.ssTabular,optical:S.ssOptical,tracking:S.ssTracking,leading:S.ssLeading,move:S.ssMove,pulse:S.ssPulse,alt:S.ssAlt,altRate:S.ssAltRate,
+      change:S.ssChange,feel:S.ssFeel,len:S.ssLen,align:S.ssAlign,valign:S.ssVAlign,size:S.ssSize,margin:S.ssMargin,tabular:S.ssTabular,optical:S.ssOptical,sepSpace:S.ssSepSpace,lead:S.ssLead,tracking:S.ssTracking,leading:S.ssLeading,move:S.ssMove,pulse:S.ssPulse,alt:S.ssAlt,altRate:S.ssAltRate,
       mixed:{mode:S.ssNMode,parts:{h1:S.ssNH1,h2:S.ssNH2,m1:S.ssNM1,m2:S.ssNM2,s1:S.ssNS1,s2:S.ssNS2,line2:S.ssNLine2},when:S.ssNWhen,each:S.ssNEach,match:S.ssNMatch,order:S.ssNOrder,amount:S.ssNAmount}},
     colours:{by:S.ssColBy,bg:S.ssBg,p:[S.ssP1,S.ssP2,S.ssP3,S.ssP4],cycle:S.ssRotate!=='off'&&pals.length>0,every:everyOf('clock')},palettes:pals,
     base,drift:S.ssDrift,tracks:tracksNow(),
@@ -1066,7 +1070,7 @@ function saverConfig(preview){
       colours:Object.fromEntries(D_COLS.map(([k,t])=>[t,S[k]])),rotate:S.ssDialRotate,themes:setThemes('dial'),every:everyOf('dial')}}:{}),
     /* only for Stack */
     ...(stk(S)?{stack:{font:stackFont(),h24:S.ssXH24,zero:S.ssXZero,sep:S.ssXSep,secs:S.ssXSecs,day:S.ssXDay,month:S.ssXMonth,year:S.ssXYear,dzero:S.ssXDZero,dspace:S.ssXDSpace,
-      lines:S.ssXLines,dayAt:S.ssXDayAt,gap:S.ssXGap,even:S.ssXEven,size:S.ssXSize,anchor:S.ssXAnchor,margin:S.ssXMargin,tracking:S.ssXTracking,optical:S.ssXOptical,tl:{time:S.ssXTkTime,day:S.ssXTkDay,date:S.ssXTkDate,year:S.ssXTkYear},change:S.ssXChange,feel:S.ssXFeel,len:S.ssXLen,
+      lines:S.ssXLines,dayAt:S.ssXDayAt,gap:S.ssXGap,even:S.ssXEven,size:S.ssXSize,anchor:S.ssXAnchor,margin:S.ssXMargin,tracking:S.ssXTracking,optical:S.ssXOptical,sepSpace:S.ssXSepSpace,lead:S.ssXLead,tl:{time:S.ssXTkTime,day:S.ssXTkDay,date:S.ssXTkDate,year:S.ssXTkYear},change:S.ssXChange,feel:S.ssXFeel,len:S.ssXLen,
       colours:{bg:S.ssXBg,time:S.ssXTime,day:S.ssXDayC,date:S.ssXDate,year:S.ssXYearC},rotate:S.ssXRotate,themes:setThemes('stack'),every:everyOf('stack')}}:{}),
     /* only for Columns and Rings */
     ...(ty(S)?{type:{font:typeFont(),h24:S.ssTH24,secs:S.ssTSecs,zero:S.ssTZero,case:S.ssTCase,parts:{time:S.ssTTime,secs:S.ssTSecs,day:S.ssTDay,date:S.ssTDate,month:S.ssTMonth,year:S.ssTYear},

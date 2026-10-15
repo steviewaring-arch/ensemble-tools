@@ -107,6 +107,10 @@ def main():
         s4, s5 = st({}), st({'lines': 'five'})
         check('Stack: Even spacing is one regular step, larger only where a descender hangs over the line below (September over the year)',
               abs(s5[0] - s4[0]) < 1 and s5[3] > s5[0] + 50 and s5[0] == s5[1] == s5[2], json.dumps([s4, s5]))
+        l1, l0 = xs({'lead': 'ink'}, loc(2026, 10, 15, 17, 33, 5)), xs({'lead': 'ink'}, loc(2026, 10, 15, 9, 59, 5))
+        c1, c0 = xs({}, loc(2026, 10, 15, 17, 33, 5)), xs({}, loc(2026, 10, 15, 9, 59, 5))
+        check('Stack: a leading 1 in its cell by default (the time never moves); on the edge when set (the line moves over for a 1)',
+              c1['x'][0] == c0['x'][0] and l1['x'][0] < l0['x'][0], json.dumps([c1['x'][0], c0['x'][0], l1['x'][0], l0['x'][0]]))
         xd = lambda t, ms: pg.evaluate(XST.replace('const sv=createSaver(e,C);', 'C.drift=1;const sv=createSaver(e,C);'), [dict(show='stack', base={}, colours={}, stack=dict(XS, **t)), ms])
         dg = [xd(dict(anchor=a), loc(2026, 9, 30, 8, 3, s)) for a in ('br', 'tl') for s in range(0, 60, 7)]
         check('Stack: drift wanders away from its corner but never past the margin on either side',

@@ -1,8 +1,8 @@
-# Parity report – Rubato 1.1 and Tempo 0.9.6 vs Rubato v0.8.1
+# Parity report – Rubato 1.1 and Tempo 0.9.7 vs Rubato v0.8.1
 Run on 15 October 2026 against docs/ as built. 87 results, all accounted for:
-- 52 byte-identical to the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's settled clock frames where the separator sits evenly already, and the settled frames its exported engine draws.
+- 52 byte-identical to the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's settled frames its exported engine draws.
 - the rest within the difference 0.8.1 shows between its own runs.
-- 34 on purpose, named with the reason – four more than 0.9: Tempo 0.9.6's optical spacing moves the comma to sit optically centred between the figures (the figures don't move).
+- 34 on purpose, named with the reason – from 0.9.6 the separator is set by eye (it moves to sit optically centred), and from 0.9.7 it gets the room its setting asks for (the minutes sit a fixed amount closer).
 `tests/tempo_check.py` 119 of 119, `tests/tempo09_check.py` 39 of 39, `tests/split_check.py` 15 of 15, `tests/licence_check.py` 4 of 4.
 
 ## t1 – Fonts: styles, variable axes, instances, axis animation, SVG, picker, reload.
@@ -64,7 +64,7 @@ Run on 15 October 2026 against docs/ as built. 87 results, all accounted for:
 - same: migrated styles – ["Poppins Regular", "Poppins Bold"]
 - same: migrated settings – {"fit": "block", "stretch": true, "baseSlot is 2nd style": true, "picks": {"a": ["200",...
 - same: default style – [["Default"], "Poppins Bold"]
-- NOISE: screen saver preview – 81249 bytes, sha256 a71e2418067f
+- differs on purpose: screen saver preview – Tempo 0.9.7 gives the separator the room its setting asks for (by default the space between two figures) – the minutes sit a fixed amount closer or further, the same at every moment
 - differs on purpose: screen saver HTML – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
 - differs on purpose: screen saver HTML (file name) – Tempo 0.3 names the file after the screen saver, not Rubato's text
 - differs on purpose: Mac zip – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
@@ -79,7 +79,7 @@ Run on 15 October 2026 against docs/ as built. 87 results, all accounted for:
 
 - differs on purpose: saver cards – Tempo 0.4 puts the Screensaver card (The time, In words or, from 0.5, As a dial) first; from 0.6 Presets comes before it
 - differs on purpose: Screensaver panel – Tempo 0.3 stands apart from Rubato (its own fonts and settings, no Saved looks or Rubato text, faces per numeral; from 0.5 a dial, and Noon in for Ultraviolet; from 0.6 presets, and exports carry theirs) – covered by tempo_check.py
-- differs on purpose: roll at 150 ms – Tempo 0.9.6 sets the separator by eye (optical spacing, on by default): the comma moves to sit optically centred between the figures either side – the figures themselves are where they were
+- NOISE: roll at 150 ms – 89876 bytes, sha256 de0eb35f5350
 - differs on purpose: roll at 450 ms – Tempo 0.9's roll is smoother mid-change: the window reaches past the ink (no figure cut flat as it settles) and figures that stay glide to their new place – stills and settled frames still match
 - differs on purpose: roll at 750 ms – Tempo 0.9.6 sets the separator by eye (optical spacing, on by default): the comma moves to sit optically centred between the figures either side – the figures themselves are where they were
 - differs on purpose: roll at 880 ms – Tempo 0.9.6 sets the separator by eye (optical spacing, on by default): the comma moves to sit optically centred between the figures either side – the figures themselves are where they were
