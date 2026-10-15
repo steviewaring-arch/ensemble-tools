@@ -732,55 +732,72 @@ function previewForce(){const k=kindNow(S),K=THEMES[k];if(!K.on(S)||!LOOK[k])ret
 for(const k of Object.keys(THEMES)){SUMMARY[THEMES[k].id]=s=>{if(THEMES[k].on(s)){const n=setNames(k,s).length;return`Every hour · ${n} theme${n>1?'s':''}`;}const T=selOf(k);return T?T.name:'Your colours';};}
 themeCard('clock',b=>build(b,[{t:'seg',k:'ssColBy',label:'Colour by',opts:[['type','Character type'],['letter','Each letter'],['line','Line'],['random','Random'],['single','One colour']]}]));
 themeCard('words');themeCard('dial');themeCard('type');themeCard('stack');
-/* ================= The colour picker (0.9.2) =================
-   Click any colour and this opens straight away, beside it: a colour wheel, a brightness
-   slider, the hex, a dropper (where the browser has one) – and your saved colours, kept for
-   every design. Save the colour in hand with +; click a saved one to use it; × removes it.
-   It stands in for the browser's own picker, which differs from browser to browser. */
+/* ================= The colour picker (0.9.2, sliders from 0.9.5) =================
+   Click any colour and this opens beside it, on a plain panel: the colour, RGB or CMYK sliders
+   (each track shows where it goes), the hex, a dropper – the whole screen where the browser
+   allows (Chrome, Edge), otherwise the preview – and your saved colours, kept for every design.
+   + saves the colour in hand; click a saved one to use it; × removes it.
+   CMYK here is the plain screen conversion, a way of thinking in ink – not a print profile. */
 const SWATCHES=()=>{const v=LS.get('swatches');return Array.isArray(v)?v:[];};
 const putSwatches=v=>LS.set('swatches',v.slice(0,48));
 const hexOk=v=>/^#?[0-9a-f]{6}$/i.test(v||'');
 const toHex6=v=>('#'+String(v).replace('#','')).toUpperCase();
 function rgbOf(h){const n=parseInt(h.slice(1),16);return[n>>16&255,n>>8&255,n&255];}
-function hsvOf([r,g,b]){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let hh=0;
-  if(d){hh=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;hh*=60;if(hh<0)hh+=360;}return[hh,mx?d/mx:0,mx];}
-function hexOfHsv(hh,sv,vv){const c=vv*sv,x=c*(1-Math.abs((hh/60)%2-1)),m=vv-c;let r=0,g=0,b=0;
-  if(hh<60)[r,g,b]=[c,x,0];else if(hh<120)[r,g,b]=[x,c,0];else if(hh<180)[r,g,b]=[0,c,x];else if(hh<240)[r,g,b]=[0,x,c];else if(hh<300)[r,g,b]=[x,0,c];else[r,g,b]=[c,0,x];
-  return'#'+[r,g,b].map(t=>Math.round((t+m)*255).toString(16).padStart(2,'0')).join('').toUpperCase();}
+const hexOfRgb=a=>'#'+a.map(t=>Math.max(0,Math.min(255,Math.round(t))).toString(16).padStart(2,'0')).join('').toUpperCase();
+function cmykOf([r,g,b]){r/=255;g/=255;b/=255;const k=1-Math.max(r,g,b);if(k>=1)return[0,0,0,100];return[(1-r-k)/(1-k),(1-g-k)/(1-k),(1-b-k)/(1-k),k].map(v=>Math.round(v*100));}
+const rgbOfCmyk=([c,m,y,k])=>[c,m,y].map(v=>255*(1-v/100)*(1-k/100));
 const picker=(()=>{const box=el('div','cpick');box.hidden=true;box.setAttribute('role','dialog');box.setAttribute('aria-label','Colour');document.body.append(box);
-  const WH=184,wheel=el('canvas','cp-wheel');wheel.width=WH*2;wheel.height=WH*2;wheel.style.width=wheel.style.height=WH+'px';
-  const dot=el('span','cp-dot'),wrap=el('div','cp-wheelbox');wrap.append(wheel,dot);
-  const val=el('input','cp-val');val.type='range';val.min=0;val.max=100;val.setAttribute('aria-label','Brightness');
-  const now=el('span','cp-now'),hex=el('input','cp-hex');hex.type='text';hex.setAttribute('aria-label','Hex');hex.spellcheck=false;
-  const drop=el('button','cp-drop');drop.type='button';drop.setAttribute('aria-label','Pick a colour from the screen');drop.innerHTML='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M9.6 1.9l2.5 2.5-1.3 1.3-.7-.7-5.4 5.4H3.2v-1.5l5.4-5.4-.7-.7z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M2.2 11.8l1-1" stroke="currentColor" stroke-width="1.2"/></svg>';
-  drop.hidden=!window.EyeDropper;
-  const row=el('div','cp-row');row.append(now,hex,drop);
+  const now=el('div','cp-now');
+  const modes=el('div','cp-modes');modes.setAttribute('role','group');modes.setAttribute('aria-label','Sliders');
+  const MB={};for(const [k,t] of [['rgb','RGB'],['cmyk','CMYK']]){const b=el('button','cp-mode',t);b.type='button';b.onclick=()=>{mode=k;LS.set('pickmode',k);build();show();};MB[k]=b;modes.append(b);}
+  const sl=el('div','cp-sliders');
+  const hex=el('input','cp-hex');hex.type='text';hex.setAttribute('aria-label','Hex');hex.spellcheck=false;hex.maxLength=7;
+  const drop=el('button','cp-drop');drop.type='button';drop.setAttribute('aria-label','Pick a colour');drop.title=window.EyeDropper?'Pick a colour from anywhere on screen':'Pick a colour from the preview';
+  drop.innerHTML='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M9.6 1.9l2.5 2.5-1.3 1.3-.7-.7-5.4 5.4H3.2v-1.5l5.4-5.4-.7-.7z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M2.2 11.8l1-1" stroke="currentColor" stroke-width="1.2"/></svg>';
+  const row=el('div','cp-row');row.append(hex,drop);
+  const note=el('div','cp-note','Click the preview to pick a colour');note.hidden=true;
   const sh=el('div','cp-sub','Saved colours'),grid=el('div','cp-grid'),add=el('button','cp-add','+');add.type='button';add.setAttribute('aria-label','Save this colour');
-  box.append(wrap,val,row,sh,grid);
-  let H=0,Sa=0,V=1,cur='#000000',onPick=null,anchor=null,drawnV=-1;
-  const paintWheel=()=>{if(drawnV===V)return;drawnV=V;const x=wheel.getContext('2d'),N=WH*2,im=x.createImageData(N,N),R=N/2;
-    for(let yy=0;yy<N;yy++)for(let xx=0;xx<N;xx++){const dx=xx-R+.5,dy=yy-R+.5,d=Math.hypot(dx,dy)/R,o=(yy*N+xx)*4;if(d>1){im.data[o+3]=0;continue;}
-      const a=(Math.atan2(dy,dx)*180/Math.PI+360+90)%360,[r,g,b]=rgbOf(hexOfHsv(a,Math.min(1,d),V));im.data[o]=r;im.data[o+1]=g;im.data[o+2]=b;im.data[o+3]=d>.995?Math.round((1-d)*200*255/1):255;}
-    x.putImageData(im,0,0);};
-  const show=()=>{cur=hexOfHsv(H,Sa,V);now.style.background=cur;if(document.activeElement!==hex)hex.value=cur;val.value=Math.round(V*100);
-    val.style.setProperty('--cp-top',hexOfHsv(H,Sa,1));paintWheel();const a=(H-90)*Math.PI/180,r=Sa*WH/2;dot.style.left=(WH/2+Math.cos(a)*r)+'px';dot.style.top=(WH/2+Math.sin(a)*r)+'px';dot.style.background=cur;};
-  const set=(h,keep)=>{[H,Sa,V]=keep?[H,Sa,V]:hsvOf(rgbOf(h));if(keep)return;show();};
-  const emit=()=>{show();if(onPick)onPick(cur);};
+  box.append(now,modes,sl,row,note,sh,grid);
+  let mode=LS.get('pickmode')==='cmyk'?'cmyk':'rgb',rgb=[0,0,0],cmyk=[0,0,0,100],cur='#000000',onPick=null,anchor=null,rows=[],picking=false;
+  const CH={rgb:[['R','Red',255],['G','Green',255],['B','Blue',255]],cmyk:[['C','Cyan',100],['M','Magenta',100],['Y','Yellow',100],['K','Black',100]]};
+  const vals=()=>mode==='rgb'?rgb:cmyk;
+  const fromVals=(i,v)=>{if(mode==='rgb'){rgb[i]=v;cmyk=cmykOf(rgb);}else{cmyk[i]=v;rgb=rgbOfCmyk(cmyk).map(Math.round);}cur=hexOfRgb(mode==='rgb'?rgb:rgbOfCmyk(cmyk));};
+  function build(){sl.textContent='';rows=CH[mode].map(([l,name,mx],i)=>{const r=el('div','cp-sl'),lab=el('span','cp-l',l),rg=el('input','cp-rg'),nb=el('input','cp-nb');
+      rg.type='range';rg.min=0;rg.max=mx;rg.step=1;rg.setAttribute('aria-label',name);nb.type='text';nb.inputMode='numeric';nb.setAttribute('aria-label',name+' value');nb.maxLength=3;
+      rg.oninput=()=>{fromVals(i,+rg.value);show(i);emit();};
+      nb.oninput=()=>{const v=parseInt(nb.value,10);if(isNaN(v))return;fromVals(i,Math.max(0,Math.min(mx,v)));show(i,true);emit();};
+      nb.onblur=()=>show();nb.onkeydown=e=>{if(e.key==='Enter')nb.blur();if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();const v=Math.max(0,Math.min(mx,vals()[i]+(e.key==='ArrowUp'?1:-1)*(e.shiftKey?10:1)));fromVals(i,v);show();emit();}};
+      r.append(lab,rg,nb);sl.append(r);return{rg,nb,mx};});
+    for(const k in MB){MB[k].classList.toggle('on',k===mode);MB[k].setAttribute('aria-pressed',String(k===mode));}}
+  /* each track runs from its channel at 0 to its channel at full, the others held */
+  const ends=i=>{if(mode==='rgb'){const a=rgb.slice(),b=rgb.slice();a[i]=0;b[i]=255;return[hexOfRgb(a),hexOfRgb(b)];}
+    const a=cmyk.slice(),b=cmyk.slice();a[i]=0;b[i]=100;return[hexOfRgb(rgbOfCmyk(a)),hexOfRgb(rgbOfCmyk(b))];};
+  function show(skip,typing){now.style.background=cur;now.title=cur;if(document.activeElement!==hex)hex.value=cur;
+    const v=vals();rows.forEach((r,i)=>{const [a,b]=ends(i);r.rg.style.setProperty('--cp-a',a);r.rg.style.setProperty('--cp-b',b);r.rg.value=Math.round(v[i]);
+      if(!(typing&&i===skip)&&document.activeElement!==r.nb)r.nb.value=Math.round(v[i]);});}
+  const setHex=h=>{cur=toHex6(h);rgb=rgbOf(cur);cmyk=cmykOf(rgb);};
+  const emit=()=>{if(onPick)onPick(cur);};
   const grids=()=>{grid.textContent='';for(const c of SWATCHES()){const b=el('button','cp-sw');b.type='button';b.style.background=c;b.title=c;b.setAttribute('aria-label','Use '+c);
       const x=el('span','cp-x','×');x.setAttribute('aria-label','Remove '+c);x.onclick=e=>{e.stopPropagation();putSwatches(SWATCHES().filter(v=>v!==c));grids();};b.append(x);
-      b.onclick=()=>{[H,Sa,V]=hsvOf(rgbOf(c));emit();};grid.append(b);}
+      b.classList.toggle('on',c===cur);b.onclick=()=>{setHex(c);show();emit();grids();};grid.append(b);}
     grid.append(add);};
   add.onclick=()=>{const v=SWATCHES().filter(c=>c!==cur);v.unshift(cur);putSwatches(v);grids();};
-  const at=e=>{const r=wheel.getBoundingClientRect(),dx=e.clientX-r.left-WH/2,dy=e.clientY-r.top-WH/2;H=(Math.atan2(dy,dx)*180/Math.PI+360+90)%360;Sa=Math.min(1,Math.hypot(dx,dy)/(WH/2));emit();};
-  wheel.onpointerdown=e=>{wheel.setPointerCapture(e.pointerId);at(e);wheel.onpointermove=at;};wheel.onpointerup=()=>{wheel.onpointermove=null;};
-  val.oninput=()=>{V=val.value/100;emit();};
-  hex.oninput=()=>{if(hexOk(hex.value)){[H,Sa,V]=hsvOf(rgbOf(toHex6(hex.value)));cur=toHex6(hex.value);show();if(onPick)onPick(cur);}};
-  hex.onkeydown=e=>{if(e.key==='Enter')close();};
-  drop.onclick=async()=>{try{const r=await new EyeDropper().open();[H,Sa,V]=hsvOf(rgbOf(toHex6(r.sRGBHex)));emit();}catch(e){}};
-  const close=()=>{box.hidden=true;onPick=null;if(anchor)anchor.classList.remove('picking');anchor=null;};
-  document.addEventListener('pointerdown',e=>{if(!box.hidden&&!box.contains(e.target)&&!(anchor&&anchor.contains(e.target)))close();},true);
-  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!box.hidden)close();});
-  return{open(a,h,fn){if(anchor)anchor.classList.remove('picking');anchor=a;a.classList.add('picking');onPick=null;[H,Sa,V]=hsvOf(rgbOf(toHex6(h)));drawnV=-1;show();grids();box.hidden=false;
+  hex.oninput=()=>{if(hexOk(hex.value)){setHex(hex.value);show();emit();}};
+  /* #abc is short for #aabbcc – taken when you leave the field or press Return */
+  const short=()=>{const m=/^#?([0-9a-f])([0-9a-f])([0-9a-f])$/i.exec(hex.value.trim());if(m){setHex('#'+m[1]+m[1]+m[2]+m[2]+m[3]+m[3]);show();emit();grids();}};
+  hex.onblur=()=>{short();hex.value=cur;};hex.onkeydown=e=>{if(e.key==='Enter'){short();close();}};
+  /* the dropper: anywhere on screen where the browser can, otherwise a click on the preview */
+  const cv=document.getElementById('cv');
+  const pickMode=on=>{picking=on;drop.classList.toggle('on',on);drop.setAttribute('aria-pressed',String(on));note.hidden=!on;if(cv)cv.classList.toggle('picking-colour',on);};
+  drop.onclick=async()=>{if(window.EyeDropper){try{const r=await new EyeDropper().open();setHex(r.sRGBHex);show();emit();grids();}catch(e){}return;}pickMode(!picking);};
+  if(cv)cv.addEventListener('pointerdown',e=>{if(!picking||box.hidden)return;e.preventDefault();e.stopPropagation();
+    try{const r=cv.getBoundingClientRect(),x=Math.floor((e.clientX-r.left)*cv.width/r.width),y=Math.floor((e.clientY-r.top)*cv.height/r.height),d=cv.getContext('2d').getImageData(x,y,1,1).data;setHex(hexOfRgb([d[0],d[1],d[2]]));show();emit();grids();}catch(err){}
+    pickMode(false);},true);
+  const close=()=>{box.hidden=true;onPick=null;pickMode(false);if(anchor)anchor.classList.remove('picking');anchor=null;};
+  document.addEventListener('pointerdown',e=>{if(box.hidden||box.contains(e.target)||(anchor&&anchor.contains(e.target)))return;if(picking&&e.target===cv)return;close();},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!box.hidden){if(picking)pickMode(false);else close();}});
+  build();
+  return{open(a,h,fn){if(anchor)anchor.classList.remove('picking');anchor=a;a.classList.add('picking');onPick=null;pickMode(false);setHex(h);build();show();grids();box.hidden=false;
       const r=a.getBoundingClientRect(),bw=box.offsetWidth,bh=box.offsetHeight;let x=r.right+12,y=r.top-20;if(x+bw>innerWidth-8)x=Math.max(8,r.left-bw-12);if(y+bh>innerHeight-8)y=innerHeight-bh-8;box.style.left=Math.max(8,x)+'px';box.style.top=Math.max(8,y)+'px';onPick=fn;},close,el:box};})();
 /* every colour in the panel opens it, instead of the browser's own */
 panel.addEventListener('click',e=>{const inp=e.target.closest&&e.target.closest('.colour-row input[type=color]');const row=e.target.closest&&e.target.closest('.colour-row');

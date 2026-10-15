@@ -1,5 +1,11 @@
 # Changelog
 
+## 15 October 2026 – Tempo 0.9.5
+
+- **Colour picker, refined:** the wheel and brightness slider are gone. Now: the colour, RGB or CMYK sliders (each track shows where it'll take the colour, with the value beside it to type into), the hex (#abc works too), a dropper and your saved colours – on a plain panel rather than see-through.
+- **Dropper everywhere:** in Chrome and Edge it picks from anywhere on screen; in other browsers it picks from the preview.
+- CMYK is the plain screen conversion – handy for thinking in ink, not a print profile.
+
 ## 15 October 2026 – Tempo 0.9.4
 
 - **Stack, closer leading:** lines now close up against the letters' actual shapes rather than their boxes – the tail of a y, the stem of a p – so the time sits right down on the day, and nothing touches.
