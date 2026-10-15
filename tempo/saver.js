@@ -40,7 +40,7 @@ function eased(P){const k=JSON.stringify(P),now=fNow;
   if(k!==pfK){const tt=(now-pfT)/PFADE;pfA=tt<1?blendPal(pfA,pfB,eng.E.inOut(Math.max(0,tt))):pfB;pfB=P;pfK=k;pfT=now;}
   const t=(now-pfT)/PFADE;return t>=1||t<0?P:blendPal(pfA,P,eng.E.inOut(t));}
 function palette(){if(C.force)return C.force;if(C.colours.cycle&&C.palettes&&C.palettes.length)return eased(hourTheme(C.palettes,C.colours.every));return{bg:C.colours.bg,p:C.colours.p};}
-const isClock=()=>!isWords()&&!isDial()&&!isType();
+const isClock=()=>!isWords()&&!isDial()&&!isType()&&!isStack();
 function hooksOn(){
   eng.setHooks({
     pick:(g,o)=>{if(!isClock()||C.clock.alt==='off')return null;if(!/\d/.test(g.ch))return o.def;if(C.clock.alt!=='each'||!o.sel||o.sel.length<2||g.line!==0)return null;
@@ -584,11 +584,117 @@ function typeFrame(ctx,W,H,now,K){
       const M=K.multiply(new DOMMatrix().translateSelf(cx,cy).rotateSelf(a*180/Math.PI).translateSelf(R,capPx/2));tText(ctx,M,f,s,size,col,al);});}
   ctx.globalAlpha=1;
 }
+/* ---------------- Stack (0.9.3): the time and date as a stack of lines ----------------
+   From Steve's Univers mock-up: 08.03.49 / Wednesday / 31September / 26 – the time on
+   top, the day hanging from the time's last figure (a Swiss offset), the date run into
+   the month, the year below. Everything is sized and placed for the worst case – the
+   widest day, date and month there are – so nothing moves or changes size as the days
+   do. Lines sit as close as they can without ink touching: each pair of lines is checked
+   glyph by glyph over every day, date and month they could ever show, so a descender may
+   hang into the line below only where nothing is there to touch it. */
+const isStack=()=>C.show==='stack';
+const XDAY={full:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],short:['Mon','Tues','Weds','Thurs','Fri','Sat','Sun'],three:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']};
+const XMON={full:MONTHS,short:['Jan','Feb','Mar','Apr','May','June','July','Aug','Sept','Oct','Nov','Dec'],three:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']};
+const XSEP={stop:'.',colon:':',comma:',',space:' '};
+/* the lines for a moment: each a list of runs, each run in its own colour (role) */
+function xLines(o,z){const sep=XSEP[o.sep]||'.',h=o.h24?z.h:(z.h%12||12),hs=o.zero||o.h24?pad(h):String(h);
+  const time=hs+sep+pad(z.mi)+(o.secs?sep+pad(z.s):''),day=(XDAY[o.day]||XDAY.full)[(z.wd+6)%7];
+  const date=o.dzero?pad(z.d):String(z.d),mon=(XMON[o.month]||XMON.full)[z.mo],yr=o.year==='full'?String(z.y):pad(z.y%100),gap=o.dspace?' ':'';
+  const L=[[{t:time,r:'time'}],[{t:day,r:'day'}]];
+  if(o.lines==='five')L.push([{t:date,r:'date'}],[{t:mon,r:'date'}],[{t:yr,r:'year'}]);
+  else if(o.lines==='three')L.push([{t:date+gap+mon+' ',r:'date'},{t:yr,r:'year'}]);
+  else L.push([{t:date+gap+mon,r:'date'}],[{t:yr,r:'year'}]);
+  return L;}
+/* every moment worth checking for the worst case: each hour, each figure in every place, every
+   day, every date of every month, this year and next */
+function xCases(o){const y=new Date().getFullYear(),out=[];
+  for(let h=0;h<24;h++)for(let d=0;d<10;d++)out.push({y,mo:0,d:1,wd:1,h,mi:d*11%60,s:d*11%60});
+  for(let wd=0;wd<7;wd++)for(let mo=0;mo<12;mo++)for(const d of [1,9,10,11,19,20,21,22,28,29,30,31])out.push({y:mo%2?y:y+1,mo,d,wd,h:8,mi:3,s:49});
+  return out;}
+let xMemo=null;
+const xFace=()=>faceById(C.stack.font)||baseFace();
+function xMetrics(f){const capU=f.cap>0?f.cap:f.upm*.7;
+  const box=id=>{const b=f.bbox&&f.bbox(id);return b?[b[0],b[1]]:[capU,f.desc>0?f.desc:f.upm*.2];};
+  let digitW=0;for(const d of '0123456789')digitW=Math.max(digitW,f.adv(glyphOf(f,d)));
+  return{capU,box,digitW};}
+/* lay one moment out in font units: each line's glyphs, x, and ink top/bottom */
+function xSet(o,f,z,M){const tk=((o.tracking||0)/1000+trackOf(faceById(o.font)?o.font:baseId()))*f.upm,lines=xLines(o,z);
+  const zeroL=bearings(f,glyphOf(f,'0'))[0],dw=M.digitW;
+  /* figures all take the widest figure's width (tabular), centred in it, so the time never shifts as it counts */
+  return lines.map((runs,li)=>{const gl=[];let x=0,prev=null;
+    for(const run of runs)for(const ch of Array.from(run.t)){const id=glyphOf(f,ch),dig=/\d/.test(ch);if(prev!==null)x+=(dig||/\d/.test(prev.ch)?0:f.kern(prev.id,id))+tk;const [t,b]=ch===' '?[0,0]:M.box(id);
+      const w=dig?dw:f.adv(id),off=dig?(dw-f.adv(id))/2:0;gl.push({id,x:x+off,w:f.adv(id),cell:w,ch,r:run.r,t,b});x+=w;prev={id,ch};}
+    /* optical left edge: the ink lines up, not the side bearing (figures by their 0, so the time doesn't shift as they change) */
+    const first=gl[0],lsb=!first?0:/\d/.test(first.ch)?(dw-f.adv(glyphOf(f,'0')))/2+zeroL:bearings(f,first.id)[0];
+    return{gl,w:x,lsb,li};});}
+/* where each line starts, in font units: flush left, or (the day) hanging from the time's last figure, or flush right */
+function xPlace(o,f,lines,blockW){const zeroL=bearings(f,glyphOf(f,'0'))[0],M0=xMetrics(f);
+  lines.forEach((L,i)=>{L.x=-L.lsb;
+    if(i===1&&o.dayAt==='figure'){const T=lines[0],last=T.gl[T.gl.length-1],cellX=last?last.x-(last.cell-last.w)/2:0;L.x=(last?cellX+(M0.digitW-f.adv(glyphOf(f,'0')))/2+zeroL:0)-L.lsb;}
+    else if(i===1&&o.dayAt==='right'&&blockW!=null){const last=L.gl[L.gl.length-1];L.x=blockW-(last?last.x+last.w-bearings(f,last.id)[1]:L.w);}});
+  return lines;}
+/* the layout for the worst case: block width and height, and the baseline step between each pair of lines */
+function xBuild(o,f){const M=xMetrics(f),cases=xCases(o),gapU=(o.gap==null?.18:o.gap)*M.capU,n=xLines(o,cases[0]).length;
+  const sets=cases.map(z=>xPlace(o,f,xSet(o,f,z,M)));
+  let W=0;for(const s of sets)for(const L of s)W=Math.max(W,L.x+L.w);
+  /* each line's possible contents, once each, and the step that keeps them all apart */
+  const uniq=i=>{const m=new Map();for(const s of sets){const L=s[i];m.set(L.gl.map(g=>g.ch).join('')+'@'+Math.round(L.x),L);}return[...m.values()];};
+  const steps=[];let topU=0,botU=0;
+  for(let i=0;i<n;i++){const U=uniq(i);if(i===0)for(const L of U)for(const g of L.gl)topU=Math.max(topU,g.t);if(i===n-1)for(const L of U)for(const g of L.gl)botU=Math.max(botU,g.b);
+    if(i===n-1)break;const D=uniq(i+1);let need=0;
+    for(const A of U)for(const B of D)for(const a of A.gl){if(a.ch===' ')continue;const ax0=A.x+a.x,ax1=ax0+a.w;
+      for(const b of B.gl){if(b.ch===' ')continue;const bx0=B.x+b.x;if(bx0>=ax1||bx0+b.w<=ax0)continue;need=Math.max(need,a.b+b.t);}}
+    steps.push(need+gapU);}
+  const even=o.even!==false,mx=Math.max(0,...steps),st=steps.map(s=>even?mx:s);
+  if(o.dayAt==='right'){/* the day flush right: its end lines up with the widest line's (its own, when it's the widest) */let w2=0;for(const s of sets)for(const L of s)w2=Math.max(w2,L.li===1?L.w-L.lsb:L.x+L.w);W=w2;}
+  const H=topU+st.reduce((a,b)=>a+b,0)+botU;
+  return{W,H,topU,botU,steps:st,M};}
+let xAnim=new Map(),xMemoKey='';
+const xEase=t=>{const fl=C.stack.feel;return fl==='smooth'?eng.E.inOut(t):fl==='elastic'?eng.E.backOut(t,1.4):eng.E.expoInOut(t);};
+const xPal=()=>{const o=C.stack;if(C.force)return C.force;if(o.rotate&&o.themes&&o.themes.length)return eased(hourTheme(o.themes,o.every));return o.colours;};
+let xLast=null;
+function stackFrame(ctx,W,H,now,K){
+  const o=C.stack,P=xPal(),f=xFace(),z=parts(Date.now());S.bg=P.bg;
+  ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle=P.bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
+  if(!f)return;
+  const key=(f.name||'')+'|'+JSON.stringify([o.h24,o.zero,o.sep,o.secs,o.day,o.month,o.year,o.dzero,o.dspace,o.lines,o.dayAt,o.gap,o.even,o.tracking,o.font,new Date().getFullYear()]);
+  if(key!==xMemoKey){xMemoKey=key;xMemo=xBuild(o,f);xAnim=new Map();}
+  const B=xMemo,m=(o.margin==null?4:o.margin)/100*Math.min(W,H),aw=W-2*m,ah=H-2*m;
+  /* drift: a slow wander away from the corner it's latched to (never towards the edge), up to the margin or 2% of the screen –
+     room for it is kept in the fit, so the far side never crosses its margin either */
+  const dr=(C.drift||0)*Math.max(m,.02*Math.min(W,H));
+  const k=Math.max(1e-4,Math.min((aw-dr)*(o.size||70)/100/B.W,(ah-dr)/B.H)),bw=B.W*k,bh=B.H*k,an=o.anchor||'br';
+  const T=Date.now()/1000,wx=dr*(.5-.5*Math.cos(T/23.7)),wy=dr*(.5-.5*Math.cos(T/31.3+1));
+  const bx=(an.includes('l')?m+wx:an.includes('r')?W-m-bw-wx:(W-bw)/2+wx-dr/2),by=(an.startsWith('t')?m+wy:an.startsWith('b')?H-m-bh-wy:(H-bh)/2+wy-dr/2);
+  const lines=xPlace(o,f,xSet(o,f,z,B.M),B.W);xLast={k,bx,by,B,lines:lines.map(L=>({x:L.x,text:L.gl.map(g=>g.ch).join('')}))};
+  const size=k*f.upm,len=Math.max(.05,o.len||.6)*1000,col=r=>P[r]||P.time;
+  let base=by+B.topU*k;
+  lines.forEach((L,i)=>{if(i>0)base+=B.steps[i-1]*k;
+    const txt=L.gl.map(g=>g.ch).join(''),a=xAnim.get(i);
+    if(!a||a.to!==txt){const was=a?a.to:null;xAnim.set(i,{from:was,to:txt,t0:was==null?-1e9:now,prev:a?a.lines:null,lines:L});}
+    const A=xAnim.get(i),t=Math.min(1,(now-A.t0)/len),ch=o.change||'roll';
+    const draw=(LL,alpha,dy,clip)=>{for(const g of LL.gl){if(g.ch===' ')continue;if(clip&&!clip(g))continue;const gx=bx+(LL.x+g.x)*k;
+      ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=col(g.r);
+      if(dy){const c=dy(g);if(c){ctx.setTransform(K);ctx.beginPath();ctx.rect(gx-.05*size,base-c.top,g.w*k+.1*size,c.h);ctx.clip();ctx.setTransform(K.multiply(new DOMMatrix([k,0,0,k,gx,base+c.dy])));f.draw(ctx,g.id,false);ctx.restore();continue;}}
+      ctx.setTransform(K.multiply(new DOMMatrix([k,0,0,k,gx,base])));f.draw(ctx,g.id,false);ctx.restore();}};
+    if(t>=1||!A.prev||ch==='cut'){draw(L,1);return;}
+    const Pv=A.prev;
+    if(ch==='fade'||Pv.gl.length!==L.gl.length||Math.abs(Pv.x-L.x)>1e-6){const e=eng.E.inOut(t);draw(Pv,1-e);draw(L,e);return;}
+    /* roll: only the characters that changed, each through its own window – the line's tallest ink, with room around it */
+    /* the window: this line's own ink, top to bottom, with a little room – never more than half the gap to its neighbours */
+    const pad=Math.min(.08*B.M.capU,((C.stack.gap==null?.18:C.stack.gap)*B.M.capU)/2)*k,lt=Math.max(...L.gl.map(g=>g.t),...Pv.gl.map(g=>g.t))*k,lb=Math.max(0,...L.gl.map(g=>g.b),...Pv.gl.map(g=>g.b))*k;
+    const e=xEase(t),top=lt+pad,hgt=lt+lb+2*pad,same=j=>Pv.gl[j].ch===L.gl[j].ch;
+    draw(L,1,null,g=>same(L.gl.indexOf(g)));
+    draw(Pv,1,g=>same(Pv.gl.indexOf(g))?null:{top,h:hgt,dy:-e*hgt},g=>!same(Pv.gl.indexOf(g)));
+    draw(L,1,g=>same(L.gl.indexOf(g))?null:{top,h:hgt,dy:(1-e)*hgt},g=>!same(L.gl.indexOf(g)));
+  });
+  ctx.globalAlpha=1;
+}
 function build(){
-  wCache.clear();wFit.clear();wBuilt++;pfK='';
+  wCache.clear();wFit.clear();wBuilt++;pfK='';xMemoKey='';
   {const k=JSON.stringify([C.show,C.type&&[C.type.split,C.type.h24,C.type.parts,C.type.secs,C.type.zero]]);if(k!==tSig){tSig=k;tAnim=new Map();}}
   {const k=JSON.stringify((C.words||{}).mixed||null);if(k!==mCfg){mCfg=k;mReset();}}
-  if(isWords()||isDial()||isType()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
+  if(isWords()||isDial()||isType()||isStack()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
   const c=C.clock;S=JSON.parse(JSON.stringify(C.base||{}));
   Object.assign(S,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:c.change!=='roll',fit:'cap',size:c.size,align:c.align,valign:c.valign,margin:c.margin,tabular:c.tabular,transparent:false,
     tracking:c.tracking!=null?c.tracking:S.tracking,leading:c.leading!=null?c.leading:S.leading,
@@ -605,10 +711,11 @@ function build(){
 }
 function setConfig(c){C=c;build();}
 function frame(ctx,W,H,now,dt){fNow=now;
-  if(isWords()||isDial()||isType()){
+  if(isWords()||isDial()||isType()||isStack()){
     const T=Date.now()/1000,a=C.drift||0,k=ctx.canvas.width/W,K=new DOMMatrix([k,0,0,k,0,0]);
-    if(a>0){const sc=1-a*.04+a*.04*Math.sin(T/41);K.multiplySelf(new DOMMatrix().translateSelf(W/2+a*.05*W*Math.sin(T/23.7),H/2+a*.05*H*Math.sin(T/31.3+1)).scaleSelf(sc,sc).translateSelf(-W/2,-H/2));}
-    try{if(isDial())dialFrame(ctx,W,H,K);else if(isType())typeFrame(ctx,W,H,now,K);else wordsFrame(ctx,W,H,now,K);}catch(e){if(!wErr){wErr=1;console.error(e);}}
+    /* Stack latches to a corner, so it drifts by itself (stackFrame) – inwards only, never past the margin */
+    if(a>0&&!isStack()){const sc=1-a*.04+a*.04*Math.sin(T/41);K.multiplySelf(new DOMMatrix().translateSelf(W/2+a*.05*W*Math.sin(T/23.7),H/2+a*.05*H*Math.sin(T/31.3+1)).scaleSelf(sc,sc).translateSelf(-W/2,-H/2));}
+    try{if(isDial())dialFrame(ctx,W,H,K);else if(isType())typeFrame(ctx,W,H,now,K);else if(isStack())stackFrame(ctx,W,H,now,K);else wordsFrame(ctx,W,H,now,K);}catch(e){if(!wErr){wErr=1;console.error(e);}}
     return;
   }
   pal=palette();
@@ -641,5 +748,5 @@ const lines=(W,H)=>{if(!wCur||!isWords())return{size:0,lines:[],x:[]};const L=wL
 const typeNow=()=>{if(!isType())return[];const z=parts(Date.now());
   if(isCols())return tCols(C.type).map(c=>{const i=c.fixed?0:c.at(z);return i<0?'':tCase(c.list[i],c.k);}).filter(Boolean);
   return tRings(C.type).map(g=>g.amp?'&':tCase(g.list[g.at(z)],g.k)).filter(Boolean);};
-return{frame,setConfig,bg:()=>S&&S.bg,replay,typeNow,words:()=>(wCur||[]).map(t=>t.w).join(' '),faces:()=>(wCur||[]).map(t=>[t.w,t.fid||'']),clockFaces:()=>({text:cur,l0:cF.l0.slice(),l2:cF.l2}),lines,hands:()=>Object.assign({},dNow)};
+return{frame,setConfig,bg:()=>S&&S.bg,replay,typeNow,stackNow:()=>xLast,words:()=>(wCur||[]).map(t=>t.w).join(' '),faces:()=>(wCur||[]).map(t=>[t.w,t.fid||'']),clockFaces:()=>({text:cur,l0:cF.l0.slice(),l2:cF.l2}),lines,hands:()=>Object.assign({},dNow)};
 }

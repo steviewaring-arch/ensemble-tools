@@ -49,5 +49,6 @@ All three were done on 12 October; the first run passed and the workflow now pub
 ## Other fonts
 
 - **Fonts people load themselves** stay in their own browser and are never uploaded anywhere. Exports carry only the outlines of the glyphs they need, never a font file.
+- **Univers Next Pro Light** (Linotype) – Steve's own licence, built into Tempo's Stack design for Ensemble's internal, non-release version only (15 Oct 2026). Kept like Timeless: in `private/fonts/` and the private `ensemble-tools-fonts` repo, embedded only in `site/`, never in this repo or `docs/` (`tests/licence_check.py` probes it). Before any public release, check the licence covers embedding in a distributed app and outlines in exported screen savers.
 - **Lazaar** (Ensemble, From Parts Unknown) is free for non-commercial use. It could be built in like Timeless if Ensemble chooses.
 - The **retro display faces** in Steve's font pack are retail or personal-use fonts. Several aren't cleared for distributing (Ransite Medieval is personal use only; imajix 16 dot is non-commercial). They stay in his own browser.

@@ -165,12 +165,12 @@ async function promoMP4(device,progress){
 /* the sheet: every setting showing in the panel for this screen saver, card by card, then its colours hour by hour */
 function promoSpecs(){
   const name=exportName(),k=kindNow(S),K=THEMES[k],d=new Date(),date=d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  const show={clock:'The time, in figures',words:'The time, in words',dial:'A dial',type:cols(S)?'Columns – the time as lists of words':'Rings – the time as rings of words'}[k];
+  const show={clock:'The time, in figures',words:'The time, in words',dial:'A dial',type:cols(S)?'Columns – the time as lists of words':'Rings – the time as rings of words',stack:'Stack – the time and date as a stack of lines'}[k];
   const val=c=>{const d=c.d,v=S[d.k];if(Array.isArray(d.opts))return optLabel(d.opts,v);if(typeof d.optsFn==='function'){try{return optLabel(d.optsFn(),v);}catch(e){}}
     if(c.w.classList.contains('toggle-row'))return v?'On':'Off';if(c.w.classList.contains('colour-row'))return String(v).toUpperCase();if(d.fmt)return d.fmt(v);return typeof v==='number'?String(roundTo(v,d.step||.01)):String(v);};
   const lines=[`${name}`,'='.repeat(Math.max(8,name.length)),`Tempo ${$('.ver')?$('.ver').textContent:''} screen saver – specification, ${date}`,'',`Shows: ${show}`];
   const fname=id=>(eng.faceList().find(x=>x.id===id)||{face:{name:anyLoaded()?'?':'Demo face'}}).face.name,mixing=k==='clock'?S.ssNMode!=='parts'||N_PARTS.some(([x])=>S[x]!=='base'):k==='words'?S.ssMMode!=='parts'||M_PARTS.some(([x])=>S[x]!=='base'):false;
-  if(k==='type')lines.push(`Font: ${fname(typeFont())}`);else if(k!=='dial'){lines.push(`Core font: ${fname(baseSlot())}`);
+  if(k==='type')lines.push(`Font: ${fname(typeFont())}`);else if(k==='stack')lines.push(`Font: ${fname(stackFont())}`);else if(k!=='dial'){lines.push(`Core font: ${fname(baseSlot())}`);
     if(mixing){const pool=eng.faceList().filter(x=>x.swap&&x.id!==baseSlot()).map(x=>x.face.name);if(pool.length)lines.push(`Mixed in: ${pool.join(', ')}`);}}
   lines.push(`Files: ${safeName()}.saver (Mac), ${safeName()}.scr (Windows), ${safeName()}.html (any browser)`);
   for(const sec of panel.querySelectorAll(':scope>section.card')){if(sec.hidden||/Presets|Export|Promo|Colour/.test(sec.querySelector('h2 span')?.textContent||''))continue;

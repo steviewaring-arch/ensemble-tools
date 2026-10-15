@@ -1,5 +1,15 @@
 # Changelog
 
+## 15 October 2026 – Tempo 0.9.3
+
+- **Stack, a new design** (Show → Stack), from Steve's Univers mock-up: the time on top, the day hanging from the time's last figure (a Swiss offset), the date run into the month, the year below – 08.03.49 / Wednesday / 30September / 26.
+- **Nothing moves as the days change.** The block is sized and placed for the worst case – every day, every date of every month, every time – so its size, its corner and the time's position hold all year. Figures are set to one width so the time never shifts as it ticks.
+- **As tight as it can go without touching.** Lines sit as close as they can with no ink meeting: each pair is checked glyph by glyph over everything they could ever show, so a descender can hang into the line below only where nothing is there. Line spacing (default 0.18 of a cap height between them) and Even spacing are in Setting.
+- **Lines:** four as drawn, five (the month on its own line) or three (the year after the month); 24- or 12-hour, seconds on or off, the separator as a stop, colon, comma or space; Wednesday, Weds or Wed; September, Sept or Sep; the year as 26 or 2026; a leading zero on the date; a space between date and month.
+- **Position:** latch to any corner or the centre, with size and margin. Drift moves Stack slowly away from its corner and never past the margin.
+- **Colour:** five colours (background, time, day, date, year), Stack's own themes, and changing theme each hour as in the other designs. Change: roll (each changed character in its own window), fade or cut.
+- **Univers Next Pro Light** is built into this internal version only, from the private fonts repo (Steve's licence). Any loaded font works too.
+
 ## 14 October 2026 – Tempo 0.9.2
 
 - **Colour picker:** clicking any colour opens Tempo's own picker beside it – a colour wheel, brightness, the hex, a dropper (Chrome and Edge) and **saved colours**, kept for every design. + saves the colour in hand; × removes one.

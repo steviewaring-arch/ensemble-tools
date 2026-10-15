@@ -84,6 +84,27 @@ def main():
         check('Tracking and the space between columns change Columns', dt({'tracking': -60}) != dt({'tracking': 0}) and dt({'space': 200}) != dt({'space': 100}))
         check('Rings: hours in Title Case, minutes and seconds in words; tens and units on rings of their own when split', r1 == ['One o’clock & zero zero', 'Ten zero nine & forty five', 'Ten seventeen & thirty', 'Ten twenty three & zero five', 'Ten fifty nine'], json.dumps(r1))
 
+        # 1b. Stack (0.9.3): what each line says, and nothing moving as the days change
+        XST = SAY.replace("return sv.typeNow().join(' ');", "const r=sv.stackNow();return r&&{lines:r.lines.map(l=>l.text),x:r.lines.map(l=>Math.round(l.x)),k:r.k,bx:r.bx,by:r.by,bw:r.B.W*r.k,bh:r.B.H*r.k};")
+        XS = dict(font='', h24=True, zero=True, sep='stop', secs=True, day='full', month='full', year='short', dzero=False, dspace=False, lines='four', dayAt='figure', gap=.18, even=True, size=70,
+                  anchor='br', margin=4, tracking=-65, change='roll', feel='smooth', len=.6, colours=dict(bg='#979C92', time='#E9EAEB', day='#343031', date='#F69063', year='#6B712F'), rotate=False, themes=[], every=1)
+        xs = lambda t, ms: pg.evaluate(XST, [dict(show='stack', base={}, colours={}, stack=dict(XS, **t)), ms])
+        a1 = xs({}, loc(2026, 9, 30, 8, 3, 49))
+        check('Stack says it as drawn: 08.03.49 / Wednesday / 30September / 26', a1['lines'] == ['08.03.49', 'Wednesday', '30September', '26'], json.dumps(a1['lines']))
+        a2 = xs(dict(h24=False, sep='colon', secs=False, day='short', month='short', year='full', dspace=True, lines='three'), loc(2026, 11, 4, 21, 5, 0))
+        check('Stack: 12-hour, a colon, no seconds, Weds and Nov, the year in full on three lines', a2['lines'] == ['09:05', 'Weds', '4 Nov 2026'], json.dumps(a2['lines']))
+        a3 = xs(dict(day='three', month='three', lines='five', dzero=True), loc(2026, 10, 1, 13, 0, 0))
+        check('Stack: Thu and Oct, five lines, a leading zero on the date', a3['lines'] == ['13.00.00', 'Thu', '01', 'Oct', '26'], json.dumps(a3['lines']))
+        moments = [loc(2026, 9, 30, 8, 3, 49), loc(2026, 10, 1, 13, 0, 0), loc(2026, 10, 18, 23, 59, 59), loc(2026, 12, 31, 0, 0, 0), loc(2027, 5, 9, 11, 11, 11)]
+        geo = [xs({}, m) for m in moments]
+        check('Stack: sized and placed for the worst case, so the block and the time never move from one day to the next',
+              len({(round(g['k'], 6), round(g['bx'], 3), round(g['by'], 3), g['x'][0]) for g in geo}) == 1 and max(g['x'][1] for g in geo) - min(g['x'][1] for g in geo) < 100,
+              json.dumps([[g['lines'][1], g['x'][1]] for g in geo]))  # the day's own first letter lines its ink up, a few units either way
+        xd = lambda t, ms: pg.evaluate(XST.replace('const sv=createSaver(e,C);', 'C.drift=1;const sv=createSaver(e,C);'), [dict(show='stack', base={}, colours={}, stack=dict(XS, **t)), ms])
+        dg = [xd(dict(anchor=a), loc(2026, 9, 30, 8, 3, s)) for a in ('br', 'tl') for s in range(0, 60, 7)]
+        check('Stack: drift wanders away from its corner but never past the margin on either side',
+              all(19.99 <= g['bx'] and g['bx'] + g['bw'] <= 780.01 and 19.99 <= g['by'] and g['by'] + g['bh'] <= 480.01 for g in dg) and len({round(g['bx'], 2) for g in dg}) > 2,
+              json.dumps([[round(g['bx'], 1), round(g['by'], 1), round(g['bx'] + g['bw'], 1), round(g['by'] + g['bh'], 1)] for g in dg[:4]]))
         # 2. the new modes draw, in the panel's own preview, and their cards are there
         pg.get_by_role('group', name='Show').get_by_role('button', name='Columns').click(); time.sleep(.6)
         cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]

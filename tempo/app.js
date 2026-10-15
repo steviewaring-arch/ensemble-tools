@@ -36,7 +36,11 @@ function tempoDefaults(){return{ssVer:5,
   ssTCSize:60,ssTRSize:71,ssTLeading:1.6,ssTHole:7.8,ssTSplit:false,ssTFeel:'smooth',ssTLen:.6,ssTFar:'all',
   ssTBg:'#FFFFFF',ssTInk:'#000000',ssTSoft:'#D2CDC9',ssTRotate:false,ssTSet:'',ssTEvery:1,
   /* 0.9.1: tracking and the space between columns and rings; the date on rings too; the fill's movement and layer */
-  ssTTracking:-15,ssTSpace:100,ssTRDay:false,ssTRDate:false,ssTRMonth:false,ssTRYear:false,ssDialFillStyle:'sweep',ssDialFillLayer:'front'};}
+  ssTTracking:-15,ssTSpace:100,ssTRDay:false,ssTRDate:false,ssTRMonth:false,ssTRYear:false,ssDialFillStyle:'sweep',ssDialFillLayer:'front',
+  /* 0.9.3: Stack – the time and date as a stack of lines, after Steve's Univers mock-up (ssX…) */
+  ssXFont:'',ssXH24:true,ssXZero:true,ssXSep:'stop',ssXSecs:true,ssXDay:'full',ssXMonth:'full',ssXYear:'short',ssXDZero:false,ssXDSpace:false,
+  ssXLines:'four',ssXDayAt:'figure',ssXGap:.18,ssXEven:true,ssXSize:70,ssXAnchor:'br',ssXMargin:4,ssXTracking:-65,ssXChange:'roll',ssXFeel:'smooth',ssXLen:.6,
+  ssXBg:'#979C92',ssXTime:'#E9EAEB',ssXDayC:'#343031',ssXDate:'#F69063',ssXYearC:'#6B712F',ssXRotate:false,ssXSet:'',ssXEvery:1};}
 /* (called by shared/core.js before this file's consts exist, so it uses none) */
 function loadSettings(){
   Object.assign(D,tempoDefaults());
@@ -128,9 +132,9 @@ Object.assign(TIPS,{
 
 /* ================= Screensaver ================= */
 const SEPS={comma:',',colon:':',stop:'.',space:' '};
-const clk=s=>!['words','dial','columns','rings'].includes(s.ssShow),wd=s=>s.ssShow==='words',dl=s=>s.ssShow==='dial';
+const clk=s=>!['words','dial','columns','rings','stack'].includes(s.ssShow),wd=s=>s.ssShow==='words',dl=s=>s.ssShow==='dial';
 /* 0.9: Columns and Rings, the time as lists of words */
-const cols=s=>s.ssShow==='columns',rgs=s=>s.ssShow==='rings',ty=s=>cols(s)||rgs(s);
+const cols=s=>s.ssShow==='columns',rgs=s=>s.ssShow==='rings',ty=s=>cols(s)||rgs(s),stk=s=>s.ssShow==='stack';
 
 /* Cards that start shut (each says what's set): all but the one for what's showing */
 function appCollapseDefault(){return ['ss-num','ss-change','ss-wtype','ss-wchange','ss-dhands','ss-pos','ss-tchange'];}/* Fill (0.9.1) starts open *//* 0.9: Colour starts open – it's where people look first */
@@ -277,7 +281,7 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
 }
 /* Show */
 {const b=card('ss-show','Screensaver',null,'saver');
-  build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['columns','Columns'],['rings','Rings'],['dial','As a dial']]}]);
+  build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['columns','Columns'],['rings','Rings'],['stack','Stack'],['dial','As a dial']]}]);
   toIsland(b.firstChild);hideCard(b);/* the first choice – the time in figures, in words, or as a dial – lives in the island */
 }
 /* A dial has no type, so Fonts steps aside */
@@ -464,6 +468,38 @@ const typeFont=()=>{const id=S.ssTFont;return id&&eng.faceList().some(x=>x.id===
     {t:'seg',k:'ssTFar',label:'The other words',opts:[['all','All shown'],['fade','Fade with distance']]},
   ]);
 }
+/* Stack (0.9.3): what each line says, how the lines sit, and how a change moves.
+   Univers Next Pro Light when it's loaded (Font: Univers, if loaded), as drawn. */
+const stackFontAuto=()=>{const L=eng.faceList(),n=x=>x.face.name||'';return(L.find(x=>/univers/i.test(n(x))&&/light/i.test(n(x)))||L.find(x=>/univers/i.test(n(x)))||{}).id||baseSlot();};
+const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id===id)?id:stackFontAuto();};
+{const b=card('ss-xsay','Lines',stk,'saver');
+  build(b,[
+    {t:'seg',k:'ssXLines',label:'Lines',opts:[['four','Four, as drawn'],['five','Five'],['three','Three']]},
+    {t:'hint',text:'Four: the time, the day, the date run into the month, the year. Five gives the month its own line; three puts the year after the month.'},
+    {t:'seg',k:'ssXH24',label:'Time',opts:[[true,'24-hour'],[false,'12-hour']]},
+    {t:'toggle',k:'ssXSecs',label:'Seconds'},
+    {t:'seg',k:'ssXSep',label:'Between figures',opts:[['stop','.'],['colon',':'],['comma',','],['space','Space']]},
+    {t:'toggle',k:'ssXZero',label:'Leading zero',show:s=>!s.ssXH24},
+    {t:'seg',k:'ssXDay',label:'Day',opts:[['full','Wednesday'],['short','Weds'],['three','Wed']]},
+    {t:'seg',k:'ssXMonth',label:'Month',opts:[['full','September'],['short','Sept'],['three','Sep']]},
+    {t:'seg',k:'ssXYear',label:'Year',opts:[['short','26'],['full','2026']]},
+    {t:'toggle',k:'ssXDZero',label:'Date with a leading zero (01)'},
+    {t:'toggle',k:'ssXDSpace',label:'Space between the date and the month'},
+  ]);
+  addSelect(b,{k:'ssXFont',label:'Font',optsFn:()=>[['','Univers, if loaded']].concat(faceOpts())});
+}
+{const b=card('ss-xset','Setting',stk,'saver');
+  build(b,[
+    {t:'seg',k:'ssXDayAt',label:'The day sits',opts:[['figure','Under the last figure'],['left','Flush left'],['right','Flush right']]},
+    {t:'range',k:'ssXTracking',label:'Tracking',min:-150,max:100,step:1,fmt:v=>(v>0?'+':'')+Math.round(v)},
+    {t:'range',k:'ssXGap',label:'Closest lines come',min:.04,max:.8,step:.01,fmt:v=>Math.round(v*100)+'% of a cap apart'},
+    {t:'toggle',k:'ssXEven',label:'Even line spacing'},
+    {t:'hint',text:'Lines sit as close as they can without ink touching – checked against every day, date and month there is, so a descender hangs into the line below only where nothing is there. Even spacing uses the widest step everywhere.'},
+    {t:'seg',k:'ssXChange',label:'When it changes',opts:[['roll','Roll'],['fade','Fade'],['cut','Cut']]},
+    {t:'seg',k:'ssXFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:s=>stk(s)&&s.ssXChange==='roll'},
+    {t:'range',k:'ssXLen',label:'Length',min:.15,max:2,step:.05,fmt:v=>v.toFixed(2)+' s',show:s=>stk(s)&&s.ssXChange!=='cut'},
+  ]);
+}
 /* Position */
 {const b=card('ss-pos','Position',null,'saver');
   build(b,[
@@ -480,6 +516,10 @@ const typeFont=()=>{const id=S.ssTFont;return id&&eng.faceList().some(x=>x.id===
     {t:'range',k:'ssTLeading',label:'Line spacing',min:1.1,max:3,step:.05,fmt:v=>v.toFixed(2)+' × cap',show:cols},
     {t:'range',k:'ssTRSize',label:'Size',min:20,max:100,step:1,fmt:v=>Math.round(v)+'% of the screen',show:rgs},
     {t:'range',k:'ssTHole',label:'Space in the middle',min:2,max:20,step:.1,fmt:v=>v.toFixed(1)+' × cap',show:rgs},
+    {t:'seg',k:'ssXAnchor',label:'Latch to',opts:[['br','Bottom right'],['bl','Bottom left'],['tl','Top left'],['tr','Top right'],['c','Centre']],show:stk},
+    {t:'range',k:'ssXSize',label:'Size',min:20,max:100,step:1,fmt:v=>'up to '+Math.round(v)+'% of the width',show:stk},
+    {t:'range',k:'ssXMargin',label:'Margin',min:0,max:20,step:.5,fmt:v=>roundTo(v,.5)+'%',show:stk},
+    {t:'hint',text:'Sized and placed for the widest day, date and month, so nothing moves as they change. Drift moves it slowly away from its corner, never past the margin.',show:stk},
     {t:'range',k:'ssDrift',label:'Drift',min:0,max:1,step:.01,fmt:v=>v===0?'Off':pct(v)},
   ]);
 }
@@ -523,6 +563,14 @@ const TYPE_THEMES=[
   {name:'Signal',bg:'#FF4F1F',ink:'#000000',soft:'#FFB49E'},
 ];
 const T_COLS=[['ssTBg','bg'],['ssTInk','ink'],['ssTSoft','soft']];
+/* Stack, as drawn (grey-green, a pale time, a near-black day, coral date, olive year), and plainer ones */
+const STACK_THEMES=[
+  {name:'Drawn',bg:'#979C92',time:'#E9EAEB',day:'#343031',date:'#F69063',year:'#6B712F'},
+  {name:'Paper',bg:'#F2F2F2',time:'#000000',day:'#000000',date:'#FF3B1F',year:'#8C8C8C'},
+  {name:'Night',bg:'#000000',time:'#FFFFFF',day:'#8C8C8C',date:'#FFFFFF',year:'#4D4D4D'},
+  {name:'Noon',bg:'#D3D5D5',time:'#F4FD5F',day:'#1E2023',date:'#F4FD5F',year:'#1E2023'},
+  {name:'Mono',bg:'#FFFFFF',time:'#000000',day:'#000000',date:'#000000',year:'#000000'},
+];
 const clockLab=i=>s=>s.ssColBy==='type'?['Numerals','Punctuation','Letters','Spare'][i]:s.ssColBy==='single'?'Type':s.ssColBy==='line'?'Line '+(i+1):'Colour '+(i+1);
 const THEMES={
   clock:{id:'ss-colour',show:clk,store:'themes',builtin:PALETTES,on:s=>s.ssRotate!=='off',turn:v=>set('ssRotate',v?'all':'off'),set:'ssCSet',every:'ssCEvery',
@@ -534,10 +582,12 @@ const THEMES={
       ['ssDialHour','hour','Hour marks',s=>s.ssDialFace==='none'||s.ssDialDetail==='quarters'?'Ring':'Hour marks',s=>(s.ssDialFace!=='none'&&s.ssDialDetail!=='quarters')||s.ssDialRing],
       ['ssDialQuarter','quarter','Quarter marks',null,s=>s.ssDialFace!=='none'],['ssDialHandH','handH','Hour hand'],['ssDialHandM','handM','Minute hand'],['ssDialHandS','handS','Second hand',null,s=>s.ssDialSecs],
       ['ssDialFillC','fill','Fill',null,s=>s.ssDialFill!=='off']]},
+  stack:{id:'ss-xcolour',show:stk,store:'xthemes',builtin:STACK_THEMES,on:s=>!!s.ssXRotate,turn:v=>set('ssXRotate',!!v),set:'ssXSet',every:'ssXEvery',
+    cols:[['ssXBg','bg','Background'],['ssXTime','time','The time'],['ssXDayC','day','The day'],['ssXDate','date','The date'],['ssXYearC','year','The year']]},
   type:{id:'ss-tcolour',show:ty,store:'tthemes',builtin:TYPE_THEMES,on:s=>!!s.ssTRotate,turn:v=>set('ssTRotate',!!v),set:'ssTSet',every:'ssTEvery',
     cols:[['ssTBg','bg','Background'],['ssTInk','ink','Now'],['ssTSoft','soft','The other words']]},
 };
-const kindNow=s=>wd(s)?'words':dl(s)?'dial':ty(s)?'type':'clock';
+const kindNow=s=>wd(s)?'words':dl(s)?'dial':ty(s)?'type':stk(s)?'stack':'clock';
 const tget=(T,f)=>f.startsWith('p.')?(T.p||[])[+f.slice(2)]:T[f];
 const tput=(T,f,v)=>{if(f.startsWith('p.')){T.p=T.p||[];T.p[+f.slice(2)]=v;}else T[f]=v;};
 const mineOf=k=>{const v=LS.get(THEMES[k].store);return Array.isArray(v)?v:[];};
@@ -571,6 +621,7 @@ const remapSet=(k,map)=>{const key=THEMES[k].set,v=String(S[key]||'');if(!v||!Ob
 function tilePreview(k,T){const box=el('span','tt-prev');box.style.background=tget(T,'bg');
   if(k==='clock'){const t=el('span','tt-clock');[['12',0],[',',1],['47',0]].forEach(([x,i])=>{const sp=el('span',null,x);sp.style.color=tget(T,'p.'+(S.ssColBy==='letter'||S.ssColBy==='random'?(x===','?1:0):i));t.append(sp);});box.append(t);}
   else if(k==='words'){const t=el('span','tt-words'),a=el('span',null,'It is '),b=el('span',null,'twelve'),c=el('span','tt-small',' on Monday');a.style.color=T.soft;b.style.color=T.ink;c.style.color=T.date||T.soft;t.append(a,b,c);box.append(t);}
+  else if(k==='stack'){const t=el('span','tt-stack');[['08.03.49','time',''],['Wed','day','in'],['31Sep','date',''],['26','year','']].forEach(([x,f,c])=>{const sp=el('span',c,x);sp.style.color=T[f];t.append(sp);});box.append(t);}
   else if(k==='type'){const t=el('span','tt-type');[['Eleven','soft'],['Twelve','ink'],['One','soft']].forEach(([x,f])=>{const sp=el('span',null,x);sp.style.color=T[f];t.append(sp);});box.append(t);}
   else{const ns='http://www.w3.org/2000/svg',sv=document.createElementNS(ns,'svg');sv.setAttribute('viewBox','-50 -50 100 100');sv.setAttribute('class','tt-dial');
     const ln=(a,r0,r1,c,w)=>{const l=document.createElementNS(ns,'line'),s=Math.sin(a),co=Math.cos(a);l.setAttribute('x1',r0*s);l.setAttribute('y1',-r0*co);l.setAttribute('x2',r1*s);l.setAttribute('y2',-r1*co);l.setAttribute('stroke',c);l.setAttribute('stroke-width',w);sv.append(l);};
@@ -645,9 +696,9 @@ function themeCard(k,before){const K=THEMES[k],b=card(K.id,'Colour',K.show,'save
 }
 /* themes across designs: every colour has a role – background, ink (what's read first), accent,
    soft (what recedes) – so a theme moves between designs with its colours in sensible places */
-const KIND_NAME={clock:'The time',words:'In words',dial:'The dial',type:'Columns and Rings'};
+const KIND_NAME={clock:'The time',words:'In words',dial:'The dial',type:'Columns and Rings',stack:'Stack'};
 const ROLES={clock:{bg:'bg','p.0':'ink','p.1':'accent','p.2':'ink2','p.3':'soft'},words:{bg:'bg',ink:'ink',soft:'soft',date:'accent'},
-  dial:{bg:'bg',min:'soft',hour:'soft2',quarter:'ink',handH:'ink',handM:'ink',handS:'accent',fill:'soft'},type:{bg:'bg',ink:'ink',soft:'soft'}};
+  dial:{bg:'bg',min:'soft',hour:'soft2',quarter:'ink',handH:'ink',handM:'ink',handS:'accent',fill:'soft'},type:{bg:'bg',ink:'ink',soft:'soft'},stack:{bg:'bg',time:'soft',day:'ink',date:'accent',year:'ink2'}};
 const ROLE_FALL={ink:['ink','accent','ink2','soft'],ink2:['ink2','ink','accent'],accent:['accent','ink2','ink'],soft:['soft','soft2','accent','ink2','ink'],soft2:['soft2','soft','accent','ink'],bg:['bg']};
 function mapTheme(k1,T,k2){const src={};for(const [f,r] of Object.entries(ROLES[k1])){const v=tget(T,f);if(v&&!src[r])src[r]=v;}
   const out={name:T.name};for(const [,f] of THEMES[k2].cols){const r=ROLES[k2][f],v=(ROLE_FALL[r]||[r]).map(x=>src[x]).find(Boolean)||src.ink||'#000000';tput(out,f,v);}return out;}
@@ -675,7 +726,7 @@ function previewForce(){const k=kindNow(S),K=THEMES[k];if(!K.on(S)||!LOOK[k])ret
   const o=Object.assign({},T);delete o.builtin;delete o.name;if(k==='words'&&!o.date)o.date=o.soft;return o;}
 for(const k of Object.keys(THEMES)){SUMMARY[THEMES[k].id]=s=>{if(THEMES[k].on(s)){const n=setNames(k,s).length;return`Every hour · ${n} theme${n>1?'s':''}`;}const T=selOf(k);return T?T.name:'Your colours';};}
 themeCard('clock',b=>build(b,[{t:'seg',k:'ssColBy',label:'Colour by',opts:[['type','Character type'],['letter','Each letter'],['line','Line'],['random','Random'],['single','One colour']]}]));
-themeCard('words');themeCard('dial');themeCard('type');
+themeCard('words');themeCard('dial');themeCard('type');themeCard('stack');
 /* ================= The colour picker (0.9.2) =================
    Click any colour and this opens straight away, beside it: a colour wheel, a brightness
    slider, the hex, a dropper (where the browser has one) – and your saved colours, kept for
@@ -772,7 +823,7 @@ function snapshot(name,keys){
   const s={};for(const k of (keys||tempoKeys()))if(k!=='ssName')s[k]=S[k];s.baseSlot=baseSlot();
   const on=styles.filter(x=>!x.off),fonts={},tracks={};
   on.forEach(st=>{fonts[st.id]=fontDesc(st);if(TRACKS[st.id])tracks[st.id]=TRACKS[st.id];});
-  return{tempo:1,name:name||'',exportName:S.ssName||'',settings:s,fonts,on:on.map(x=>x.id),pool:on.filter(x=>x.swap!==false&&x.id!==s.baseSlot).map(x=>x.id),tracks,themes:getThemes(),themesW:mineOf('words'),themesD:mineOf('dial'),themesT:mineOf('type')};}
+  return{tempo:1,name:name||'',exportName:S.ssName||'',settings:s,fonts,on:on.map(x=>x.id),pool:on.filter(x=>x.swap!==false&&x.id!==s.baseSlot).map(x=>x.id),tracks,themes:getThemes(),themesW:mineOf('words'),themesD:mineOf('dial'),themesT:mineOf('type'),themesX:mineOf('stack')};}
 /* what makes two screen savers the same: settings, fonts on, the shuffle, tracking */
 const sigOf=p=>JSON.stringify([p.settings,p.exportName||'',p.on,p.pool,p.tracks]);
 const sigNow=()=>sigOf(snapshot());
@@ -798,7 +849,7 @@ function openPreset(p,quiet){
     for(const x of p.on){const n=id(x);if(!n)continue;const v=(p.tracks||{})[x];if(v)TRACKS[n]=v;else delete TRACKS[n];}
     LS.set('tracks',TRACKS);}
   /* the preset's own themes come too (renamed if a different theme here has the name), and its day of themes follows */
-  for(const [k,f] of [['clock','themes'],['words','themesW'],['dial','themesD'],['type','themesT']]){const list=(p[f]||[]).filter(T=>T&&T.name&&(k!=='clock'||Array.isArray(T.p)));remapSet(k,importThemes(k,list));SEL[k]=null;LOOK[k]=null;}
+  for(const [k,f] of [['clock','themes'],['words','themesW'],['dial','themesD'],['type','themesT'],['stack','themesX']]){const list=(p[f]||[]).filter(T=>T&&T.name&&(k!=='clock'||Array.isArray(T.p)));remapSet(k,importThemes(k,list));SEL[k]=null;LOOK[k]=null;}
   sortFonts();saveStyles();applyStyles();themesRefresh();ssDirty=true;autosave();refreshAll();
   if(!quiet)toast(m.missing.length?`Opened ${p.name} – load ${m.missing.join(', ')} in Fonts to see it as saved.`:`Opened ${p.name}`);
   return m;}
@@ -827,7 +878,7 @@ function deletePreset(p){PRESETS=PRESETS.filter(x=>x!==p);savePresets();if(ACTIV
 const pslug=n=>String(n||'tempo').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')||'tempo';
 function downloadPreset(p){const o=Object.assign({},p);delete o.id;saveFile(pslug(p.name)+'-tempo-preset.json',new Blob([JSON.stringify({tempo:'preset',v:1,preset:o},null,1)],{type:'application/json'}));}
 function downloadAll(){const d=new Date(),day=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
-  saveFile('tempo-presets-'+day+'.json',new Blob([JSON.stringify({tempo:'presets',v:1,saved:d.toISOString(),presets:PRESETS,themes:getThemes(),themesW:mineOf('words'),themesD:mineOf('dial'),themesT:mineOf('type')},null,1)],{type:'application/json'}));}
+  saveFile('tempo-presets-'+day+'.json',new Blob([JSON.stringify({tempo:'presets',v:1,saved:d.toISOString(),presets:PRESETS,themes:getThemes(),themesW:mineOf('words'),themesD:mineOf('dial'),themesT:mineOf('type'),themesX:mineOf('stack')},null,1)],{type:'application/json'}));}
 /* ---- reading a downloaded screen saver back: its settings, from its config ---- */
 const W_MAP=[['lead','ssWLead'],['h24','ssWH24'],['time','ssWTime'],['secs','ssWSecs'],['weekday','ssWWeekday'],['daynum','ssWDayNum'],['month','ssWMonth'],['year','ssWYear'],['stop','ssWStop'],
   ['case','ssWCase'],['zero','ssWZero'],['sep','ssWSep'],['layout','ssWLayout'],['fit','ssWFit'],['space','ssWSpace'],['optical','ssWOptical'],['dateCol','ssWDateCol'],['hi','ssWHi'],['size','ssWSize'],
@@ -841,6 +892,8 @@ const DL_MAP=[['face','ssDialFace'],['detail','ssDialDetail'],['hole','ssDialHol
   ['secs','ssDialSecs'],['secMove','ssDialSecMove'],['minMove','ssDialMinMove'],['feel','ssDialFeel'],['len','ssDialLen'],['trail','ssDialTrail'],['tails','ssDialTails'],['centre','ssDialCentre'],
   ['size','ssDialSize'],['rotate','ssDialRotate'],['every','ssDialEvery'],['fill','ssDialFill'],['fillTurn','ssDialFillTurn'],['fillR','ssDialFillR'],['fillA','ssDialFillA'],['fillBlend','ssDialFillBlend'],
   ['fillOver','ssDialFillOver'],['fillStyle','ssDialFillStyle'],['fillLayer','ssDialFillLayer'],['cap','ssDialCap'],['tip','ssDialTip'],['tipOn','ssDialTipOn'],['tipSize','ssDialTipSize'],['weight','ssDialWeight'],['centreSize','ssDialCentreSize'],['handA','ssDialHandA'],['blend','ssDialBlend']];
+const X_MAP=[['font','ssXFont'],['h24','ssXH24'],['zero','ssXZero'],['sep','ssXSep'],['secs','ssXSecs'],['day','ssXDay'],['month','ssXMonth'],['year','ssXYear'],['dzero','ssXDZero'],['dspace','ssXDSpace'],
+  ['lines','ssXLines'],['dayAt','ssXDayAt'],['gap','ssXGap'],['even','ssXEven'],['size','ssXSize'],['anchor','ssXAnchor'],['margin','ssXMargin'],['tracking','ssXTracking'],['change','ssXChange'],['feel','ssXFeel'],['len','ssXLen'],['rotate','ssXRotate'],['every','ssXEvery']];
 const T_MAP=[['h24','ssTH24'],['secs','ssTSecs'],['zero','ssTZero'],['case','ssTCase'],['leading','ssTLeading'],['hole','ssTHole'],['split','ssTSplit'],['feel','ssTFeel'],['len','ssTLen'],['far','ssTFar'],
   ['bg','ssTBg'],['ink','ssTInk'],['soft','ssTSoft'],['rotate','ssTRotate'],['every','ssTEvery'],['tracking','ssTTracking'],['space','ssTSpace']];
 function presetFromConfig(cfg,name){
@@ -859,15 +912,17 @@ function presetFromConfig(cfg,name){
   const t=cfg.type;if(t){T_MAP.forEach(([a,k])=>put(k,t[a]));const P=t.parts||{};[['time','ssTTime'],['day','ssTDay'],['date','ssTDate'],['month','ssTMonth'],['year','ssTYear']].forEach(([a,k])=>put(k,P[a]));
     const RP=t.rparts||{};[['day','ssTRDay'],['date','ssTRDate'],['month','ssTRMonth'],['year','ssTRYear']].forEach(([a,k])=>put(k,RP[a]));
     if(t.size!=null)put(cfg.show==='rings'?'ssTRSize':'ssTCSize',t.size);put('ssTFont',t.font);if(cfg.show==='columns'||cfg.show==='rings')s.ssShow=cfg.show;}
+  const x=cfg.stack;if(x){X_MAP.forEach(([a,k])=>put(k,x[a]));const c=x.colours||{};[['bg','ssXBg'],['time','ssXTime'],['day','ssXDayC'],['date','ssXDate'],['year','ssXYearC']].forEach(([a,k])=>put(k,c[a]));s.ssShow='stack';}
   /* the time's colours, and its themes through the day (0.9: read back from older downloads too, which carried them only in their colour block) */
   const co=cfg.colours||{};put('ssColBy',co.by);put('ssBg',co.bg);if(Array.isArray(co.p))['ssP1','ssP2','ssP3','ssP4'].forEach((k,i)=>put(k,co.p[i]));put('ssCEvery',co.every);
   const named=(list,pre)=>(Array.isArray(list)?list:[]).filter(Boolean).map((T,i)=>Object.assign({},T,{name:T.name||pre+' '+(i+1)}));
-  const themes=named(cfg.palettes,'Theme'),wt=w&&w.rotate?named(w.themes,'Theme'):[],dt=d&&d.rotate?named(d.themes,'Theme'):[],tt=t&&t.rotate?named(t.themes,'Theme'):[];
+  const themes=named(cfg.palettes,'Theme'),wt=w&&w.rotate?named(w.themes,'Theme'):[],dt=d&&d.rotate?named(d.themes,'Theme'):[],tt=t&&t.rotate?named(t.themes,'Theme'):[],xt=x&&x.rotate?named(x.themes,'Theme'):[];
+  if(x)s.ssXSet=xt.map(T=>T.name).join('|');
   s.ssRotate=co.cycle&&themes.length?'all':'off';s.ssCSet=co.cycle?themes.map(T=>T.name).join('|'):'';
   if(w)s.ssWSet=wt.map(T=>T.name).join('|');if(d)s.ssDialSet=dt.map(T=>T.name).join('|');if(t)s.ssTSet=tt.map(T=>T.name).join('|');
   const fonts={},list=cfg.fonts||[];list.forEach(f=>{fonts[f.id]={name:f.name,family:f.family||'',file:''};});
   return{tempo:1,name:name||'Screen saver',exportName:'',settings:s,fonts,on:list.map(f=>f.id),pool:list.filter(f=>f.swap!==false&&f.id!==s.baseSlot).map(f=>f.id),tracks:Object.assign({},cfg.tracks||{}),
-    themes:co.cycle?themes:[],themesW:wt,themesD:dt,themesT:tt};}
+    themes:co.cycle?themes:[],themesW:wt,themesD:dt,themesT:tt,themesX:xt};}
 /* the page inside a Windows .scr: [host][name][page][24-byte footer: RBTOSCR1, name length, page length, colour, 0] */
 function pageFromScr(u){const n=u.length;if(n<24)return null;const dv=new DataView(u.buffer,u.byteOffset,u.byteLength);
   if(new TextDecoder().decode(u.subarray(n-24,n-16))!=='RBTOSCR1')return null;const hl=dv.getUint32(n-12,true);return new TextDecoder().decode(u.subarray(n-24-hl,n-24));}
@@ -882,7 +937,7 @@ async function openPresetFile(f){
   try{
     if(/\.json$/i.test(f.name)){const j=JSON.parse(await f.text());
       if(Array.isArray(j.presets))got=j.presets;else if(j.preset)got=[j.preset];else if(j.settings)got=[j];
-      for(const f of ['themes','themesW','themesD','themesT'])if(Array.isArray(j[f])&&j[f].length)got.forEach(p=>{p[f]=p[f]&&p[f].length?p[f]:j[f];});}
+      for(const f of ['themes','themesW','themesD','themesT','themesX'])if(Array.isArray(j[f])&&j[f].length)got.forEach(p=>{p[f]=p[f]&&p[f].length?p[f]:j[f];});}
     else if(/\.html?$/i.test(f.name)){const p=presetFromPage(await f.text());if(p)got=[p];}
     else if(/\.scr$/i.test(f.name)){const h=pageFromScr(new Uint8Array(await f.arrayBuffer()));const p=h&&presetFromPage(h);if(p)got=[p];}
     else if(/\.zip$/i.test(f.name)){const ents=await unzip(await f.arrayBuffer());
@@ -964,15 +1019,15 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
 /* What the screen saver is called: the name typed under Export, else the preset
    open, else Tempo, Tempo Words or Tempo Dial. Never a font's name – some fonts'
    licences (Timeless's) don't allow naming a product after them. */
-function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':cols(S)?'Tempo Columns':rgs(S)?'Tempo Rings':'Tempo';}
+function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':cols(S)?'Tempo Columns':rgs(S)?'Tempo Rings':stk(S)?'Tempo Stack':'Tempo';}
 const exportName=()=>(S.ssName||'').trim()||defaultName();
 function saverConfig(preview){
   /* the words and mixing settings travel in their own blocks below */
-  const noW=o=>{for(const k in o)if(/^ssW|^ss[MN][A-Z]|^ssDial|^ssT[A-Z]|^ssC(Set|Every)$/.test(k)||k==='ssName')delete o[k];return o;};
+  const noW=o=>{for(const k in o)if(/^ssW|^ss[MN][A-Z]|^ssDial|^ssT[A-Z]|^ssX[A-Z]|^ssC(Set|Every)$/.test(k)||k==='ssName')delete o[k];return o;};
   const base=noW(Object.assign(fresh(),sanitise(S)));base.transparent=false;
   if(anyLoaded())base.baseSlot=baseSlot();/* the core font, by id */
   const pals=setThemes('clock'),force=preview?previewForce():null;
-  return{show:wd(S)?'words':dl(S)?'dial':ty(S)?S.ssShow:'clock',...(force?{force}:{}),
+  return{show:wd(S)?'words':dl(S)?'dial':ty(S)||stk(S)?S.ssShow:'clock',...(force?{force}:{}),
     clock:{h24:S.ssH24,sep:SEPS[S.ssSep]||',',secs:S.ssSecs,zero:S.ssZero,ampm:true,line2:S.ssLine2,caps:S.ssCaps,
       change:S.ssChange,feel:S.ssFeel,len:S.ssLen,align:S.ssAlign,valign:S.ssVAlign,size:S.ssSize,margin:S.ssMargin,tabular:S.ssTabular,tracking:S.ssTracking,leading:S.ssLeading,move:S.ssMove,pulse:S.ssPulse,alt:S.ssAlt,altRate:S.ssAltRate,
       mixed:{mode:S.ssNMode,parts:{h1:S.ssNH1,h2:S.ssNH2,m1:S.ssNM1,m2:S.ssNM2,s1:S.ssNS1,s2:S.ssNS2,line2:S.ssNLine2},when:S.ssNWhen,each:S.ssNEach,match:S.ssNMatch,order:S.ssNOrder,amount:S.ssNAmount}},
@@ -984,6 +1039,10 @@ function saverConfig(preview){
       hw:[S.ssDialHand,S.ssDialWM,S.ssDialWS],fill:S.ssDialFill,fillTurn:S.ssDialFillTurn,fillR:S.ssDialFillR,fillA:S.ssDialFillA,fillBlend:S.ssDialFillBlend,fillOver:S.ssDialFillOver,fillStyle:S.ssDialFillStyle,fillLayer:S.ssDialFillLayer,
       cap:S.ssDialCap,tip:S.ssDialTip,tipOn:S.ssDialTipOn,tipSize:S.ssDialTipSize,weight:S.ssDialWeight,centreSize:S.ssDialCentreSize,handA:S.ssDialHandA,blend:S.ssDialBlend,
       colours:Object.fromEntries(D_COLS.map(([k,t])=>[t,S[k]])),rotate:S.ssDialRotate,themes:setThemes('dial'),every:everyOf('dial')}}:{}),
+    /* only for Stack */
+    ...(stk(S)?{stack:{font:stackFont(),h24:S.ssXH24,zero:S.ssXZero,sep:S.ssXSep,secs:S.ssXSecs,day:S.ssXDay,month:S.ssXMonth,year:S.ssXYear,dzero:S.ssXDZero,dspace:S.ssXDSpace,
+      lines:S.ssXLines,dayAt:S.ssXDayAt,gap:S.ssXGap,even:S.ssXEven,size:S.ssXSize,anchor:S.ssXAnchor,margin:S.ssXMargin,tracking:S.ssXTracking,change:S.ssXChange,feel:S.ssXFeel,len:S.ssXLen,
+      colours:{bg:S.ssXBg,time:S.ssXTime,day:S.ssXDayC,date:S.ssXDate,year:S.ssXYearC},rotate:S.ssXRotate,themes:setThemes('stack'),every:everyOf('stack')}}:{}),
     /* only for Columns and Rings */
     ...(ty(S)?{type:{font:typeFont(),h24:S.ssTH24,secs:S.ssTSecs,zero:S.ssTZero,case:S.ssTCase,parts:{time:S.ssTTime,secs:S.ssTSecs,day:S.ssTDay,date:S.ssTDate,month:S.ssTMonth,year:S.ssTYear},
       size:cols(S)?S.ssTCSize:S.ssTRSize,leading:S.ssTLeading,hole:S.ssTHole,split:S.ssTSplit,feel:S.ssTFeel,len:S.ssTLen,far:S.ssTFar,tracking:S.ssTTracking,space:S.ssTSpace,
@@ -1003,7 +1062,7 @@ function saverChars(cfg){
   const add=s=>{for(const ch of Array.from(s||''))if(ch!=='\n'){chars.add(ch);chars.add(ch.toUpperCase());chars.add(ch.toLowerCase());}};
   for(let i=0;i<7;i++)add(new Date(2026,0,5+i).toLocaleDateString('en-GB',{weekday:'long'}));
   for(let m=0;m<12;m++)add(new Date(2026,m,1).toLocaleDateString('en-GB',{month:'long'}));
-  if(cfg.words||cfg.type)add(saverVocab());
+  if(cfg.words||cfg.type||cfg.stack)add(saverVocab());
   return chars;
 }
 
@@ -1128,7 +1187,8 @@ Made with Tempo by Ensemble.
 `.replace(/\n/g,'\r\n');}
 function saverBg(cfg){const h=new Date().getHours(),at=(l,e)=>l[Math.floor(h/Math.max(1,e||1))%l.length].bg;
   if(cfg.dial){const d=cfg.dial;return d.rotate&&d.themes.length?at(d.themes,d.every):d.colours.bg;}if(cfg.words){const w=cfg.words;return w.rotate&&w.themes.length?at(w.themes,w.every):w.bg;}
-  if(cfg.type){const t=cfg.type;return t.rotate&&t.themes.length?at(t.themes,t.every):t.bg;}return cfg.colours.cycle?at(cfg.palettes,cfg.colours.every):cfg.colours.bg;}
+  if(cfg.type){const t=cfg.type;return t.rotate&&t.themes.length?at(t.themes,t.every):t.bg;}
+  if(cfg.stack){const t=cfg.stack;return t.rotate&&t.themes.length?at(t.themes,t.every):t.colours.bg;}return cfg.colours.cycle?at(cfg.palettes,cfg.colours.every):cfg.colours.bg;}
 const safeName=()=>exportName().replace(/[^A-Za-z0-9 \-]/g,'').trim()||'Tempo';
 /* the Windows .scr: the host, then the name, the page and a footer saying where each is */
 function winScr(name,html){const enc=new TextEncoder(),nb=enc.encode(name),hb=enc.encode(html);

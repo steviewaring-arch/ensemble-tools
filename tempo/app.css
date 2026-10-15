@@ -76,3 +76,5 @@
   .cp-add{background:transparent;color:var(--muted);font-size:.9rem;line-height:1;box-shadow:inset 0 0 0 1px var(--keyline)}
   .cp-x{position:absolute;top:-5px;right:-5px;width:13px;height:13px;border-radius:50%;background:var(--ink);color:var(--on-ink);font-size:9px;line-height:13px;text-align:center;display:none}
   .cp-sw:hover .cp-x{display:block}
+  .tt-stack{display:flex;flex-direction:column;align-items:flex-start;font-size:.56rem;line-height:1;letter-spacing:-.03em;padding-left:8px;width:100%}
+  .tt-stack .in{padding-left:26px}
