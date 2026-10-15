@@ -1,5 +1,12 @@
 # Changelog
 
+## 15 October 2026 – Tempo 0.9.4
+
+- **Stack, closer leading:** lines now close up against the letters' actual shapes rather than their boxes – the tail of a y, the stem of a p – so the time sits right down on the day, and nothing touches.
+- **Even spacing, rethought:** one regular step for every pair, set by caps and ascenders, and more only where a descender really hangs over the line below (September over the year on five lines). Before, one descender opened up every gap.
+- **Tracking per line:** the time, the day, the date and month, and the year can each go a little tighter or looser than the overall tracking.
+- Flush-right day: its spacing is now worked out where it actually sits.
+
 ## 15 October 2026 – Tempo 0.9.3
 
 - **Stack, a new design** (Show → Stack), from Steve's Univers mock-up: the time on top, the day hanging from the time's last figure (a Swiss offset), the date run into the month, the year below – 08.03.49 / Wednesday / 30September / 26.

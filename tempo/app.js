@@ -39,7 +39,7 @@ function tempoDefaults(){return{ssVer:5,
   ssTTracking:-15,ssTSpace:100,ssTRDay:false,ssTRDate:false,ssTRMonth:false,ssTRYear:false,ssDialFillStyle:'sweep',ssDialFillLayer:'front',
   /* 0.9.3: Stack – the time and date as a stack of lines, after Steve's Univers mock-up (ssX…) */
   ssXFont:'',ssXH24:true,ssXZero:true,ssXSep:'stop',ssXSecs:true,ssXDay:'full',ssXMonth:'full',ssXYear:'short',ssXDZero:false,ssXDSpace:false,
-  ssXLines:'four',ssXDayAt:'figure',ssXGap:.18,ssXEven:true,ssXSize:70,ssXAnchor:'br',ssXMargin:4,ssXTracking:-65,ssXChange:'roll',ssXFeel:'smooth',ssXLen:.6,
+  ssXLines:'four',ssXDayAt:'figure',ssXGap:.18,ssXEven:true,ssXSize:70,ssXAnchor:'br',ssXMargin:4,ssXTracking:-65,ssXTkTime:0,ssXTkDay:0,ssXTkDate:0,ssXTkYear:0,ssXChange:'roll',ssXFeel:'smooth',ssXLen:.6,
   ssXBg:'#979C92',ssXTime:'#E9EAEB',ssXDayC:'#343031',ssXDate:'#F69063',ssXYearC:'#6B712F',ssXRotate:false,ssXSet:'',ssXEvery:1};}
 /* (called by shared/core.js before this file's consts exist, so it uses none) */
 function loadSettings(){
@@ -492,9 +492,14 @@ const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id==
   build(b,[
     {t:'seg',k:'ssXDayAt',label:'The day sits',opts:[['figure','Under the last figure'],['left','Flush left'],['right','Flush right']]},
     {t:'range',k:'ssXTracking',label:'Tracking',min:-150,max:100,step:1,fmt:v=>(v>0?'+':'')+Math.round(v)},
+    {t:'range',k:'ssXTkTime',label:'The time',min:-60,max:60,step:1,fmt:v=>v===0?'As above':(v>0?'+':'')+Math.round(v)},
+    {t:'range',k:'ssXTkDay',label:'The day',min:-60,max:60,step:1,fmt:v=>v===0?'As above':(v>0?'+':'')+Math.round(v)},
+    {t:'range',k:'ssXTkDate',label:'The date and month',min:-60,max:60,step:1,fmt:v=>v===0?'As above':(v>0?'+':'')+Math.round(v)},
+    {t:'range',k:'ssXTkYear',label:'The year',min:-60,max:60,step:1,fmt:v=>v===0?'As above':(v>0?'+':'')+Math.round(v)},
+    {t:'hint',text:'Tracking in thousandths of an em; each line can go a little tighter or looser than the rest. The figures keep one width each, so the time never shifts as it ticks.'},
     {t:'range',k:'ssXGap',label:'Closest lines come',min:.04,max:.8,step:.01,fmt:v=>Math.round(v*100)+'% of a cap apart'},
     {t:'toggle',k:'ssXEven',label:'Even line spacing'},
-    {t:'hint',text:'Lines sit as close as they can without ink touching – checked against every day, date and month there is, so a descender hangs into the line below only where nothing is there. Even spacing uses the widest step everywhere.'},
+    {t:'hint',text:'Lines sit as close as they can without ink touching – checked shape against shape, over every day, date and month there is, so a descender hangs into the line below only where nothing is there. Even spacing: one regular step, with more only where a descender needs it. Off: every pair as close as it can go.'},
     {t:'seg',k:'ssXChange',label:'When it changes',opts:[['roll','Roll'],['fade','Fade'],['cut','Cut']]},
     {t:'seg',k:'ssXFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:s=>stk(s)&&s.ssXChange==='roll'},
     {t:'range',k:'ssXLen',label:'Length',min:.15,max:2,step:.05,fmt:v=>v.toFixed(2)+' s',show:s=>stk(s)&&s.ssXChange!=='cut'},
@@ -912,7 +917,7 @@ function presetFromConfig(cfg,name){
   const t=cfg.type;if(t){T_MAP.forEach(([a,k])=>put(k,t[a]));const P=t.parts||{};[['time','ssTTime'],['day','ssTDay'],['date','ssTDate'],['month','ssTMonth'],['year','ssTYear']].forEach(([a,k])=>put(k,P[a]));
     const RP=t.rparts||{};[['day','ssTRDay'],['date','ssTRDate'],['month','ssTRMonth'],['year','ssTRYear']].forEach(([a,k])=>put(k,RP[a]));
     if(t.size!=null)put(cfg.show==='rings'?'ssTRSize':'ssTCSize',t.size);put('ssTFont',t.font);if(cfg.show==='columns'||cfg.show==='rings')s.ssShow=cfg.show;}
-  const x=cfg.stack;if(x){X_MAP.forEach(([a,k])=>put(k,x[a]));const c=x.colours||{};[['bg','ssXBg'],['time','ssXTime'],['day','ssXDayC'],['date','ssXDate'],['year','ssXYearC']].forEach(([a,k])=>put(k,c[a]));s.ssShow='stack';}
+  const x=cfg.stack;if(x){X_MAP.forEach(([a,k])=>put(k,x[a]));const tl=x.tl||{};[['time','ssXTkTime'],['day','ssXTkDay'],['date','ssXTkDate'],['year','ssXTkYear']].forEach(([a,k])=>put(k,tl[a]));const c=x.colours||{};[['bg','ssXBg'],['time','ssXTime'],['day','ssXDayC'],['date','ssXDate'],['year','ssXYearC']].forEach(([a,k])=>put(k,c[a]));s.ssShow='stack';}
   /* the time's colours, and its themes through the day (0.9: read back from older downloads too, which carried them only in their colour block) */
   const co=cfg.colours||{};put('ssColBy',co.by);put('ssBg',co.bg);if(Array.isArray(co.p))['ssP1','ssP2','ssP3','ssP4'].forEach((k,i)=>put(k,co.p[i]));put('ssCEvery',co.every);
   const named=(list,pre)=>(Array.isArray(list)?list:[]).filter(Boolean).map((T,i)=>Object.assign({},T,{name:T.name||pre+' '+(i+1)}));
@@ -1041,7 +1046,7 @@ function saverConfig(preview){
       colours:Object.fromEntries(D_COLS.map(([k,t])=>[t,S[k]])),rotate:S.ssDialRotate,themes:setThemes('dial'),every:everyOf('dial')}}:{}),
     /* only for Stack */
     ...(stk(S)?{stack:{font:stackFont(),h24:S.ssXH24,zero:S.ssXZero,sep:S.ssXSep,secs:S.ssXSecs,day:S.ssXDay,month:S.ssXMonth,year:S.ssXYear,dzero:S.ssXDZero,dspace:S.ssXDSpace,
-      lines:S.ssXLines,dayAt:S.ssXDayAt,gap:S.ssXGap,even:S.ssXEven,size:S.ssXSize,anchor:S.ssXAnchor,margin:S.ssXMargin,tracking:S.ssXTracking,change:S.ssXChange,feel:S.ssXFeel,len:S.ssXLen,
+      lines:S.ssXLines,dayAt:S.ssXDayAt,gap:S.ssXGap,even:S.ssXEven,size:S.ssXSize,anchor:S.ssXAnchor,margin:S.ssXMargin,tracking:S.ssXTracking,tl:{time:S.ssXTkTime,day:S.ssXTkDay,date:S.ssXTkDate,year:S.ssXTkYear},change:S.ssXChange,feel:S.ssXFeel,len:S.ssXLen,
       colours:{bg:S.ssXBg,time:S.ssXTime,day:S.ssXDayC,date:S.ssXDate,year:S.ssXYearC},rotate:S.ssXRotate,themes:setThemes('stack'),every:everyOf('stack')}}:{}),
     /* only for Columns and Rings */
     ...(ty(S)?{type:{font:typeFont(),h24:S.ssTH24,secs:S.ssTSecs,zero:S.ssTZero,case:S.ssTCase,parts:{time:S.ssTTime,secs:S.ssTSecs,day:S.ssTDay,date:S.ssTDate,month:S.ssTMonth,year:S.ssTYear},

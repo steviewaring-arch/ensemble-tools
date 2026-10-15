@@ -100,6 +100,13 @@ def main():
         check('Stack: sized and placed for the worst case, so the block and the time never move from one day to the next',
               len({(round(g['k'], 6), round(g['bx'], 3), round(g['by'], 3), g['x'][0]) for g in geo}) == 1 and max(g['x'][1] for g in geo) - min(g['x'][1] for g in geo) < 100,
               json.dumps([[g['lines'][1], g['x'][1]] for g in geo]))  # the day's own first letter lines its ink up, a few units either way
+        BW = lambda t: round(xs(t, loc(2026, 9, 30, 8, 3, 49))['bw'] / xs(t, loc(2026, 9, 30, 8, 3, 49))['k'], 1)
+        w0, wd_, wy_ = BW({}), BW({'tl': {'day': 60}}), BW({'tl': {'year': 60}})
+        check('Stack: each line has its own tracking – looser on the day widens the block, the year (never the widest) leaves it as it is', wd_ > w0 and wy_ == w0, json.dumps([w0, wd_, wy_]))
+        st = lambda t: pg.evaluate(XST.replace("return r&&{", "return r&&{steps:r.B.steps,"), [dict(show='stack', base={}, colours={}, stack=dict(XS, **t)), loc(2026, 9, 30, 8, 3, 49)])['steps']
+        s4, s5 = st({}), st({'lines': 'five'})
+        check('Stack: Even spacing is one regular step, larger only where a descender hangs over the line below (September over the year)',
+              abs(s5[0] - s4[0]) < 1 and s5[3] > s5[0] + 50 and s5[0] == s5[1] == s5[2], json.dumps([s4, s5]))
         xd = lambda t, ms: pg.evaluate(XST.replace('const sv=createSaver(e,C);', 'C.drift=1;const sv=createSaver(e,C);'), [dict(show='stack', base={}, colours={}, stack=dict(XS, **t)), ms])
         dg = [xd(dict(anchor=a), loc(2026, 9, 30, 8, 3, s)) for a in ('br', 'tl') for s in range(0, 60, 7)]
         check('Stack: drift wanders away from its corner but never past the margin on either side',

@@ -618,11 +618,13 @@ function xMetrics(f){const capU=f.cap>0?f.cap:f.upm*.7;
   let digitW=0;for(const d of '0123456789')digitW=Math.max(digitW,f.adv(glyphOf(f,d)));
   return{capU,box,digitW};}
 /* lay one moment out in font units: each line's glyphs, x, and ink top/bottom */
-function xSet(o,f,z,M){const tk=((o.tracking||0)/1000+trackOf(faceById(o.font)?o.font:baseId()))*f.upm,lines=xLines(o,z);
+function xSet(o,f,z,M){const t0=(o.tracking||0)/1000+trackOf(faceById(o.font)?o.font:baseId()),tl=o.tl||{},lines=xLines(o,z);
+  /* tracking: the overall amount plus each line's own fine adjustment (the time, the day, the date and month, the year) */
+  const tkOf=r=>(t0+(tl[r]||0)/1000)*f.upm;
   const zeroL=bearings(f,glyphOf(f,'0'))[0],dw=M.digitW;
   /* figures all take the widest figure's width (tabular), centred in it, so the time never shifts as it counts */
   return lines.map((runs,li)=>{const gl=[];let x=0,prev=null;
-    for(const run of runs)for(const ch of Array.from(run.t)){const id=glyphOf(f,ch),dig=/\d/.test(ch);if(prev!==null)x+=(dig||/\d/.test(prev.ch)?0:f.kern(prev.id,id))+tk;const [t,b]=ch===' '?[0,0]:M.box(id);
+    for(const run of runs)for(const ch of Array.from(run.t)){const id=glyphOf(f,ch),dig=/\d/.test(ch);if(prev!==null)x+=(dig||/\d/.test(prev.ch)?0:f.kern(prev.id,id))+tkOf(run.r);const [t,b]=ch===' '?[0,0]:M.box(id);
       const w=dig?dw:f.adv(id),off=dig?(dw-f.adv(id))/2:0;gl.push({id,x:x+off,w:f.adv(id),cell:w,ch,r:run.r,t,b});x+=w;prev={id,ch};}
     /* optical left edge: the ink lines up, not the side bearing (figures by their 0, so the time doesn't shift as they change) */
     const first=gl[0],lsb=!first?0:/\d/.test(first.ch)?(dw-f.adv(glyphOf(f,'0')))/2+zeroL:bearings(f,first.id)[0];
@@ -634,19 +636,49 @@ function xPlace(o,f,lines,blockW){const zeroL=bearings(f,glyphOf(f,'0'))[0],M0=x
     else if(i===1&&o.dayAt==='right'&&blockW!=null){const last=L.gl[L.gl.length-1];L.x=blockW-(last?last.x+last.w-bearings(f,last.id)[1]:L.w);}});
   return lines;}
 /* the layout for the worst case: block width and height, and the baseline step between each pair of lines */
+/* Each glyph's ink, column by column: how high it reaches and how low it hangs (font units, from the baseline).
+   Drawn once at 1 px = upm/100 and read back, so lines can be closed up against the actual shapes – the bowl of a p,
+   the tail of a y – rather than their boxes. Faces without outlines (the demo face) fall back to their boxes. */
+const xProf=new Map(),XRES=100;
+function xGlyphProf(f,id){const key=(f.name||'')+'#'+id+'#'+f.upm;let p=xProf.get(key);if(p!==undefined)return p;p=null;
+  try{const u=f.upm,s=XRES/u,path=f.pathD&&f.pathD(id);
+    if(path){const x0=-.5*u,adv=f.adv(id),up=1.4*u,dn=.8*u,w=Math.ceil((adv+u)*s)+2,h=Math.ceil((up+dn)*s)+2;
+      const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});
+      g.setTransform(s,0,0,s,-x0*s,up*s);g.fill(new Path2D(path));const d=g.getImageData(0,0,w,h).data,top=[],bot=[];
+      for(let cx=0;cx<w;cx++){let a=-1,b=-1;for(let cy=0;cy<h;cy++)if(d[(cy*w+cx)*4+3]>0){if(a<0)a=cy;b=cy;}
+        top.push(a<0?null:up-a/s);bot.push(b<0?null:(b+1)/s-up);}
+      p={x0,step:1/s,top,bot};}}catch(e){p=null;}
+  xProf.set(key,p);return p;}
+/* a line's (or several lines') ink as bins of BIN font units across: the highest top and the lowest bottom in each */
+function xLineProf(f,lines,M,BIN,lo,nb){const top=new Float64Array(nb).fill(-Infinity),bot=new Float64Array(nb).fill(-Infinity);
+  for(const L of lines)for(const g of L.gl){if(g.ch===' ')continue;const gx=L.x+g.x,P=xGlyphProf(f,g.id);
+    if(!P){/* no outline: the box */const b0=Math.max(0,Math.floor((gx-lo)/BIN)),b1=Math.min(nb-1,Math.floor((gx+g.w-lo)/BIN));for(let b=b0;b<=b1;b++){top[b]=Math.max(top[b],g.t);bot[b]=Math.max(bot[b],g.b);}continue;}
+    for(let c=0;c<P.top.length;c++){if(P.top[c]==null)continue;const xa=gx+P.x0+c*P.step,b0=Math.max(0,Math.floor((xa-lo)/BIN)),b1=Math.min(nb-1,Math.floor((xa+P.step-lo)/BIN));
+      for(let b=b0;b<=b1;b++){if(P.top[c]>top[b])top[b]=P.top[c];if(P.bot[c]>bot[b])bot[b]=P.bot[c];}}}
+  return{top,bot};}
+/* the layout for the worst case: block width and height, and the baseline step between each pair of lines */
 function xBuild(o,f){const M=xMetrics(f),cases=xCases(o),gapU=(o.gap==null?.18:o.gap)*M.capU,n=xLines(o,cases[0]).length;
-  const sets=cases.map(z=>xPlace(o,f,xSet(o,f,z,M)));
+  let sets=cases.map(z=>xPlace(o,f,xSet(o,f,z,M)));
   let W=0;for(const s of sets)for(const L of s)W=Math.max(W,L.x+L.w);
-  /* each line's possible contents, once each, and the step that keeps them all apart */
+  if(o.dayAt==='right'){/* the day flush right: its end lines up with the widest line's (its own, when it's the widest) */let w2=0;for(const s of sets)for(const L of s)w2=Math.max(w2,L.li===1?L.w-L.lsb:L.x+L.w);W=w2;
+    sets=cases.map(z=>xPlace(o,f,xSet(o,f,z,M),W));}
+  /* each line's possible contents, once each */
   const uniq=i=>{const m=new Map();for(const s of sets){const L=s[i];m.set(L.gl.map(g=>g.ch).join('')+'@'+Math.round(L.x),L);}return[...m.values()];};
-  const steps=[];let topU=0,botU=0;
-  for(let i=0;i<n;i++){const U=uniq(i);if(i===0)for(const L of U)for(const g of L.gl)topU=Math.max(topU,g.t);if(i===n-1)for(const L of U)for(const g of L.gl)botU=Math.max(botU,g.b);
-    if(i===n-1)break;const D=uniq(i+1);let need=0;
-    for(const A of U)for(const B of D)for(const a of A.gl){if(a.ch===' ')continue;const ax0=A.x+a.x,ax1=ax0+a.w;
-      for(const b of B.gl){if(b.ch===' ')continue;const bx0=B.x+b.x;if(bx0>=ax1||bx0+b.w<=ax0)continue;need=Math.max(need,a.b+b.t);}}
-    steps.push(need+gapU);}
-  const even=o.even!==false,mx=Math.max(0,...steps),st=steps.map(s=>even?mx:s);
-  if(o.dayAt==='right'){/* the day flush right: its end lines up with the widest line's (its own, when it's the widest) */let w2=0;for(const s of sets)for(const L of s)w2=Math.max(w2,L.li===1?L.w-L.lsb:L.x+L.w);W=w2;}
+  const BIN=Math.max(1,f.upm/200),lo=-f.upm,nb=Math.ceil((W+2*f.upm)/BIN)+1,dil=Math.ceil(gapU/BIN);
+  const prof=[];for(let i=0;i<n;i++)prof.push(xLineProf(f,uniq(i),M,BIN,lo,nb));
+  const topU=Math.max(0,...prof[0].top.filter(isFinite)),botU=Math.max(0,...prof[n-1].bot.filter(isFinite));
+  /* the step for each pair: the lower line's tops, widened by the gap either side (so ink never comes closer than
+     the gap sideways either), against the upper line's bottoms – over everything either line could ever show */
+  /* a round figure's overshoot below the baseline – anything deeper is a descender */
+  const hang=Math.max(0,Math.min(.05*M.capU,M.box(glyphOf(f,'0'))[1])),steps=[],plain=[];
+  for(let i=0;i<n-1;i++){const A=prof[i],B=prof[i+1],tw=new Float64Array(nb).fill(-Infinity);
+    for(let b=0;b<nb;b++){const t=B.top[b];if(!isFinite(t))continue;for(let d=Math.max(0,b-dil);d<=Math.min(nb-1,b+dil);d++)if(t>tw[d])tw[d]=t;}
+    let need=0,np=0;for(let b=0;b<nb;b++){if(!isFinite(tw[b])||!isFinite(A.bot[b]))continue;need=Math.max(need,A.bot[b]+tw[b]);np=Math.max(np,Math.min(A.bot[b],hang)+tw[b]);}
+    if(!need){/* nothing above anything: still a line apart */need=np=Math.max(0,...B.top.filter(isFinite));}
+    steps.push(need+gapU);plain.push(np+gapU);}
+  /* Even: one regular step – the widest a pair needs for its caps and ascenders – and more only where a descender
+     really hangs over something below. Off: every pair as close as it can go. */
+  const even=o.even!==false,base=Math.max(0,...plain),st=steps.map(s=>even?Math.max(s,base):s);
   const H=topU+st.reduce((a,b)=>a+b,0)+botU;
   return{W,H,topU,botU,steps:st,M};}
 let xAnim=new Map(),xMemoKey='';
@@ -657,7 +689,7 @@ function stackFrame(ctx,W,H,now,K){
   const o=C.stack,P=xPal(),f=xFace(),z=parts(Date.now());S.bg=P.bg;
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle=P.bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
   if(!f)return;
-  const key=(f.name||'')+'|'+JSON.stringify([o.h24,o.zero,o.sep,o.secs,o.day,o.month,o.year,o.dzero,o.dspace,o.lines,o.dayAt,o.gap,o.even,o.tracking,o.font,new Date().getFullYear()]);
+  const key=(f.name||'')+'|'+JSON.stringify([o.h24,o.zero,o.sep,o.secs,o.day,o.month,o.year,o.dzero,o.dspace,o.lines,o.dayAt,o.gap,o.even,o.tracking,o.tl,o.font,new Date().getFullYear()]);
   if(key!==xMemoKey){xMemoKey=key;xMemo=xBuild(o,f);xAnim=new Map();}
   const B=xMemo,m=(o.margin==null?4:o.margin)/100*Math.min(W,H),aw=W-2*m,ah=H-2*m;
   /* drift: a slow wander away from the corner it's latched to (never towards the edge), up to the margin or 2% of the screen –
