@@ -1,5 +1,11 @@
 # Changelog
 
+## 15 October 2026 – Tempo 0.9.6
+
+- **Optical spacing** (on by default, in The time and Stack): fixed-width figures meant the font's kerning never reached the separator, so 7, left a hole and the comma hugged the next figure. Tempo now reads each glyph's shape and sets the separator by eye – optically centred between the figures either side, judged where the separator itself sits. The figures never move; only the separator settles as its neighbours change.
+- **Figures never touch:** however tight the tracking, two figures keep a hair apart at every height (in Univers at −65, 44 used to join; the figures now stop at the tightest that clears every pair).
+- **Stack:** where a figure meets a letter (30September) the join is spaced by eye too. Letters keep the font's own kerning.
+
 ## 15 October 2026 – Tempo 0.9.5
 
 - **Colour picker, refined:** the wheel and brightness slider are gone. Now: the colour, RGB or CMYK sliders (each track shows where it'll take the colour, with the value beside it to type into), the hex (#abc works too), a dropper and your saved colours – on a plain panel rather than see-through.

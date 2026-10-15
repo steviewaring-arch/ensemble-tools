@@ -89,6 +89,58 @@ function axisVal(AX,p,ord){const ph=Math.max(1,Math.round(S.axCycles))*p-S.axSta
 const advAx=(v,AX,val)=>{if(!AX||val==null||v.s!==AX.id)return advU(v);const f=F(v.s);return f.advAt(v.r,{[AX.a.tag]:val})/f.upm;};
 const kernU=(a,b)=>{if(a.s!==b.s)return 0;const f=F(a.s);return f.kern(a.r,b.r)/f.upm*(a.sc||1);};
 const same=(a,b)=>a.s===b.s&&a.r===b.r;
+const figMemo=new Map();
+function figFloor(s){const f=F(s);if(!f||!f.pathD)return -Infinity;const k=s+'|'+(f.name||'')+'|'+f.upm;if(figMemo.has(k))return figMemo.get(k);
+  const u=f.upm,ids=[...'0123456789'].map(d=>f.base(d));let dw=0;for(const id of ids)dw=Math.max(dw,f.adv(id));let raw=Infinity;
+  for(const a of ids)for(const b of ids){const g=opGap(opProf(f,a),opProf(f,b),(dw+(dw-f.adv(b))/2-(dw-f.adv(a))/2)/u,(f.cap>0?f.cap:.7*u)/u);if(g&&isFinite(g.raw))raw=Math.min(raw,g.raw);}
+  const v=isFinite(raw)?OP_MIN-raw:-Infinity;figMemo.set(k,v);return v;}
+const SEP_CH=/^[,.:;·•\/\-–]$/;
+/* ---- Optical spacing (Tempo 0.9.6) ----
+   Each glyph's ink is read once, row by row (rows of 1/40 em from below the baseline to above the caps):
+   where it starts and ends on the left and right. Two glyphs side by side then give a gap at every height;
+   where one has no ink (the open corner under a 7, the space above a comma) the gap counts only so far
+   (DEPTH), as the eye does. The average over baseline to cap height is the optical gap. */
+const OP_N=56,OP_LO=-.3,OP_HI=1.1,OP_STEP=(OP_HI-OP_LO)/OP_N;
+const opMemo=new WeakMap();
+function opProf(f,id){if(!f)return null;let m=opMemo.get(f);if(!m){m=new Map();opMemo.set(f,m);}let p=m.get(id);if(p!==undefined)return p;p=null;
+  try{const d=f.pathD&&f.pathD(id);if(d){const u=f.upm,sc=120/u,adv=f.adv(id),pad=.6*u,w=Math.ceil((adv+2*pad)*sc)+2,h=Math.ceil((OP_HI-OP_LO)*u*sc)+2;
+    const c=document.createElement('canvas');c.width=w;c.height=h;const g=c.getContext('2d',{willReadFrequently:true});g.setTransform(sc,0,0,sc,pad*sc,OP_HI*u*sc);g.fill(new Path2D(d));
+    const D=g.getImageData(0,0,w,h).data,L=new Array(OP_N).fill(null),R=new Array(OP_N).fill(null);let any=false;
+    for(let y=0;y<h;y++){const row=Math.floor((y+.5)/(sc*u)/OP_STEP);if(row<0||row>=OP_N)continue;let a=-1,b=-1;
+      for(let x=0;x<w;x++)if(D[(y*w+x)*4+3]>8){if(a<0)a=x;b=x;}
+      if(a<0)continue;any=true;const l=(a/sc-pad)/u,r=((b+1)/sc-pad)/u;L[row]=L[row]==null?l:Math.min(L[row],l);R[row]=R[row]==null?r:Math.max(R[row],r);}
+    if(any)p={L,R,adv:adv/u};}}catch(e){p=null;}
+  m.set(id,p);return p;}
+/* the optical gap between A and B (profiles), B's origin `off` em to the right of A's; cap = cap height in em.
+   Returns the average gap over baseline to cap, and the closest the ink comes at any height. */
+function opGap(A,B,off,cap){if(!A||!B)return null;const D=.2*cap;let Rm=-Infinity,Lm=Infinity,sum=0,n=0,raw=Infinity;
+  const inZone=i=>{const em=OP_HI-(i+.5)*OP_STEP;return em>=0&&em<=cap;};
+  for(let i=0;i<OP_N;i++){if(A.R[i]!=null&&B.L[i]!=null)raw=Math.min(raw,off+B.L[i]-A.R[i]);if(!inZone(i))continue;if(A.R[i]!=null)Rm=Math.max(Rm,A.R[i]);if(B.L[i]!=null)Lm=Math.min(Lm,B.L[i]);}
+  if(!isFinite(Rm)||!isFinite(Lm))return null;
+  for(let i=0;i<OP_N;i++){if(!inZone(i))continue;const r=Math.max(A.R[i]!=null?A.R[i]:-Infinity,Rm-D),l=Math.min(B.L[i]!=null?B.L[i]:Infinity,Lm+D);sum+=off+l-r;n++;}
+  return{mean:sum/n,raw};}
+/* a separator between two figures sits where its gaps either side are equal, measured where the separator
+   itself is (its own rows of ink, from the baseline up): a comma looks at the space by the baseline – the hole
+   under a 7 – not at the space up by the 7's bar. The figures don't move.
+   pa/ps/pb: profiles; offL: em from A's origin to the separator's; offR: em from the separator's origin to B's;
+   trk: the tracking either side (em). Returns how far to move the separator (em). */
+const OP_MIN=.015;
+function opCentre(pa,ps,pb,offL,offR,cap,trk){if(!pa||!ps||!pb)return 0;
+  /* the band: the separator's own rows of ink, and a quarter of a cap height either side (a 4's bar, a 7's foot) */
+  const ext=Math.ceil(.25*cap/OP_STEP),rows=[];
+  for(let i=0;i<OP_N;i++){const em=OP_HI-(i+.5)*OP_STEP;if(em<-.02||em>cap)continue;
+    let near=false;for(let k=-ext;k<=ext;k++){const j=i+k;if(j>=0&&j<OP_N&&ps.L[j]!=null){near=true;break;}}if(near)rows.push(i);}
+  /* within it, a hole counts only so deep (a fifth of a cap), as in opGap */
+  const D=.2*cap,side=(A,B,off)=>{let Rm=-Infinity,Lm=Infinity;for(const i of rows){if(A.R[i]!=null)Rm=Math.max(Rm,A.R[i]);if(B.L[i]!=null)Lm=Math.min(Lm,B.L[i]);}
+    if(!isFinite(Rm)||!isFinite(Lm)){const g=opGap(A,B,off,cap);return g?g.mean:null;}
+    let s=0;for(const i of rows){const r=Math.max(A.R[i]!=null?A.R[i]:-Infinity,Rm-D),l=Math.min(B.L[i]!=null?B.L[i]:Infinity,Lm+D);s+=off+l-r;}return s/rows.length;};
+  if(rows.length<2)return 0;
+  const gl=side(pa,ps,offL),gr=side(ps,pb,offR);if(gl==null||gr==null)return 0;
+  let a=(gr-gl)/2;a=Math.max(-.25,Math.min(.25,a));
+  /* never closer than a hair at any height */
+  const L0=opGap(pa,ps,offL,cap),R0=opGap(ps,pb,offR,cap);
+  if(L0&&isFinite(L0.raw))a=Math.max(a,OP_MIN-trk-L0.raw);if(R0&&isFinite(R0.raw))a=Math.min(a,R0.raw+trk-OP_MIN);
+  return a;}
 let rankCache={key:'',arr:[]};
 function orderVal(j,n){
   if(n<=1)return 0;const t=j/(n-1);
@@ -168,14 +220,16 @@ function layoutBlock(text,salt,W,H,p,cfg){
   const tab=!!S.tabular,digW=new Map(),digOf=s=>{let w=digW.get(s);if(w==null){w=0;for(const dch of '0123456789')w=Math.max(w,advU(charOptions(dch,s===bs?null:s).def));digW.set(s,w);}return w;};
   const digU=tab?digOf(bs):0;
   /* the core face's tracking (S.tracking) and each face's own (S.faceTrack) */
-  const ftk=S.faceTrack||{},gapU=g=>(g.opt.def.s===bs?trk:0)+(ftk[g.opt.def.s]||0)/1000;
+  const ftk=S.faceTrack||{},gap0=g=>(g.opt.def.s===bs?trk:0)+(ftk[g.opt.def.s]||0)/1000;
+  /* optical (0.9.6): with fixed-width figures, two figures never come closer than a hair, however tight the tracking */
+  const gapU=(g,h)=>{const v=gap0(g);return S.optical&&tab&&h&&isD(g.ch)&&isD(h.ch)&&g.opt.def.s===h.opt.def.s?Math.max(v,figFloor(g.opt.def.s)):v;};
   /* hooks.fitSlots(): every display face a numeral could take, so the size holds whichever comes in */
   const fitSlots=hooks&&hooks.fitSlots?hooks.fitSlots():null;
   const AX=axisInfo(),axLo=AX?AX.a.min+(AX.a.max-AX.a.min)*Math.min(S.axFrom,S.axTo):0,axHi=AX?AX.a.min+(AX.a.max-AX.a.min)*Math.max(S.axFrom,S.axTo):0;
   const restW=v=>AX?Math.max(advAx(v,AX,axLo),advAx(v,AX,axHi)):advU(v);
   const isD=ch=>tab&&ch>='0'&&ch<='9',wU=g=>isD(g.ch)?digOf(g.opt.def.s):restW(g.opt.def),kU=(a,b)=>(isD(a.ch)||isD(b.ch))?0:kernU(a.opt.def,b.opt.def);
   const wFit=g=>{let w=wU(g);if(fitSlots&&g.vis&&/\d/.test(g.ch))for(const s of fitSlots)w=Math.max(w,isD(g.ch)?digOf(s):advU(charOptions(g.ch,s).def));return w;};
-  const w1=L.map(row=>{let w=0;row.forEach((g,i)=>{w+=wFit(g);if(i<row.length-1)w+=gapU(g)+kU(g,row[i+1]);});return w;});
+  const w1=L.map(row=>{let w=0;row.forEach((g,i)=>{w+=wFit(g);if(i<row.length-1)w+=gapU(g,row[i+1])+kU(g,row[i+1]);});return w;});
   const hasInk=L.map(row=>row.some(g=>g.vis));
   const maxW1=Math.max(1e-3,...w1);
   let size,sx=L.map(()=>1),sy=L.map(()=>1);
@@ -194,7 +248,14 @@ function layoutBlock(text,salt,W,H,p,cfg){
   const lines=L.map((row,li)=>{
     const recs=row.map(g=>{const ord=g.vis?orderVal(g.vi,nv):0,sw=swapState(g,ord,p),ea=swapEase(sw.t),av=AX&&g.vis?axisVal(AX,p,ord):null;
       const w=isD(g.ch)?digOf(g.opt.def.s)*size:S.vReflow?lerp(advAx(sw.a,AX,av)*size,advAx(sw.b,AX,av)*size,ea):advAx(g.opt.def,AX,av)*size;return{g,ord,sw,ea,w,x:0,co:av==null?null:{id:AX.id,c:{[AX.a.tag]:av}}};});
-    let x=0;recs.forEach((r,i)=>{r.x=x;x+=r.w;if(i<recs.length-1)x+=(gapU(r.g)+kU(r.g,recs[i+1].g))*size;});
+    let x=0;recs.forEach((r,i)=>{r.x=x;x+=r.w;if(i<recs.length-1)x+=(gapU(r.g,recs[i+1].g)+kU(r.g,recs[i+1].g))*size;});
+    /* optical spacing (0.9.6): a separator between figures moves to sit optically centred between them; nothing else moves */
+    if(S.optical)recs.forEach((r,i)=>{if(!r.g.vis||!SEP_CH.test(r.g.ch)||i<1||i>=recs.length-1)return;const A=recs[i-1],B=recs[i+1];if(!/\d/.test(A.g.ch)||!/\d/.test(B.g.ch))return;
+      const fa=F(A.g.opt.def.s),fs=F(r.g.opt.def.s),fb=F(B.g.opt.def.s);
+      const aa=fa.adv(A.g.opt.def.r)/fa.upm,ab=fb.adv(B.g.opt.def.r)/fb.upm,as=fs.adv(r.g.opt.def.r)/fs.upm,cap=(fb.cap>0?fb.cap/fb.upm:capR);
+      /* each glyph sits centred in its record (a figure's cell, or its own advance) */
+      const ox=R=>R.x/size+(R.w/size-(R===A?aa:R===B?ab:as))/2,offL=ox(r)-ox(A),offR=ox(B)-ox(r);
+      r.x+=opCentre(opProf(fa,A.g.opt.def.r),opProf(fs,r.g.opt.def.r),opProf(fb,B.g.opt.def.r),offL,offR,cap,gapU(r.g))*size;});
     const ws=x*sx[li];const x0=S.align==='left'?m:S.align==='right'?W-m-ws:(W-ws)/2;
     return{recs,lw:x,x0,base:top+bl[li],sx:sx[li],sy:sy[li]};
   });
@@ -356,5 +417,5 @@ function renderFrame(ctx,W,H,p,k,forceBg,pre){
   if(hasImg&&S.iPlace==='above')imgPass(ctx);
 }
 
-return{use(o){S=o;optCache.clear();rankCache={key:'',arr:[]};},fallbacks,F,baseSlot,availSlots,anyLoaded,setFaces,faceList,axisInfo,charOptions,optCache,vkey,renderFrame,buildScene,makeBaked,setImage(i){img=i;},setHooks(h){hooks=h||null;},setLive(l){live=l||null;},lastSize:()=>lastSize,clamp,lerp,E,TAU};
+return{use(o){S=o;optCache.clear();rankCache={key:'',arr:[]};},fallbacks,F,baseSlot,availSlots,anyLoaded,setFaces,faceList,axisInfo,charOptions,optCache,vkey,renderFrame,buildScene,makeBaked,setImage(i){img=i;},setHooks(h){hooks=h||null;},setLive(l){live=l||null;},lastSize:()=>lastSize,clamp,lerp,E,TAU,optical:{prof:opProf,gap:opGap,centre:opCentre}};
 }
