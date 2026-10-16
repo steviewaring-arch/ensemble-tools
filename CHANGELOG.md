@@ -1,5 +1,9 @@
 # Changelog
 
+## 16 October 2026 – Tempo 0.9.8
+
+- **Each side its own margin** (Position card, for The time, In words and Stack): switch on Each side its own and set top, right, bottom and left separately. They start from the single margin; switch it off and the one margin rules again. Downloads and presets carry them.
+
 ## 15 October 2026 – Tempo 0.9.7
 
 - **Space around the separator** (The time: Clock card; Stack: Setting card, under Optical spacing): the room either side of the comma, colon or stop, against the space between two figures – 100% by default (as between figures), down to 0% tight. Set once for the font, so the time never moves.

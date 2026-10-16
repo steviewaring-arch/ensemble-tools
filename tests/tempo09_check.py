@@ -111,6 +111,9 @@ def main():
         c1, c0 = xs({}, loc(2026, 10, 15, 17, 33, 5)), xs({}, loc(2026, 10, 15, 9, 59, 5))
         check('Stack: a leading 1 in its cell by default (the time never moves); on the edge when set (the line moves over for a 1)',
               c1['x'][0] == c0['x'][0] and l1['x'][0] < l0['x'][0], json.dumps([c1['x'][0], c0['x'][0], l1['x'][0], l0['x'][0]]))
+        mg = xs({'margins': dict(t=2, r=1, b=10, l=3), 'size': 100}, loc(2026, 9, 30, 8, 3, 49))
+        check('Stack: each margin its own – latched bottom right, it sits 1% in from the right and 10% up from the bottom',
+              abs(mg['bx'] + mg['bw'] - (800 - 5)) < .01 and abs(mg['by'] + mg['bh'] - (500 - 50)) < .01, json.dumps([mg['bx'] + mg['bw'], mg['by'] + mg['bh']]))
         xd = lambda t, ms: pg.evaluate(XST.replace('const sv=createSaver(e,C);', 'C.drift=1;const sv=createSaver(e,C);'), [dict(show='stack', base={}, colours={}, stack=dict(XS, **t)), ms])
         dg = [xd(dict(anchor=a), loc(2026, 9, 30, 8, 3, s)) for a in ('br', 'tl') for s in range(0, 60, 7)]
         check('Stack: drift wanders away from its corner but never past the margin on either side',

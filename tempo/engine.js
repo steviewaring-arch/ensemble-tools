@@ -228,7 +228,9 @@ let lastSize=30;
 function stackBaselines(n,size,sy,capR){const b=[capR*size*sy[0]];for(let l=1;l<n;l++)b.push(b[l-1]+(S.leading-capR)*size*(sy[l-1]+sy[l])/2+capR*size*sy[l]);return b;}
 function layoutBlock(text,salt,W,H,p,cfg){
   const bs=baseSlot(),fb=F(bs),capR=fb.cap/fb.upm,ascR=fb.asc/fb.upm,descR=fb.desc/fb.upm;
-  const m=S.margin/100*Math.min(W,H),availW=Math.max(1,W-2*m),availH=Math.max(1,H-2*m),trk=S.tracking/1000;
+  /* margins: one for every side, or (Tempo 0.9.8) each its own – S.margins, % of the shorter side */
+  const mu=Math.min(W,H)/100,MG=S.margins?{t:S.margins.t*mu,r:S.margins.r*mu,b:S.margins.b*mu,l:S.margins.l*mu}:{t:S.margin*mu,r:S.margin*mu,b:S.margin*mu,l:S.margin*mu};
+  const availW=Math.max(1,W-MG.l-MG.r),availH=Math.max(1,H-MG.t-MG.b),trk=S.tracking/1000;
   const rows=String(text).split('\n').map(l=>Array.from(l));
   let uid=0,vi=0;const occ={};
   /* hooks.face(g) can set a character in a display face (Tempo's faces per numeral) */
@@ -267,7 +269,7 @@ function layoutBlock(text,salt,W,H,p,cfg){
   else{size=Math.min(availW/maxW1,availH/(capR+(n-1)*S.leading));if(S.fit==='cap')size=Math.min(size,S.size/100*W);}
   if(cfg.main)lastSize=size/W*100;
   const bl=stackBaselines(n,size,sy,capR),blockH=bl[n-1];
-  const top=cfg.top!=null?cfg.top:S.valign==='top'?m:S.valign==='bottom'?H-m-blockH:(H-blockH)/2;
+  const top=cfg.top!=null?cfg.top:S.valign==='top'?MG.t:S.valign==='bottom'?H-MG.b-blockH:MG.t+(availH-blockH)/2;
   const lines=L.map((row,li)=>{
     const recs=row.map(g=>{const ord=g.vis?orderVal(g.vi,nv):0,sw=swapState(g,ord,p),ea=swapEase(sw.t),av=AX&&g.vis?axisVal(AX,p,ord):null;
       const w=isD(g.ch)?digOf(g.opt.def.s)*size:S.vReflow?lerp(advAx(sw.a,AX,av)*size,advAx(sw.b,AX,av)*size,ea):advAx(g.opt.def,AX,av)*size;return{g,ord,sw,ea,w,x:0,co:av==null?null:{id:AX.id,c:{[AX.a.tag]:av}}};});
@@ -279,7 +281,7 @@ function layoutBlock(text,salt,W,H,p,cfg){
       /* each glyph sits centred in its record (a figure's cell, or its own advance) */
       const ox=R=>R.x/size+(R.w/size-(R===A?aa:R===B?ab:as))/2,offL=ox(r)-ox(A),offR=ox(B)-ox(r);
       r.x+=opCentre(opProf(fa,A.g.opt.def.r),opProf(fs,r.g.opt.def.r),opProf(fb,B.g.opt.def.r),offL,offR,cap,gapU(r.g))*size;});
-    const ws=x*sx[li];let x0=S.align==='left'?m:S.align==='right'?W-m-ws:(W-ws)/2;
+    const ws=x*sx[li];let x0=S.align==='left'?MG.l:S.align==='right'?W-MG.r-ws:MG.l+(availW-ws)/2;
     /* 0.9.7: left-aligned, the line can line up by its first figure's ink (a leading 1 sits in a wide cell) – it glides as that figure rolls */
     if(S.lead==='ink'&&tab&&S.align==='left'&&recs.length&&recs[0].g.vis&&isD(recs[0].g.ch)){const r=recs[0],s0=r.g.opt.def.s,f0=F(s0),cell=digOf(s0),z=f0.base('0');
       const off=v=>v&&v.s===s0?opInkL(f0,v.r,cell):opInkL(f0,r.g.opt.def.r,cell),sh=lerp(off(r.sw.a),off(r.sw.b),r.ea)-opInkL(f0,z,cell);x0-=sh*size*sx[li];}

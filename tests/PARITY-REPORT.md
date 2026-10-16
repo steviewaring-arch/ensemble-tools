@@ -1,9 +1,9 @@
-# Parity report – Rubato 1.1 and Tempo 0.9.7 vs Rubato v0.8.1
-Run on 15 October 2026 against docs/ as built. 87 results, all accounted for:
+# Parity report – Rubato 1.1 and Tempo 0.9.8 vs Rubato v0.8.1
+Run on 16 October 2026 against docs/ as built. 87 results, all accounted for:
 - 52 byte-identical to the reference – Rubato's fonts, variable axes, sequence transitions, stretch and repeat, GIF and PNG exports and v0.6 font migration; Tempo's settled frames its exported engine draws.
 - the rest within the difference 0.8.1 shows between its own runs.
 - 34 on purpose, named with the reason – from 0.9.6 the separator is set by eye (it moves to sit optically centred), and from 0.9.7 it gets the room its setting asks for (the minutes sit a fixed amount closer).
-`tests/tempo_check.py` 119 of 119, `tests/tempo09_check.py` 39 of 39, `tests/split_check.py` 15 of 15, `tests/licence_check.py` 4 of 4.
+`tests/tempo_check.py` 119 of 119, `tests/tempo09_check.py` 41 of 41, `tests/split_check.py` 15 of 15, `tests/licence_check.py` 4 of 4.
 
 ## t1 – Fonts: styles, variable axes, instances, axis animation, SVG, picker, reload.
 

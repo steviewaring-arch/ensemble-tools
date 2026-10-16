@@ -203,7 +203,7 @@ function bearings(f,id){const key=(f.name||'')+'|'+(f.weight||'')+'|'+id;let r=S
    keep it company. Stacked: one phrase to a line. */
 function wSet(toks,latest,W,H,size){
   const o=C.words,f=baseFace(),bid=baseId(),match=!o.mixed||o.mixed.match!==false;
-  const m=o.margin/100*Math.min(W,H),availW=Math.max(1,(W-2*m)*o.measure/100),trk=o.tracking/1000*size;
+  const M=mgOf(o,W,H,0),availW=Math.max(1,(W-M.l-M.r)*o.measure/100),trk=o.tracking/1000*size;
   let top=0,bot=0;
   const scOf=face=>capScale(face,f,match);
   /* Tracking tightens the core face; every face adds its own tracking from Fonts */
@@ -237,16 +237,16 @@ function wSet(toks,latest,W,H,size){
   const capPx=f.cap/f.upm*size,lead=o.leading*size,n=Math.max(1,lines.length),blockH=capPx+(n-1)*lead;
   /* set to the bottom, the last line's descenders stay inside the margin too */
   const lastL=lines[lines.length-1],lastBot=lastL?Math.max(0,...lastL.us.flatMap(x=>x.ws).map(w=>w.bot||0)):0;
-  const y0=o.valign==='top'?m:o.valign==='bottom'?H-m-blockH-lastBot:(H-blockH)/2;
+  const y0=o.valign==='top'?M.t:o.valign==='bottom'?H-M.b-blockH-lastBot:M.t+(H-M.t-M.b-blockH)/2;
   const map=new Map();let wide=0;
   lines.forEach((l,li)=>{const ws=l.us.flatMap(x=>x.ws),first=ws[0],last=ws[ws.length-1];wide=Math.max(wide,l.w);
-    let x=o.align==='left'?m:o.align==='right'?W-m-l.w:(W-l.w)/2;
+    let x=o.align==='left'?M.l:o.align==='right'?W-M.r-l.w:M.l+(W-M.l-M.r-l.w)/2;
     if(o.optical&&o.align==='left'&&first)x-=bearings(first.face,first.gl[0].id)[0]*size*first.sc/first.face.upm;
     if(o.optical&&o.align==='right'&&last)x+=bearings(last.face,last.gl[last.gl.length-1].id)[1]*size*last.sc/last.face.upm;
     const y=y0+capPx+li*lead;
     for(const w of ws){Object.assign(w,{x,y,li,size});map.set(w.t.k,w);x+=w.w+sp;}});
   if(!top){top=capPx;bot=.22*size;}
-  return{map,words,size,pad:.04*size,top,bot,lead,blockH,wide,availW,availH:H-2*m,forced};
+  return{map,words,size,pad:.04*size,top,bot,lead,blockH,wide,availW,availH:H-M.t-M.b,forced};
 }
 /* Fit: the largest size at which the longest sentence these settings can make
    (a Wednesday the twenty seventh of September, at twelve fifty seven and fifty
@@ -593,6 +593,8 @@ function typeFrame(ctx,W,H,now,K){
    glyph by glyph over every day, date and month they could ever show, so a descender may
    hang into the line below only where nothing is there to touch it. */
 const isStack=()=>C.show==='stack';
+/* margins in px (0.9.8): one for all four sides, or each its own (o.margins: % of the shorter side, like o.margin) */
+function mgOf(o,W,H,dflt){const u=Math.min(W,H)/100,m=o.margins;if(m)return{t:(m.t||0)*u,r:(m.r||0)*u,b:(m.b||0)*u,l:(m.l||0)*u};const v=(o.margin==null?dflt:o.margin)*u;return{t:v,r:v,b:v,l:v};}
 const XDAY={full:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'],short:['Mon','Tues','Weds','Thurs','Fri','Sat','Sun'],three:['Mon','Tue','Wed','Thu','Fri','Sat','Sun']};
 const XMON={full:MONTHS,short:['Jan','Feb','Mar','Apr','May','June','July','Aug','Sept','Oct','Nov','Dec'],three:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']};
 const XSEP={stop:'.',colon:':',comma:',',space:' '};
@@ -719,13 +721,13 @@ function stackFrame(ctx,W,H,now,K){
   if(!f)return;
   const key=(f.name||'')+'|'+JSON.stringify([o.h24,o.zero,o.sep,o.secs,o.day,o.month,o.year,o.dzero,o.dspace,o.lines,o.dayAt,o.gap,o.even,o.tracking,o.tl,o.optical,o.sepSpace,o.lead,o.font,new Date().getFullYear()]);
   if(key!==xMemoKey){xMemoKey=key;xMemo=xBuild(o,f);xAnim=new Map();}
-  const B=xMemo,m=(o.margin==null?4:o.margin)/100*Math.min(W,H),aw=W-2*m,ah=H-2*m;
+  const B=xMemo,M=mgOf(o,W,H,4),m=Math.min(M.t,M.r,M.b,M.l),aw=W-M.l-M.r,ah=H-M.t-M.b;
   /* drift: a slow wander away from the corner it's latched to (never towards the edge), up to the margin or 2% of the screen –
      room for it is kept in the fit, so the far side never crosses its margin either */
   const dr=(C.drift||0)*Math.max(m,.02*Math.min(W,H));
   const k=Math.max(1e-4,Math.min((aw-dr)*(o.size||70)/100/B.W,(ah-dr)/B.H)),bw=B.W*k,bh=B.H*k,an=o.anchor||'br';
   const T=Date.now()/1000,wx=dr*(.5-.5*Math.cos(T/23.7)),wy=dr*(.5-.5*Math.cos(T/31.3+1));
-  const bx=(an.includes('l')?m+wx:an.includes('r')?W-m-bw-wx:(W-bw)/2+wx-dr/2),by=(an.startsWith('t')?m+wy:an.startsWith('b')?H-m-bh-wy:(H-bh)/2+wy-dr/2);
+  const bx=(an.includes('l')?M.l+wx:an.includes('r')?W-M.r-bw-wx:M.l+(aw-bw)/2+wx-dr/2),by=(an.startsWith('t')?M.t+wy:an.startsWith('b')?H-M.b-bh-wy:M.t+(ah-bh)/2+wy-dr/2);
   const lines=xPlace(o,f,xSet(o,f,z,B.M),B.W);xLast={k,bx,by,B,lines:lines.map(L=>({x:L.x,text:L.gl.map(g=>g.ch).join('')}))};
   const size=k*f.upm,len=Math.max(.05,o.len||.6)*1000,col=r=>P[r]||P.time;
   let base=by+B.topU*k;
@@ -756,7 +758,7 @@ function build(){
   {const k=JSON.stringify((C.words||{}).mixed||null);if(k!==mCfg){mCfg=k;mReset();}}
   if(isWords()||isDial()||isType()||isStack()){S=JSON.parse(JSON.stringify(C.base||{}));S.transparent=false;eng.use(S);eng.setHooks(null);eng.setLive(null);return;}
   const c=C.clock;S=JSON.parse(JSON.stringify(C.base||{}));
-  Object.assign(S,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:c.change!=='roll',fit:'cap',size:c.size,align:c.align,valign:c.valign,margin:c.margin,tabular:c.tabular,optical:c.optical!==false,sepSpace:c.sepSpace==null?1:c.sepSpace,lead:c.lead||'cell',transparent:false,
+  Object.assign(S,{seq:false,rOn:false,tightMask:true,stretch:false,qClear:c.change!=='roll',fit:'cap',size:c.size,align:c.align,valign:c.valign,margin:c.margin,margins:c.margins||null,tabular:c.tabular,optical:c.optical!==false,sepSpace:c.sepSpace==null?1:c.sepSpace,lead:c.lead||'cell',transparent:false,
     tracking:c.tracking!=null?c.tracking:S.tracking,leading:c.leading!=null?c.leading:S.leading,
     qStyle:c.change,qEase:c.feel,qStagger:.3,qDir:'up',qAxis:'vertical',texts:[cur||' ']});
   if(c.move){const k=minutesNow()%4;S.align=CORNERS[k][0];S.valign=CORNERS[k][1];}

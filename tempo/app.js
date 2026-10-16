@@ -40,7 +40,7 @@ function tempoDefaults(){return{ssVer:5,
   /* 0.9.3: Stack – the time and date as a stack of lines, after Steve's Univers mock-up (ssX…) */
   ssXFont:'',ssXH24:true,ssXZero:true,ssXSep:'stop',ssXSecs:true,ssXDay:'full',ssXMonth:'full',ssXYear:'short',ssXDZero:false,ssXDSpace:false,
   ssXLines:'four',ssXDayAt:'figure',ssXGap:.18,ssXEven:true,ssXSize:70,ssXAnchor:'br',ssXMargin:4,ssXTracking:-65,ssXTkTime:0,ssXTkDay:0,ssXTkDate:0,ssXTkYear:0,ssXChange:'roll',ssXFeel:'smooth',ssXLen:.6,
-  ssOptical:true,ssXOptical:true,ssSepSpace:1,ssXSepSpace:1,ssLead:'cell',ssXLead:'cell',ssXBg:'#979C92',ssXTime:'#E9EAEB',ssXDayC:'#343031',ssXDate:'#F69063',ssXYearC:'#6B712F',ssXRotate:false,ssXSet:'',ssXEvery:1};}
+  ssOptical:true,ssXOptical:true,ssMarginEach:false,ssMarginT:8,ssMarginR:8,ssMarginB:8,ssMarginL:8,ssWMarginEach:false,ssWMarginT:6,ssWMarginR:6,ssWMarginB:6,ssWMarginL:6,ssXMarginEach:false,ssXMarginT:4,ssXMarginR:4,ssXMarginB:4,ssXMarginL:4,ssSepSpace:1,ssXSepSpace:1,ssLead:'cell',ssXLead:'cell',ssXBg:'#979C92',ssXTime:'#E9EAEB',ssXDayC:'#343031',ssXDate:'#F69063',ssXYearC:'#6B712F',ssXRotate:false,ssXSet:'',ssXEvery:1};}
 /* (called by shared/core.js before this file's consts exist, so it uses none) */
 function loadSettings(){
   Object.assign(D,tempoDefaults());
@@ -102,7 +102,7 @@ Object.assign(TIPS,{
   ssWCase:'Sentence case capitalises the first word, the day and the month.',
   ssWSep:'What sits between hours and minutes when they’re figures.',ssWHi:'Which words stand out. Latest change follows whatever changed last. Each part gives the time and the date their own colours. Other fonts colours the words set in any font but the core one.',
   ssWSize:'Type size, as a share of the screen width.',ssWLeading:'Distance between lines, as a multiple of the type size.',ssWTracking:'Space between letters, for the core font. Each font’s own tracking is in Fonts.',
-  ssWMeasure:'How far across the screen a line can run before it breaks.',ssWMargin:'Space kept clear around the edge.',
+  ssWMeasure:'How far across the screen a line can run before it breaks.',ssWMargin:'Space kept clear around the edge.',ssMarginEach:'Set the top, right, bottom and left margins separately. They start from the margin above.',ssWMarginEach:'Set the top, right, bottom and left margins separately. They start from the margin above.',ssXMarginEach:'Set the top, right, bottom and left margins separately. They start from the margin above.',
   ssWChange:'How a word changes. Type backspaces and retypes only the letters that differ.',ssWBy:'Change whole words, or only the letters that differ when a word keeps its length.',
   ssWFeel:'Snappy is fast with a crisp stop. Smooth eases. Elastic overshoots.',ssWLen:'How long each change takes.',
   ssWGlide:'Words that stay slide to their new place as the line reflows. Off: they jump.',ssWRotate:'Changes theme on the hour.',
@@ -519,10 +519,20 @@ const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id==
     {t:'seg',k:'ssVAlign',label:'Vertical',opts:[['top','Top'],['middle','Middle'],['bottom','Bottom']],show:s=>clk(s)&&!s.ssMove},
     {t:'toggle',k:'ssMove',label:'Next corner each minute',show:clk},
     {t:'range',k:'ssSize',label:'Size',min:10,max:100,step:1,fmt:v=>'up to '+Math.round(v)+'%',show:clk},
-    {t:'range',k:'ssMargin',label:'Margin',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:clk},
+    {t:'range',k:'ssMargin',label:'Margin',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>clk(s)&&!s.ssMarginEach},
+    {t:'toggle',k:'ssMarginEach',label:'Each side its own',show:clk},
+    {t:'range',k:'ssMarginT',label:'Top',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>clk(s)&&s.ssMarginEach},
+    {t:'range',k:'ssMarginR',label:'Right',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>clk(s)&&s.ssMarginEach},
+    {t:'range',k:'ssMarginB',label:'Bottom',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>clk(s)&&s.ssMarginEach},
+    {t:'range',k:'ssMarginL',label:'Left',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>clk(s)&&s.ssMarginEach},
     {t:'seg',k:'ssWAlign',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],show:wd},
     {t:'seg',k:'ssWVAlign',label:'Vertical',opts:[['top','Top'],['middle','Middle'],['bottom','Bottom']],show:wd},
-    {t:'range',k:'ssWMargin',label:'Margin',min:0,max:15,step:.5,fmt:v=>roundTo(v,.5)+'%',show:wd},
+    {t:'range',k:'ssWMargin',label:'Margin',min:0,max:15,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>wd(s)&&!s.ssWMarginEach},
+    {t:'toggle',k:'ssWMarginEach',label:'Each side its own',show:wd},
+    {t:'range',k:'ssWMarginT',label:'Top',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>wd(s)&&s.ssWMarginEach},
+    {t:'range',k:'ssWMarginR',label:'Right',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>wd(s)&&s.ssWMarginEach},
+    {t:'range',k:'ssWMarginB',label:'Bottom',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>wd(s)&&s.ssWMarginEach},
+    {t:'range',k:'ssWMarginL',label:'Left',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>wd(s)&&s.ssWMarginEach},
     {t:'range',k:'ssDialSize',label:'Size',min:20,max:100,step:1,fmt:v=>Math.round(v)+'% of the screen',show:dl},
     {t:'range',k:'ssTCSize',label:'Size',min:20,max:100,step:1,fmt:v=>'line '+Math.round(v)+'% of the width',show:cols},
     {t:'range',k:'ssTLeading',label:'Line spacing',min:1.1,max:3,step:.05,fmt:v=>v.toFixed(2)+' × cap',show:cols},
@@ -530,7 +540,12 @@ const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id==
     {t:'range',k:'ssTHole',label:'Space in the middle',min:2,max:20,step:.1,fmt:v=>v.toFixed(1)+' × cap',show:rgs},
     {t:'seg',k:'ssXAnchor',label:'Latch to',opts:[['br','Bottom right'],['bl','Bottom left'],['tl','Top left'],['tr','Top right'],['c','Centre']],show:stk},
     {t:'range',k:'ssXSize',label:'Size',min:20,max:100,step:1,fmt:v=>'up to '+Math.round(v)+'% of the width',show:stk},
-    {t:'range',k:'ssXMargin',label:'Margin',min:0,max:20,step:.5,fmt:v=>roundTo(v,.5)+'%',show:stk},
+    {t:'range',k:'ssXMargin',label:'Margin',min:0,max:20,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>stk(s)&&!s.ssXMarginEach},
+    {t:'toggle',k:'ssXMarginEach',label:'Each side its own',show:stk},
+    {t:'range',k:'ssXMarginT',label:'Top',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>stk(s)&&s.ssXMarginEach},
+    {t:'range',k:'ssXMarginR',label:'Right',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>stk(s)&&s.ssXMarginEach},
+    {t:'range',k:'ssXMarginB',label:'Bottom',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>stk(s)&&s.ssXMarginEach},
+    {t:'range',k:'ssXMarginL',label:'Left',min:0,max:25,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>stk(s)&&s.ssXMarginEach},
     {t:'hint',text:'Sized and placed for the widest day, date and month, so nothing moves as they change. Drift moves it slowly away from its corner, never past the margin.',show:stk},
     {t:'range',k:'ssDrift',label:'Drift',min:0,max:1,step:.01,fmt:v=>v===0?'Off':pct(v)},
   ]);
@@ -931,6 +946,8 @@ function presetFromConfig(cfg,name){
   s.ssShow=cfg.show==='words'||cfg.show==='dial'?cfg.show:'clock';put('ssDrift',cfg.drift);
   const c=cfg.clock||{},N=c.mixed;
   if(N){MX_MAP.forEach(([a,k])=>put('ssN'+k.slice(1),N[a]));MN_PARTS.forEach(([a,k])=>put(k,(N.parts||{})[a]));}
+  const sides=(pre,o)=>{if(o&&o.margins){put(pre+'Each',true);[['t','T'],['r','R'],['b','B'],['l','L']].forEach(([a,k])=>put(pre+k,o.margins[a]));}};
+  sides('ssMargin',cfg.clock);sides('ssWMargin',cfg.words);sides('ssXMargin',cfg.stack);
   const w=cfg.words;
   if(w){W_MAP.forEach(([a,k])=>put(k,w[a]));
     if(w.nums)WN_MAP.forEach(([a,k])=>put(k,w.nums[a]));else if(w.num)WN_MAP.forEach(([,k])=>put(k,w.num));
@@ -1050,6 +1067,10 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
    licences (Timeless's) don't allow naming a product after them. */
 function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':cols(S)?'Tempo Columns':rgs(S)?'Tempo Rings':stk(S)?'Tempo Stack':'Tempo';}
 const exportName=()=>(S.ssName||'').trim()||defaultName();
+/* margins (0.9.8): one for all sides, or each side its own. While they're linked, the sides follow the one margin,
+   so turning Each side on starts from where you were. */
+const MARGS=[['ssMargin','ssMarginEach'],['ssWMargin','ssWMarginEach'],['ssXMargin','ssXMarginEach']];
+function marginsOf(pre){const on=S[pre+'Each'];if(!on){for(const k of 'TRBL')S[pre+k]=S[pre];return null;}return{t:S[pre+'T'],r:S[pre+'R'],b:S[pre+'B'],l:S[pre+'L']};}
 function saverConfig(preview){
   /* the words and mixing settings travel in their own blocks below */
   const noW=o=>{for(const k in o)if(/^ssW|^ss[MN][A-Z]|^ssDial|^ssT[A-Z]|^ssX[A-Z]|^ssC(Set|Every)$/.test(k)||k==='ssName')delete o[k];return o;};
@@ -1058,7 +1079,7 @@ function saverConfig(preview){
   const pals=setThemes('clock'),force=preview?previewForce():null;
   return{show:wd(S)?'words':dl(S)?'dial':ty(S)||stk(S)?S.ssShow:'clock',...(force?{force}:{}),
     clock:{h24:S.ssH24,sep:SEPS[S.ssSep]||',',secs:S.ssSecs,zero:S.ssZero,ampm:true,line2:S.ssLine2,caps:S.ssCaps,
-      change:S.ssChange,feel:S.ssFeel,len:S.ssLen,align:S.ssAlign,valign:S.ssVAlign,size:S.ssSize,margin:S.ssMargin,tabular:S.ssTabular,optical:S.ssOptical,sepSpace:S.ssSepSpace,lead:S.ssLead,tracking:S.ssTracking,leading:S.ssLeading,move:S.ssMove,pulse:S.ssPulse,alt:S.ssAlt,altRate:S.ssAltRate,
+      change:S.ssChange,feel:S.ssFeel,len:S.ssLen,align:S.ssAlign,valign:S.ssVAlign,size:S.ssSize,margin:S.ssMargin,margins:marginsOf('ssMargin'),tabular:S.ssTabular,optical:S.ssOptical,sepSpace:S.ssSepSpace,lead:S.ssLead,tracking:S.ssTracking,leading:S.ssLeading,move:S.ssMove,pulse:S.ssPulse,alt:S.ssAlt,altRate:S.ssAltRate,
       mixed:{mode:S.ssNMode,parts:{h1:S.ssNH1,h2:S.ssNH2,m1:S.ssNM1,m2:S.ssNM2,s1:S.ssNS1,s2:S.ssNS2,line2:S.ssNLine2},when:S.ssNWhen,each:S.ssNEach,match:S.ssNMatch,order:S.ssNOrder,amount:S.ssNAmount}},
     colours:{by:S.ssColBy,bg:S.ssBg,p:[S.ssP1,S.ssP2,S.ssP3,S.ssP4],cycle:S.ssRotate!=='off'&&pals.length>0,every:everyOf('clock')},palettes:pals,
     base,drift:S.ssDrift,tracks:tracksNow(),
@@ -1070,7 +1091,7 @@ function saverConfig(preview){
       colours:Object.fromEntries(D_COLS.map(([k,t])=>[t,S[k]])),rotate:S.ssDialRotate,themes:setThemes('dial'),every:everyOf('dial')}}:{}),
     /* only for Stack */
     ...(stk(S)?{stack:{font:stackFont(),h24:S.ssXH24,zero:S.ssXZero,sep:S.ssXSep,secs:S.ssXSecs,day:S.ssXDay,month:S.ssXMonth,year:S.ssXYear,dzero:S.ssXDZero,dspace:S.ssXDSpace,
-      lines:S.ssXLines,dayAt:S.ssXDayAt,gap:S.ssXGap,even:S.ssXEven,size:S.ssXSize,anchor:S.ssXAnchor,margin:S.ssXMargin,tracking:S.ssXTracking,optical:S.ssXOptical,sepSpace:S.ssXSepSpace,lead:S.ssXLead,tl:{time:S.ssXTkTime,day:S.ssXTkDay,date:S.ssXTkDate,year:S.ssXTkYear},change:S.ssXChange,feel:S.ssXFeel,len:S.ssXLen,
+      lines:S.ssXLines,dayAt:S.ssXDayAt,gap:S.ssXGap,even:S.ssXEven,size:S.ssXSize,anchor:S.ssXAnchor,margin:S.ssXMargin,margins:marginsOf('ssXMargin'),tracking:S.ssXTracking,optical:S.ssXOptical,sepSpace:S.ssXSepSpace,lead:S.ssXLead,tl:{time:S.ssXTkTime,day:S.ssXTkDay,date:S.ssXTkDate,year:S.ssXTkYear},change:S.ssXChange,feel:S.ssXFeel,len:S.ssXLen,
       colours:{bg:S.ssXBg,time:S.ssXTime,day:S.ssXDayC,date:S.ssXDate,year:S.ssXYearC},rotate:S.ssXRotate,themes:setThemes('stack'),every:everyOf('stack')}}:{}),
     /* only for Columns and Rings */
     ...(ty(S)?{type:{font:typeFont(),h24:S.ssTH24,secs:S.ssTSecs,zero:S.ssTZero,case:S.ssTCase,parts:{time:S.ssTTime,secs:S.ssTSecs,day:S.ssTDay,date:S.ssTDate,month:S.ssTMonth,year:S.ssTYear},
@@ -1080,7 +1101,7 @@ function saverConfig(preview){
     /* only when showing words */
     ...(wd(S)?{words:{lead:S.ssWLead,h24:S.ssWH24,time:S.ssWTime,secs:S.ssWSecs,weekday:S.ssWWeekday,daynum:S.ssWDayNum,month:S.ssWMonth,year:S.ssWYear,
       stop:S.ssWStop,case:S.ssWCase,nums:{time:S.ssWNumTime,sec:S.ssWNumSec,date:S.ssWNumDate,year:S.ssWNumYear},zero:S.ssWZero,sep:S.ssWSep,layout:S.ssWLayout,fit:S.ssWFit,space:S.ssWSpace,optical:S.ssWOptical,dateCol:S.ssWDateCol,
-      hi:S.ssWHi,size:S.ssWSize,leading:S.ssWLeading,tracking:S.ssWTracking,measure:S.ssWMeasure,align:S.ssWAlign,valign:S.ssWVAlign,margin:S.ssWMargin,
+      hi:S.ssWHi,size:S.ssWSize,leading:S.ssWLeading,tracking:S.ssWTracking,measure:S.ssWMeasure,align:S.ssWAlign,valign:S.ssWVAlign,margin:S.ssWMargin,margins:marginsOf('ssWMargin'),
       change:S.ssWChange,by:S.ssWBy,feel:S.ssWFeel,len:S.ssWLen,glide:S.ssWGlide,bg:S.ssWBg,ink:S.ssWInk,soft:S.ssWSoft,rotate:S.ssWRotate,themes:setThemes('words').map(T=>Object.assign({date:T.soft},T)),every:everyOf('words'),
       mixed:{mode:S.ssMMode,parts:{lead:S.ssMLead,time:S.ssMTime,sec:S.ssMSec,weekday:S.ssMWeekday,day:S.ssMDay,month:S.ssMMonth,year:S.ssMYear},
         when:S.ssMWhen,each:S.ssMEach,little:S.ssMLittle,match:S.ssMMatch,order:S.ssMOrder,amount:S.ssMAmount}}}:{})};
