@@ -514,7 +514,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.10</span></div>
+      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.10.1</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -4459,6 +4459,13 @@ function axisControls(st){
    From 0.3 Tempo stands on its own: its own fonts (IndexedDB 'tempo'), its own
    settings ('tempo:' keys), and nothing read from Rubato. */
 
+/* 0.10.1: if part of the panel fails to build, say so on screen – and carry on, so Export, Presets and the rest still work */
+function initError(where,e){try{console.error(where,e);let bar=document.getElementById('initErr');
+  if(!bar){bar=document.createElement('div');bar.id='initErr';bar.setAttribute('role','alert');
+    bar.style.cssText='position:fixed;left:12px;right:12px;top:12px;z-index:99;padding:10px 14px;border-radius:8px;background:#E5372B;color:#fff;font:13px/1.4 system-ui,sans-serif;white-space:pre-wrap;cursor:pointer';
+    bar.title='Click to hide';bar.onclick=()=>bar.remove();document.body.append(bar);bar.textContent='Something in Tempo went wrong – please send Claude this:';}
+  bar.textContent+='\n'+where+': '+(e&&e.message||e)+(e&&e.stack?' @ '+String(e.stack).split('\n').slice(1,3).map(x=>x.trim()).join(' / '):'');}catch(x){}}
+window.addEventListener('error',ev=>initError('Error',ev.error||ev.message));
 /* ---------------- settings ---------------- */
 let ssDirty=true;/* the preview needs the new settings */
 /* Tempo's settings: the screen saver's (ss…) and its core font (baseSlot). */
@@ -4743,14 +4750,14 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
   ]);
 }
 /* Show */
-{const b=card('ss-show','Screensaver',null,'saver');
+try{const b=card('ss-show','Screensaver',null,'saver');
   build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['columns','Columns'],['rings','Rings'],['stack','Stack'],['dial','As a dial']]}]);
   toIsland(b.firstChild);hideCard(b);/* the first choice – the time in figures, in words, or as a dial – lives in the island */
-}
+}catch(e){initError('ss-show',e);}
 /* A dial has no type, so Fonts steps aside */
 {const fc=controls.find(c=>c.w===fontList.closest('section'));if(fc){const was=fc.d.show;fc.d.show=s=>was(s)&&!dl(s);}}
 /* In words: what the sentence says */
-{const b=card('ss-wsay','Sentence',wd,'saver');
+try{const b=card('ss-wsay','Sentence',wd,'saver');
   /* every part of the sentence, in reading order, switched on and off like words in a line */
   const PIECES=[['ssWLead','It is'],['ssWTime','Time'],['ssWSecs','Seconds'],['ssWWeekday','Day'],['ssWDayNum','Date'],['ssWMonth','Month'],['ssWYear','Year'],['ssWStop','Full stop']];
   addHint(b,'Click the parts to build your sentence.');
@@ -4773,9 +4780,9 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
     {t:'seg',k:'ssWSep',label:'Separator',opts:[['stop','Full stop'],['colon','Colon']],show:s=>s.ssWTime&&s.ssWNumTime==='figures'},
     {t:'seg',k:'ssWZero',label:'Say 0 as',opts:[['oh','Oh'],['zero','Zero']],show:s=>(s.ssWTime&&s.ssWNumTime==='words')||(s.ssWYear&&s.ssWNumYear==='words')},
   ]);
-}
+}catch(e){initError('ss-wsay',e);}
 /* In words: how it's set */
-{const b=card('ss-wtype','Type',wd,'saver');
+try{const b=card('ss-wtype','Type',wd,'saver');
   build(b,[
     {t:'seg',k:'ssWCase',label:'Case',opts:[['sentence','Sentence case'],['lower','lower case'],['upper','CAPITALS']]},
     {t:'seg',k:'ssWHi',label:'Highlight',opts:[['time','The time'],['latest','Latest change'],['parts','Each part'],['faces','Other fonts'],['none','Nothing']]},
@@ -4790,9 +4797,9 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
     {t:'range',k:'ssWMeasure',label:'Line length',min:30,max:100,step:1,fmt:v=>Math.round(v)+'%'},
     {t:'toggle',k:'ssWOptical',label:'Optical margin'},
   ]);
-}
+}catch(e){initError('ss-wtype',e);}
 /* In words: how a change moves */
-{const b=card('ss-wchange','Change',wd,'saver');
+try{const b=card('ss-wchange','Change',wd,'saver');
   build(b,[
     {t:'seg',k:'ssWChange',label:'When a word changes',opts:[['roll','Roll'],['fade','Fade'],['type','Type'],['cut','Cut']]},
     {t:'seg',k:'ssWBy',label:'Change',opts:[['word','Whole words'],['letter','Changed letters']],show:s=>s.ssWChange==='roll'||s.ssWChange==='fade'},
@@ -4802,9 +4809,9 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
   ]);
   const r=el('div','ctl btn-row'),play=el('button','pill small','Play a change');r.append(play);addCustom(b,s=>s.ssWChange!=='cut',r);
   play.onclick=()=>{if(saver&&saver.replay)saver.replay();};
-}
+}catch(e){initError('ss-wchange',e);}
 /* Clock */
-{const b=card('ss-clock','Clock',clk,'saver');
+try{const b=card('ss-clock','Clock',clk,'saver');
   build(b,[
     {t:'seg',k:'ssH24',label:'Format',opts:[[true,'24-hour'],[false,'12-hour']]},
     {t:'seg',k:'ssSep',label:'Separator',opts:[['comma','Comma'],['colon','Colon'],['stop','Full stop'],['space','Space']]},
@@ -4816,9 +4823,9 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
     {t:'range',k:'ssTracking',label:'Tracking',min:-150,max:400,step:5,fmt:v=>(v>0?'+':'')+Math.round(v)},
     {t:'range',k:'ssLeading',label:'Line spacing',min:.6,max:2,step:.01,fmt:v=>v.toFixed(2),show:s=>s.ssLine2!=='none'},
   ]);
-}
+}catch(e){initError('ss-clock',e);}
 /* Numerals */
-{const b=card('ss-num','Numerals',clk,'saver');
+try{const b=card('ss-num','Numerals',clk,'saver');
   build(b,[
     {t:'seg',k:'ssAlt',label:'Alternates',opts:[['off','Off'],['each','New one each change'],['cycle','Keep cycling']]},
     {t:'range',k:'ssAltRate',label:'Changes per minute',min:1,max:60,step:1,show:s=>s.ssAlt==='cycle'},
@@ -4829,15 +4836,15 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
     {t:'seg',k:'ssLead',label:'A leading 1',opts:[['cell','In its cell'],['ink','On the edge']],show:s=>clk(s)&&s.ssTabular},
     {t:'hint',text:'Fixed-width numerals give every figure the same width, so only changed figures move. Turn it off to use the font’s own spacing and kerning.'},
   ]);
-}
+}catch(e){initError('ss-num',e);}
 /* Change */
-{const b=card('ss-change','Change',clk,'saver');
+try{const b=card('ss-change','Change',clk,'saver');
   build(b,[
     {t:'seg',k:'ssChange',label:'When a figure changes',opts:[['roll','Roll'],['stretch','Stretch'],['fade','Fade'],['cut','Cut']]},
     {t:'seg',k:'ssFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:s=>s.ssChange==='roll'||s.ssChange==='stretch'},
     {t:'range',k:'ssLen',label:'Length',min:.15,max:2,step:.05,fmt:v=>v.toFixed(2)+' s',show:s=>s.ssChange!=='cut'},
   ]);
-}
+}catch(e){initError('ss-change',e);}
 /* As a dial (reworked in 0.10). The face's marks, the hands one at a time, the fill, and the layers –
    every element on or off, in any order. Pick a hand (or a kind of mark) and its controls show; the rest stay put. */
 const DIAL_FACES=[['rays','Rays'],['ticks','Ticks'],['dots','Dots'],['custom','Custom'],['none','None']];
@@ -4845,8 +4852,10 @@ const marked=s=>dl(s)&&s.ssDialFace!=='none';
 const preset=s=>marked(s)&&s.ssDialFace!=='custom',custom=s=>dl(s)&&s.ssDialFace==='custom';
 const BLENDS=[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['difference','Difference']];
 const DIAL10_KEYS=Object.keys(tempoDefaults()).filter(k=>/^ssDial([HMS](Style|Len|From|Round|Taper|Dot|A|Blend|Move|Speed|Angle|Trail|Arc|TrailA|Echoes)$|HOn$|MOn$|K[MHQ]|MarksOn$|RingR$|Order$|CentreOwn$|CentreC$|LenAuto$)/.test(k));
+/* each face's hand lengths, as the saver has them (HANDS) – here early, as the preset code uses it */
+const DIAL_LENS={rays:[.36,.66,.99],ticks:[.5,.79,1],dots:[.5,.78,.9],none:[.5,.8,.95],custom:[.5,.8,.95]};
 const num1=v=>roundTo(v,.1).toFixed(1),deg0=v=>Math.round(v)+'°',ofR=v=>Math.round(v*100)+'%';
-{const b=card('ss-dface','Face',dl,'saver');
+try{const b=card('ss-dface','Face',dl,'saver');
   build(b,[
     {t:'seg',k:'ssDialFace',label:'Marks',opts:DIAL_FACES},
     {t:'seg',k:'ssDialDetail',label:'Detail',opts:[['minutes','Minutes'],['hours','Hours'],['quarters','Quarters']],show:preset},
@@ -4875,9 +4884,9 @@ const num1=v=>roundTo(v,.1).toFixed(1),deg0=v=>Math.round(v)+'°',ofR=v=>Math.ro
     {t:'range',k:'ssDialLine',label:'Minute marks',min:.5,max:80,step:.1,fmt:num1,show:s=>preset(s)&&s.ssDialDetail==='minutes'},
     {t:'range',k:'ssDialKey',label:'Hours, quarters and ring',min:.5,max:80,step:.1,fmt:num1,show:s=>preset(s)||(dl(s)&&s.ssDialRing)},
   ]);
-}
+}catch(e){initError('ss-dface',e);}
 /* As a dial: the hands – one at a time, then what they share */
-{const b=card('ss-dhands','Hands',dl,'saver');
+try{const b=card('ss-dhands','Hands',dl,'saver');
   build(b,[{t:'seg',k:'ssDialEdit',label:'Hand',opts:[['h','Hour'],['m','Minute'],['s','Second']]}]);
   for(const [X,name,wk,onk] of [['H','hour','ssDialHand','ssDialHOn'],['M','minute','ssDialWM','ssDialMOn'],['S','second','ssDialWS','ssDialSecs']]){
     const on=s=>dl(s)&&s.ssDialEdit===X.toLowerCase(),vis=s=>on(s)&&s[onk],hand=s=>vis(s)&&s['ssDial'+X+'Style']==='hand',dot=s=>vis(s)&&s['ssDial'+X+'Style']==='dot';
@@ -4931,9 +4940,9 @@ const num1=v=>roundTo(v,.1).toFixed(1),deg0=v=>Math.round(v)+'°',ofR=v=>Math.ro
     {t:'toggle',k:'ssDialCentreOwn',label:'Its own colour',show:s=>s.ssDialCentre},
     {t:'hint',text:'Otherwise it takes the second hand’s colour (the minute hand’s with no second hand). Its own colour is under Colour.',show:s=>s.ssDialCentre},
   ]);
-}
+}catch(e){initError('ss-dhands',e);}
 /* As a dial: the fill – a colour sweeping round the face like a pie chart (its own card from 0.9.1; where it sits is under Layers from 0.10) */
-{const b=card('ss-dfill','Fill',dl,'saver');const fill=s=>dl(s)&&s.ssDialFill!=='off';
+try{const b=card('ss-dfill','Fill',dl,'saver');const fill=s=>dl(s)&&s.ssDialFill!=='off';
   build(b,[
     {t:'seg',k:'ssDialFill',label:'Fill follows',opts:[['off','Off'],['hour','Hour hand'],['minute','Minute hand'],['second','Second hand']]},
     {t:'seg',k:'ssDialFillStyle',label:'Moves',opts:[['sweep','Sweep'],['steps','In sections'],['fade','Fading sections']],show:fill},
@@ -4943,7 +4952,7 @@ const num1=v=>roundTo(v,.1).toFixed(1),deg0=v=>Math.round(v)+'°',ofR=v=>Math.ro
     {t:'seg',k:'ssDialFillBlend',label:'Blend',opts:BLENDS,show:fill},
     {t:'hint',text:'Sixty sections for the minute and second hands, twelve for the hour. Its colour is under Colour; where it sits, under Layers.',show:fill},
   ]);
-}
+}catch(e){initError('ss-dfill',e);}
 /* As a dial: the layers – every element on or off, and in what order (top of the list is in front) */
 const LAYER_NAMES={fill:'Fill',marks:'Marks',ring:'Outer ring',hour:'Hour hand',minute:'Minute hand',second:'Second hand',centre:'Centre dot'};
 const ORDER0={marks:['fill','marks','ring','hour','minute','second','centre'],hands:['marks','fill','ring','hour','minute','second','centre'],front:['marks','ring','hour','minute','second','centre','fill']};
@@ -4952,7 +4961,7 @@ const dialOrder=()=>{const o=String(S.ssDialOrder||'').split(',').filter(k=>LAYE
 const LAYER_ON={fill:[s=>s.ssDialFill!=='off',v=>{if(v)set('ssDialFill',S.ssDialFillLast||'minute');else{S.ssDialFillLast=S.ssDialFill;set('ssDialFill','off');}}],
   marks:[s=>s.ssDialMarksOn!==false,v=>set('ssDialMarksOn',v)],ring:[s=>!!s.ssDialRing,v=>set('ssDialRing',v)],hour:[s=>s.ssDialHOn!==false,v=>set('ssDialHOn',v)],
   minute:[s=>s.ssDialMOn!==false,v=>set('ssDialMOn',v)],second:[s=>!!s.ssDialSecs,v=>set('ssDialSecs',v)],centre:[s=>!!s.ssDialCentre,v=>set('ssDialCentre',v)]};
-{const b=card('ss-dlayers','Layers',dl,'saver');
+try{const b=card('ss-dlayers','Layers',dl,'saver');
   const list=el('div','layer-list');list.setAttribute('role','list');b.append(list);
   const reset=el('button','pill small','Reset the order');reset.type='button';reset.onclick=()=>set('ssDialOrder','');
   const foot=el('div','layer-foot');foot.append(reset);b.append(foot);
@@ -4967,12 +4976,12 @@ const LAYER_ON={fill:[s=>s.ssDialFill!=='off',v=>{if(v)set('ssDialFill',S.ssDial
       const dn=el('button','layer-mv down','↓');dn.type='button';dn.setAttribute('aria-label','Send back – '+LAYER_NAMES[k]);dn.disabled=i===o.length-1;dn.onclick=()=>move(k,1);
       row.append(eye,nm,up,dn);list.append(row);});};
   controls.push({d:{},w:list,update:paint});
-}
+}catch(e){initError('ss-dlayers',e);}
 /* Columns and Rings: the words */
 /* The font: chosen here, or Timeless Sans Medium when it's loaded (as drawn), else the core font */
 const typeFontAuto=()=>{const L=eng.faceList(),n=x=>x.face.name||'';return(L.find(x=>/timeless/i.test(n(x))&&/medium/i.test(n(x))&&!/grotesk/i.test(n(x)))||L.find(x=>/medium/i.test(n(x)))||{}).id||baseSlot();};
 const typeFont=()=>{const id=S.ssTFont;return id&&eng.faceList().some(x=>x.id===id)?id:typeFontAuto();};
-{const b=card('ss-twords','Words',ty,'saver');
+try{const b=card('ss-twords','Words',ty,'saver');
   const PIECES=[['ssTTime','Time'],['ssTSecs','Seconds'],['ssTDay','Day'],['ssTDate','Date'],['ssTMonth','Month'],['ssTYear','Year']];
   const chips=el('div','ctl btn-row');chips.setAttribute('role','group');chips.setAttribute('aria-label','Columns shown');addCustom(b,cols,chips);
   const cs=PIECES.map(([k,t])=>{const p=el('button','pill small',t);p.onclick=()=>set(k,!S[k]);chips.append(p);return[k,p];});
@@ -4996,19 +5005,19 @@ const typeFont=()=>{const id=S.ssTFont;return id&&eng.faceList().some(x=>x.id===
     {t:'range',k:'ssTSpace',label:'Space between',min:40,max:300,step:1,fmt:v=>Math.round(v)+'% of a word space'},
   ]);
   build(b,[{t:'hint',text:'Always this computer’s own time and date, wherever the screen saver is installed.'}]);
-}
-{const b=card('ss-tchange','Change',ty,'saver');
+}catch(e){initError('ss-twords',e);}
+try{const b=card('ss-tchange','Change',ty,'saver');
   build(b,[
     {t:'seg',k:'ssTFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']]},
     {t:'range',k:'ssTLen',label:'Length',min:.15,max:2,step:.05,fmt:v=>v.toFixed(2)+' s'},
     {t:'seg',k:'ssTFar',label:'The other words',opts:[['all','All shown'],['fade','Fade with distance']]},
   ]);
-}
+}catch(e){initError('ss-tchange',e);}
 /* Stack (0.9.3): what each line says, how the lines sit, and how a change moves.
    Univers Next Pro Light when it's loaded (Font: Univers, if loaded), as drawn. */
 const stackFontAuto=()=>{const L=eng.faceList(),n=x=>x.face.name||'';return(L.find(x=>/univers/i.test(n(x))&&/light/i.test(n(x)))||L.find(x=>/univers/i.test(n(x)))||{}).id||baseSlot();};
 const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id===id)?id:stackFontAuto();};
-{const b=card('ss-xsay','Lines',stk,'saver');
+try{const b=card('ss-xsay','Lines',stk,'saver');
   build(b,[
     {t:'seg',k:'ssXLines',label:'Lines',opts:[['four','Four, as drawn'],['five','Five'],['three','Three']]},
     {t:'hint',text:'Four: the time, the day, the date run into the month, the year. Five gives the month its own line; three puts the year after the month.'},
@@ -5023,8 +5032,8 @@ const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id==
     {t:'toggle',k:'ssXDSpace',label:'Space between the date and the month'},
   ]);
   addSelect(b,{k:'ssXFont',label:'Font',optsFn:()=>[['','Univers, if loaded']].concat(faceOpts())});
-}
-{const b=card('ss-xset','Setting',stk,'saver');
+}catch(e){initError('ss-xsay',e);}
+try{const b=card('ss-xset','Setting',stk,'saver');
   build(b,[
     {t:'seg',k:'ssXDayAt',label:'The day sits',opts:[['figure','Under the last figure'],['left','Flush left'],['right','Flush right']]},
     {t:'range',k:'ssXTracking',label:'Tracking',min:-150,max:100,step:1,fmt:v=>(v>0?'+':'')+Math.round(v)},
@@ -5044,9 +5053,9 @@ const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id==
     {t:'seg',k:'ssXFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:s=>stk(s)&&s.ssXChange==='roll'},
     {t:'range',k:'ssXLen',label:'Length',min:.15,max:2,step:.05,fmt:v=>v.toFixed(2)+' s',show:s=>stk(s)&&s.ssXChange!=='cut'},
   ]);
-}
+}catch(e){initError('ss-xset',e);}
 /* Position */
-{const b=card('ss-pos','Position',null,'saver');
+try{const b=card('ss-pos','Position',null,'saver');
   build(b,[
     {t:'seg',k:'ssAlign',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],show:s=>clk(s)&&!s.ssMove},
     {t:'seg',k:'ssVAlign',label:'Vertical',opts:[['top','Top'],['middle','Middle'],['bottom','Bottom']],show:s=>clk(s)&&!s.ssMove},
@@ -5082,7 +5091,7 @@ const stackFont=()=>{const id=S.ssXFont;return id&&eng.faceList().some(x=>x.id==
     {t:'hint',text:'Sized and placed for the widest day, date and month, so nothing moves as they change. Drift moves it slowly away from its corner, never past the margin.',show:stk},
     {t:'range',k:'ssDrift',label:'Drift',min:0,max:1,step:.01,fmt:v=>v===0?'Off':pct(v)},
   ]);
-}
+}catch(e){initError('ss-pos',e);}
 /* ================= Colour themes (rebuilt in 0.9) =================
    Every way of showing the time has its own themes: some built in, and your own.
    The Colour card shows them all as tiles drawn in their colours. Click one to use it
@@ -5360,7 +5369,7 @@ panel.addEventListener('click',e=>{const inp=e.target.closest&&e.target.closest(
   picker.open(row,i.value,h=>{i.value=h;i.dispatchEvent(new Event('input',{bubbles:true}));});},true);
 
 /* Export */
-{const b=card('ss-export','Export',null,'saver');
+try{const b=card('ss-export','Export',null,'saver');
   addHint(b,'No font loaded, so exports will use the demo face. Add your font in Fonts first.',s=>!anyLoaded()&&!dl(s));
   const nr=el('div','ctl'),nh=el('div','ctl-head'),nl=el('label',null,'Name'),nm=el('input');nm.type='text';nm.id='c_ssName';nl.htmlFor=nm.id;
   nh.append(nl);const nq=qMark({k:'ssName',label:'Name'});if(nq)nh.append(nq);nr.append(nh,nm);b.append(nr);
@@ -5386,7 +5395,7 @@ panel.addEventListener('click',e=>{const inp=e.target.closest&&e.target.closest(
   howText.innerHTML='<p>Open it in any browser and click to go full screen. It also works with WebViewScreenSaver on a Mac and Lively Wallpaper on Windows, if you already use them.</p>';
   how.append(sm,howText);b.append(how);
   cardToSheet(b,'export');/* Export grows out of the island */
-}
+}catch(e){initError('ss-export',e);}
 /* ================= Presets: screen savers saved to come back to =================
    A preset is every Tempo setting, plus the fonts it uses described by name and
    file (a browser's own font ids mean nothing elsewhere), which of them shuffle
@@ -5556,7 +5565,7 @@ function drawTile(c,p){
   catch(err){console.error(err);x.fillStyle='#888';x.fillRect(0,0,W,H);}}
 /* Exports carry their own preset – every setting, not only those for what it shows – so they open again exactly and nothing is lost */
 function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
-{const b=card('ss-presets','Presets',null,'saver');
+try{const b=card('ss-presets','Presets',null,'saver');
   const status=el('p','p-status');addCustom(b,null,status);
   const actRow=el('div','ctl btn-row'),upd=el('button','pill small primary','Save changes'),dlb=el('button','pill small','Download'),del=el('button','pill small','Delete');actRow.append(upd,dlb,del);addCustom(b,null,actRow);
   const backRow=el('div','ctl btn-row'),back=el('button','pill small','Back to what you had');backRow.append(back);addCustom(b,null,backRow);
@@ -5602,7 +5611,7 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
   function step(){const t=queue.shift();if(!t)return;const p=PRESETS.find(x=>x.id===t.dataset.id)||BUILTIN_P.find(x=>x.id===t.dataset.id);if(p)drawTile(t.querySelector('canvas'),p);setTimeout(step,0);}
   setInterval(()=>{if(!document.hidden&&grid.offsetParent)paintTiles();},60000);
   cardToSheet(b,'presets');/* Presets: bottom right, opening upward */
-}
+}catch(e){initError('ss-presets',e);}
 /* What the screen saver is called: the name typed under Export, else the preset
    open, else Tempo, Tempo Words or Tempo Dial. Never a font's name – some fonts'
    licences (Timeless's) don't allow naming a product after them. */
@@ -5611,7 +5620,6 @@ const exportName=()=>(S.ssName||'').trim()||defaultName();
 /* 0.10: the dial's per-hand, custom-mark and layer settings, for the config. While the face sets the hands' lengths
    (you haven't moved them), they follow it; while the marks are a preset face, the custom marks follow it too –
    so switching to Custom, or moving a length, starts from what you see. */
-const DIAL_LENS={rays:[.36,.66,.99],ticks:[.5,.79,1],dots:[.5,.78,.9],none:[.5,.8,.95],custom:[.5,.8,.95]};
 function dialSync(){const f=S.ssDialFace,cur=['H','M','S'].map(X=>S['ssDial'+X+'Len']),L=f==='custom'?cur:DIAL_LENS[f]||DIAL_LENS.none,auto=String(S.ssDialLenAuto||'');
   /* Custom keeps the lengths it was given – the face you came from */
   if(!auto||auto===cur.join(',')){['H','M','S'].forEach((X,i)=>S['ssDial'+X+'Len']=L[i]);S.ssDialLenAuto=L.join(',');}

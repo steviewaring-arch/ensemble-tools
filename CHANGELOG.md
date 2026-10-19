@@ -1,5 +1,10 @@
 # Changelog
 
+## 19 October 2026 – Tempo 0.10.1
+
+- **Sturdier start-up:** each card in the panel is built on its own, so if one ever fails the rest – Export and Presets included – still work, and a red note says what went wrong (click it to hide). Steve saw Export and Presets stop responding after 0.10; not reproduced here yet – this keeps them working and shows the cause.
+- The dial's hand-length table moved earlier in the file, so the preset code can never reach it before it exists.
+
 ## 19 October 2026 – Tempo 0.10: the dial, element by element
 
 - **Each hand on its own:** pick Hour, Minute or Second and set its reach, where it starts (at the centre, out from it as a floating bar, or behind it as a tail), width (now up to 250 – much thicker), corners (square to fully round, anything between), taper, or draw it as a dot – placed and sized freely. Each has its own opacity and blend.
