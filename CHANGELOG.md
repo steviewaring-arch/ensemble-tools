@@ -1,5 +1,14 @@
 # Changelog
 
+## 19 October 2026 – Tempo 0.10: the dial, element by element
+
+- **Each hand on its own:** pick Hour, Minute or Second and set its reach, where it starts (at the centre, out from it as a floating bar, or behind it as a tail), width (now up to 250 – much thicker), corners (square to fully round, anything between), taper, or draw it as a dot – placed and sized freely. Each has its own opacity and blend.
+- **Motion and trails, hand by hand:** a hand moves with the time or turns freely at its own speed (0 holds it still), so a dial can become pure form and colour. Trails: echoes of the hand fading behind it, or a sweep of colour – length, number of echoes and strength each set.
+- **Custom marks:** minutes, hours and quarters set separately – shown or not, lines (from, to, weight) or dots (where, size), and whether a mark also sits under a bigger one. Custom starts from the marks you had, exactly.
+- **Layers card:** every element – fill, marks, ring, each hand, centre dot – switched on or off and moved up or down. The fill's place now lives here.
+- **Centre dot:** its own colour if you want it; the ring's position can be set too.
+- **Nothing lost:** every earlier setting is still there (Ends became each hand's Corners). Designs made before draw exactly as they did – checked frame for frame across 55 dials.
+
 ## 16 October 2026 – Tempo 0.9.8
 
 - **Each side its own margin** (Position card, for The time, In words and Stack): switch on Each side its own and set top, right, bottom and left separately. They start from the single margin; switch it off and the one margin rules again. Downloads and presets carry them.

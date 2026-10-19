@@ -207,6 +207,25 @@ def main():
         pg.get_by_role('group', name='Show').get_by_role('button', name='As a dial').click(); time.sleep(.5)
         (fn, html), = download(lambda: (sheet(pg, 'export'), btn(pg, 'Download HTML file').click()))
         dcfg = json.loads(html.decode().split('window.__TEMPO__=')[1].split(';</script>')[0])
+        # 0.10: the Layers card – bring the fill forward, switch the marks off; Custom keeps the look; a hand picked shows its controls
+        lay = pg.locator('section.card[data-id=ss-dlayers]')
+        if lay.get_attribute('class') and 'collapsed' in lay.get_attribute('class'): lay.locator('.card-toggle').click(); time.sleep(.2)
+        lay.get_by_role('button', name='Send back – Fill').click(); time.sleep(.2)
+        lay.get_by_role('switch', name='Show – Marks').click(); time.sleep(.2)
+        rows = lay.locator('.layer-name').all_inner_texts()
+        pg.get_by_role('group', name='Marks', exact=True).get_by_role('button', name='Custom').click(); time.sleep(.2)
+        hc = pg.locator('section.card[data-id=ss-dhands]')
+        if 'collapsed' in (hc.get_attribute('class') or ''): hc.locator('.card-toggle').click(); time.sleep(.2)
+        hc.get_by_role('group', name='Hand', exact=True).get_by_role('button', name='Second').click(); time.sleep(.2)
+        sec_ctl = pg.get_by_role('switch', name='Show the second hand').is_visible() and not pg.get_by_role('switch', name='Show the hour hand').is_visible()
+        (fn, html), = download(lambda: (sheet(pg, 'export'), btn(pg, 'Download HTML file').click()))
+        lcfg = json.loads(html.decode().split('window.__TEMPO__=')[1].split(';</script>')[0])['dial']
+        check('Layers: the fill sent back one, the marks switched off, Custom keeps the marks it had, and a hand picked shows only its own controls',
+              rows[1] == 'Fill' and (lcfg['order'] or [''])[-2] == 'fill' and lcfg['marksOn'] is False and lcfg['face'] == 'custom' and lcfg['marks']['h']['to'] < 1 and sec_ctl, json.dumps([rows, lcfg['order'], lcfg['marksOn']]))
+        lay.get_by_role('switch', name='Show – Marks').click(); lay.get_by_role('button', name='Reset the order').click()
+        pg.get_by_role('group', name='Marks', exact=True).get_by_role('button', name='Rays').click(); time.sleep(.2)
+        (fn, html), = download(lambda: (sheet(pg, 'export'), btn(pg, 'Download HTML file').click()))
+        dcfg = json.loads(html.decode().split('window.__TEMPO__=')[1].split(';</script>')[0])
         DRAW = """([C,ms])=>{const R=Date;class D extends R{constructor(...a){if(!a.length)super(ms);else super(...a);}static now(){return ms;}}window.Date=D;
           try{const e=createEngine();const sv=createSaver(e,C);const cv=document.createElement('canvas');cv.width=800;cv.height=500;sv.frame(cv.getContext('2d'),800,500,0,0);return cv.toDataURL();}finally{window.Date=R;}}"""
         t0 = loc(2026, 10, 22, 10, 23, 5)

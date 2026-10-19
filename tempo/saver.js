@@ -402,7 +402,7 @@ function clockFaces(keys,ch){
 /* ---------------- as a dial: no type, only lines ---------------- */
 const isDial=()=>C.show==='dial';
 /* each face's hands – hour, minute, second – as a share of the radius */
-const HANDS={rays:[.36,.66,.99],ticks:[.5,.79,1],dots:[.5,.78,.9],none:[.5,.8,.95]};
+const HANDS={rays:[.36,.66,.99],ticks:[.5,.79,1],dots:[.5,.78,.9],none:[.5,.8,.95],custom:[.5,.8,.95]};
 let dNow={h:0,m:0,s:0};
 const dPalette=()=>{const o=C.dial;if(C.force)return C.force;if(o.rotate&&o.themes&&o.themes.length)return eased(hourTheme(o.themes,o.every));return o.colours;};
 /* how a hand that steps gets there: Snappy lands at once, Smooth eases, Elastic springs and settles */
@@ -417,6 +417,7 @@ function dHands(d){const o=C.dial,ms=d.getMilliseconds(),s=d.getSeconds(),m=d.ge
 /* every mark on the face: which minute it sits on (i), its kind (m minute, h hour,
    q quarter), and where it runs from and to – or, for dots, its radius */
 function dMarks(R,u){const o=C.dial,face=o.face||'rays',det=o.detail||'minutes',every=det==='quarters'?15:det==='hours'?5:1,out=[];
+  if(face==='custom')return dMarksCustom(R,u);
   const kind=i=>i%15===0?'q':i%5===0?'h':'m',lw=o.line||2.2,kw=o.key||2.2;
   for(let i=0;i<60;i+=every){const k=kind(i);
     if(face==='rays'){/* from the space in the middle outwards: hours and quarters stand out nearer the centre */
@@ -428,12 +429,38 @@ function dMarks(R,u){const o=C.dial,face=o.face||'rays',det=o.detail||'minutes',
       const t=Math.max(.02,Math.min(.3,o.tick==null?.18:o.tick));out.push({i,k,a:R*(k==='m'?1-t:k==='h'?Math.max(.06,1-3*t):Math.max(.06,1-5*t)),b:R});}
     else if(face==='dots'){const r=k==='m'?lw*2.2*u:k==='h'?kw*4*u:kw*5.6*u;out.push({i,k,dot:r,c:R-kw*5.6*u});}}
   return out;}
+/* 0.10: Custom marks – minutes, hours and quarters each set on their own: shown or not, a line (from and to, as a
+   share of the radius, and a weight) or a dot (where it sits and its size), and whether it also sits under a bigger mark */
+const MARK_DEF={on:true,shape:'line',from:.85,to:1,w:2.2,at:.95,size:4,under:false};
+function dMarksCustom(R,u){const T=(C.dial.marks)||{},t=k=>Object.assign({},MARK_DEF,T[k]||{}),M=t('m'),Hh=t('h'),Q=t('q'),out=[];
+  const put=(i,k,X)=>{if(X.shape==='dot')out.push({i,k,dot:Math.max(.25,X.size*u),c:X.at*R});else out.push({i,k,a:Math.min(X.from,X.to)*R,b:Math.max(X.from,X.to)*R,lw:X.w});};
+  for(let i=0;i<60;i++){const isQ=i%15===0,isH=i%5===0,qHere=isQ&&Q.on,hHere=isH&&Hh.on&&(!qHere||Hh.under);
+    if(M.on&&(M.under||!(qHere||hHere)))put(i,'m',M);}
+  for(let i=0;i<60;i+=5){const qHere=i%15===0&&Q.on;if(Hh.on&&(Hh.under||!qHere))put(i,'h',Hh);}
+  for(let i=0;i<60;i+=15)if(Q.on)put(i,'q',Q);
+  return out;}
 const dCol=(P,k)=>k==='m'?P.min:k==='h'?P.hour:P.quarter;
 function dDraw(ctx,cx,cy,list,u,col,alpha){const o=C.dial;
   for(const x of list){const a=x.i/60*TAU,s=Math.sin(a),c=Math.cos(a);ctx.globalAlpha=alpha?alpha(x):1;if(ctx.globalAlpha<=.002)continue;
     if(x.dot!=null){ctx.beginPath();ctx.arc(cx+x.c*s,cy-x.c*c,x.dot,0,TAU);ctx.fillStyle=col||dCol(dPal,x.k);ctx.fill();continue;}
-    ctx.beginPath();ctx.moveTo(cx+x.a*s,cy-x.a*c);ctx.lineTo(cx+x.b*s,cy-x.b*c);ctx.strokeStyle=col||dCol(dPal,x.k);ctx.lineWidth=Math.max(.25,(x.k==='m'?o.line||2.2:o.key||2.2)*u);ctx.lineCap='butt';ctx.stroke();}
+    ctx.beginPath();ctx.moveTo(cx+x.a*s,cy-x.a*c);ctx.lineTo(cx+x.b*s,cy-x.b*c);ctx.strokeStyle=col||dCol(dPal,x.k);ctx.lineWidth=Math.max(.25,(x.lw!=null?x.lw:x.k==='m'?o.line||2.2:o.key||2.2)*u);ctx.lineCap='butt';ctx.stroke();}
   ctx.globalAlpha=1;}
+/* 0.10: each hand on its own. Older settings carry one weight per hand (hw), one end shape (cap) and the face's
+   lengths; the new ones a spec per hand (o.hands). Anything a spec leaves out comes from the older settings, so a
+   design made before 0.10 draws exactly as it did. */
+const HAND_DEF={style:'hand',len:null,from:0,taper:0,dot:30,a:1,blend:'inherit',move:'time',speed:1,angle:0,trail:'off',arc:40,trailA:.45,echoes:8};
+function dSpecs(o,face){const L=HANDS[face]||HANDS.none,H=o.hands||{},hw=(o.hw||[o.hand,o.hand,o.hand]).map(v=>v==null?o.hand||6:v),out={};
+  [['h',0],['m',1],['s',2]].forEach(([k,i])=>{const x=Object.assign({},HAND_DEF,{on:k==='s'?!!o.secs:true,w:hw[i],round:o.cap==='round'?1:0},H[k]||{});
+    if(k==='s')x.on=!!o.secs&&x.on!==false;if(x.len==null)x.len=L[i];out[k]=x;});
+  return out;}
+/* where a hand points: with the time, or turning freely (turns a minute, from a starting angle; 0 holds it still) */
+const dAt=(x,t)=>x.move==='turn'?((x.angle||0)/360+(x.speed||0)*Date.now()/6e4)%1:t;
+/* a shape with rounded corners, each its own radius */
+function rPoly(ctx,pts,rs){const n=pts.length;ctx.beginPath();
+  const mid=(a,b)=>[(a[0]+b[0])/2,(a[1]+b[1])/2],m0=mid(pts[n-1],pts[0]);ctx.moveTo(m0[0],m0[1]);
+  for(let i=0;i<n;i++){const p=pts[i],q=pts[(i+1)%n];ctx.arcTo(p[0],p[1],q[0],q[1],Math.max(0,rs[i]));}
+  ctx.closePath();}
+const hexA=(h,a)=>{const v=String(h||'#000').replace('#','');const n=parseInt(v.length===3?v.split('').map(c=>c+c).join(''):v.slice(0,6),16);return'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+Math.max(0,Math.min(1,a))+')';};
 let dPal=null;
 function dialFrame(ctx,W,H,K){
   const o=C.dial,P=dPal=dPalette();S.bg=P.bg;
@@ -457,29 +484,53 @@ function dialFrame(ctx,W,H,K){
       let run=-1;for(let i=0;i<=n;i++){let v=i===n?0:st==='fade'?Math.max(0,Math.min(1,at-i)):(i<Math.floor(at+1e-9)?1:0);if(empty&&i<n)v=1-v;
         if(v>=1){if(run<0)run=i;continue;}if(run>=0){wedge(run/n,i/n,1);run=-1;}if(i<n&&v>0)wedge(i/n,(i+1)/n,v);}}
     ctx.restore();};
-  if(fillOn&&layer==='marks')drawFill();
-  /* the minutes first, then the hours and quarters over them */
-  for(const k of ['m','h','q'])dDraw(ctx,cx,cy,marks.filter(x=>x.k===k),u);
-  if(fillOn&&layer==='hands')drawFill();
-  /* the marks the second hand has passed: filling the minute, or fading behind it */
-  if(o.secs&&o.trail&&o.trail!=='off'&&marks.length){const at=pos.s*60;
-    dDraw(ctx,cx,cy,marks,u,P.handS,o.trail==='fill'?x=>x.i<=at+1e-6?1:0:x=>{const age=((at-x.i)%60+60)%60;return Math.max(0,1-age/12);});}
-  if(o.ring){ctx.beginPath();ctx.arc(cx,cy,R,0,TAU);ctx.strokeStyle=P.hour;ctx.lineWidth=Math.max(.25,(o.key||2.2)*u);ctx.stroke();}
-  /* the hands, seconds on top */
+  const drawMarks=()=>{
+    /* the minutes first, then the hours and quarters over them */
+    for(const k of ['m','h','q'])dDraw(ctx,cx,cy,marks.filter(x=>x.k===k),u);
+    /* the marks the second hand has passed: filling the minute, or fading behind it */
+    if(o.secs&&o.trail&&o.trail!=='off'&&marks.length){const at=pos.s*60;
+      dDraw(ctx,cx,cy,marks,u,P.handS,o.trail==='fill'?x=>x.i<=at+1e-6?1:0:x=>{const age=((at-x.i)%60+60)%60;return Math.max(0,1-age/12);});}};
+  const drawRing=()=>{ctx.beginPath();ctx.arc(cx,cy,Math.max(.01,o.ringR==null?1:o.ringR)*R,0,TAU);ctx.strokeStyle=P.hour;ctx.lineWidth=Math.max(.25,(o.key||2.2)*u);ctx.stroke();};
   /* the hands: each its own weight (0.9), square or round ends, a dot or ring at
-     the tip, a counterweight on the second hand, and their own opacity and blend */
-  const L=HANDS[face]||HANDS.none,hws=(o.hw||[o.hand,o.hand,o.hand]).map(v=>Math.max(.25,(v==null?o.hand||6:v)*u)),hw=hws[0];
-  const tipOn=o.tip&&o.tip!=='none'?(o.tipOn||'m'):'',tipR=Math.max(1,(o.tipSize||3)*u*4);
-  ctx.save();ctx.globalAlpha=o.handA==null?1:o.handA;ctx.globalCompositeOperation=o.blend&&o.blend!=='normal'?o.blend:'source-over';
-  const hand=(p,len,col,w,k)=>{const a=p*TAU,s=Math.sin(a),c=Math.cos(a),cw=k==='s'&&o.weight,tail=o.tails||cw?(cw?.15:.06)*R:0;
-    ctx.beginPath();ctx.moveTo(cx-tail*s,cy+tail*c);ctx.lineTo(cx+len*R*s,cy-len*R*c);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap=o.cap==='round'?'round':'butt';ctx.stroke();
-    if(cw){ctx.beginPath();ctx.arc(cx-tail*s,cy+tail*c,Math.max(w*2.6,10*u),0,TAU);ctx.fillStyle=col;ctx.fill();}
-    if(tipOn&&(tipOn==='all'||tipOn.includes(k))){const tx=cx+len*R*s,ty=cy-len*R*c;ctx.beginPath();ctx.arc(tx,ty,tipR,0,TAU);
-      if(o.tip==='ring'){ctx.fillStyle=P.bg;ctx.fill();ctx.lineWidth=Math.max(.5,w*.7);ctx.strokeStyle=col;ctx.stroke();}else{ctx.fillStyle=col;ctx.fill();}}};
-  hand(pos.h,L[0],P.handH,hws[0],'h');hand(pos.m,L[1],P.handM,hws[1],'m');if(o.secs)hand(pos.s,L[2],P.handS,hws[2],'s');
-  if(o.centre){ctx.beginPath();ctx.arc(cx,cy,Math.max(hw,hws[1])*(o.centreSize||2.2),0,TAU);ctx.fillStyle=o.secs?P.handS:P.handM;ctx.fill();}
-  ctx.restore();
-  if(fillOn&&layer==='front')drawFill();
+     the tip, a counterweight on the second hand, and their own opacity and blend.
+     0.10: each its own length, start, corners and taper – or a dot – its own opacity and blend, and a trail */
+  const SP=dSpecs(o,face),COL={h:P.handH,m:P.handM,s:P.handS},TIME={h:pos.h,m:pos.m,s:pos.s};
+  const tipOn=o.tip&&o.tip!=='none'?(o.tipOn||'m'):'',tipR=Math.max(1,(o.tipSize||3)*u*4),gA=o.handA==null?1:o.handA,gB=o.blend&&o.blend!=='normal'?o.blend:'source-over';
+  /* one hand's shape at a turn p (no colour or alpha set here) */
+  const shape=(k,x,p,col)=>{const a=p*TAU,s=Math.sin(a),c=Math.cos(a),w=Math.max(.25,x.w*u);
+    if(x.style==='dot'){ctx.beginPath();ctx.arc(cx+x.len*R*s,cy-x.len*R*c,Math.max(.5,x.dot*u),0,TAU);ctx.fillStyle=col;ctx.fill();return;}
+    const cw=k==='s'&&o.weight,tail=(o.tails||cw)&&x.from<=0?(cw?.15:.06)*R:0,r0=x.from*R-tail,r1=x.len*R,rd=Math.max(0,Math.min(1,x.round)),tp=Math.max(0,Math.min(1,x.taper||0));
+    if(tp===0&&(rd===0||rd===1)){/* as drawn before 0.10, stroke for stroke */
+      ctx.beginPath();ctx.moveTo(cx+r0*s,cy-r0*c);ctx.lineTo(cx+r1*s,cy-r1*c);ctx.strokeStyle=col;ctx.lineWidth=w;ctx.lineCap=rd===1?'round':'butt';ctx.stroke();}
+    else{const w1=w*(1-tp),e0=rd*w/2,e1=rd*w1/2;
+      ctx.save();ctx.translate(cx,cy);ctx.rotate(a);
+      rPoly(ctx,[[-w/2,-(r0-e0)],[-w1/2,-(r1+e1)],[w1/2,-(r1+e1)],[w/2,-(r0-e0)]],[e0,e1,e1,e0]);ctx.fillStyle=col;ctx.fill();ctx.restore();}
+    if(cw){ctx.beginPath();ctx.arc(cx-tail*s,cy+tail*c,Math.max(w*2.6,10*u),0,TAU);ctx.fillStyle=col;ctx.fill();}};
+  const drawHand=k=>{const x=SP[k];if(!x.on)return;const p=dAt(x,TIME[k]),col=COL[k];
+    ctx.save();ctx.globalCompositeOperation=x.blend&&x.blend!=='inherit'?(x.blend==='normal'?'source-over':x.blend):gB;const A=gA*(x.a==null?1:x.a);
+    /* the trail first, under the hand: echoes of it falling behind, or a sweep fading out behind it */
+    if(x.trail==='echo'){const n=Math.max(1,Math.round(x.echoes||8)),arc=(x.arc||0)/360;
+      for(let j=n;j>=1;j--){ctx.globalAlpha=A*(x.trailA==null?.45:x.trailA)*(1-j/(n+1));shape(k,x,p-arc*j/n,col);}}
+    else if(x.trail==='sweep'&&(x.arc||0)>0){const arc=Math.min(359.9,x.arc)/360,r0=x.style==='dot'?Math.max(0,x.len*R-x.dot*u):Math.max(0,x.from*R),r1=x.style==='dot'?x.len*R+x.dot*u:x.len*R;
+      const c0=(p-arc)*TAU-Math.PI/2,c1=p*TAU-Math.PI/2;ctx.globalAlpha=A;
+      if(ctx.createConicGradient){const g=ctx.createConicGradient(c0,cx,cy);g.addColorStop(0,hexA(col,0));g.addColorStop(arc,hexA(col,x.trailA==null?.45:x.trailA));g.addColorStop(Math.min(1,arc+1e-4),hexA(col,0));ctx.fillStyle=g;}
+      else{ctx.fillStyle=col;ctx.globalAlpha=A*(x.trailA==null?.45:x.trailA)*.5;}
+      ctx.beginPath();ctx.arc(cx,cy,r1,c0,c1);ctx.arc(cx,cy,r0,c1,c0,true);ctx.closePath();ctx.fill();}
+    ctx.globalAlpha=A;shape(k,x,p,col);
+    if(x.style!=='dot'&&tipOn&&(tipOn==='all'||tipOn.includes(k))){const a=p*TAU,tx=cx+x.len*R*Math.sin(a),ty=cy-x.len*R*Math.cos(a),w=Math.max(.25,x.w*u);ctx.beginPath();ctx.arc(tx,ty,tipR,0,TAU);
+      if(o.tip==='ring'){ctx.fillStyle=P.bg;ctx.fill();ctx.lineWidth=Math.max(.5,w*.7);ctx.strokeStyle=col;ctx.stroke();}else{ctx.fillStyle=col;ctx.fill();}}
+    ctx.restore();};
+  /* the centre dot: its own colour from 0.10 (before, the second hand's – or the minute hand's with no second hand) */
+  const drawCentre=()=>{const hw0=Math.max(.25,SP.h.w*u),hw1=Math.max(.25,SP.m.w*u);ctx.save();ctx.globalAlpha=gA;ctx.globalCompositeOperation=gB;
+    ctx.beginPath();ctx.arc(cx,cy,Math.max(hw0,hw1)*(o.centreSize||2.2),0,TAU);ctx.fillStyle=o.centreOwn?(P.centre||(o.colours&&o.colours.centre)||P.handS):(o.secs?P.handS:P.handM);ctx.fill();ctx.restore();};
+  /* 0.10: the layers, bottom to top – set in the Layers card; before, the fill's place (o.fillLayer) set the order */
+  const ORDER0={marks:['fill','marks','ring','hour','minute','second','centre'],hands:['marks','fill','ring','hour','minute','second','centre'],front:['marks','ring','hour','minute','second','centre','fill']};
+  let order=Array.isArray(o.order)&&o.order.length?o.order.slice():ORDER0[layer]||ORDER0.front.slice();
+  for(const k of ORDER0.front)if(!order.includes(k))order.push(k);
+  const DRAW={fill:()=>{if(fillOn)drawFill();},marks:()=>{if(o.marksOn!==false)drawMarks();},ring:()=>{if(o.ring)drawRing();},
+    hour:()=>drawHand('h'),minute:()=>drawHand('m'),second:()=>drawHand('s'),centre:()=>{if(o.centre)drawCentre();}};
+  for(const k of order)if(DRAW[k])DRAW[k]();
+  ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
 }
 /* ---------------- Columns and Rings: the time as lists of words (0.9) ----------------
    Columns: hour, minutes, seconds, day, date, month and year, each a column of every

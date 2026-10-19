@@ -498,14 +498,14 @@ def main():
         # 9. Tempo 0.5: As a dial – no type, only lines
         pg.get_by_role('group', name='Show').get_by_role('button', name='As a dial').click(); wait(300); pg.evaluate(expand)
         cards = [t.split('\n')[0] for t in pg.locator('section.card:visible h2').all_inner_texts()]
-        check('As a dial: its own cards, and Fonts steps aside', cards == ['Face', 'Fill', 'Hands', 'Position', 'Colour', 'Promo'], json.dumps(cards))
+        check('As a dial: its own cards, and Fonts steps aside', cards == ['Face', 'Hands', 'Fill', 'Layers', 'Position', 'Colour', 'Promo'], json.dumps(cards))
         dcol = pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour'))
         dthemes = dcol.locator('.theme-tile').evaluate_all('ts=>ts.map(t=>t.getAttribute("aria-label"))')
         check('Dial colour themes, Paper (after the red-handed drawing) first and chosen', dthemes == ['Paper', 'Dawn', 'Noon', 'Night', 'Signal'] and dcol.get_by_role('button', name='Paper', exact=True).get_attribute('aria-pressed') == 'true', json.dumps(dthemes))
         check('The panel names no font and no demo face for a dial', 'Demo face' not in pg.locator('#note').inner_text() and 'demo face' not in pg.locator('#panel').inner_text())
         dhtml, dfn = download(lambda: btn(pg, 'Download HTML file').click()); dcfg = config(dhtml)
         check('Dial export: named Tempo Dial, carries the dial and no fonts', dcfg['show'] == 'dial' and dcfg['fonts'] == [] and dcfg['dial']['face'] == 'rays' and 'words' not in dcfg
-              and dfn == 'tempo-dial-screensaver.html' and not re.search(r'"ssDial', json.dumps(dcfg['base'])) and 'fonts.googleapis' not in dhtml.decode() and len(dhtml) < 120000, f'{dfn}, {len(dhtml)} bytes')
+              and dfn == 'tempo-dial-screensaver.html' and not re.search(r'"ssDial', json.dumps(dcfg['base'])) and 'fonts.googleapis' not in dhtml.decode() and len(dhtml) < 140000, f'{dfn}, {len(dhtml)} bytes')
         def dial(over, times, W=1680, H=1050):
             c = json.loads(json.dumps(dcfg)); c['dial'].update(over)
             return pg.evaluate(DIAL, [c, times, W, H])
@@ -530,6 +530,24 @@ def main():
         base_png = dial({}, [t0])[0]['png']
         diff = [dial(o, [t0])[0]['png'] != base_png for o in ({'trail': 'fill'}, {'trail': 'fade'}, {'ring': True}, {'line': 8}, {'key': 8}, {'hw': [14, 14, 14]}, {'tails': False}, {'centre': True}, {'hole': .4}, {'size': 60}, {'secs': False})]
         check('Trail, ring, line weights, tails, centre dot, space in the middle, size and the second hand each change the frame', all(diff), json.dumps(diff))
+        # 0.10: each hand on its own, custom marks, layers – each changes the frame; Custom with the rays' marks draws the rays
+        H0 = dcfg['dial']['hands']
+        hs = lambda k, **kw: {'hands': dict(H0, **{k: dict(H0[k], **kw)})}
+        new = [hs('m', style='dot', dot=60), hs('h', **{'from': .3}), hs('m', round=.5), hs('h', taper=.7), hs('m', a=.4), hs('m', blend='multiply'), hs('m', trail='echo', arc=90),
+               hs('s', trail='sweep', arc=120), hs('h', on=False), hs('m', len=.4), {'marksOn': False}, {'ring': True, 'ringR': .6},
+               {'centre': True, 'centreOwn': True, 'colours': dict(dcfg['dial']['colours'], centre='#00FF00')}]
+        d2 = [dial(o, [t0])[0]['png'] != base_png for o in new]
+        check('0.10: a dot for a hand, its start, corners, taper, opacity, blend, echoes and sweep, a hand off, its reach, marks off, the ring’s reach and the centre’s own colour each change the frame', all(d2), json.dumps(d2))
+        fm = {'fill': 'minute', 'fillLayer': 'marks'}
+        check('0.10: Layers – the fill moved in front of the hands draws differently from behind the marks',
+              dial(fm, [t0])[0]['png'] != dial(dict(fm, order=['marks', 'ring', 'hour', 'minute', 'second', 'centre', 'fill']), [t0])[0]['png'])
+        a = .22; rays = {'m': dict(on=True, shape='line', **{'from': a}, to=1, w=2.2, under=True), 'h': dict(on=True, shape='line', **{'from': a}, to=a + .6 * (1 - a), w=2.2, under=True),
+                         'q': dict(on=True, shape='line', **{'from': a}, to=a + .26 * (1 - a), w=2.2, under=False)}
+        check('0.10: Custom marks set like the rays draw exactly the rays', dial({'face': 'custom', 'marks': rays}, [t0])[0]['png'] == base_png)
+        still = {'secs': False, 'hands': dict(H0, h=dict(H0['h'], move='turn', speed=0, angle=300), m=dict(H0['m'], move='turn', speed=0, angle=90))}
+        nod = lambda over: pg.evaluate(DIAL, [dict(dcfg, drift=0, dial=dict(dcfg['dial'], **over)), [t0, t0 + 15000], 1680, 1050])  # no drift: only the hands may move
+        r = nod(still); r2 = nod(dict(still, hands=dict(still['hands'], m=dict(H0['m'], move='turn', speed=1, angle=0))))
+        check('0.10: a hand turning freely moves at its own speed; speed 0 holds it still', r[0]['png'] == r[1]['png'] and r2[0]['png'] != r2[1]['png'])
         th = dcfg['dial']['themes']; r = dial({'rotate': True}, [utc(2026, 10, 28, h, 0, 0) + d for h in range(5) for d in (0, 2000)])[1::2]  # 0.9: the colours fade across over 1.5 s on the hour
         check('Change theme every hour runs through the dial themes', [x['bg'] for x in r] == [th[h % len(th)]['bg'] for h in range(5)], json.dumps([x['bg'] for x in r]))
         p3 = ctx.new_page(); e3 = []

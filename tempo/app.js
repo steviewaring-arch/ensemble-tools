@@ -36,6 +36,9 @@ function tempoDefaults(){return{ssVer:5,
   ssTCSize:60,ssTRSize:71,ssTLeading:1.6,ssTHole:7.8,ssTSplit:false,ssTFeel:'smooth',ssTLen:.6,ssTFar:'all',
   ssTBg:'#FFFFFF',ssTInk:'#000000',ssTSoft:'#D2CDC9',ssTRotate:false,ssTSet:'',ssTEvery:1,
   /* 0.9.1: tracking and the space between columns and rings; the date on rings too; the fill's movement and layer */
+  /* 0.10: the dial, element by element – each hand (H, M, S), the custom marks (K M, H, Q), the layers */
+  ssDialHStyle:'hand',ssDialHLen:0.36,ssDialHFrom:0,ssDialHRound:0,ssDialHTaper:0,ssDialHDot:30,ssDialHA:1,ssDialHBlend:'inherit',ssDialHMove:'time',ssDialHSpeed:1,ssDialHAngle:0,ssDialHTrail:'off',ssDialHArc:40,ssDialHTrailA:.45,ssDialHEchoes:8,ssDialMStyle:'hand',ssDialMLen:0.66,ssDialMFrom:0,ssDialMRound:0,ssDialMTaper:0,ssDialMDot:30,ssDialMA:1,ssDialMBlend:'inherit',ssDialMMove:'time',ssDialMSpeed:1,ssDialMAngle:0,ssDialMTrail:'off',ssDialMArc:40,ssDialMTrailA:.45,ssDialMEchoes:8,ssDialSStyle:'hand',ssDialSLen:0.99,ssDialSFrom:0,ssDialSRound:0,ssDialSTaper:0,ssDialSDot:30,ssDialSA:1,ssDialSBlend:'inherit',ssDialSMove:'time',ssDialSSpeed:1,ssDialSAngle:0,ssDialSTrail:'off',ssDialSArc:40,ssDialSTrailA:.45,ssDialSEchoes:8,ssDialHOn:true,ssDialMOn:true,ssDialLenAuto:'',ssDialEdit:'m',ssDialEditMark:'h',
+  ssDialKMOn:true,ssDialKMShape:'line',ssDialKMFrom:0.22,ssDialKMTo:1,ssDialKMW:2.2,ssDialKMAt:0.95,ssDialKMSize:5,ssDialKMUnder:true,ssDialKHOn:true,ssDialKHShape:'line',ssDialKHFrom:0.22,ssDialKHTo:0.688,ssDialKHW:2.2,ssDialKHAt:0.95,ssDialKHSize:9,ssDialKHUnder:true,ssDialKQOn:true,ssDialKQShape:'line',ssDialKQFrom:0.22,ssDialKQTo:0.4228,ssDialKQW:2.2,ssDialKQAt:0.95,ssDialKQSize:12,ssDialKQUnder:false,ssDialMarksOn:true,ssDialRingR:1,ssDialOrder:'',ssDialCentreOwn:false,ssDialCentreC:'#EA2631',ssDialFillLast:'minute',
   ssTTracking:-15,ssTSpace:100,ssTRDay:false,ssTRDate:false,ssTRMonth:false,ssTRYear:false,ssDialFillStyle:'sweep',ssDialFillLayer:'front',
   /* 0.9.3: Stack – the time and date as a stack of lines, after Steve's Univers mock-up (ssX…) */
   ssXFont:'',ssXH24:true,ssXZero:true,ssXSep:'stop',ssXSecs:true,ssXDay:'full',ssXMonth:'full',ssXYear:'short',ssXDZero:false,ssXDSpace:false,
@@ -51,8 +54,11 @@ function loadSettings(){
   const raw=LS.get('settings')||{},own=sanitise(raw),s=fresh();
   for(const k of tempoKeys())if(k in own)s[k]=own[k];
   if((raw.ssVer||0)<5)upgrade(s,raw);
+  dialUpgrade(s,own);
   s.tab='saver';return s;
 }
+/* 0.10: settings from before the dial's per-hand controls – each hand's corners from the one end shape */
+function dialUpgrade(s,src){if(!('ssDialHRound' in src)){const r=(src.ssDialCap||s.ssDialCap)==='round'?1:0;s.ssDialHRound=s.ssDialMRound=s.ssDialSRound=r;}}
 /* Settings saved by 0.1 and 0.2, made sense of in 0.3 */
 function upgrade(s,raw){
   s.ssVer=5;
@@ -116,7 +122,7 @@ Object.assign(TIPS,{
   ssNWhen:'When a shuffled numeral (or the one standing out) takes a new font: whenever it changes, or on the minute or the hour.',
   ssMEach:'Gives every word its own font, rather than one font for the whole part.',ssNEach:'Gives every numeral that changes its own font, rather than one for all of them.',
   ssMLittle:'Keeps on, the, of, in and and in the core font, so only the words that carry the time and date change font.',
-  ssDialFace:'Rays run out from a space in the middle. Ticks run in from the edge. Dots sit round the edge. Or just the hands.',
+  ssDialFace:'Rays run out from a space in the middle. Ticks run in from the edge. Dots sit round the edge. Custom sets the minutes, hours and quarters each on their own, starting from the marks you had. None: just the hands.',ssDialEdit:'Pick a hand to set it. Each has its own shape, motion, trail, opacity and blend.',ssDialEditMark:'Pick a kind of mark to set it.',ssDialHLen:'How far the hand reaches, as a share of the dial – or, for a dot, where it sits.',ssDialMLen:'How far the hand reaches, as a share of the dial – or, for a dot, where it sits.',ssDialSLen:'How far the hand reaches, as a share of the dial – or, for a dot, where it sits.',ssDialHFrom:'Where the hand starts: at the centre, out from it (a floating bar), or behind it (a tail).',ssDialMFrom:'Where the hand starts: at the centre, out from it (a floating bar), or behind it (a tail).',ssDialSFrom:'Where the hand starts: at the centre, out from it (a floating bar), or behind it (a tail).',ssDialHRound:'From square corners to fully round ends.',ssDialMRound:'From square corners to fully round ends.',ssDialSRound:'From square corners to fully round ends.',ssDialHTaper:'Narrows the hand towards its tip.',ssDialMTaper:'Narrows the hand towards its tip.',ssDialSTaper:'Narrows the hand towards its tip.',ssDialHTrail:'Echoes: copies of the hand fading behind it. Sweep: a fan of colour fading behind it.',ssDialMTrail:'Echoes: copies of the hand fading behind it. Sweep: a fan of colour fading behind it.',ssDialSTrail:'Echoes: copies of the hand fading behind it. Sweep: a fan of colour fading behind it.',ssDialRingR:'Where the ring sits, as a share of the dial.',ssDialKMUnder:'Draw a minute mark where an hour mark sits too.',ssDialKHUnder:'Draw an hour mark where a quarter mark sits too.',
   ssDialDetail:'Which marks there are: every minute, every hour, or only 12, 3, 6 and 9. Hours and quarters stand out from the minutes.',
   ssDialHole:'How much of the middle the rays leave clear.',ssDialTick:'How far the minute ticks reach in. Hours reach three times as far, quarters further still.',
   ssDialRing:'A circle round the outside, in the hour marks’ colour and weight.',
@@ -375,65 +381,135 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
     {t:'range',k:'ssLen',label:'Length',min:.15,max:2,step:.05,fmt:v=>v.toFixed(2)+' s',show:s=>s.ssChange!=='cut'},
   ]);
 }
-/* As a dial: the face */
-const DIAL_FACES=[['rays','Rays'],['ticks','Ticks'],['dots','Dots'],['none','Hands only']];
+/* As a dial (reworked in 0.10). The face's marks, the hands one at a time, the fill, and the layers –
+   every element on or off, in any order. Pick a hand (or a kind of mark) and its controls show; the rest stay put. */
+const DIAL_FACES=[['rays','Rays'],['ticks','Ticks'],['dots','Dots'],['custom','Custom'],['none','None']];
 const marked=s=>dl(s)&&s.ssDialFace!=='none';
+const preset=s=>marked(s)&&s.ssDialFace!=='custom',custom=s=>dl(s)&&s.ssDialFace==='custom';
 const BLENDS=[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['difference','Difference']];
+const DIAL10_KEYS=Object.keys(tempoDefaults()).filter(k=>/^ssDial([HMS](Style|Len|From|Round|Taper|Dot|A|Blend|Move|Speed|Angle|Trail|Arc|TrailA|Echoes)$|HOn$|MOn$|K[MHQ]|MarksOn$|RingR$|Order$|CentreOwn$|CentreC$|LenAuto$)/.test(k));
+const num1=v=>roundTo(v,.1).toFixed(1),deg0=v=>Math.round(v)+'°',ofR=v=>Math.round(v*100)+'%';
 {const b=card('ss-dface','Face',dl,'saver');
   build(b,[
     {t:'seg',k:'ssDialFace',label:'Marks',opts:DIAL_FACES},
-    {t:'seg',k:'ssDialDetail',label:'Detail',opts:[['minutes','Minutes'],['hours','Hours'],['quarters','Quarters']],show:marked},
+    {t:'seg',k:'ssDialDetail',label:'Detail',opts:[['minutes','Minutes'],['hours','Hours'],['quarters','Quarters']],show:preset},
     {t:'range',k:'ssDialHole',label:'Space in the middle',min:0,max:.6,step:.01,fmt:pct,show:s=>dl(s)&&s.ssDialFace==='rays'},
     {t:'range',k:'ssDialTick',label:'Tick length',min:.03,max:.3,step:.01,fmt:pct,show:s=>dl(s)&&s.ssDialFace==='ticks'},
+    {t:'hint',text:'Custom starts from the marks you had. Set minutes, hours and quarters each on their own.',show:preset},
+    /* Custom: one kind of mark at a time */
+    {t:'seg',k:'ssDialEditMark',label:'Mark',opts:[['m','Minutes'],['h','Hours'],['q','Quarters']],show:custom},
+  ]);
+  for(const [T,name,under] of [['M','minute','Also under the hours'],['H','hour','Also under the quarters'],['Q','quarter',null]]){
+    const on=s=>custom(s)&&s.ssDialEditMark===T.toLowerCase(),vis=s=>on(s)&&s['ssDialK'+T+'On'],line=s=>vis(s)&&s['ssDialK'+T+'Shape']==='line',dot=s=>vis(s)&&s['ssDialK'+T+'Shape']==='dot';
+    build(b,[
+      {t:'toggle',k:'ssDialK'+T+'On',label:'Show the '+name+' marks',show:on},
+      {t:'seg',k:'ssDialK'+T+'Shape',label:'Drawn as',opts:[['line','Lines'],['dot','Dots']],show:vis},
+      {t:'range',k:'ssDialK'+T+'From',label:'From',min:0,max:1.2,step:.005,fmt:ofR,show:line},
+      {t:'range',k:'ssDialK'+T+'To',label:'To',min:0,max:1.2,step:.005,fmt:ofR,show:line},
+      {t:'range',k:'ssDialK'+T+'W',label:'Weight',min:.5,max:80,step:.1,fmt:num1,show:line},
+      {t:'range',k:'ssDialK'+T+'At',label:'Sits at',min:0,max:1.2,step:.005,fmt:ofR,show:dot},
+      {t:'range',k:'ssDialK'+T+'Size',label:'Size',min:.5,max:120,step:.1,fmt:num1,show:dot},
+    ].concat(under?[{t:'toggle',k:'ssDialK'+T+'Under',label:under,show:vis}]:[]));}
+  build(b,[
     {t:'toggle',k:'ssDialRing',label:'Outer ring'},
+    {t:'range',k:'ssDialRingR',label:'Ring sits at',min:.05,max:1.2,step:.005,fmt:ofR,show:s=>dl(s)&&s.ssDialRing},
   ]);
   build(fold(b,'d-weight','Line weight'),[
-    {t:'range',k:'ssDialLine',label:'Minute marks',min:.5,max:20,step:.1,fmt:v=>v.toFixed(1),show:s=>marked(s)&&s.ssDialDetail==='minutes'},
-    {t:'range',k:'ssDialKey',label:'Hours, quarters and ring',min:.5,max:20,step:.1,fmt:v=>v.toFixed(1),show:s=>marked(s)||(dl(s)&&s.ssDialRing)},
+    {t:'range',k:'ssDialLine',label:'Minute marks',min:.5,max:80,step:.1,fmt:num1,show:s=>preset(s)&&s.ssDialDetail==='minutes'},
+    {t:'range',k:'ssDialKey',label:'Hours, quarters and ring',min:.5,max:80,step:.1,fmt:num1,show:s=>preset(s)||(dl(s)&&s.ssDialRing)},
   ]);
 }
-/* As a dial: the fill – a colour sweeping round the face like a pie chart (its own card from 0.9.1, in front of everything to start) */
+/* As a dial: the hands – one at a time, then what they share */
+{const b=card('ss-dhands','Hands',dl,'saver');
+  build(b,[{t:'seg',k:'ssDialEdit',label:'Hand',opts:[['h','Hour'],['m','Minute'],['s','Second']]}]);
+  for(const [X,name,wk,onk] of [['H','hour','ssDialHand','ssDialHOn'],['M','minute','ssDialWM','ssDialMOn'],['S','second','ssDialWS','ssDialSecs']]){
+    const on=s=>dl(s)&&s.ssDialEdit===X.toLowerCase(),vis=s=>on(s)&&s[onk],hand=s=>vis(s)&&s['ssDial'+X+'Style']==='hand',dot=s=>vis(s)&&s['ssDial'+X+'Style']==='dot';
+    const timed=s=>vis(s)&&s['ssDial'+X+'Move']==='time',turns=s=>vis(s)&&s['ssDial'+X+'Move']==='turn',tr=s=>vis(s)&&s['ssDial'+X+'Trail']!=='off';
+    build(b,[
+      {t:'toggle',k:onk,label:'Show the '+name+' hand',show:on},
+      {t:'seg',k:'ssDial'+X+'Style',label:'Drawn as',opts:[['hand','A hand'],['dot','A dot']],show:vis},
+      {t:'range',k:'ssDial'+X+'Len',label:'Reach',min:.02,max:1.2,step:.005,fmt:ofR,show:vis},
+      {t:'range',k:'ssDial'+X+'From',label:'Starts',min:-.6,max:.95,step:.005,fmt:v=>Math.abs(v)<.001?'At the centre':v<0?ofR(-v)+' behind':ofR(v)+' out',show:hand},
+      {t:'range',k:wk,label:'Width',min:.5,max:250,step:.1,fmt:num1,show:hand},
+      {t:'range',k:'ssDial'+X+'Round',label:'Corners',min:0,max:1,step:.01,fmt:v=>v===0?'Square':v===1?'Round':ofR(v)+' round',show:hand},
+      {t:'range',k:'ssDial'+X+'Taper',label:'Taper',min:0,max:1,step:.01,fmt:v=>v===0?'None':ofR(v),show:hand},
+      {t:'range',k:'ssDial'+X+'Dot',label:'Dot size',min:1,max:400,step:.5,fmt:num1,show:dot},
+    ]);
+    build(fold(b,'d-move-'+X,'Motion',vis),[
+      {t:'seg',k:'ssDial'+X+'Move',label:'Moves',opts:[['time','With the time'],['turn','Turns freely']],show:vis},
+    ].concat(X==='S'?[{t:'seg',k:'ssDialSecMove',label:'Second hand moves',opts:[['sweep','Sweep'],['tick','Tick'],['stop','Stop at 12']],show:timed}]
+      :X==='M'?[{t:'seg',k:'ssDialMinMove',label:'Minute hand moves',opts:[['glide','Glide'],['step','Step']],show:timed}]
+      :[{t:'hint',text:'The hour hand follows the minute hand.',show:timed}]).concat([
+      {t:'range',k:'ssDial'+X+'Speed',label:'Speed',min:-12,max:12,step:.05,fmt:v=>v===0?'Still':(v>0?'':'−')+roundTo(Math.abs(v),.05)+(Math.abs(v)===1?' turn':' turns')+' a minute',show:turns},
+      {t:'range',k:'ssDial'+X+'Angle',label:'Starting at',min:0,max:359,step:1,fmt:deg0,show:turns},
+      {t:'hint',text:'Turning freely, the hand no longer tells the time – it’s there for its shape and colour. Speed 0 holds it still.',show:turns},
+    ]));
+    build(fold(b,'d-trail-'+X,'Trail',vis),[
+      {t:'seg',k:'ssDial'+X+'Trail',label:'Style',opts:[['off','Off'],['echo','Echoes'],['sweep','Sweep']],show:vis},
+      {t:'range',k:'ssDial'+X+'Arc',label:'Length',min:2,max:360,step:1,fmt:deg0,show:tr},
+      {t:'range',k:'ssDial'+X+'Echoes',label:'Echoes',min:1,max:36,step:1,fmt:v=>String(Math.round(v)),show:s=>tr(s)&&s['ssDial'+X+'Trail']==='echo'},
+      {t:'range',k:'ssDial'+X+'TrailA',label:'Strength',min:0,max:1,step:.01,fmt:pct,show:tr},
+    ]);
+    const ob=fold(b,'d-look-'+X,'Opacity and blend',vis,true);
+    build(ob,[{t:'range',k:'ssDial'+X+'A',label:'Opacity',min:0,max:1,step:.01,fmt:pct,show:vis}]);
+    addSelect(ob,{k:'ssDial'+X+'Blend',label:'Blend',optsFn:()=>[['inherit','As all the hands']].concat(BLENDS),show:vis});
+  }
+  /* what the hands share */
+  const stepping=s=>(s.ssDialSecs&&s.ssDialSecMove==='tick'&&s.ssDialSMove==='time')||(s.ssDialMinMove==='step'&&s.ssDialMMove==='time');
+  build(fold(b,'d-handall','All the hands'),[
+    {t:'seg',k:'ssDialFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:stepping},
+    {t:'range',k:'ssDialLen',label:'Length',min:.05,max:.9,step:.05,fmt:v=>v.toFixed(2)+' s',show:stepping},
+    {t:'seg',k:'ssDialTip',label:'Tip',opts:[['none','None'],['dot','Dot'],['ring','Ring']]},
+    {t:'seg',k:'ssDialTipOn',label:'Tip on',opts:[['m','Minute hand'],['s','Second hand'],['ms','Both'],['all','All three']],show:s=>s.ssDialTip!=='none'},
+    {t:'range',k:'ssDialTipSize',label:'Tip size',min:1,max:40,step:.1,fmt:num1,show:s=>s.ssDialTip!=='none'},
+    {t:'toggle',k:'ssDialTails',label:'Tails'},
+    {t:'toggle',k:'ssDialWeight',label:'Counterweight on the second hand',show:s=>s.ssDialSecs},
+    {t:'range',k:'ssDialHandA',label:'Opacity',min:.05,max:1,step:.01,fmt:pct},
+    {t:'seg',k:'ssDialBlend',label:'Blend',opts:BLENDS},
+    {t:'seg',k:'ssDialTrail',label:'Marks follow the second hand',opts:[['off','Off'],['fill','Fill the minute'],['fade','Fade behind']],show:s=>s.ssDialSecs&&s.ssDialFace!=='none'},
+  ]);
+  build(fold(b,'d-centre','Centre dot'),[
+    {t:'toggle',k:'ssDialCentre',label:'Centre dot'},
+    {t:'range',k:'ssDialCentreSize',label:'Size',min:.5,max:12,step:.1,fmt:num1,show:s=>s.ssDialCentre},
+    {t:'toggle',k:'ssDialCentreOwn',label:'Its own colour',show:s=>s.ssDialCentre},
+    {t:'hint',text:'Otherwise it takes the second hand’s colour (the minute hand’s with no second hand). Its own colour is under Colour.',show:s=>s.ssDialCentre},
+  ]);
+}
+/* As a dial: the fill – a colour sweeping round the face like a pie chart (its own card from 0.9.1; where it sits is under Layers from 0.10) */
 {const b=card('ss-dfill','Fill',dl,'saver');const fill=s=>dl(s)&&s.ssDialFill!=='off';
   build(b,[
     {t:'seg',k:'ssDialFill',label:'Fill follows',opts:[['off','Off'],['hour','Hour hand'],['minute','Minute hand'],['second','Second hand']]},
     {t:'seg',k:'ssDialFillStyle',label:'Moves',opts:[['sweep','Sweep'],['steps','In sections'],['fade','Fading sections']],show:fill},
     {t:'seg',k:'ssDialFillTurn',label:'Each turn',opts:[['turn','Fills, then empties'],['reset','Starts empty']],show:fill},
-    {t:'seg',k:'ssDialFillLayer',label:'Sits',opts:[['front','In front'],['hands','Behind the hands'],['marks','Behind the marks']],show:fill},
     {t:'range',k:'ssDialFillR',label:'Reach',min:.1,max:1,step:.01,fmt:pct,show:fill},
     {t:'range',k:'ssDialFillA',label:'Opacity',min:.05,max:1,step:.01,fmt:pct,show:fill},
     {t:'seg',k:'ssDialFillBlend',label:'Blend',opts:BLENDS,show:fill},
-    {t:'hint',text:'Sixty sections for the minute and second hands, twelve for the hour. Its colour is under Colour.',show:fill},
+    {t:'hint',text:'Sixty sections for the minute and second hands, twelve for the hour. Its colour is under Colour; where it sits, under Layers.',show:fill},
   ]);
 }
-/* As a dial: the hands, and how they move */
-{const b=card('ss-dhands','Hands',dl,'saver');
-  const stepping=s=>(s.ssDialSecs&&s.ssDialSecMove==='tick')||s.ssDialMinMove==='step';
-  build(b,[
-    {t:'toggle',k:'ssDialSecs',label:'Second hand'},
-    {t:'seg',k:'ssDialSecMove',label:'Second hand moves',opts:[['sweep','Sweep'],['tick','Tick'],['stop','Stop at 12']],show:s=>s.ssDialSecs},
-    {t:'seg',k:'ssDialMinMove',label:'Minute hand moves',opts:[['glide','Glide'],['step','Step']]},
-    {t:'seg',k:'ssDialFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:stepping},
-    {t:'range',k:'ssDialLen',label:'Length',min:.05,max:.9,step:.05,fmt:v=>v.toFixed(2)+' s',show:stepping},
-    {t:'seg',k:'ssDialTrail',label:'Marks follow the second hand',opts:[['off','Off'],['fill','Fill the minute'],['fade','Fade behind']],show:s=>s.ssDialSecs&&s.ssDialFace!=='none'},
-  ]);
-  /* 0.9: weight, ends, tips and blend, hand by hand */
-  build(fold(b,'d-handshape','Shape'),[
-    {t:'range',k:'ssDialHand',label:'Hour hand',min:.5,max:40,step:.1,fmt:v=>v.toFixed(1)},
-    {t:'range',k:'ssDialWM',label:'Minute hand',min:.5,max:40,step:.1,fmt:v=>v.toFixed(1)},
-    {t:'range',k:'ssDialWS',label:'Second hand',min:.5,max:40,step:.1,fmt:v=>v.toFixed(1),show:s=>s.ssDialSecs},
-    {t:'seg',k:'ssDialCap',label:'Ends',opts:[['butt','Square'],['round','Round']]},
-    {t:'seg',k:'ssDialTip',label:'Tip',opts:[['none','None'],['dot','Dot'],['ring','Ring']]},
-    {t:'seg',k:'ssDialTipOn',label:'Tip on',opts:[['m','Minute hand'],['s','Second hand'],['ms','Both'],['all','All three']],show:s=>s.ssDialTip!=='none'},
-    {t:'range',k:'ssDialTipSize',label:'Tip size',min:1,max:12,step:.1,fmt:v=>v.toFixed(1),show:s=>s.ssDialTip!=='none'},
-    {t:'toggle',k:'ssDialTails',label:'Tails'},
-    {t:'toggle',k:'ssDialWeight',label:'Counterweight on the second hand',show:s=>s.ssDialSecs},
-    {t:'toggle',k:'ssDialCentre',label:'Centre dot'},
-    {t:'range',k:'ssDialCentreSize',label:'Centre dot size',min:1,max:6,step:.1,fmt:v=>v.toFixed(1),show:s=>s.ssDialCentre},
-  ]);
-  build(fold(b,'d-handblend','Opacity and blend',null,true),[
-    {t:'range',k:'ssDialHandA',label:'Opacity',min:.05,max:1,step:.01,fmt:pct},
-    {t:'seg',k:'ssDialBlend',label:'Blend',opts:BLENDS},
-  ]);
+/* As a dial: the layers – every element on or off, and in what order (top of the list is in front) */
+const LAYER_NAMES={fill:'Fill',marks:'Marks',ring:'Outer ring',hour:'Hour hand',minute:'Minute hand',second:'Second hand',centre:'Centre dot'};
+const ORDER0={marks:['fill','marks','ring','hour','minute','second','centre'],hands:['marks','fill','ring','hour','minute','second','centre'],front:['marks','ring','hour','minute','second','centre','fill']};
+const dialOrder=()=>{const o=String(S.ssDialOrder||'').split(',').filter(k=>LAYER_NAMES[k]);const base=ORDER0[S.ssDialFillLayer]||ORDER0.front;
+  const out=o.length?o:base.slice();for(const k of base)if(!out.includes(k))out.push(k);return out;};
+const LAYER_ON={fill:[s=>s.ssDialFill!=='off',v=>{if(v)set('ssDialFill',S.ssDialFillLast||'minute');else{S.ssDialFillLast=S.ssDialFill;set('ssDialFill','off');}}],
+  marks:[s=>s.ssDialMarksOn!==false,v=>set('ssDialMarksOn',v)],ring:[s=>!!s.ssDialRing,v=>set('ssDialRing',v)],hour:[s=>s.ssDialHOn!==false,v=>set('ssDialHOn',v)],
+  minute:[s=>s.ssDialMOn!==false,v=>set('ssDialMOn',v)],second:[s=>!!s.ssDialSecs,v=>set('ssDialSecs',v)],centre:[s=>!!s.ssDialCentre,v=>set('ssDialCentre',v)]};
+{const b=card('ss-dlayers','Layers',dl,'saver');
+  const list=el('div','layer-list');list.setAttribute('role','list');b.append(list);
+  const reset=el('button','pill small','Reset the order');reset.type='button';reset.onclick=()=>set('ssDialOrder','');
+  const foot=el('div','layer-foot');foot.append(reset);b.append(foot);
+  addHint(b,'Top of the list is in front. Switch an element off here or in its own card.');
+  const move=(k,d)=>{const o=dialOrder().reverse(),i=o.indexOf(k),j=i+d;if(j<0||j>=o.length)return;[o[i],o[j]]=[o[j],o[i]];set('ssDialOrder',o.reverse().join(','));
+    requestAnimationFrame(()=>{const bt=list.querySelector(`[data-k="${k}"] .${d<0?'up':'down'}`);if(bt&&!bt.disabled)bt.focus();});};
+  const paint=()=>{const o=dialOrder().reverse();list.textContent='';reset.hidden=!S.ssDialOrder;
+    o.forEach((k,i)=>{const [isOn,turn]=LAYER_ON[k],row=el('div','layer-row'+(isOn(S)?'':' off'));row.dataset.k=k;row.setAttribute('role','listitem');
+      const eye=el('button','layer-eye');eye.type='button';eye.setAttribute('role','switch');eye.setAttribute('aria-checked',isOn(S));eye.setAttribute('aria-label','Show – '+LAYER_NAMES[k]);eye.onclick=()=>turn(!isOn(S));
+      const nm=el('span','layer-name',LAYER_NAMES[k]);
+      const up=el('button','layer-mv up','↑');up.type='button';up.setAttribute('aria-label','Bring forward – '+LAYER_NAMES[k]);up.disabled=i===0;up.onclick=()=>move(k,-1);
+      const dn=el('button','layer-mv down','↓');dn.type='button';dn.setAttribute('aria-label','Send back – '+LAYER_NAMES[k]);dn.disabled=i===o.length-1;dn.onclick=()=>move(k,1);
+      row.append(eye,nm,up,dn);list.append(row);});};
+  controls.push({d:{},w:list,update:paint});
 }
 /* Columns and Rings: the words */
 /* The font: chosen here, or Timeless Sans Medium when it's loaded (as drawn), else the core font */
@@ -574,13 +650,13 @@ const WORD_THEMES=[
 ];
 const W_COLS=[['ssWBg','bg'],['ssWInk','ink'],['ssWSoft','soft'],['ssWDateCol','date']];
 const DIAL_THEMES=[
-  {name:'Paper',bg:'#FFFFFF',min:'#E7E7E7',hour:'#A9A9A9',quarter:'#181818',handH:'#EA2631',handM:'#EA2631',handS:'#EA2631',fill:'#FCE3E4'},
-  {name:'Dawn',bg:'#FFFFFF',min:'#8A8A8A',hour:'#8A8A8A',quarter:'#C2C2C2',handH:'#30FFFE',handM:'#FDA072',handS:'#FEC4FE',fill:'#FFE8DA'},
-  {name:'Noon',bg:'#D3D5D5',min:'#E9EBEB',hour:'#F4FD5F',quarter:'#1E2023',handH:'#F4FD5F',handM:'#F4FD5F',handS:'#1E2023',fill:'#F4FD5F'},
-  {name:'Night',bg:'#000000',min:'#333333',hour:'#8C8C8C',quarter:'#FFFFFF',handH:'#FFFFFF',handM:'#FFFFFF',handS:'#FFF35C',fill:'#222222'},
-  {name:'Signal',bg:'#FF4F1F',min:'#FF9A7A',hour:'#000000',quarter:'#000000',handH:'#000000',handM:'#000000',handS:'#FFFFFF',fill:'#FF9A7A'},
+  {name:'Paper',bg:'#FFFFFF',min:'#E7E7E7',hour:'#A9A9A9',quarter:'#181818',handH:'#EA2631',handM:'#EA2631',handS:'#EA2631',fill:'#FCE3E4',centre:'#EA2631'},
+  {name:'Dawn',bg:'#FFFFFF',min:'#8A8A8A',hour:'#8A8A8A',quarter:'#C2C2C2',handH:'#30FFFE',handM:'#FDA072',handS:'#FEC4FE',fill:'#FFE8DA',centre:'#FEC4FE'},
+  {name:'Noon',bg:'#D3D5D5',min:'#E9EBEB',hour:'#F4FD5F',quarter:'#1E2023',handH:'#F4FD5F',handM:'#F4FD5F',handS:'#1E2023',fill:'#F4FD5F',centre:'#1E2023'},
+  {name:'Night',bg:'#000000',min:'#333333',hour:'#8C8C8C',quarter:'#FFFFFF',handH:'#FFFFFF',handM:'#FFFFFF',handS:'#FFF35C',fill:'#222222',centre:'#FFF35C'},
+  {name:'Signal',bg:'#FF4F1F',min:'#FF9A7A',hour:'#000000',quarter:'#000000',handH:'#000000',handM:'#000000',handS:'#FFFFFF',fill:'#FF9A7A',centre:'#FFFFFF'},
 ];
-const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDialQuarter','quarter'],['ssDialHandH','handH'],['ssDialHandM','handM'],['ssDialHandS','handS'],['ssDialFillC','fill']];
+const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDialQuarter','quarter'],['ssDialHandH','handH'],['ssDialHandM','handM'],['ssDialHandS','handS'],['ssDialFillC','fill'],['ssDialCentreC','centre']];
 /* Columns and Rings, as drawn: white, black for what's true now, warm grey for the rest */
 const TYPE_THEMES=[
   {name:'Drawn',bg:'#FFFFFF',ink:'#000000',soft:'#D2CDC9'},
@@ -605,10 +681,10 @@ const THEMES={
   words:{id:'ss-wcolour',show:wd,store:'wthemes',builtin:WORD_THEMES,on:s=>!!s.ssWRotate,turn:v=>set('ssWRotate',!!v),set:'ssWSet',every:'ssWEvery',
     cols:[['ssWBg','bg','Background'],['ssWInk','ink','Highlight',s=>s.ssWHi==='faces'?'Other fonts':s.ssWHi==='time'||s.ssWHi==='parts'?'The time':s.ssWHi==='latest'?'Latest change':'Type'],['ssWDateCol','date','The date',null,s=>s.ssWHi==='parts'],['ssWSoft','soft','Everything else',null,s=>s.ssWHi!=='none']]},
   dial:{id:'ss-dcolour',show:dl,store:'dthemes',builtin:DIAL_THEMES,on:s=>!!s.ssDialRotate,turn:v=>set('ssDialRotate',!!v),set:'ssDialSet',every:'ssDialEvery',
-    cols:[['ssDialBg','bg','Background'],['ssDialMin','min','Minute marks',null,s=>s.ssDialFace!=='none'&&s.ssDialDetail==='minutes'],
-      ['ssDialHour','hour','Hour marks',s=>s.ssDialFace==='none'||s.ssDialDetail==='quarters'?'Ring':'Hour marks',s=>(s.ssDialFace!=='none'&&s.ssDialDetail!=='quarters')||s.ssDialRing],
-      ['ssDialQuarter','quarter','Quarter marks',null,s=>s.ssDialFace!=='none'],['ssDialHandH','handH','Hour hand'],['ssDialHandM','handM','Minute hand'],['ssDialHandS','handS','Second hand',null,s=>s.ssDialSecs],
-      ['ssDialFillC','fill','Fill',null,s=>s.ssDialFill!=='off']]},
+    cols:[['ssDialBg','bg','Background'],['ssDialMin','min','Minute marks',null,s=>s.ssDialFace!=='none'&&(s.ssDialFace==='custom'?s.ssDialKMOn:s.ssDialDetail==='minutes')],
+      ['ssDialHour','hour','Hour marks',s=>s.ssDialFace==='none'||(s.ssDialFace==='custom'?!s.ssDialKHOn:s.ssDialDetail==='quarters')?'Ring':s.ssDialRing?'Hour marks and ring':'Hour marks',s=>(s.ssDialFace!=='none'&&(s.ssDialFace==='custom'?s.ssDialKHOn:s.ssDialDetail!=='quarters'))||s.ssDialRing],
+      ['ssDialQuarter','quarter','Quarter marks',null,s=>s.ssDialFace!=='none'&&(s.ssDialFace!=='custom'||s.ssDialKQOn)],['ssDialHandH','handH','Hour hand',null,s=>s.ssDialHOn!==false],['ssDialHandM','handM','Minute hand',null,s=>s.ssDialMOn!==false],['ssDialHandS','handS','Second hand',null,s=>s.ssDialSecs],
+      ['ssDialFillC','fill','Fill',null,s=>s.ssDialFill!=='off'],['ssDialCentreC','centre','Centre dot',null,s=>s.ssDialCentre&&s.ssDialCentreOwn]]},
   stack:{id:'ss-xcolour',show:stk,store:'xthemes',builtin:STACK_THEMES,on:s=>!!s.ssXRotate,turn:v=>set('ssXRotate',!!v),set:'ssXSet',every:'ssXEvery',
     cols:[['ssXBg','bg','Background'],['ssXTime','time','The time'],['ssXDayC','day','The day'],['ssXDate','date','The date'],['ssXYearC','year','The year']]},
   type:{id:'ss-tcolour',show:ty,store:'tthemes',builtin:TYPE_THEMES,on:s=>!!s.ssTRotate,turn:v=>set('ssTRotate',!!v),set:'ssTSet',every:'ssTEvery',
@@ -624,7 +700,7 @@ const allOf=k=>THEMES[k].builtin.map(T=>Object.assign({builtin:true},T)).concat(
 const findTheme=(k,n)=>allOf(k).find(T=>T.name===n)||null;
 const lc=v=>String(v==null?'':v).toLowerCase();
 /* the dial's fill colour only counts when the face fills */
-const sameCols=(k,A,B)=>THEMES[k].cols.every(([,f])=>(k==='dial'&&f==='fill'&&S.ssDialFill==='off')||lc(tget(A,f))===lc(tget(B,f)));
+const sameCols=(k,A,B)=>THEMES[k].cols.every(([,f])=>(k==='dial'&&f==='fill'&&S.ssDialFill==='off')||(k==='dial'&&f==='centre'&&(!S.ssDialCentreOwn||!tget(A,f)||!tget(B,f)))||lc(tget(A,f))===lc(tget(B,f)));
 const fromS=(k,name)=>{const T={name};for(const [key,f] of THEMES[k].cols)tput(T,f,S[key]);return T;};
 const toS=(k,T)=>{for(const [key,f] of THEMES[k].cols){const v=tget(T,f);if(typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v))S[key]=v.toUpperCase();}};
 /* the themes that play through the day: those ticked, in order; none ticked means all of them */
@@ -725,7 +801,7 @@ function themeCard(k,before){const K=THEMES[k],b=card(K.id,'Colour',K.show,'save
    soft (what recedes) – so a theme moves between designs with its colours in sensible places */
 const KIND_NAME={clock:'The time',words:'In words',dial:'The dial',type:'Columns and Rings',stack:'Stack'};
 const ROLES={clock:{bg:'bg','p.0':'ink','p.1':'accent','p.2':'ink2','p.3':'soft'},words:{bg:'bg',ink:'ink',soft:'soft',date:'accent'},
-  dial:{bg:'bg',min:'soft',hour:'soft2',quarter:'ink',handH:'ink',handM:'ink',handS:'accent',fill:'soft'},type:{bg:'bg',ink:'ink',soft:'soft'},stack:{bg:'bg',time:'soft',day:'ink',date:'accent',year:'ink2'}};
+  dial:{bg:'bg',min:'soft',hour:'soft2',quarter:'ink',handH:'ink',handM:'ink',handS:'accent',fill:'soft',centre:'accent'},type:{bg:'bg',ink:'ink',soft:'soft'},stack:{bg:'bg',time:'soft',day:'ink',date:'accent',year:'ink2'}};
 const ROLE_FALL={ink:['ink','accent','ink2','soft'],ink2:['ink2','ink','accent'],accent:['accent','ink2','ink'],soft:['soft','soft2','accent','ink2','ink'],soft2:['soft2','soft','accent','ink'],bg:['bg']};
 function mapTheme(k1,T,k2){const src={};for(const [f,r] of Object.entries(ROLES[k1])){const v=tget(T,f);if(v&&!src[r])src[r]=v;}
   const out={name:T.name};for(const [,f] of THEMES[k2].cols){const r=ROLES[k2][f],v=(ROLE_FALL[r]||[r]).map(x=>src[x]).find(Boolean)||src.ink||'#000000';tput(out,f,v);}return out;}
@@ -883,6 +959,7 @@ function applyPresetSettings(p,m){
   /* saved before 0.9: My themes every hour means the preset's own themes, in order; one weight for every hand */
   if(s.ssRotate==='mine'){S.ssRotate='all';if(!('ssCSet' in s))S.ssCSet=(p.themes||[]).map(T=>T.name).join('|');}
   if(!('ssDialWM' in s)&&'ssDialHand' in s){S.ssDialWM=S.ssDialWS=s.ssDialHand;}
+  if(!('ssDialHRound' in s)){for(const k of DIAL10_KEYS)S[k]=D[k];dialUpgrade(S,s);}
   S.ssName=typeof p.exportName==='string'?p.exportName:'';
   const core=id(src.baseSlot);if(core)S.baseSlot=core;
   for(const k of PART_KEYS){const v=S[k];if(v&&v!=='base'&&v!=='shuffle')S[k]=id(v)||'base';}}
@@ -954,7 +1031,14 @@ function presetFromConfig(cfg,name){
     const M=w.mixed;if(M){MX_MAP.forEach(([a,k])=>put('ss'+k,M[a]));put('ssMLittle',M.little);MW_PARTS.forEach(([a,k])=>put(k,(M.parts||{})[a]));}}
   const d=cfg.dial;
   if(d){DL_MAP.forEach(([a,k])=>put(k,d[a]));const col=d.colours||{};D_COLS.forEach(([k,t])=>put(k,col[t]));
-    if(Array.isArray(d.hw)){put('ssDialHand',d.hw[0]);put('ssDialWM',d.hw[1]);put('ssDialWS',d.hw[2]);}else if(d.hand!=null){put('ssDialWM',d.hand);put('ssDialWS',d.hand);}}
+    if(Array.isArray(d.hw)){put('ssDialHand',d.hw[0]);put('ssDialWM',d.hw[1]);put('ssDialWS',d.hw[2]);}else if(d.hand!=null){put('ssDialWM',d.hand);put('ssDialWS',d.hand);}
+    /* 0.10: each hand, the custom marks, the layers */
+    if(d.hands){const F={style:'Style',len:'Len',from:'From',round:'Round',taper:'Taper',dot:'Dot',a:'A',blend:'Blend',move:'Move',speed:'Speed',angle:'Angle',trail:'Trail',arc:'Arc',trailA:'TrailA',echoes:'Echoes'};
+      for(const [k,X] of [['h','H'],['m','M'],['s','S']]){const x=d.hands[k]||{};for(const [f,n] of Object.entries(F))put('ssDial'+X+n,x[f]);if(X!=='S')put('ssDial'+X+'On',x.on);}
+      const L=DIAL_LENS[d.face]||DIAL_LENS.none,lens=['h','m','s'].map(k=>(d.hands[k]||{}).len);s.ssDialLenAuto=lens.every((v,i)=>v===L[i])?L.join(','):'own';}
+    else{const r=d.cap==='round'?1:0;s.ssDialHRound=s.ssDialMRound=s.ssDialSRound=r;}
+    if(d.marks){const F={on:'On',shape:'Shape',from:'From',to:'To',w:'W',at:'At',size:'Size',under:'Under'};for(const [k,T] of [['m','M'],['h','H'],['q','Q']]){const x=d.marks[k]||{};for(const [f,n] of Object.entries(F))put('ssDialK'+T+n,x[f]);}}
+    put('ssDialMarksOn',d.marksOn);put('ssDialRingR',d.ringR);put('ssDialCentreOwn',d.centreOwn);if(Array.isArray(d.order))s.ssDialOrder=d.order.join(',');}
   const t=cfg.type;if(t){T_MAP.forEach(([a,k])=>put(k,t[a]));const P=t.parts||{};[['time','ssTTime'],['day','ssTDay'],['date','ssTDate'],['month','ssTMonth'],['year','ssTYear']].forEach(([a,k])=>put(k,P[a]));
     const RP=t.rparts||{};[['day','ssTRDay'],['date','ssTRDate'],['month','ssTRMonth'],['year','ssTRYear']].forEach(([a,k])=>put(k,RP[a]));
     if(t.size!=null)put(cfg.show==='rings'?'ssTRSize':'ssTCSize',t.size);put('ssTFont',t.font);if(cfg.show==='columns'||cfg.show==='rings')s.ssShow=cfg.show;}
@@ -1067,6 +1151,30 @@ function editBlock(){const a=activePreset();return snapshot(a?a.name:'');}
    licences (Timeless's) don't allow naming a product after them. */
 function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':cols(S)?'Tempo Columns':rgs(S)?'Tempo Rings':stk(S)?'Tempo Stack':'Tempo';}
 const exportName=()=>(S.ssName||'').trim()||defaultName();
+/* 0.10: the dial's per-hand, custom-mark and layer settings, for the config. While the face sets the hands' lengths
+   (you haven't moved them), they follow it; while the marks are a preset face, the custom marks follow it too –
+   so switching to Custom, or moving a length, starts from what you see. */
+const DIAL_LENS={rays:[.36,.66,.99],ticks:[.5,.79,1],dots:[.5,.78,.9],none:[.5,.8,.95],custom:[.5,.8,.95]};
+function dialSync(){const f=S.ssDialFace,cur=['H','M','S'].map(X=>S['ssDial'+X+'Len']),L=f==='custom'?cur:DIAL_LENS[f]||DIAL_LENS.none,auto=String(S.ssDialLenAuto||'');
+  /* Custom keeps the lengths it was given – the face you came from */
+  if(!auto||auto===cur.join(',')){['H','M','S'].forEach((X,i)=>S['ssDial'+X+'Len']=L[i]);S.ssDialLenAuto=L.join(',');}
+  if(f==='custom')return;const t=dialTiers(f);for(const T of ['M','H','Q'])for(const [k,v] of Object.entries(t[T]))S['ssDialK'+T+k]=v;}
+/* the custom marks that draw what a preset face draws */
+function dialTiers(f){const det=S.ssDialDetail,lw=S.ssDialLine,kw=S.ssDialKey,off={On:false};
+  const L=(on,fr,to,w,under)=>({On:on,Shape:'line',From:fr,To:to,W:w,Under:under}),Dt=(on,at,size)=>({On:on,Shape:'dot',At:at,Size:size,Under:false});
+  if(f==='rays'){const a=Math.max(0,Math.min(.9,S.ssDialHole)),sp=1-a;
+    return{M:det==='minutes'?L(true,a,1,lw,true):off,H:det==='quarters'?off:L(true,a,det==='minutes'?a+.6*sp:1,kw,true),Q:L(true,a,det==='quarters'?1:a+.26*sp,kw,false)};}
+  if(f==='ticks'){const t=Math.max(.02,Math.min(.3,S.ssDialTick));
+    return{M:det==='minutes'?L(true,1-t,1,lw,false):off,H:det==='quarters'?off:L(true,Math.max(.06,1-3*t),1,kw,false),Q:L(true,Math.max(.06,1-5*t),1,kw,false)};}
+  if(f==='dots'){const c=1-kw*5.6/1000;return{M:det==='minutes'?Dt(true,c,lw*2.2):off,H:det==='quarters'?off:Dt(true,c,kw*4),Q:Dt(true,c,kw*5.6)};}
+  return{M:off,H:off,Q:off};}
+const dialCap=()=>['H','M','S'].every(X=>S['ssDial'+X+'Round']>=1)?'round':'butt';
+function dialExtras(){dialSync();const hd={};
+  for(const [X,k] of [['H','h'],['M','m'],['S','s']])hd[k]={on:X==='S'?!!S.ssDialSecs:X==='H'?S.ssDialHOn!==false:S.ssDialMOn!==false,style:S['ssDial'+X+'Style'],len:S['ssDial'+X+'Len'],from:S['ssDial'+X+'From'],
+    round:S['ssDial'+X+'Round'],taper:S['ssDial'+X+'Taper'],dot:S['ssDial'+X+'Dot'],a:S['ssDial'+X+'A'],blend:S['ssDial'+X+'Blend'],move:S['ssDial'+X+'Move'],speed:S['ssDial'+X+'Speed'],
+    angle:S['ssDial'+X+'Angle'],trail:S['ssDial'+X+'Trail'],arc:S['ssDial'+X+'Arc'],trailA:S['ssDial'+X+'TrailA'],echoes:S['ssDial'+X+'Echoes']};
+  const mk={};for(const [T,k] of [['M','m'],['H','h'],['Q','q']])mk[k]={on:!!S['ssDialK'+T+'On'],shape:S['ssDialK'+T+'Shape'],from:S['ssDialK'+T+'From'],to:S['ssDialK'+T+'To'],w:S['ssDialK'+T+'W'],at:S['ssDialK'+T+'At'],size:S['ssDialK'+T+'Size'],under:!!S['ssDialK'+T+'Under']};
+  return{hands:hd,marks:mk,marksOn:S.ssDialMarksOn!==false,ringR:S.ssDialRingR,order:S.ssDialOrder?dialOrder():null,centreOwn:!!S.ssDialCentreOwn};}
 /* margins (0.9.8): one for all sides, or each side its own. While they're linked, the sides follow the one margin,
    so turning Each side on starts from where you were. */
 const MARGS=[['ssMargin','ssMarginEach'],['ssWMargin','ssWMarginEach'],['ssXMargin','ssXMarginEach']];
@@ -1087,7 +1195,8 @@ function saverConfig(preview){
     ...(dl(S)?{dial:{face:S.ssDialFace,detail:S.ssDialDetail,hole:S.ssDialHole,tick:S.ssDialTick,ring:S.ssDialRing,line:S.ssDialLine,key:S.ssDialKey,hand:S.ssDialHand,
       secs:S.ssDialSecs,secMove:S.ssDialSecMove,minMove:S.ssDialMinMove,feel:S.ssDialFeel,len:S.ssDialLen,trail:S.ssDialTrail,tails:S.ssDialTails,centre:S.ssDialCentre,size:S.ssDialSize,
       hw:[S.ssDialHand,S.ssDialWM,S.ssDialWS],fill:S.ssDialFill,fillTurn:S.ssDialFillTurn,fillR:S.ssDialFillR,fillA:S.ssDialFillA,fillBlend:S.ssDialFillBlend,fillOver:S.ssDialFillOver,fillStyle:S.ssDialFillStyle,fillLayer:S.ssDialFillLayer,
-      cap:S.ssDialCap,tip:S.ssDialTip,tipOn:S.ssDialTipOn,tipSize:S.ssDialTipSize,weight:S.ssDialWeight,centreSize:S.ssDialCentreSize,handA:S.ssDialHandA,blend:S.ssDialBlend,
+      cap:dialCap(),tip:S.ssDialTip,tipOn:S.ssDialTipOn,tipSize:S.ssDialTipSize,weight:S.ssDialWeight,centreSize:S.ssDialCentreSize,handA:S.ssDialHandA,blend:S.ssDialBlend,
+      ...dialExtras(),
       colours:Object.fromEntries(D_COLS.map(([k,t])=>[t,S[k]])),rotate:S.ssDialRotate,themes:setThemes('dial'),every:everyOf('dial')}}:{}),
     /* only for Stack */
     ...(stk(S)?{stack:{font:stackFont(),h24:S.ssXH24,zero:S.ssXZero,sep:S.ssXSep,secs:S.ssXSecs,day:S.ssXDay,month:S.ssXMonth,year:S.ssXYear,dzero:S.ssXDZero,dspace:S.ssXDSpace,
