@@ -548,6 +548,13 @@ def main():
         nod = lambda over: pg.evaluate(DIAL, [dict(dcfg, drift=0, dial=dict(dcfg['dial'], **over)), [t0, t0 + 15000], 1680, 1050])  # no drift: only the hands may move
         r = nod(still); r2 = nod(dict(still, hands=dict(still['hands'], m=dict(H0['m'], move='turn', speed=1, angle=0))))
         check('0.10: a hand turning freely moves at its own speed; speed 0 holds it still', r[0]['png'] == r[1]['png'] and r2[0]['png'] != r2[1]['png'])
+        # 0.10.2: the centre dot has its own size – the hands' widths don't move it; the ring has its own colour and can be filled
+        only = lambda hw: {'secs': False, 'centre': True, 'centreR': 40, 'hw': hw, 'hands': dict(H0, h=dict(H0['h'], on=False), m=dict(H0['m'], on=False))}
+        cl = dict(dcfg['dial']['colours'])
+        check('0.10.2: the centre dot keeps its size whatever the hands’ widths; the ring takes its own colour and fills',
+              dial(only([6, 6, 6]), [t0])[0]['png'] == dial(only([60, 40, 6]), [t0])[0]['png']
+              and dial({'ring': True, 'colours': dict(cl, ring='#00FF00')}, [t0])[0]['png'] != dial({'ring': True, 'colours': dict(cl, ring=cl['hour'])}, [t0])[0]['png']
+              and dial({'ringFill': True, 'colours': dict(cl, disc='#00FF00')}, [t0])[0]['png'] != base_png)
         th = dcfg['dial']['themes']; r = dial({'rotate': True}, [utc(2026, 10, 28, h, 0, 0) + d for h in range(5) for d in (0, 2000)])[1::2]  # 0.9: the colours fade across over 1.5 s on the hour
         check('Change theme every hour runs through the dial themes', [x['bg'] for x in r] == [th[h % len(th)]['bg'] for h in range(5)], json.dumps([x['bg'] for x in r]))
         p3 = ctx.new_page(); e3 = []

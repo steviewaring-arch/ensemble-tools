@@ -490,7 +490,10 @@ function dialFrame(ctx,W,H,K){
     /* the marks the second hand has passed: filling the minute, or fading behind it */
     if(o.secs&&o.trail&&o.trail!=='off'&&marks.length){const at=pos.s*60;
       dDraw(ctx,cx,cy,marks,u,P.handS,o.trail==='fill'?x=>x.i<=at+1e-6?1:0:x=>{const age=((at-x.i)%60+60)%60;return Math.max(0,1-age/12);});}};
-  const drawRing=()=>{ctx.beginPath();ctx.arc(cx,cy,Math.max(.01,o.ringR==null?1:o.ringR)*R,0,TAU);ctx.strokeStyle=P.hour;ctx.lineWidth=Math.max(.25,(o.key||2.2)*u);ctx.stroke();};
+  /* 0.10.2: the ring its own colour (before, the hour marks'), and a fill inside it, its own layer */
+  const ringRad=Math.max(.01,o.ringR==null?1:o.ringR)*R;
+  const drawDisc=()=>{ctx.beginPath();ctx.arc(cx,cy,ringRad,0,TAU);ctx.fillStyle=P.disc||(o.colours&&o.colours.disc)||P.bg;ctx.fill();};
+  const drawRing=()=>{ctx.beginPath();ctx.arc(cx,cy,ringRad,0,TAU);ctx.strokeStyle=P.ring||(o.colours&&o.colours.ring)||P.hour;ctx.lineWidth=Math.max(.25,(o.key||2.2)*u);ctx.stroke();};
   /* the hands: each its own weight (0.9), square or round ends, a dot or ring at
      the tip, a counterweight on the second hand, and their own opacity and blend.
      0.10: each its own length, start, corners and taper – or a dot – its own opacity and blend, and a trail */
@@ -522,12 +525,13 @@ function dialFrame(ctx,W,H,K){
     ctx.restore();};
   /* the centre dot: its own colour from 0.10 (before, the second hand's – or the minute hand's with no second hand) */
   const drawCentre=()=>{const hw0=Math.max(.25,SP.h.w*u),hw1=Math.max(.25,SP.m.w*u);ctx.save();ctx.globalAlpha=gA;ctx.globalCompositeOperation=gB;
-    ctx.beginPath();ctx.arc(cx,cy,Math.max(hw0,hw1)*(o.centreSize||2.2),0,TAU);ctx.fillStyle=o.centreOwn?(P.centre||(o.colours&&o.colours.centre)||P.handS):(o.secs?P.handS:P.handM);ctx.fill();ctx.restore();};
+    /* 0.10.2: its own size (before, a multiple of the hands' widths) */
+    ctx.beginPath();ctx.arc(cx,cy,o.centreR!=null?Math.max(.5,o.centreR*u):Math.max(hw0,hw1)*(o.centreSize||2.2),0,TAU);ctx.fillStyle=o.centreOwn?(P.centre||(o.colours&&o.colours.centre)||P.handS):(o.secs?P.handS:P.handM);ctx.fill();ctx.restore();};
   /* 0.10: the layers, bottom to top – set in the Layers card; before, the fill's place (o.fillLayer) set the order */
-  const ORDER0={marks:['fill','marks','ring','hour','minute','second','centre'],hands:['marks','fill','ring','hour','minute','second','centre'],front:['marks','ring','hour','minute','second','centre','fill']};
+  const ORDER0={marks:['disc','fill','marks','ring','hour','minute','second','centre'],hands:['disc','marks','fill','ring','hour','minute','second','centre'],front:['disc','marks','ring','hour','minute','second','centre','fill']};
   let order=Array.isArray(o.order)&&o.order.length?o.order.slice():ORDER0[layer]||ORDER0.front.slice();
-  for(const k of ORDER0.front)if(!order.includes(k))order.push(k);
-  const DRAW={fill:()=>{if(fillOn)drawFill();},marks:()=>{if(o.marksOn!==false)drawMarks();},ring:()=>{if(o.ring)drawRing();},
+  for(const k of ORDER0.front)if(!order.includes(k)){if(k==='disc')order.unshift(k);else order.push(k);}
+  const DRAW={disc:()=>{if(o.ringFill)drawDisc();},fill:()=>{if(fillOn)drawFill();},marks:()=>{if(o.marksOn!==false)drawMarks();},ring:()=>{if(o.ring)drawRing();},
     hour:()=>drawHand('h'),minute:()=>drawHand('m'),second:()=>drawHand('s'),centre:()=>{if(o.centre)drawCentre();}};
   for(const k of order)if(DRAW[k])DRAW[k]();
   ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';

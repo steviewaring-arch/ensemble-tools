@@ -1,5 +1,13 @@
 # Changelog
 
+## 20 October 2026 – Tempo 0.10.2
+
+- **Centre dot on its own:** its own size (it used to grow with the hands' widths) and always its own colour.
+- **Ring:** its own colour (it used to share the hour marks'), and **Fill inside the ring** – a disc in its own colour, its own layer (Ring fill, at the back to start).
+- **Every dial colour independent:** background, ring fill, minute, hour and quarter marks, ring, each hand, centre dot and fill each have their own row.
+- Older designs open as they were: the centre dot keeps its size and colour, the ring its colour (checked frame for frame).
+- Opening an older download now also resets the dial's 0.10 settings to how it drew, rather than keeping whatever was on screen.
+
 ## 19 October 2026 – Tempo 0.10.1
 
 - **Sturdier start-up:** each card in the panel is built on its own, so if one ever fails the rest – Export and Presets included – still work, and a red note says what went wrong (click it to hide). Steve saw Export and Presets stop responding after 0.10; not reproduced here yet – this keeps them working and shows the cause.
