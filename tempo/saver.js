@@ -545,7 +545,7 @@ function dialFrame(ctx,W,H,K){
    (Zero Seven, Seventeen, Twenty Three), so a teen or a round ten leaves the units
    column empty – it rests above its list. Dates the same way in ordinals (Seventh,
    Seventeenth, Twenty First), years as Twenty Twenty Six. */
-const isCols=()=>C.show==='columns',isRings=()=>C.show==='rings',isType=()=>isCols()||isRings();
+const isCols=()=>C.show==='columns',isRings=()=>C.show==='rings',isOrbit=()=>C.show==='orbit',isTuner=()=>C.show==='tuner',isType=()=>isCols()||isRings()||isOrbit()||isTuner();
 const T1=['Zero','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
 const T10=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
 const TORD=n=>{const w=n<20?T1[n]:T10[Math.floor(n/10)]+(n%10?' '+T1[n%10]:'');const p=w.split(' '),l=p.pop(),o=ORDS[l.toLowerCase()];p.push(o?o[0].toUpperCase()+o.slice(1):l.endsWith('y')?l.slice(0,-1)+'ieth':l+'th');return p.join(' ');};
@@ -606,13 +606,15 @@ function tPos(key,target,now,n){let a=tAnim.get(key);
   if(n){/* a ring: unwrapped, forwards */if(((a.to%n)+n)%n!==target){let d=((target-a.to)%n+n)%n;a.from=cur;a.to=a.to+d;a.t0=now;}}
   else if(a.to!==target){a.from=cur;a.to=target;a.t0=now;}
   return a.from+(a.to-a.from)*tEase(Math.min(1,(now-a.t0)/len));}
-const tPal=()=>{const o=C.type;if(C.force)return C.force;if(o.rotate&&o.themes&&o.themes.length)return eased(hourTheme(o.themes,o.every));return{bg:o.bg,ink:o.ink,soft:o.soft};};
+const tPal=()=>{const o=C.type;if(C.force)return C.force;if(o.rotate&&o.themes&&o.themes.length)return eased(hourTheme(o.themes,o.every));return{bg:o.bg,ink:o.ink,soft:o.soft,accent:o.accent};};
 function typeFrame(ctx,W,H,now,K){
   const o=C.type,P=tPal(),f=tFace(),z=parts(Date.now());S.bg=P.bg;
   ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.fillStyle=P.bg;ctx.fillRect(0,0,ctx.canvas.width,ctx.canvas.height);
   if(!f)return;const capU=f.cap>0?f.cap:f.upm*.7,far=o.far==='fade';
   /* tracking, and the space between columns and rings: a word space, which follows the tracking */
   const tk=((o.tracking||0)/1000+trackOf(faceById(o.font)?o.font:baseId()))*f.upm,sp=(f.adv(glyphOf(f,' '))||f.upm*.25)*(o.space==null?100:o.space)/100+tk;
+  if(isOrbit())return orbitFrame(ctx,W,H,now,K,o,P,f,z,tk,sp,capU,far);
+  if(isTuner())return tunerFrame(ctx,W,H,now,K,o,P,f,z,tk,sp,capU,far);
   if(isCols()){
     const cols=tCols(o);
     cols.forEach(c=>{c.shapes=c.list.map(s=>tShape(f,tCase(s,c.k),tk));c.w=Math.max(...c.shapes.map(s=>s.w));});
@@ -637,6 +639,78 @@ function typeFrame(ctx,W,H,now,K){
     g.shapes.forEach((s,i)=>{if(!s.gl.length)return;let d=((i-pos)%n+n)%n;if(d>n/2)d-=n;const a=d*step,ad=Math.abs(d);
       const col=mixHex(P.soft,P.ink,Math.max(0,1-ad)),al=far?Math.max(0,1-Math.max(0,ad-1)/(n/4)):1;
       const M=K.multiply(new DOMMatrix().translateSelf(cx,cy).rotateSelf(a*180/Math.PI).translateSelf(R,capPx/2));tText(ctx,M,f,s,size,col,al);});}
+  ctx.globalAlpha=1;
+}
+/* ---------------- Orbit (0.11): Rings, run as sentences round the circle ----------------
+   The words of each ring follow one another round its circle like a line of type set on a
+   curve, a word space apart, letter by letter. Each ring turns until the word that's true
+   now stands upright at twelve o'clock, so the hour, the minute and the second stack into
+   one straight column down the middle – centred, or with their first letters on one
+   vertical. Rings sit a line apart (o.orbit.leading × cap), outermost first, so the column
+   reads top to bottom; the space in the middle is o.orbit.hole × cap. A ring whose words
+   don't all fit round it shows those that do, either side of the top. */
+function orbitFrame(ctx,W,H,now,K,o,P,f,z,tk,sp,capU,far){
+  const O=o.orbit||{},rings=tRings(o),acc=P.accent||P.ink,n=rings.length,left=O.align==='left';
+  const pitchU=(O.leading==null?1.9:O.leading)*capU,holeU=(O.hole==null?5:O.hole)*capU,markU=O.mark===false?0:capU;
+  const outerU=holeU+(n-1)*pitchU+capU,k=Math.max(1e-4,(O.size||82)/100*Math.min(W,H)/2/(outerU+markU)),size=k*f.upm,capPx=capU*k;
+  const cx=W/2,cy=H/2+markU*k/2;
+  /* one glyph, upright on the circle of radius r (px) at arc length a (font units) from the top */
+  const glyph=(g,adv,a,r,col,al)=>{if(al<=.003)return;const th=a*k/r;ctx.globalAlpha=Math.min(1,al);ctx.fillStyle=col;
+    ctx.setTransform(K.multiply(new DOMMatrix().translateSelf(cx,cy).rotateSelf(th*180/Math.PI).translateSelf(-adv*k/2,-r).multiplySelf(new DOMMatrix([k,0,0,k,0,0]))));f.draw(ctx,g.id,false);};
+  rings.forEach((g,ri)=>{const r=(holeU+(n-1-ri)*pitchU)*k;if(r<=0)return;
+    if(g.amp){const s=tShape(f,'&',tk),a0=left?0:-s.w/2;s.gl.forEach((q,i)=>{const adv=(i+1<s.gl.length?s.gl[i+1].x:s.w)-q.x;glyph(q,adv,a0+q.x+adv/2,r,P.ink,1);});return;}
+    const L=g.list.length,shapes=g.list.map(x=>tShape(f,tCase(x,g.k),tk));
+    /* where each word starts along the ring, and the point of it that lines up at the top */
+    const st=[],an=[];let tot=0;shapes.forEach(s=>{st.push(tot);an.push(left?tot:tot+s.w/2);tot+=s.w>0?s.w+sp:0;});if(tot<=0)return;
+    const A=j=>{const q=Math.floor(j/L),i=j-q*L;return q*tot+an[i];},Sx=j=>{const q=Math.floor(j/L),i=j-q*L;return q*tot+st[i];};
+    const p=tPos('o.'+g.k,g.at(z),now,L),i0=Math.floor(p),Ap=A(i0)+(A(i0+1)-A(i0))*(p-i0),half=Math.PI*r/k-sp/2;
+    for(let j=i0-L;j<=i0+L+1;j++){const i=((j%L)+L)%L,s=shapes[i];if(!s.gl.length)continue;
+      const s0=Sx(j)-Ap,mid=s0+s.w/2,cur=j===Math.round(p);
+      if(!cur&&(Math.abs(mid)>tot/2||Math.max(Math.abs(s0),Math.abs(s0+s.w))>half))continue;
+      const d=Math.abs(j-p),col=mixHex(P.soft,P.ink,Math.max(0,1-d)),th=Math.abs(mid*k/r);
+      const al=far?Math.max(0,Math.min(1,1.15-th/(.7*Math.PI))):1;
+      s.gl.forEach((q,gi)=>{const adv=(gi+1<s.gl.length?s.gl[gi+1].x:s.w)-q.x;glyph(q,adv,s0+q.x+adv/2,r,col,cur?1:al);});}});
+  ctx.globalAlpha=1;ctx.setTransform(K);
+  const lw=Math.max(1.5,capPx*.1),rOut=(holeU+(n-1)*pitchU+capU)*k;
+  if(O.mark!==false){ctx.strokeStyle=acc;ctx.lineWidth=lw;ctx.lineCap='butt';ctx.beginPath();ctx.moveTo(cx,cy-rOut-capPx*.3);ctx.lineTo(cx,cy-rOut-capPx*1.0);ctx.stroke();}
+  if(O.dot!==false){ctx.fillStyle=acc;ctx.beginPath();ctx.arc(cx,cy,Math.max(1.5,capPx*.14),0,TAU);ctx.fill();}
+}
+/* ---------------- Tuner (0.11): scales under one needle ----------------
+   Like the dial of an old radio, or a slide rule: the hours, minutes and seconds are three
+   scales that slide sideways under a needle that never moves. The time is wherever the
+   needle falls. Gliding, every scale moves all the time, the hours by the minute and the
+   minutes by the second; stepping, each jumps to its mark with the Change card's feel.
+   Labels say the hours in words, minutes every five, seconds every ten; the label under
+   the needle is in the Now colour. */
+function tunerFrame(ctx,W,H,now,K,o,P,f,z,tk,sp,capU,far){
+  const U=o.tuner||{},acc=P.accent||P.ink,glide=U.move!=='step',secs=o.secs!==false,spread=U.spread||1;
+  const hrs=o.h24?Array.from({length:24},(_,i)=>say(i)):T1.slice(1,13),hAt=o.h24?z.h:(z.h%12||12)-1,nh=hrs.length;
+  const ms=((Date.now()%1000)+1000)%1000,sv=glide?z.s+ms/1000:tPos('u.s',z.s,now,60),mv=glide?z.mi+sv/60:tPos('u.m',z.mi,now,60),hv=glide?hAt+mv/60:tPos('u.h',hAt,now,nh);
+  const fig=Array.from({length:60},(_,i)=>tShape(f,pad(i),tk)),w2=Math.max(...fig.map(s=>s.w)),hs=hrs.map(x=>tShape(f,tCase(x,'h'),tk)),wH=Math.max(...hs.map(s=>s.w));
+  const sc=[{key:'Hour',v:hv,n:nh,per:(wH+2*sp)*1.5*spread,major:1,sub:4,lab:i=>hs[i]},{key:'Minute',v:mv,n:60,per:(w2+sp)*3/5*spread,major:5,sub:1,lab:i=>fig[i]}];
+  if(secs)sc.push({key:'Second',v:sv,n:60,per:(w2+sp)*3.6/10*spread,major:10,sub:1,lab:i=>fig[i]});
+  const gapU=(U.gap==null?4:U.gap)*capU,keyU=U.keys===false?0:1.5*capU,blockU=(sc.length-1)*gapU+keyU+2.4*capU;
+  const k=Math.max(1e-4,(U.size||62)/100*H/blockU),size=k*f.upm,capPx=capU*k,m=Math.min(W,H)*.06,cx=W/2,half=W/2-m;
+  const y0=(H-blockU*k)/2+keyU*k+capPx,hair=Math.max(1,capPx*.045),keyK=k*.4,keySize=size*.4;
+  ctx.setTransform(K);ctx.lineCap='butt';
+  const fade=x=>{const d=Math.abs(x-cx);if(d>half)return 0;return far?Math.max(0,1-Math.pow(d/half,2)):Math.min(1,(half-d)/(capPx*.6));};
+  sc.forEach((S_,si)=>{const y=y0+si*gapU*k,rule=y+capPx*1.15,per=S_.per*k;
+    ctx.globalAlpha=.5;ctx.strokeStyle=P.soft;ctx.lineWidth=hair;ctx.beginPath();ctx.moveTo(cx-half,rule);ctx.lineTo(cx+half,rule);ctx.stroke();
+    if(U.keys!==false){const s=tShape(f,S_.key.toUpperCase(),f.upm*.14);tText(ctx,K.multiply(new DOMMatrix([1,0,0,1,cx-half,y-capPx*1.5])),f,s,keySize,P.soft,1);ctx.setTransform(K);}
+    const span=Math.ceil(half/per)+1,base=Math.floor(S_.v);
+    for(let j=-span;j<=span;j++){const idx=base+j;
+      for(let q=0;q<S_.sub;q++){const u=idx+q/S_.sub,x=cx+(u-S_.v)*per,a=fade(x);if(a<=0)continue;
+        const i=((idx%S_.n)+S_.n)%S_.n,maj=q===0&&i%S_.major===0,len=(maj?.7:q===0?.4:.22)*capPx;
+        ctx.setTransform(K);ctx.globalAlpha=a*(maj?.9:.6);ctx.strokeStyle=maj?P.ink:P.soft;ctx.lineWidth=hair;ctx.beginPath();ctx.moveTo(x,rule-len);ctx.lineTo(x,rule);ctx.stroke();
+        /* Now: the label whose stretch the needle is in (Ten until eleven o'clock), handing over just before the next */
+        if(maj){const s=S_.lab(i),e=(S_.v-u)/S_.major,near=e<-.08||e>=1?0:e<0?1+e/.08:e>.92?(1-e)/.08:1;
+          /* a label fades out as its far edge nears the end of the scale, so none is ever cut in half */
+          const edge=Math.abs(x-cx)+s.w*k/2,la=Math.min(far?a:1,Math.max(0,Math.min(1,(half-edge)/(capPx*.8))));
+          tText(ctx,K.multiply(new DOMMatrix([1,0,0,1,x-s.w*k/2,y])),f,s,size,mixHex(P.soft,P.ink,near),la);ctx.setTransform(K);}}}});
+  /* the needle */
+  const top=y0-(U.keys===false?capPx*1.4:capPx*2.2),bot=y0+(sc.length-1)*gapU*k+capPx*1.9;
+  ctx.globalAlpha=1;ctx.setTransform(K);ctx.strokeStyle=acc;ctx.lineWidth=Math.max(1.5,capPx*.08);ctx.beginPath();ctx.moveTo(cx,top);ctx.lineTo(cx,bot);ctx.stroke();
+  if(U.dot!==false){ctx.fillStyle=acc;ctx.beginPath();ctx.arc(cx,top,Math.max(2,capPx*.16),0,TAU);ctx.fill();}
   ctx.globalAlpha=1;
 }
 /* ---------------- Stack (0.9.3): the time and date as a stack of lines ----------------
@@ -864,6 +938,7 @@ const lines=(W,H)=>{if(!wCur||!isWords())return{size:0,lines:[],x:[]};const L=wL
 /* Columns and Rings, read out: the words true now, in order (tests) */
 const typeNow=()=>{if(!isType())return[];const z=parts(Date.now());
   if(isCols())return tCols(C.type).map(c=>{const i=c.fixed?0:c.at(z);return i<0?'':tCase(c.list[i],c.k);}).filter(Boolean);
+  if(isTuner()){const o=C.type,h=o.h24?say(z.h):T1[z.h%12||12];return[tCase(h,'h'),pad(z.mi)].concat(o.secs!==false?[pad(z.s)]:[]);}
   return tRings(C.type).map(g=>g.amp?'&':tCase(g.list[g.at(z)],g.k)).filter(Boolean);};
 return{frame,setConfig,bg:()=>S&&S.bg,replay,typeNow,stackNow:()=>xLast,words:()=>(wCur||[]).map(t=>t.w).join(' '),faces:()=>(wCur||[]).map(t=>[t.w,t.fid||'']),clockFaces:()=>({text:cur,l0:cF.l0.slice(),l2:cF.l2}),lines,hands:()=>Object.assign({},dNow)};
 }

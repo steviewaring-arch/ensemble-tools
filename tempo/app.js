@@ -46,7 +46,10 @@ function tempoDefaults(){return{ssVer:5,
   /* 0.10: the dial, element by element – each hand (H, M, S), the custom marks (K M, H, Q), the layers */
   ssDialHStyle:'hand',ssDialHLen:0.36,ssDialHFrom:0,ssDialHRound:0,ssDialHTaper:0,ssDialHDot:30,ssDialHA:1,ssDialHBlend:'inherit',ssDialHMove:'time',ssDialHSpeed:1,ssDialHAngle:0,ssDialHTrail:'off',ssDialHArc:40,ssDialHTrailA:.45,ssDialHEchoes:8,ssDialMStyle:'hand',ssDialMLen:0.66,ssDialMFrom:0,ssDialMRound:0,ssDialMTaper:0,ssDialMDot:30,ssDialMA:1,ssDialMBlend:'inherit',ssDialMMove:'time',ssDialMSpeed:1,ssDialMAngle:0,ssDialMTrail:'off',ssDialMArc:40,ssDialMTrailA:.45,ssDialMEchoes:8,ssDialSStyle:'hand',ssDialSLen:0.99,ssDialSFrom:0,ssDialSRound:0,ssDialSTaper:0,ssDialSDot:30,ssDialSA:1,ssDialSBlend:'inherit',ssDialSMove:'time',ssDialSSpeed:1,ssDialSAngle:0,ssDialSTrail:'off',ssDialSArc:40,ssDialSTrailA:.45,ssDialSEchoes:8,ssDialHOn:true,ssDialMOn:true,ssDialLenAuto:'',ssDialEdit:'m',ssDialEditMark:'h',
   ssDialKMOn:true,ssDialKMShape:'line',ssDialKMFrom:0.22,ssDialKMTo:1,ssDialKMW:2.2,ssDialKMAt:0.95,ssDialKMSize:5,ssDialKMUnder:true,ssDialKHOn:true,ssDialKHShape:'line',ssDialKHFrom:0.22,ssDialKHTo:0.688,ssDialKHW:2.2,ssDialKHAt:0.95,ssDialKHSize:9,ssDialKHUnder:true,ssDialKQOn:true,ssDialKQShape:'line',ssDialKQFrom:0.22,ssDialKQTo:0.4228,ssDialKQW:2.2,ssDialKQAt:0.95,ssDialKQSize:12,ssDialKQUnder:false,ssDialMarksOn:true,ssDialRingR:1,ssDialCentreR:13.2,ssDialRingC:'#A9A9A9',ssDialRingFill:false,ssDialRingFillC:'#F2F2F2',ssDialOrder:'',ssDialCentreOwn:false,ssDialCentreC:'#EA2631',ssDialFillLast:'minute',
-  ssTTracking:-15,ssTSpace:100,ssTRDay:false,ssTRDate:false,ssTRMonth:false,ssTRYear:false,ssDialFillStyle:'sweep',ssDialFillLayer:'front',
+  ssTTracking:-15,ssTSpace:100,
+  /* 0.11: Orbit (ssTO…) and Tuner (ssTU…), and an accent for both (the mark at the top, the needle) */
+  ssTAccent:'#EA2631',ssTOSize:82,ssTOHole:5,ssTOLeading:1.9,ssTOAlign:'centre',ssTOMark:true,ssTODot:true,ssTUSize:62,ssTUGap:4,ssTUSpread:1,ssTUMove:'glide',ssTUKeys:true,ssTUDot:true,
+  ssTRDay:false,ssTRDate:false,ssTRMonth:false,ssTRYear:false,ssDialFillStyle:'sweep',ssDialFillLayer:'front',
   /* 0.9.3: Stack – the time and date as a stack of lines, after Steve's Univers mock-up (ssX…) */
   ssXFont:'',ssXH24:true,ssXZero:true,ssXSep:'stop',ssXSecs:true,ssXDay:'full',ssXMonth:'full',ssXYear:'short',ssXDZero:false,ssXDSpace:false,
   ssXLines:'four',ssXDayAt:'figure',ssXGap:.18,ssXEven:true,ssXSize:70,ssXAnchor:'br',ssXMargin:4,ssXTracking:-65,ssXTkTime:0,ssXTkDay:0,ssXTkDate:0,ssXTkYear:0,ssXChange:'roll',ssXFeel:'smooth',ssXLen:.6,
@@ -150,9 +153,11 @@ Object.assign(TIPS,{
 
 /* ================= Screensaver ================= */
 const SEPS={comma:',',colon:':',stop:'.',space:' '};
-const clk=s=>!['words','dial','columns','rings','stack'].includes(s.ssShow),wd=s=>s.ssShow==='words',dl=s=>s.ssShow==='dial';
+const clk=s=>!['words','dial','columns','rings','orbit','tuner','stack'].includes(s.ssShow),wd=s=>s.ssShow==='words',dl=s=>s.ssShow==='dial';
 /* 0.9: Columns and Rings, the time as lists of words */
-const cols=s=>s.ssShow==='columns',rgs=s=>s.ssShow==='rings',ty=s=>cols(s)||rgs(s),stk=s=>s.ssShow==='stack';
+const cols=s=>s.ssShow==='columns',rgs=s=>s.ssShow==='rings',orb=s=>s.ssShow==='orbit',tun=s=>s.ssShow==='tuner',ty=s=>cols(s)||rgs(s)||orb(s)||tun(s),stk=s=>s.ssShow==='stack';
+/* 0.11: Orbit takes Rings' words; both say the words on rings */
+const rw=s=>rgs(s)||orb(s);
 
 /* Cards that start shut (each says what's set): all but the one for what's showing */
 function appCollapseDefault(){return ['ss-num','ss-change','ss-wtype','ss-wchange','ss-dhands','ss-pos','ss-tchange'];}/* Fill (0.9.1) starts open *//* 0.9: Colour starts open – it's where people look first */
@@ -299,7 +304,7 @@ const howMany=v=>v>=1?'All':v<=.15?'The odd one':pct(v);
 }
 /* Show */
 try{const b=card('ss-show','Screensaver',null,'saver');
-  build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['columns','Columns'],['rings','Rings'],['stack','Stack'],['dial','As a dial']]}]);
+  build(b,[{t:'seg',k:'ssShow',label:'Show',opts:[['clock','The time'],['words','In words'],['columns','Columns'],['rings','Rings'],['orbit','Orbit'],['tuner','Tuner'],['stack','Stack'],['dial','As a dial']]}]);
   toIsland(b.firstChild);hideCard(b);/* the first choice – the time in figures, in words, or as a dial – lives in the island */
 }catch(e){initError('ss-show',e);}
 /* A dial has no type, so Fonts steps aside */
@@ -535,16 +540,19 @@ try{const b=card('ss-twords','Words',ty,'saver');
   const cs=PIECES.map(([k,t])=>{const p=el('button','pill small',t);p.onclick=()=>set(k,!S[k]);chips.append(p);return[k,p];});
   controls.push({d:{},w:chips,update(){cs.forEach(([k,p])=>{p.setAttribute('aria-pressed',!!S[k]);p.hidden=k==='ssTSecs'&&!S.ssTTime;});}});
   const RP=[['ssTSecs','Seconds'],['ssTRDay','Day'],['ssTRDate','Date'],['ssTRMonth','Month'],['ssTRYear','Year']];
-  const rchips=el('div','ctl btn-row');rchips.setAttribute('role','group');rchips.setAttribute('aria-label','Rings shown');addCustom(b,rgs,rchips);
+  const rchips=el('div','ctl btn-row');rchips.setAttribute('role','group');rchips.setAttribute('aria-label','Rings shown');addCustom(b,rw,rchips);
   const rs=RP.map(([k,t])=>{const p=el('button','pill small',t);p.onclick=()=>set(k,!S[k]);rchips.append(p);return[k,p];});
   controls.push({d:{},w:rchips,update(){rs.forEach(([k,p])=>p.setAttribute('aria-pressed',!!S[k]));}});
   build(b,[
     {t:'hint',text:'Click the parts to choose the columns. The words that are true now sit on one line.',show:cols},
     {t:'hint',text:'Hours and minutes always; click to add seconds and the date, a ring each, outwards.',show:rgs},
+    {t:'hint',text:'Hours and minutes always; click to add seconds and the date, a ring each, inwards. The words run round each ring like a line of type; the ones true now stand in a column at the top.',show:orb},
+    {t:'hint',text:'The hours, minutes and seconds as scales sliding under a needle that stays still. The time is wherever the needle falls.',show:tun},
+    {t:'toggle',k:'ssTSecs',label:'Seconds',show:tun},
     {t:'hint',text:'Nothing to show. Switch on at least one part.',show:s=>cols(s)&&!(s.ssTTime||s.ssTDay||s.ssTDate||s.ssTMonth||s.ssTYear)},
-    {t:'seg',k:'ssTSplit',label:'Rings',opts:[[false,'One for each'],[true,'Tens and units']],show:rgs},
-    {t:'seg',k:'ssTH24',label:'Format',opts:[[false,'12-hour'],[true,'24-hour']],show:s=>rgs(s)||s.ssTTime},
-    {t:'seg',k:'ssTZero',label:'Say 0 as',opts:[['zero','Zero'],['oh','Oh']]},
+    {t:'seg',k:'ssTSplit',label:'Rings',opts:[[false,'One for each'],[true,'Tens and units']],show:rw},
+    {t:'seg',k:'ssTH24',label:'Format',opts:[[false,'12-hour'],[true,'24-hour']],show:s=>rw(s)||tun(s)||s.ssTTime},
+    {t:'seg',k:'ssTZero',label:'Say 0 as',opts:[['zero','Zero'],['oh','Oh']],show:s=>!tun(s)},
     {t:'seg',k:'ssTCase',label:'Case',opts:[['auto','As drawn'],['title','Title Case'],['lower','lower case'],['upper','CAPITALS']]},
   ]);
   addSelect(b,{k:'ssTFont',label:'Font',optsFn:()=>[['','Medium, if loaded']].concat(faceOpts())});
@@ -556,9 +564,12 @@ try{const b=card('ss-twords','Words',ty,'saver');
 }catch(e){initError('ss-twords',e);}
 try{const b=card('ss-tchange','Change',ty,'saver');
   build(b,[
-    {t:'seg',k:'ssTFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']]},
-    {t:'range',k:'ssTLen',label:'Length',min:.15,max:2,step:.05,fmt:v=>v.toFixed(2)+' s'},
-    {t:'seg',k:'ssTFar',label:'The other words',opts:[['all','All shown'],['fade','Fade with distance']]},
+    {t:'seg',k:'ssTUMove',label:'Scales',opts:[['glide','Glide'],['step','Step']],show:tun},
+    {t:'hint',text:'Glide: every scale moves all the time – the hours by the minute, the minutes by the second. Step: each jumps to its mark.',show:tun},
+    {t:'seg',k:'ssTFeel',label:'Feel',opts:[['snappy','Snappy'],['smooth','Smooth'],['elastic','Elastic']],show:s=>!tun(s)||s.ssTUMove==='step'},
+    {t:'range',k:'ssTLen',label:'Length',min:.15,max:2,step:.05,fmt:v=>v.toFixed(2)+' s',show:s=>!tun(s)||s.ssTUMove==='step'},
+    {t:'seg',k:'ssTFar',label:'The other words',opts:[['all','All shown'],['fade','Fade with distance']],show:s=>!tun(s)},
+    {t:'seg',k:'ssTFar',label:'Towards the edges',opts:[['all','Full strength'],['fade','Fade out']],show:tun},
   ]);
 }catch(e){initError('ss-tchange',e);}
 /* Stack (0.9.3): what each line says, how the lines sit, and how a change moves.
@@ -628,6 +639,17 @@ try{const b=card('ss-pos','Position',null,'saver');
     {t:'range',k:'ssTLeading',label:'Line spacing',min:1.1,max:3,step:.05,fmt:v=>v.toFixed(2)+' × cap',show:cols},
     {t:'range',k:'ssTRSize',label:'Size',min:20,max:100,step:1,fmt:v=>Math.round(v)+'% of the screen',show:rgs},
     {t:'range',k:'ssTHole',label:'Space in the middle',min:2,max:20,step:.1,fmt:v=>v.toFixed(1)+' × cap',show:rgs},
+    {t:'range',k:'ssTOSize',label:'Size',min:20,max:100,step:1,fmt:v=>Math.round(v)+'% of the screen',show:orb},
+    {t:'range',k:'ssTOLeading',label:'Between rings',min:1.1,max:4,step:.05,fmt:v=>v.toFixed(2)+' × cap',show:orb},
+    {t:'range',k:'ssTOHole',label:'Space in the middle',min:.5,max:20,step:.1,fmt:v=>v.toFixed(1)+' × cap',show:orb},
+    {t:'seg',k:'ssTOAlign',label:'The column',opts:[['centre','Centred'],['left','First letters in line']],show:orb},
+    {t:'toggle',k:'ssTOMark',label:'Mark at the top',show:orb},
+    {t:'toggle',k:'ssTODot',label:'Dot in the middle',show:orb},
+    {t:'range',k:'ssTUSize',label:'Size',min:20,max:100,step:1,fmt:v=>Math.round(v)+'% of the height',show:tun},
+    {t:'range',k:'ssTUGap',label:'Between scales',min:2.5,max:10,step:.1,fmt:v=>v.toFixed(1)+' × cap',show:tun},
+    {t:'range',k:'ssTUSpread',label:'Spread',min:.5,max:3,step:.05,fmt:v=>Math.round(v*100)+'%',show:tun},
+    {t:'toggle',k:'ssTUKeys',label:'Names – Hour, Minute, Second',show:tun},
+    {t:'toggle',k:'ssTUDot',label:'Dot on the needle',show:tun},
     {t:'seg',k:'ssXAnchor',label:'Latch to',opts:[['br','Bottom right'],['bl','Bottom left'],['tl','Top left'],['tr','Top right'],['c','Centre']],show:stk},
     {t:'range',k:'ssXSize',label:'Size',min:20,max:100,step:1,fmt:v=>'up to '+Math.round(v)+'% of the width',show:stk},
     {t:'range',k:'ssXMargin',label:'Margin',min:0,max:20,step:.5,fmt:v=>roundTo(v,.5)+'%',show:s=>stk(s)&&!s.ssXMarginEach},
@@ -673,13 +695,13 @@ const DIAL_THEMES=[
 const D_COLS=[['ssDialBg','bg'],['ssDialMin','min'],['ssDialHour','hour'],['ssDialQuarter','quarter'],['ssDialHandH','handH'],['ssDialHandM','handM'],['ssDialHandS','handS'],['ssDialFillC','fill'],['ssDialCentreC','centre'],['ssDialRingC','ring'],['ssDialRingFillC','disc']];
 /* Columns and Rings, as drawn: white, black for what's true now, warm grey for the rest */
 const TYPE_THEMES=[
-  {name:'Drawn',bg:'#FFFFFF',ink:'#000000',soft:'#D2CDC9'},
-  {name:'Paper',bg:'#F2F2F2',ink:'#000000',soft:'#BDBDBD'},
-  {name:'Night',bg:'#000000',ink:'#FFFFFF',soft:'#3A3A3A'},
-  {name:'Noon',bg:'#D3D5D5',ink:'#1E2023',soft:'#F4FD5F'},
-  {name:'Signal',bg:'#FF4F1F',ink:'#000000',soft:'#FFB49E'},
+  {name:'Drawn',bg:'#FFFFFF',ink:'#000000',soft:'#D2CDC9',accent:'#EA2631'},
+  {name:'Paper',bg:'#F2F2F2',ink:'#000000',soft:'#BDBDBD',accent:'#EA2631'},
+  {name:'Night',bg:'#000000',ink:'#FFFFFF',soft:'#3A3A3A',accent:'#FFF35C'},
+  {name:'Noon',bg:'#D3D5D5',ink:'#1E2023',soft:'#F4FD5F',accent:'#FF4F1F'},
+  {name:'Signal',bg:'#FF4F1F',ink:'#000000',soft:'#FFB49E',accent:'#FFFFFF'},
 ];
-const T_COLS=[['ssTBg','bg'],['ssTInk','ink'],['ssTSoft','soft']];
+const T_COLS=[['ssTBg','bg'],['ssTInk','ink'],['ssTSoft','soft'],['ssTAccent','accent']];
 /* Stack, as drawn (grey-green, a pale time, a near-black day, coral date, olive year), and plainer ones */
 const STACK_THEMES=[
   {name:'Drawn',bg:'#979C92',time:'#E9EAEB',day:'#343031',date:'#F69063',year:'#6B712F'},
@@ -704,7 +726,7 @@ const THEMES={
   stack:{id:'ss-xcolour',show:stk,store:'xthemes',builtin:STACK_THEMES,on:s=>!!s.ssXRotate,turn:v=>set('ssXRotate',!!v),set:'ssXSet',every:'ssXEvery',
     cols:[['ssXBg','bg','Background'],['ssXTime','time','The time'],['ssXDayC','day','The day'],['ssXDate','date','The date'],['ssXYearC','year','The year']]},
   type:{id:'ss-tcolour',show:ty,store:'tthemes',builtin:TYPE_THEMES,on:s=>!!s.ssTRotate,turn:v=>set('ssTRotate',!!v),set:'ssTSet',every:'ssTEvery',
-    cols:[['ssTBg','bg','Background'],['ssTInk','ink','Now'],['ssTSoft','soft','The other words']]},
+    cols:[['ssTBg','bg','Background'],['ssTInk','ink','Now'],['ssTSoft','soft','The other words',s=>tun(s)?'The scales':'The other words'],['ssTAccent','accent','Accent',s=>tun(s)?'Needle':'Mark and dot',s=>orb(s)||tun(s)]]},
 };
 const kindNow=s=>wd(s)?'words':dl(s)?'dial':ty(s)?'type':stk(s)?'stack':'clock';
 const tget=(T,f)=>f.startsWith('p.')?(T.p||[])[+f.slice(2)]:T[f];
@@ -716,7 +738,7 @@ const allOf=k=>THEMES[k].builtin.map(T=>Object.assign({builtin:true},T)).concat(
 const findTheme=(k,n)=>allOf(k).find(T=>T.name===n)||null;
 const lc=v=>String(v==null?'':v).toLowerCase();
 /* the dial's fill colour only counts when the face fills */
-const sameCols=(k,A,B)=>THEMES[k].cols.every(([,f])=>(k==='dial'&&f==='fill'&&S.ssDialFill==='off')||(k==='dial'&&['centre','ring','disc'].includes(f)&&(!tget(A,f)||!tget(B,f)))||lc(tget(A,f))===lc(tget(B,f)));
+const sameCols=(k,A,B)=>THEMES[k].cols.every(([,f])=>(k==='dial'&&f==='fill'&&S.ssDialFill==='off')||(k==='dial'&&['centre','ring','disc'].includes(f)&&(!tget(A,f)||!tget(B,f)))||(k==='type'&&f==='accent'&&(!tget(A,f)||!tget(B,f)))||lc(tget(A,f))===lc(tget(B,f)));
 const fromS=(k,name)=>{const T={name};for(const [key,f] of THEMES[k].cols)tput(T,f,S[key]);return T;};
 const toS=(k,T)=>{if(k==='dial'&&T&&(!T.centre||!T.ring||!T.disc))T=Object.assign({centre:S.ssDialSecs?T.handS:T.handM,ring:T.hour,disc:T.bg},T);/* themes from before 0.10.2 */
   for(const [key,f] of THEMES[k].cols){const v=tget(T,f);if(typeof v==='string'&&/^#[0-9a-f]{6}$/i.test(v))S[key]=v.toUpperCase();}};
@@ -816,9 +838,9 @@ function themeCard(k,before){const K=THEMES[k],b=card(K.id,'Colour',K.show,'save
 }
 /* themes across designs: every colour has a role – background, ink (what's read first), accent,
    soft (what recedes) – so a theme moves between designs with its colours in sensible places */
-const KIND_NAME={clock:'The time',words:'In words',dial:'The dial',type:'Columns and Rings',stack:'Stack'};
+const KIND_NAME={clock:'The time',words:'In words',dial:'The dial',type:'Columns, Rings, Orbit and Tuner',stack:'Stack'};
 const ROLES={clock:{bg:'bg','p.0':'ink','p.1':'accent','p.2':'ink2','p.3':'soft'},words:{bg:'bg',ink:'ink',soft:'soft',date:'accent'},
-  dial:{bg:'bg',min:'soft',hour:'soft2',quarter:'ink',handH:'ink',handM:'ink',handS:'accent',fill:'soft',centre:'accent',ring:'soft2',disc:'soft'},type:{bg:'bg',ink:'ink',soft:'soft'},stack:{bg:'bg',time:'soft',day:'ink',date:'accent',year:'ink2'}};
+  dial:{bg:'bg',min:'soft',hour:'soft2',quarter:'ink',handH:'ink',handM:'ink',handS:'accent',fill:'soft',centre:'accent',ring:'soft2',disc:'soft'},type:{bg:'bg',ink:'ink',soft:'soft',accent:'accent'},stack:{bg:'bg',time:'soft',day:'ink',date:'accent',year:'ink2'}};
 const ROLE_FALL={ink:['ink','accent','ink2','soft'],ink2:['ink2','ink','accent'],accent:['accent','ink2','ink'],soft:['soft','soft2','accent','ink2','ink'],soft2:['soft2','soft','accent','ink'],bg:['bg']};
 function mapTheme(k1,T,k2){const src={};for(const [f,r] of Object.entries(ROLES[k1])){const v=tget(T,f);if(v&&!src[r])src[r]=v;}
   const out={name:T.name};for(const [,f] of THEMES[k2].cols){const r=ROLES[k2][f],v=(ROLE_FALL[r]||[r]).map(x=>src[x]).find(Boolean)||src.ink||'#000000';tput(out,f,v);}return out;}
@@ -1034,7 +1056,9 @@ const DL_MAP=[['face','ssDialFace'],['detail','ssDialDetail'],['hole','ssDialHol
 const X_MAP=[['font','ssXFont'],['h24','ssXH24'],['zero','ssXZero'],['sep','ssXSep'],['secs','ssXSecs'],['day','ssXDay'],['month','ssXMonth'],['year','ssXYear'],['dzero','ssXDZero'],['dspace','ssXDSpace'],
   ['lines','ssXLines'],['dayAt','ssXDayAt'],['gap','ssXGap'],['even','ssXEven'],['size','ssXSize'],['anchor','ssXAnchor'],['margin','ssXMargin'],['tracking','ssXTracking'],['optical','ssXOptical'],['sepSpace','ssXSepSpace'],['lead','ssXLead'],['change','ssXChange'],['feel','ssXFeel'],['len','ssXLen'],['rotate','ssXRotate'],['every','ssXEvery']];
 const T_MAP=[['h24','ssTH24'],['secs','ssTSecs'],['zero','ssTZero'],['case','ssTCase'],['leading','ssTLeading'],['hole','ssTHole'],['split','ssTSplit'],['feel','ssTFeel'],['len','ssTLen'],['far','ssTFar'],
-  ['bg','ssTBg'],['ink','ssTInk'],['soft','ssTSoft'],['rotate','ssTRotate'],['every','ssTEvery'],['tracking','ssTTracking'],['space','ssTSpace']];
+  ['bg','ssTBg'],['ink','ssTInk'],['soft','ssTSoft'],['accent','ssTAccent'],['rotate','ssTRotate'],['every','ssTEvery'],['tracking','ssTTracking'],['space','ssTSpace']];
+const TO_MAP=[['size','ssTOSize'],['hole','ssTOHole'],['leading','ssTOLeading'],['align','ssTOAlign'],['mark','ssTOMark'],['dot','ssTODot']];
+const TU_MAP=[['size','ssTUSize'],['gap','ssTUGap'],['spread','ssTUSpread'],['move','ssTUMove'],['keys','ssTUKeys'],['dot','ssTUDot']];
 function presetFromConfig(cfg,name){
   const s={ssVer:5},b=cfg.base||{},put=(k,v)=>{if(v!==undefined&&v!==null)s[k]=v;};
   for(const k in b)if((/^ss[A-Z0-9]/.test(k)&&!/^ssW|^ss[MN][A-Z]|^ssDial|^ssName$/.test(k))||k==='baseSlot')s[k]=b[k];
@@ -1064,7 +1088,8 @@ function presetFromConfig(cfg,name){
     if(!cl.ring&&cl.hour)s.ssDialRingC=cl.hour;if(!cl.disc&&cl.bg)s.ssDialRingFillC=cl.bg;}
   const t=cfg.type;if(t){T_MAP.forEach(([a,k])=>put(k,t[a]));const P=t.parts||{};[['time','ssTTime'],['day','ssTDay'],['date','ssTDate'],['month','ssTMonth'],['year','ssTYear']].forEach(([a,k])=>put(k,P[a]));
     const RP=t.rparts||{};[['day','ssTRDay'],['date','ssTRDate'],['month','ssTRMonth'],['year','ssTRYear']].forEach(([a,k])=>put(k,RP[a]));
-    if(t.size!=null)put(cfg.show==='rings'?'ssTRSize':'ssTCSize',t.size);put('ssTFont',t.font);if(cfg.show==='columns'||cfg.show==='rings')s.ssShow=cfg.show;}
+    if(t.size!=null&&(cfg.show==='rings'||cfg.show==='columns'))put(cfg.show==='rings'?'ssTRSize':'ssTCSize',t.size);put('ssTFont',t.font);if(['columns','rings','orbit','tuner'].includes(cfg.show))s.ssShow=cfg.show;
+    const O=t.orbit;if(O)TO_MAP.forEach(([a,k])=>put(k,O[a]));const U=t.tuner;if(U)TU_MAP.forEach(([a,k])=>put(k,U[a]));}
   const x=cfg.stack;if(x){X_MAP.forEach(([a,k])=>put(k,x[a]));const tl=x.tl||{};[['time','ssXTkTime'],['day','ssXTkDay'],['date','ssXTkDate'],['year','ssXTkYear']].forEach(([a,k])=>put(k,tl[a]));const c=x.colours||{};[['bg','ssXBg'],['time','ssXTime'],['day','ssXDayC'],['date','ssXDate'],['year','ssXYearC']].forEach(([a,k])=>put(k,c[a]));s.ssShow='stack';}
   /* the time's colours, and its themes through the day (0.9: read back from older downloads too, which carried them only in their colour block) */
   const co=cfg.colours||{};put('ssColBy',co.by);put('ssBg',co.bg);if(Array.isArray(co.p))['ssP1','ssP2','ssP3','ssP4'].forEach((k,i)=>put(k,co.p[i]));put('ssCEvery',co.every);
@@ -1172,7 +1197,7 @@ try{const b=card('ss-presets','Presets',null,'saver');
 /* What the screen saver is called: the name typed under Export, else the preset
    open, else Tempo, Tempo Words or Tempo Dial. Never a font's name – some fonts'
    licences (Timeless's) don't allow naming a product after them. */
-function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':cols(S)?'Tempo Columns':rgs(S)?'Tempo Rings':stk(S)?'Tempo Stack':'Tempo';}
+function defaultName(){const a=activePreset();if(a)return a.name;return dl(S)?'Tempo Dial':wd(S)?'Tempo Words':cols(S)?'Tempo Columns':rgs(S)?'Tempo Rings':orb(S)?'Tempo Orbit':tun(S)?'Tempo Tuner':stk(S)?'Tempo Stack':'Tempo';}
 const exportName=()=>(S.ssName||'').trim()||defaultName();
 /* 0.10: the dial's per-hand, custom-mark and layer settings, for the config. While the face sets the hands' lengths
    (you haven't moved them), they follow it; while the marks are a preset face, the custom marks follow it too –
@@ -1228,7 +1253,8 @@ function saverConfig(preview){
     ...(ty(S)?{type:{font:typeFont(),h24:S.ssTH24,secs:S.ssTSecs,zero:S.ssTZero,case:S.ssTCase,parts:{time:S.ssTTime,secs:S.ssTSecs,day:S.ssTDay,date:S.ssTDate,month:S.ssTMonth,year:S.ssTYear},
       size:cols(S)?S.ssTCSize:S.ssTRSize,leading:S.ssTLeading,hole:S.ssTHole,split:S.ssTSplit,feel:S.ssTFeel,len:S.ssTLen,far:S.ssTFar,tracking:S.ssTTracking,space:S.ssTSpace,
       rparts:{day:S.ssTRDay,date:S.ssTRDate,month:S.ssTRMonth,year:S.ssTRYear},
-      bg:S.ssTBg,ink:S.ssTInk,soft:S.ssTSoft,rotate:S.ssTRotate,themes:setThemes('type'),every:everyOf('type')}}:{}),
+      ...(orb(S)?{orbit:Object.fromEntries(TO_MAP.map(([a,k])=>[a,S[k]]))}:{}),...(tun(S)?{tuner:Object.fromEntries(TU_MAP.map(([a,k])=>[a,S[k]]))}:{}),
+      bg:S.ssTBg,ink:S.ssTInk,soft:S.ssTSoft,accent:S.ssTAccent,rotate:S.ssTRotate,themes:setThemes('type'),every:everyOf('type')}}:{}),
     /* only when showing words */
     ...(wd(S)?{words:{lead:S.ssWLead,h24:S.ssWH24,time:S.ssWTime,secs:S.ssWSecs,weekday:S.ssWWeekday,daynum:S.ssWDayNum,month:S.ssWMonth,year:S.ssWYear,
       stop:S.ssWStop,case:S.ssWCase,nums:{time:S.ssWNumTime,sec:S.ssWNumSec,date:S.ssWNumDate,year:S.ssWNumYear},zero:S.ssWZero,sep:S.ssWSep,layout:S.ssWLayout,fit:S.ssWFit,space:S.ssWSpace,optical:S.ssWOptical,dateCol:S.ssWDateCol,

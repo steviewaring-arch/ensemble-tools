@@ -165,7 +165,7 @@ async function promoMP4(device,progress){
 /* the sheet: every setting showing in the panel for this screen saver, card by card, then its colours hour by hour */
 function promoSpecs(){
   const name=exportName(),k=kindNow(S),K=THEMES[k],d=new Date(),date=d.toLocaleDateString('en-GB',{day:'numeric',month:'long',year:'numeric'});
-  const show={clock:'The time, in figures',words:'The time, in words',dial:'A dial',type:cols(S)?'Columns – the time as lists of words':'Rings – the time as rings of words',stack:'Stack – the time and date as a stack of lines'}[k];
+  const show={clock:'The time, in figures',words:'The time, in words',dial:'A dial',type:cols(S)?'Columns – the time as lists of words':orb(S)?'Orbit – the time as words running round rings':tun(S)?'Tuner – the time as scales under a needle':'Rings – the time as rings of words',stack:'Stack – the time and date as a stack of lines'}[k];
   const val=c=>{const d=c.d,v=S[d.k];if(Array.isArray(d.opts))return optLabel(d.opts,v);if(typeof d.optsFn==='function'){try{return optLabel(d.optsFn(),v);}catch(e){}}
     if(c.w.classList.contains('toggle-row'))return v?'On':'Off';if(c.w.classList.contains('colour-row'))return String(v).toUpperCase();if(d.fmt)return d.fmt(v);return typeof v==='number'?String(roundTo(v,d.step||.01)):String(v);};
   const lines=[`${name}`,'='.repeat(Math.max(8,name.length)),`Tempo ${$('.ver')?$('.ver').textContent:''} screen saver – specification, ${date}`,'',`Shows: ${show}`];

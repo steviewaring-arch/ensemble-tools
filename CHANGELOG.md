@@ -1,5 +1,14 @@
 # Changelog
 
+## 20 October 2026 – Tempo 0.11: Orbit and Tuner
+
+Two new faces, picked by Steve from the six on the concept canvas (Tempo – type face concepts).
+
+- **Orbit:** Rings' words run round each ring like a line of type set on a curve, a word space apart, letter by letter. Each ring turns until the word true now stands upright at twelve o'clock, so the hour, minute and second stack into one column down the middle – centred, or with their first letters in line. Same words, options and date rings as Rings (they're checked to say exactly the same). Position: size, space between rings, space in the middle, a mark at the top and a dot in the middle, both in the new accent colour.
+- **Tuner:** the hours (in words), minutes and seconds as three scales sliding under a needle that stays still, like an old radio dial or a slide rule. Glide moves every scale all the time; Step jumps each to its mark with the Change card's feel. The label in the Now colour is the one whose stretch the needle is in (Ten until eleven o'clock). Position: size, space between scales, spread, the names Hour, Minute, Second, and a dot on the needle. Towards the edges: full strength or fade out; labels fade before they reach the end of a scale rather than being cut.
+- **Accent colour** for Columns, Rings, Orbit and Tuner's themes (shown for Orbit and Tuner): Drawn and Paper red, Night yellow, Noon orange, Signal white. Themes saved before carry on; copying a theme to the other designs now takes the accent with it.
+- Exports, presets and Open a file carry both; the screen saver is named Tempo Orbit or Tempo Tuner.
+
 ## 20 October 2026 – Tempo 0.10.2
 
 - **Centre dot on its own:** its own size (it used to grow with the hands' widths) and always its own colour.

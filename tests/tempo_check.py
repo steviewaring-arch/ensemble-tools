@@ -99,7 +99,7 @@ def main():
         tall.close()
         show = pg.get_by_role('group', name='Show').get_by_role('button').all_inner_texts()
         panel = pg.locator('#panel').inner_text()
-        check('Show is The time, In words, Columns, Rings or As a dial; nothing in the panel refers to Rubato', show == ['The time', 'In words', 'Columns', 'Rings', 'Stack', 'As a dial'] and 'Rubato' not in panel
+        check('Show is The time, In words, Columns, Rings, Orbit, Tuner, Stack or As a dial; nothing in the panel refers to Rubato', show == ['The time', 'In words', 'Columns', 'Rings', 'Orbit', 'Tuner', 'Stack', 'As a dial'] and 'Rubato' not in panel
               and pg.get_by_role('switch', name='Add Rubato motion').count() == 0, json.dumps(show))
 
         themes = pg.locator('section.card:visible', has=pg.locator('h2', has_text='Colour')).locator('.theme-tile').evaluate_all('ts=>ts.map(t=>t.getAttribute("aria-label"))')
