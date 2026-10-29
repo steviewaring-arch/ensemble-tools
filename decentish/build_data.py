@@ -60,8 +60,9 @@ def main(src):
             kept.add(oid)
             tags = {k: v for k, v in props.items() if k in KEEP}
             first = seen['ids'].setdefault(oid, today)
-            rec = {'i': oid, 'n': props['name'], 'a': lat, 'o': lon, 't': tags,
-                   'v': props.get('@version'), 'e': (props.get('@timestamp') or '')[:10], 's': first}
+            ts = props.get('@timestamp')    # osmium gives seconds since 1970; other tools an ISO date
+            edited = dt.datetime.fromtimestamp(ts, dt.timezone.utc).date().isoformat() if isinstance(ts, (int, float)) else (ts or '')[:10]
+            rec = {'i': oid, 'n': props['name'], 'a': lat, 'o': lon, 't': tags, 'v': props.get('@version'), 'e': edited, 's': first}
             cells[f'{math.floor(lat / CELL[0])}_{math.floor(lon / CELL[1])}'].append(rec)
             kinds[tags.get('amenity') or tags.get('tourism') or tags.get('leisure') or tags.get('shop') or tags.get('railway') or '?'] += 1
             lat0, lat1, lon0, lon1 = min(lat0, lat), max(lat1, lat), min(lon0, lon), max(lon1, lon)

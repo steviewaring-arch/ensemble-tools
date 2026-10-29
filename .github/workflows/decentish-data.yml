@@ -24,6 +24,7 @@ jobs:
         run: curl -fsSL -o gm.osm.pbf https://download.geofabrik.de/europe/united-kingdom/england/greater-manchester-latest.osm.pbf && ls -lh gm.osm.pbf
       - name: Keep what Decentish uses
         run: |
+          set -o pipefail
           osmium tags-filter gm.osm.pbf \
             nwr/amenity=pub,bar,biergarten,nightclub,restaurant,fast_food,food_court,cafe,ice_cream,cinema,theatre,arts_centre,music_venue,karaoke_box \
             nwr/tourism=gallery,museum \
