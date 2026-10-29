@@ -491,11 +491,13 @@ const hasHours=t=>!!t.opening_hours;
 const isStopTag=t=>!!t.railway;
 const isAmen=t=>!!t.amenity&&new RegExp('^('+AMEN+')$').test(t.amenity);
 const isLeis=t=>!!t.leisure&&new RegExp('^('+LEIS+')$').test(t.leisure);
+let areaNames=[];
 async function localFromData(M,q){
   const {recs,kb,n}=await cellsAround(M,[{lat:q.lat,lon:q.lon,r:RING_M+800}]);
-  const els=[];
+  const els=[];areaNames=[];
   for(const r of recs){
     const t=r.t,d=metres(q,{lat:r.a,lon:r.o});
+    if(t.place){if(d<=900&&/^(quarter|neighbourhood)$/.test(t.place))areaNames.push({name:r.n,d});continue}
     const ok=isStopTag(t)?d<=RING_M+800
       :d<=NEAR_M?(isAmen(t)||!!t.shop||!!t.tourism||t.leisure==='park'||(isLeis(t)&&hasHours(t)))
       :d<=RING_M&&((isAmen(t)&&hasHours(t))||!!t.tourism||t.leisure==='park'||(isLeis(t)&&hasHours(t)));
@@ -508,6 +510,7 @@ async function hubsFromData(M,hubs){
   const els=[];
   for(const r of recs){
     const t=r.t;
+    if(t.place)continue;
     for(const h of hubs){
       const d=metres(h,{lat:r.a,lon:r.o});
       const ok=isStopTag(t)?d<=h.r+700:d<=h.r&&((isAmen(t)&&hasHours(t))||!!t.tourism||t.leisure==='park'||(isLeis(t)&&hasHours(t)));
@@ -573,6 +576,7 @@ function makePlaces(els,zone,OH,country,hubs){
     if(t.railway)continue;
     const role=roleOf(t);
     if(!role)continue;
+    if(t.takeaway==='only'||/\bdelivery\b/i.test(t.name))continue;    // you can't go there
     const p={name:t.name,role,zone,lat,lon,t,kind:t.amenity||t.tourism||t.leisure||t.shop,cuisine:(t.cuisine||'').split(';')[0].trim(),
       raw:t.opening_hours||'',oh:null,town:t['addr:town']||t['addr:city']||t['addr:village']||null};
     if(zone==='hub'){
@@ -797,6 +801,7 @@ function buildPlan(prof,start,rand,ti,hub,beyond,notFirst){
       if(ti===0&&p.walk>D.home)continue;
       if(firstStep&&beyond&&p.walk<beyond)continue;
       if(firstStep&&notFirst&&notFirst.has(p.name))continue;
+      if(p.role==='park'&&steps.some(x=>x.role==='park'))continue;
       let leg;
       if(firstStep){
         if(hub)leg=transport(home,p,t,prof,'a');
@@ -1386,6 +1391,10 @@ async function run(opts={}){
   const nm=await pName;
   if(id!==runId)return;
   F.placeName=nm||(pi&&(pi.ward||pi.district))||null;
+  /* A named quarter or neighbourhood on our map, close by, beats the suburb ("the Northern Quarter", not "City Centre") */
+  const ourArea=ours?await pLocal.then(()=>areaNames.slice().sort((a,b)=>a.d-b.d)[0]):null;
+  if(id!==runId)return;
+  if(ourArea&&ourArea.d<=600)F.placeName=ourArea.name;
   slots.when='ready';slots.plan='loading';slots.weather='loading';
   render();
   const wxDone=pWx.then(w=>{

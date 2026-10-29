@@ -31,6 +31,7 @@ jobs:
             nwr/leisure=park,bowling_alley,miniature_golf,escape_game,amusement_arcade \
             nwr/shop=convenience,alcohol \
             n/railway=tram_stop,station \
+            n/place=quarter,neighbourhood,suburb,village \
             -o filtered.osm.pbf
           osmium export filtered.osm.pbf -f geojsonseq -a type,id,version,timestamp -o places.geojsonseq
           python3 decentish/build_data.py places.geojsonseq | tee -a "$GITHUB_STEP_SUMMARY"

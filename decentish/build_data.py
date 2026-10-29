@@ -27,7 +27,7 @@ KEEP = {                     # the tags the page reads; everything else is dropp
     'heritage', 'heritage:operator', 'listed_status', 'wikipedia', 'fee', 'brand', 'brand:wikidata', 'food',
     'website', 'contact:website', 'addr:city', 'addr:town', 'addr:village', 'addr:suburb', 'sport', 'live_music',
     'reservation', 'check_date', 'check_date:opening_hours', 'opening_hours:check_date', 'start_date', 'diet:vegan',
-    'description', 'wheelchair',
+    'description', 'wheelchair', 'takeaway', 'place',
 }
 
 def centre(geom):
