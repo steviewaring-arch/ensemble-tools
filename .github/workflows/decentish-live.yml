@@ -1,0 +1,42 @@
+# Runs Decentish against the real services (OpenStreetMap, Open-Meteo, postcodes.io) for a set of
+# Greater Manchester places, and keeps the report. On demand only – Actions › Decentish live check ›
+# Run workflow – so the free map service isn't hammered. Leave the box empty for the standard places.
+name: Decentish live check
+
+on:
+  workflow_dispatch:
+    inputs:
+      postcodes:
+        description: 'Postcodes, space-separated (empty = the standard places)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Browser
+        run: |
+          pip install playwright
+          python -m playwright install --with-deps chromium
+      - name: Build
+        run: python3 build.py
+      - name: Live check
+        env:
+          POSTCODES: ${{ github.event.inputs.postcodes }}
+        run: |
+          python3 tests/decentish_live.py $POSTCODES
+          head -c 60000 tests/out/decentish-live.md >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: decentish-live
+          path: tests/out/decentish-live.*

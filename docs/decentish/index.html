@@ -468,8 +468,8 @@ async function overpass(query){
     try{
       const r=await fetch(url,{method:'POST',body:'data='+encodeURIComponent(query),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:ctrl.signal});
       if(!r.ok)throw new Error('HTTP '+r.status);
-      const j=await r.json();
-      return{els:j.elements||[],host:new URL(url).hostname};
+      const txt=await r.text(),j=JSON.parse(txt);
+      return{els:j.elements||[],host:new URL(url).hostname+', '+Math.round(txt.length/1024)+' KB'};
     }catch(e){last=e}finally{clearTimeout(t)}
   }
   throw last;
@@ -1418,6 +1418,43 @@ document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click'
   if(p==='remote')$('#tPostcode').value='HS9';
   $('#labForm').requestSubmit();
 }));
+
+/* ---------- The facts pack ----------
+   Everything the plan was built from, as plain data: where, when, weather, the plan and its legs, what else was open,
+   the destinations and tram stops. The live checks read it; later the writing layer will write from it and nothing else. */
+function factsPack(){
+  if(F.mode!=='run'||!F.places)return null;
+  if(!F.plan)makePlan();
+  const P=F.plan,iso=d=>d?new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,16):null;
+  const placeOut=p=>({name:p.name,role:p.role,kind:p.kind,cuisine:p.cuisine||null,lat:+p.lat.toFixed(5),lon:+p.lon.toFixed(5),
+    walkFromStart:p.walk,zone:p.hub||p.zone,chain:p.chain,traits:p.traits.map(t=>t.k),pick:p.pick,hours:p.raw||null,
+    website:p.t.website||p.t['contact:website']||null});
+  const legOut=L=>L&&Object.assign({mode:L.mode,mins:L.mins},L.mode==='taxi'?{cost:L.cost,tramGone:!!L.tramGone}:{},
+    L.mode==='tram'?{walkTo:L.w1,from:L.from.name,to:L.to.name,ride:L.ride,change:L.change,walkFrom:L.w2}:{},L.m?{metres:Math.round(L.m)}:{});
+  const at=P.start,open=F.places.filter(p=>p.zone==='local'&&p.walk<=15&&(p.oh||p.role==='park')&&openAt(p,at));
+  const byRole={};for(const p of F.places.filter(p=>p.zone==='local'))byRole[p.role]=(byRole[p.role]||0)+1;
+  const w=P.wx;
+  return{
+    version:VERSION,
+    settings:{dial:PROFILES[dial].name,distance:DIST[dist].name,when},
+    where:{place:F.placeName,postcode:F.postcode,inGM:F.inGM,lat:+F.pos.lat.toFixed(3),lon:+F.pos.lon.toFixed(3),
+      tramStops:(F.stops||[]).slice(0,4).map(s=>({name:s.name,walk:s.walk,onNetwork:NET.adj.has(s.key)}))},
+    when:{asked:iso(F.at),planStarts:iso(P.start),rolledToTomorrow:!!P.rolled,widenedTo:P.widened!=null?DIST[P.widened].name:null},
+    weather:w?{temp:Math.round(w.temp),feels:Math.round(w.feels),condition:condWord(w.code,w.isDay),rainFrom:iso(w.rainAt),coldest:Math.round(w.minFeels)}:null,
+    plan:P.steps?{distance:DIST[P.tier].name,destination:P.hub?P.hub.name:null,
+      stops:P.steps.map(s=>Object.assign(placeOut(s.p),{arrive:iso(s.arrive),closes:iso(s.closes),stay:s.stay,leg:legOut(s.leg),
+        onlyOneOpen:!!s.only,openLatest:!!s.latest,lastOrders:!!s.rushed,backTowardsHome:!!s.homeward})),
+      back:legOut(P.back),home:iso(P.home),nightcap:P.nightcap?{name:P.nightcap.p.name,closes:iso(P.nightcap.closes)}:null}:null,
+    around:{placesHere:F.places.filter(p=>p.zone==='local').length,byRole,withHours:F.places.filter(p=>p.zone==='local'&&p.oh).length,
+      badHours:F.places.filter(p=>p.bad).map(p=>p.name+': '+p.raw).slice(0,20),
+      openNearbyAtStart:open.map(p=>p.name+' ('+p.role+')').slice(0,40),
+      destinations:(F.hubs||[]).map(h=>({name:h.name,km:+h.km.toFixed(1),places:F.places.filter(p=>p.hub===h.key).length}))},
+    unmatchedTramStops:(F.stops||[]).filter(s=>!NET.adj.has(s.key)).map(s=>s.name),
+    timings:timings.map(t=>({source:t.name,status:t.status,seconds:t.ms!=null?+(t.ms/1000).toFixed(2):null})),
+    remote:!!F.remote,nearest:F.nearest?{name:F.nearest.name,miles:miles(F.nearest.dist),town:F.nearestTown||null}:null
+  };
+}
+window.decentish={facts:factsPack,done:()=>runTotal!=null};
 
 /* ---------- Start ---------- */
 async function boot(){

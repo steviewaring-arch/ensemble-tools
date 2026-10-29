@@ -335,6 +335,10 @@ def main():
         check('Tuesday 23:10 run finishes', test_run(pg, '2026-10-06T23:10'))
         L = view(pg, 1, 'now', 0)
         check('Opener', L[0] == 'Gone eleven on a Tuesday in Monton.', L[0])
+        fp = pg.evaluate('window.decentish.facts()')
+        check('The facts pack has the plan, its legs and the way back',
+              fp and fp['plan']['stops'][0]['name'] == 'The Park' and fp['plan']['stops'][0]['lastOrders'] and fp['plan']['back']['mode'] == 'walk'
+              and fp['where']['tramStops'][0]['name'] == 'Eccles' and not fp['unmatchedTramStops'], json.dumps(fp)[:400])
         check('Last orders: one if you go now', L[1] == "The Park has 20 minutes left and it's 8 minutes' walk, so one drink if you go now.", L[1])
         check('So the next stop follows from it: The Park shuts, so pizza next door, the only kitchen open',
               L[2].startswith('The Park shuts at half eleven, so then Pizza Monton, next door,') and 'the only kitchen still open' in L[2], L[2])
@@ -422,6 +426,7 @@ def main():
         pg2 = ctx.new_page(); install_fakes(pg2, overpass_down=True)
         pg2.on('pageerror', lambda e: errs.append(str(e)))
         pg2.goto(url); wait_done(pg2, 60)
+        test_run(pg2, '2026-10-07T03:00'); wait_done(pg2, 60)   # inside the fake weather's week
         set_range(pg2, '#dial', 2); L = lines(pg2)
         check('Map down: says so in voice, weather still there', any("map's pissed" in l.lower() for l in L) and len(L) >= 3, json.dumps(L))
         check('Map down shows in the stopwatch', 'Places failed' in pg2.inner_text('#timings'), pg2.inner_text('#timings'))
