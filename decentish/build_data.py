@@ -42,7 +42,8 @@ def centre(geom):
 def area(geom):
     """Square metres of a polygon's outer ring, roughly – enough to tell a park from a square of grass."""
     t, c = geom['type'], geom['coordinates']
-    rings = [c[0]] if t == 'Polygon' else [p[0] for p in c] if t == 'MultiPolygon' else []
+    rings = [c[0]] if t == 'Polygon' else [p[0] for p in c] if t == 'MultiPolygon' else \
+        [c] if t == 'LineString' and len(c) > 3 and c[0] == c[-1] else []    # osmium can give a closed way as a line
     total = 0
     for ring in rings:
         lat0 = math.radians(ring[0][1]); kx, ky = 111320 * math.cos(lat0), 110540
