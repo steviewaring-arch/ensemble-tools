@@ -802,6 +802,7 @@ function buildPlan(prof,start,rand,ti,hub,beyond,notFirst){
       if(firstStep&&beyond&&p.walk<beyond)continue;
       if(firstStep&&notFirst&&notFirst.has(p.name))continue;
       if(p.role==='park'&&steps.some(x=>x.role==='park'))continue;
+      if(p.role==='park'&&/playing fields?|recreation ground|sports ground|allotment/i.test(p.name))continue;
       let leg;
       if(firstStep){
         if(hub)leg=transport(home,p,t,prof,'a');
@@ -814,6 +815,7 @@ function buildPlan(prof,start,rand,ti,hub,beyond,notFirst){
         else if(ti===1&&p.walk<=10&&from.walk>12&&/^(pub|bar|food)$/.test(p.role))leg=w<=25?{mode:'walk',mins:w,m,homeward:true}:Object.assign(transport(from,p,t,prof,'b'),{homeward:true,m});
       }
       if(!leg)continue;
+      if(p.role==='park'&&leg.mode==='taxi')continue;    // nobody gets a taxi to go for a walk
       const arrive=addMins(t,leg.mins);
       if(arrive>end||!openAt(p,arrive))continue;
       if(p.role==='cafe'&&arrive.getHours()>=19)continue;
@@ -1391,10 +1393,11 @@ async function run(opts={}){
   const nm=await pName;
   if(id!==runId)return;
   F.placeName=nm||(pi&&(pi.ward||pi.district))||null;
-  /* A named quarter or neighbourhood on our map, close by, beats the suburb ("the Northern Quarter", not "City Centre") */
+  /* "City Centre" says nothing: a named quarter or neighbourhood on our map, close by, says more ("the Northern Quarter").
+     Only then – elsewhere the suburb (Monton) beats a micro-neighbourhood (Dales Brow). */
   const ourArea=ours?await pLocal.then(()=>areaNames.slice().sort((a,b)=>a.d-b.d)[0]):null;
   if(id!==runId)return;
-  if(ourArea&&ourArea.d<=600)F.placeName=ourArea.name;
+  if(ourArea&&ourArea.d<=400&&(!F.placeName||/^(city|town) centre$/i.test(F.placeName)))F.placeName=ourArea.name;
   slots.when='ready';slots.plan='loading';slots.weather='loading';
   render();
   const wxDone=pWx.then(w=>{
