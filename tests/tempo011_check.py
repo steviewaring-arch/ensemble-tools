@@ -151,6 +151,33 @@ def main():
         check('The exported page draws Orbit without errors', not eerr and len(shot) > 20000, '; '.join(eerr[:2]))
         ep.close()
 
+        # 7. 0.11.1: the Mac export carries the rebuilt engine, finds its page inside itself, and its ad hoc signature holds
+        import hashlib, io, plistlib, struct, zipfile
+        fn, mz = download(lambda: (sheet(pg, 'export'), btn(pg, 'Download for Mac').click()))
+        zf = zipfile.ZipFile(io.BytesIO(mz)); names = zf.namelist()
+        pre = [n for n in names if n.endswith('.saver/Contents/Info.plist')][0][:-len('Info.plist')]
+        info = plistlib.loads(zf.read(pre + 'Info.plist')); binb = zf.read(pre + 'MacOS/WebViewScreenSaver')
+        ok_sig, tag = True, info['NSPrincipalClass'][:4]
+        for i in range(struct.unpack_from('>I', binb, 4)[0]):
+            off = struct.unpack_from('>I', binb, 8 + i * 20 + 8)[0]; ncmds = struct.unpack_from('<I', binb, off + 16)[0]; p_ = off + 32
+            for _ in range(ncmds):
+                cmd, sz = struct.unpack_from('<II', binb, p_)
+                if cmd == 0x1d: so = struct.unpack_from('<I', binb, p_ + 8)[0]
+                p_ += sz
+            sb = off + so
+            for k in range(struct.unpack_from('>I', binb, sb + 8)[0]):
+                t, o = struct.unpack_from('>II', binb, sb + 12 + k * 8)
+                if t != 0: continue
+                cd = sb + o; hoff, ioff, nsp, ncode, limit = struct.unpack_from('>IIIII', binb, cd + 16); ps = 1 << binb[cd + 39]
+                for j in range(ncode):
+                    page = binb[off + j * ps: off + min((j + 1) * ps, limit)]
+                    ok_sig &= hashlib.sha256(page).digest() == binb[cd + hoff + j * 32: cd + hoff + (j + 1) * 32]
+                ok_sig &= hashlib.sha256(zf.read(pre + 'Info.plist')).digest() == binb[cd + hoff - 32: cd + hoff]
+                ok_sig &= hashlib.sha256(zf.read(pre + '_CodeSignature/CodeResources')).digest() == binb[cd + hoff - 96: cd + hoff - 64]
+        check('The Mac export: the rebuilt engine (page found inside the saver), renamed for this saver, its signature intact',
+              info['WVSSDefaultAddressURL'] == 'index.html' and b'resourcePath' in binb and (tag + 'iewScreenSaverView').encode() in binb
+              and f'RubatoSaver{tag}_01'.encode() in binb and ok_sig, json.dumps([info['WVSSDefaultAddressURL'], tag, ok_sig]))
+
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     failed = [r for r in results if not r[0]]

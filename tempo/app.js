@@ -954,7 +954,7 @@ try{const b=card('ss-export','Export',null,'saver');
   all.onclick=exportAll;window.allBtn=all;
   b.append(el('div','sub-head','Mac'));
   const mac=el('button','pill','Download for Mac');const r1=el('div','ctl btn-row');r1.append(mac);b.append(r1);
-  b.append(el('p','hint','A .saver you install by double-clicking. The first time, macOS blocks it: allow it under System Settings › Privacy & Security › Open Anyway, then install for all users. The read-me in the zip walks through it.'));
+  b.append(el('p','hint','A .saver you install by double-clicking. The first time, macOS blocks it: allow it under System Settings › Privacy & Security › Open Anyway, then install. The read-me in the zip walks through it.'));
   mac.onclick=exportMac;window.macBtn=mac;
   b.append(el('div','sub-head','Windows'));
   const win=el('button','pill','Download for Windows');const r3=el('div','ctl btn-row');r3.append(win);b.append(r3);
@@ -1334,16 +1334,11 @@ INSTALL
 
 4. Double-click "${name}.saver" again. This time choose Open Anyway.
 
-5. When asked, choose "Install for all users of this computer" and enter
-   your password. This matters - see below.
+5. Install it for just you or for all users of this computer - either
+   works.
 
-6. In System Settings > Screen Saver, choose ${name}.
-
-WHY "ALL USERS"?
-The screen saver looks for its page in /Library/Screen Savers. If you
-installed it for your user only, it will show a blank screen. To fix it,
-open Finder > Go > Go to Folder, enter ~/Library/Screen Savers, and drag
-"${name}.saver" into /Library/Screen Savers (enter your password).
+6. In System Settings > Screen Saver, choose ${name}. On macOS Tahoe and
+   later, it's in Wallpaper > Screen Saver, near the bottom.
 
 PREFER TERMINAL?
 Instead of steps 2-4: open Terminal, type  xattr -cr  followed by a space,
@@ -1351,7 +1346,7 @@ drag "${name}.saver" into the window and press Return. Then double-click
 the .saver and carry on from step 5.
 
 TO REMOVE IT
-Delete "${name}.saver" from /Library/Screen Savers.
+Right-click it in that list and choose Delete.
 
 Made with Tempo by Ensemble. The bundle contains WebViewScreenSaver by
 Alastair Tse (Apache License 2.0), renamed and re-signed for this screen
@@ -1427,15 +1422,15 @@ install takes a few extra clicks. You only do this once.
    password or Touch ID. (The button shows for about an hour. If it has gone,
    double-click the .saver again and repeat.)
 4. Double-click the .saver again and choose Open Anyway.
-5. When asked, choose "Install for all users of this computer". This matters:
-   installed for one user only, the screen saver shows a blank screen.
-6. In System Settings > Screen Saver, choose it from the list.
+5. Install it for just you or for all users of this computer - either works.
+6. In System Settings > Screen Saver, choose it from the list. On macOS Tahoe
+   and later, it's in Wallpaper > Screen Saver, near the bottom.
 
 Prefer Terminal? Instead of steps 2-4, type  xattr -cr  and a space, drag the
 .saver into the window, press Return, then double-click it and carry on from
 step 5.
 
-To remove it, delete it from /Library/Screen Savers.
+To remove it, right-click it in that list and choose Delete.
 
 
 WINDOWS

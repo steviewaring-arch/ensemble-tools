@@ -1,5 +1,11 @@
 # Changelog
 
+## 29 October 2026 – Tempo 0.11.1: Mac savers install for one user or all
+
+- **The Mac screen saver engine is rebuilt** (WebViewScreenSaver 2.5 with one change): the saver finds its page inside itself, so it plays whether it's installed for one user or for all. Before, "this user only" gave a blank screen.
+- **Mac read-mes updated:** install either way, where to find it on macOS Tahoe (Wallpaper › Screen Saver), and remove it by right-clicking it in that list.
+- **Signing:** the private repo `tempo-savers` signs and notarises the savers with Steve's Developer ID, so they install with one click. The 12 on the site went through it on 29 October.
+
 ## 20 October 2026 – Tempo 0.11: Orbit and Tuner
 
 Two new faces, picked by Steve from the six on the concept canvas (Tempo – type face concepts).
