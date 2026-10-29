@@ -84,7 +84,7 @@ def main():
                 errs.clear()
                 pg.fill('#tPostcode', pc); pg.fill('#tAt', at)
                 pg.click('#labForm button[type=submit]'); time.sleep(.5)
-                ok = wait_done(pg)
+                ok = wait_done(pg, 90)
                 set_range(pg, '#dial', 1); set_range(pg, '#dist', 1); pg.click('[data-when="now"]')
                 base = pg.evaluate('window.decentish.facts()')
                 probs = problems(base) + ([] if ok else ['Did not finish in 2 minutes']) + [e for e in errs if 'woff2' not in e]
@@ -112,8 +112,13 @@ def main():
                         rc = pg.inner_text('#receipts')
                         if rc: report.append('\n`' + rc + '`')
                         report.append('')
+                print(f'{name or pc}, {tlabel}: ' + ('; '.join(probs) if probs else 'nothing flagged'), flush=True)
+                write(report, data, summary)   # as it goes, so a timeout still leaves a report
                 time.sleep(4)
         b.close()
+    write(report, data, summary)
+
+def write(report, data, summary):
     head = ['# Decentish – live check', '', f"Run {dt.datetime.now(LONDON):%A %-d %B %Y, %H:%M}. Real services, no fakes.", '',
             '## What looks wrong', '']
     for place, t, probs in summary:
@@ -121,7 +126,6 @@ def main():
     head.append('')
     with open(os.path.join(OUT, 'decentish-live.md'), 'w') as fh: fh.write('\n'.join(head + report) + '\n')
     with open(os.path.join(OUT, 'decentish-live.json'), 'w') as fh: json.dump(data, fh, indent=1, ensure_ascii=False)
-    print('\n'.join(head))
 
 if __name__ == '__main__':
     main()

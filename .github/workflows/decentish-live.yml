@@ -29,6 +29,8 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Build
         run: python3 build.py
+      - name: Is the map service up?
+        run: python3 tests/overpass_probe.py | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Live check
         env:
           POSTCODES: ${{ github.event.inputs.postcodes }}
