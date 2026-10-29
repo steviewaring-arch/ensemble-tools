@@ -1,0 +1,46 @@
+# Builds Decentish's own copy of the map for Greater Manchester (decentish/data/) from the Geofabrik
+# extract of OpenStreetMap, commits it if anything changed, and republishes the site.
+# Every Monday at 04:20, and on demand: Actions › Decentish data › Run workflow.
+name: Decentish data
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '20 4 * * 1'
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  data:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tools
+        run: sudo apt-get update -q && sudo apt-get install -y -q osmium-tool
+      - name: Greater Manchester from Geofabrik
+        run: curl -fsSL -o gm.osm.pbf https://download.geofabrik.de/europe/united-kingdom/england/greater-manchester-latest.osm.pbf && ls -lh gm.osm.pbf
+      - name: Keep what Decentish uses
+        run: |
+          osmium tags-filter gm.osm.pbf \
+            nwr/amenity=pub,bar,biergarten,nightclub,restaurant,fast_food,food_court,cafe,ice_cream,cinema,theatre,arts_centre,music_venue,karaoke_box \
+            nwr/tourism=gallery,museum \
+            nwr/leisure=park,bowling_alley,miniature_golf,escape_game,amusement_arcade \
+            nwr/shop=convenience,alcohol \
+            n/railway=tram_stop,station \
+            -o filtered.osm.pbf
+          osmium export filtered.osm.pbf -f geojsonseq -a type,id,version,timestamp -o places.geojsonseq
+          python3 decentish/build_data.py places.geojsonseq | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Commit and republish if changed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add decentish/data
+          if git diff --cached --quiet; then echo "No change"; exit 0; fi
+          git config user.name "decentish-data"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "Decentish data: Greater Manchester places, $(date +%-d\ %B\ %Y)"
+          git pull --rebase && git push
+          gh workflow run pages.yml --ref main

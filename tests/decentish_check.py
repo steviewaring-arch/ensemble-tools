@@ -152,6 +152,21 @@ def metres(a, b):
     h = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
     return 2 * 6371000 * math.asin(math.sqrt(h))
 
+def fake_data():
+    """Our own map data, built from the same fixtures (Barra stays outside it, so it still asks the map servers)."""
+    import math
+    cells = {}
+    for e in EVERYTHING:
+        if e in BARRA_WIDE: continue
+        t = dict(e['tags']); name = t.pop('name')
+        rec = {'i': 'n' + str(e['id']), 'n': name, 'a': e['lat'], 'o': e['lon'], 't': t, 'v': 1, 'e': '2026-09-01', 's': '2026-10-01'}
+        cells.setdefault(f"{math.floor(e['lat'] / .02)}_{math.floor(e['lon'] / .03)}", []).append(rec)
+    lats = [r['a'] for c in cells.values() for r in c]; lons = [r['o'] for c in cells.values() for r in c]
+    manifest = {'built': '2026-10-26', 'cell': [.02, .03], 'bbox': [min(lats), min(lons), max(lats), max(lons)],
+                'cells': {k: len(v) for k, v in cells.items()}}
+    return manifest, cells
+MANIFEST, CELLS = fake_data()
+
 def install_fakes(page, overpass_down=False):
     def js(body):
         return dict(status=200, content_type='application/json', body=json.dumps(body),
@@ -192,6 +207,7 @@ def install_fakes(page, overpass_down=False):
     page.route('https://api.open-meteo.com/**', lambda r: r.fulfill(**js(weather())))
 
     def overpass(r):
+        page.overpass_calls.append(r.request.url)
         if overpass_down:
             return r.fulfill(status=504, body='busy', headers={'Access-Control-Allow-Origin': '*'})
         data = urllib.parse.unquote_plus((r.request.post_data or '')[5:])
@@ -202,6 +218,14 @@ def install_fakes(page, overpass_down=False):
                 if metres(c, (e['lat'], e['lon'])) <= rad:
                     found[e['id']] = e
         return r.fulfill(**js({'elements': list(found.values())}))
+    def data(r):
+        if overpass_down: return r.fulfill(status=404, body='')
+        path = urllib.parse.urlparse(r.request.url).path
+        if path.endswith('/manifest.json'): return r.fulfill(**js(MANIFEST))
+        key = path.rsplit('/', 1)[1][:-5]
+        return r.fulfill(**js(CELLS[key])) if key in CELLS else r.fulfill(status=404, body='')
+    page.route('**/decentish/data/**', data)
+    page.overpass_calls = []
     for host in ['overpass-api.de', 'overpass.kumi.systems', 'overpass.private.coffee']:
         page.route(f'https://{host}/**', overpass)
 
@@ -295,6 +319,8 @@ def main():
 
         # ---- Friday, half five, Monton ----
         check('Friday 17:30 run finishes', test_run(pg, '2026-10-09T17:30'))
+        check('In Greater Manchester it reads our own map, not the map servers',
+              'Places' in pg.inner_text('#timings') and 'our map, built 2026-10-26' in pg.inner_text('#timings') and not pg.overpass_calls, pg.inner_text('#timings'))
         check('The facts strip names the nearest tram stop', 'Nearest tram stop Eccles, 27 min walk' in pg.inner_text('#facts'), pg.inner_text('#facts'))
         V = every_view(pg)
         L, rc = V[(1, 1)]
@@ -311,9 +337,9 @@ def main():
               re.search(r'miles away', L1[1]) is not None and walks(rc1)[0] > 10, L1[1])
         check('Nearby: says how far back it is', re.search(r"minutes' walk back to Monton|taxi back to Monton|minutes from your door", ' '.join(L1)) is not None, json.dumps(L1))
         L2, rc2 = V[(1, 2)]
-        check('Further afield: how to get there, what it costs, the tram as the other option',
-              re.search(r'^Head (into town|to [A-Z][a-z ]+) by taxi – about \d+ minutes, around £\d+, or about .+ by tram from Eccles – so you\'re there by', L2[1]) is not None, L2[1])
-        check('Further afield: how to get back', re.search(r'A taxi back to Monton is about \d+ minutes, around £\d+', ' '.join(L2)) is not None, json.dumps(L2))
+        check('Further afield: how to get there, in a few words',
+              re.search(r'^Head (into town|to [A-Z][a-z ]+) – about \d+ minutes in a taxi\. Start at', L2[1]) is not None, L2[1])
+        check('Further afield: how to get back', re.search(r'Taxi back – about \d+ minutes, around £\d+', ' '.join(L2)) is not None, json.dumps(L2))
         check('Further afield: one near home on the way back', 'Back in Monton, ' in ' '.join(L2), json.dumps(L2))
         firsts = [re.search(r'→ \d\d:\d\d ([^(]+) \(', V[(1, d)][1]).group(1) for d in range(3)]
         check('The three distances give three different first stops', len(set(firsts)) == 3, json.dumps(firsts))
@@ -347,7 +373,7 @@ def main():
         facts1 = pg.inner_text('#facts')
         L = view(pg, 1, 'now', 2)
         check('Further at 23:10: taxi in, and the trams have stopped for the way back',
-              L[1].startswith('Head into town by taxi') and "The trams will have stopped by then, so it's a taxi back to Monton" in ' '.join(L), json.dumps(L))
+              L[1].startswith('Head into town – about') and "The trams will have stopped by then, so it's a taxi back" in ' '.join(L), json.dumps(L))
         check('The facts strip is the same at every setting', pg.inner_text('#facts') == facts1)
         L = view(pg, 2)
         time.sleep(.8)
@@ -397,7 +423,7 @@ def main():
         check('Three pints at 03:00: all shut, tomorrow', L[1].startswith("It's all shut round here, so tomorrow then, from half five."), json.dumps(L))
         L = view(pg, 2, 'now', 0)
         check('Mad one at 03:00 goes to town for the kebab, and taxis back',
-              'Late Test Kebab' in L[1] and 'Head into town by taxi' in L[1] and "taxi back to Monton" in ' '.join(L) and L[-1] == 'Then bed, you animal.', json.dumps(L))
+              'Late Test Kebab' in L[1] and 'in a taxi' in L[1] and "it's a taxi back" in ' '.join(L) and L[-1] == 'Then bed, you animal.', json.dumps(L))
         record('Wednesday 7 October, 03:00, Monton', pg)
 
         # ---- Northern Quarter, Friday night ----
@@ -407,8 +433,8 @@ def main():
         check('In town: no trip into town on the doorstep or nearby', 'the Northern Quarter' in V[(1, 0)][0][0] and 'into town' not in near, near[:300])
         far = ' '.join(' '.join(V[(n, 2)][0]) for n in range(3))
         check('From town, further afield means somewhere else', re.search(r'Head to (Chorlton|Salford Quays)', far) is not None, far[:400])
-        check('The tram, with the stops named', re.search(r'get the tram to Chorlton|for the tram to Piccadilly Gardens', far) is not None, far[:600])
-        check('Late back from Chorlton: the trams will have stopped, so a taxi', "The trams will have stopped by then, so it's a taxi back to the Northern Quarter" in far, far[:600])
+        check('The tram, with the stops named', re.search(r'Head to Chorlton on the tram from Piccadilly Gardens – about 14 minutes to Chorlton', far) is not None, far[:600])
+        check('Late back from Chorlton: the trams will have stopped, so a taxi', "The trams will have stopped by then, so it's a taxi back" in far, far[:600])
         record('Friday 9 October, 21:30, Northern Quarter (M4 1HN)', pg)
 
         # ---- Barra ----
@@ -417,6 +443,7 @@ def main():
         check('Outside Greater Manchester says so', any("You're not in Manchester – bold" in l for l in L), json.dumps(L))
         check('Remote: arse end of nowhere, nearest place and village',
               any('arse end of nowhere' in l and 'The Test Arms in Castlebay' in l for l in L), json.dumps(L))
+        check('Outside our map it asks the map servers', len(pg.overpass_calls) >= 2, str(len(pg.overpass_calls)))
         check('Remote sign-off', L[-1] == 'Make your own fun, or get a horse.', L[-1])
         record('Tuesday 6 October, 20:00, Barra (HS9)', pg)
 

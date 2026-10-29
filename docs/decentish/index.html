@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@700&display=swap">
 <style>
-/* Decentish 0.4. One face, one weight. The dial only changes colour: white, amber, red.
+/* Decentish 0.5. One face, one weight. The dial only changes colour: white, amber, red.
    The plan sits top left. Controls and the sober receipts sit at the foot, and the receipts never change colour. */
 @font-face{font-family:"Diatype Bold";src:local("ABC Diatype Bold"),local("ABCDiatype-Bold"),url("ABCDiatype-Bold.woff2") format("woff2");font-weight:700;font-style:normal;font-display:swap}
 :root{
@@ -104,9 +104,10 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink)
   </section>
   <footer class="facts">
     <p id="receipts"></p>
-    <p id="facts">Decentish 0.4</p>
+    <p id="facts">Decentish 0.5</p>
     <p class="soft" id="timings"></p>
     <p class="soft">Tram and taxi times are estimates, not timetables. Not wired up yet: live trams, trains, buses, film times, gigs, ratings, hygiene.</p>
+    <p class="soft">Map data © <a class="link soft" href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a> · Weather by <a class="link soft" href="https://open-meteo.com/">Open-Meteo</a></p>
     <div class="tools">
       <button class="link soft" id="workingsToggle" type="button" aria-expanded="false">Workings</button>
       <button class="link soft" id="labToggle" type="button" aria-expanded="false">Test</button>
@@ -134,7 +135,7 @@ input[type=range]::-moz-range-thumb{width:24px;height:24px;background:var(--ink)
 <script>
 (()=>{
 'use strict';
-const VERSION='0.4';
+const VERSION='0.5';
 const $=s=>document.querySelector(s);
 
 /* ---------- Settings ---------- */
@@ -431,7 +432,8 @@ async function reversePostcode(q){
 async function placeName(q,zoom=16){
   const j=await getJSON(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${q.lat}&lon=${q.lon}&zoom=${zoom}&addressdetails=1&accept-language=en-GB`,6000);
   const a=j.address||{};
-  return a.suburb||a.village||a.hamlet||a.neighbourhood||a.quarter||a.town||a.city_district||a.city||null;
+  // "Northern Quarter" beats "City Centre": a named quarter wins over the suburb
+  return a.quarter||a.suburb||a.village||a.hamlet||a.neighbourhood||a.town||a.city_district||a.city||null;
 }
 const weatherUrl=q=>`https://api.open-meteo.com/v1/forecast?latitude=${q.lat}&longitude=${q.lon}`+
   '&current=temperature_2m,apparent_temperature,weather_code,precipitation,is_day'+
@@ -458,6 +460,62 @@ const hubQuery=hubs=>`[out:json][timeout:30];(`+hubs.map(h=>
   `nwr${around(h.r,h)}[leisure=park][name];`+
   `nwr${around(h.r+700,h)}[railway~"^(tram_stop|station)$"][name];`).join('')+
   `);out center tags;`;
+/* ---------- Our own copy of the map ----------
+   Greater Manchester's places, rebuilt every Monday from OpenStreetMap (decentish/build_data.py) and split into
+   small area files. Inside it, the page loads the files around you and never asks the public map servers;
+   outside it, or if the files can't be loaded, it asks them as before. Same places, same rules as the queries above. */
+const DATA='data/';
+let manifestP=null;
+const loadManifest=()=>manifestP||(manifestP=getJSON(DATA+'manifest.json',6000).catch(()=>null));
+const inData=(M,c)=>!!M&&c.lat>=M.bbox[0]-.01&&c.lat<=M.bbox[2]+.01&&c.lon>=M.bbox[1]-.01&&c.lon<=M.bbox[3]+.01;
+const cellCache=new Map();
+async function cellsAround(M,centres){
+  const keys=new Set();
+  for(const c of centres){
+    const dLat=c.r/111320,dLon=c.r/(111320*Math.cos(c.lat*RAD));
+    for(let i=Math.floor((c.lat-dLat)/M.cell[0]);i<=Math.floor((c.lat+dLat)/M.cell[0]);i++)
+      for(let j=Math.floor((c.lon-dLon)/M.cell[1]);j<=Math.floor((c.lon+dLon)/M.cell[1]);j++)
+        if(M.cells[i+'_'+j])keys.add(i+'_'+j);
+  }
+  let kb=0;
+  const lists=await Promise.all([...keys].map(k=>{
+    if(!cellCache.has(k))cellCache.set(k,fetch(DATA+'cells/'+k+'.json').then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.text()})
+      .then(t=>{kb+=t.length/1024;return JSON.parse(t)}).catch(e=>{cellCache.delete(k);throw e}));
+    return cellCache.get(k);
+  }));
+  return{recs:lists.flat(),kb:Math.round(kb),n:keys.size};
+}
+/* A record from the data, in the shape the map servers return */
+const asElement=r=>({type:'node',lat:r.a,lon:r.o,tags:Object.assign({name:r.n},r.t),meta:{id:r.i,edited:r.e,seen:r.s,version:r.v}});
+const hasHours=t=>!!t.opening_hours;
+const isStopTag=t=>!!t.railway;
+const isAmen=t=>!!t.amenity&&new RegExp('^('+AMEN+')$').test(t.amenity);
+const isLeis=t=>!!t.leisure&&new RegExp('^('+LEIS+')$').test(t.leisure);
+async function localFromData(M,q){
+  const {recs,kb,n}=await cellsAround(M,[{lat:q.lat,lon:q.lon,r:RING_M+800}]);
+  const els=[];
+  for(const r of recs){
+    const t=r.t,d=metres(q,{lat:r.a,lon:r.o});
+    const ok=isStopTag(t)?d<=RING_M+800
+      :d<=NEAR_M?(isAmen(t)||!!t.shop||!!t.tourism||t.leisure==='park'||(isLeis(t)&&hasHours(t)))
+      :d<=RING_M&&((isAmen(t)&&hasHours(t))||!!t.tourism||t.leisure==='park'||(isLeis(t)&&hasHours(t)));
+    if(ok)els.push(asElement(r));
+  }
+  return{els,host:`our map, built ${M.built}, ${n} areas, ${kb} KB`};
+}
+async function hubsFromData(M,hubs){
+  const {recs,kb,n}=await cellsAround(M,hubs.map(h=>({lat:h.lat,lon:h.lon,r:h.r+700})));
+  const els=[];
+  for(const r of recs){
+    const t=r.t;
+    for(const h of hubs){
+      const d=metres(h,{lat:r.a,lon:r.o});
+      const ok=isStopTag(t)?d<=h.r+700:d<=h.r&&((isAmen(t)&&hasHours(t))||!!t.tourism||t.leisure==='park'||(isLeis(t)&&hasHours(t)));
+      if(ok){els.push(asElement(r));break}
+    }
+  }
+  return{els,host:`our map, ${n} areas, ${kb} KB`};
+}
 const wideQuery=q=>`[out:json][timeout:20];(`+
   `nwr${around(WIDE_M,q)}[amenity~"^(pub|bar|restaurant|cafe|fast_food)$"][name];`+
   `);out center tags;`;
@@ -527,6 +585,7 @@ function makePlaces(els,zone,OH,country,hubs){
     }
     p.dist=F.pos?metres(F.pos,p):0;
     p.walk=walkMins(p.dist);
+    p.meta=e.meta||null;
     p.chain=!!(t.brand||t['brand:wikidata'])||CHAINS.test(p.name);
     p.pick=PICKS[p.name]||null;
     p.traits=traitsOf(p);
@@ -1023,16 +1082,15 @@ function firstSentence(s,P){
     return `Start at ${nm}${fws} – ${itSays([far,...whyVps(s),openVp(s)])}.`;
   }
   if(P.hub){
-    const by=clock(s.arrive,P.start);
     const go=L.mode==='tram'
-      ?`${goWord(P.hub)}: walk ${L.w1} minutes to ${L.from.name} and get the tram to ${L.to.name} – about ${L.ride} minutes${changeText(L)} – so you're there by ${by}.`
-      :`${goWord(P.hub)} by taxi – about ${L.mins} minutes, around £${L.cost}${L.alt?', '+tramAlt(L.alt):''} – so you're there by ${by}.`;
+      ?`${goWord(P.hub)} on the tram from ${L.from.name}${L.w1>8?` (${L.w1} minutes' walk)`:''} – about ${L.ride} minutes to ${L.to.name}${L.change&&L.change!=='town'?', changing at '+L.change:''}.`
+      :`${goWord(P.hub)} – about ${L.mins} minutes in a taxi.`;
     const on=L.mode==='tram'?`From ${L.to.name} it's ${L.w2} minutes' walk to ${nm}${fws}`:`Start at ${nm}${fws}`;
     return go+' '+on+tail(s)+'.';
   }
   const how=L.mode==='tram'
     ?`walk ${L.w1} minutes to ${L.from.name} and get the tram to ${L.to.name}, about ${L.ride} minutes${changeText(L)}, then it's ${L.w2} minutes' walk`
-    :`a ${L.mins}-minute taxi, around £${L.cost}`+(L.walk?`, or ${minsText(L.walk)} on foot`:'');
+    :`a ${L.mins}-minute taxi`+(L.walk?` or ${minsText(L.walk)} on foot`:'');
   return `Start at ${nm}${fws}, ${milesText(s.p.dist)} away – ${how}. ${cap(itSays([...whyVps(s),openVp(s)]))}.`;
 }
 function nextSentence(s,prev,i,n,P){
@@ -1069,31 +1127,29 @@ function backSentence(P){
   const B=P.back,place=placeWord()||'where you started';
   if(B.mode==='walk'){
     if(P.tier===0)return `Nothing here is more than ${P.maxWalk} minutes from your door.`;
-    if(P.steps[P.steps.length-1].p.walk<=12)return `And you're ${B.mins} minutes from your door.`;
-    return `It's ${B.mins} minutes' walk back to ${place} from there.`;
+    return B.mins>=15?`It's ${B.mins} minutes' walk back to ${place}.`:null;
   }
-  if(B.mode==='tram'){
-    const late=hourOf(B.leave)>=TRAM.warn?' The last tram is around midnight, so keep an eye on the time.':'';
-    return `To get back to ${place}, walk ${B.w1} minutes to ${B.from.name} for the tram to ${B.to.name} – about ${B.ride} minutes${changeText(B)} – then it's ${B.w2} minutes' walk.${late}`;
-  }
-  if(B.tramGone)return `The trams will have stopped by then, so it's a taxi back to ${place} – about ${B.mins} minutes, around £${B.cost}.`;
-  return `A taxi back to ${place} is about ${B.mins} minutes, around £${B.cost}`+(B.alt?', '+tramAlt(B.alt):B.walk?`, or ${minsText(B.walk)} on foot`:'')+'.';
+  if(B.mode==='tram')return hourOf(B.leave)>=TRAM.warn?`Tram back from ${B.from.name} – the last one is around midnight.`:`Tram back from ${B.from.name}.`;
+  if(B.tramGone)return `The trams will have stopped by then, so it's a taxi back – around £${B.cost}.`;
+  return `Taxi back – about ${B.mins} minutes, around £${B.cost}.`;
 }
 function planSentences(P){
   const S=P.steps.map((s,i)=>i===0?firstSentence(s,P):nextSentence(s,P.steps[i-1],i,P.steps.length,P));
-  S.push(backSentence(P));
+  const back=[],b=backSentence(P);if(b)back.push(b);
   if(P.nightcap&&placeWord()){
     const c=P.nightcap;
-    S.push(`Back in ${placeWord()}, ${c.p.name} is open till ${c.closes?clock(c.closes,P.home):'late'} if you want one more.`);
+    back.push(`Back in ${placeWord()}, ${c.p.name} is open till ${c.closes?clock(c.closes,P.home):'late'} if you want one more.`);
   }
-  return S;
+  return{stops:S,back};
 }
+let wxKey=null;
 function weatherSentence(v){
   const ctx=F.plan||{start:F.at,rolled:null,wx:weatherFor(F.at,addMins(F.at,120),F.live)};
   const w=ctx.wx;if(!w)return null;
   if(!F.plan){v.temp=Math.round(w.temp);v.minFeels=Math.round(w.minFeels);v.rainAt=clock(w.rainAt,F.at)}
   /* If a stop has seats outside and it's nice, that's the weather line */
   const out=F.plan&&F.plan.steps&&F.plan.steps.find(s=>s.p.traits.some(t=>t.k==='outdoor')&&niceOut(s.arrive));
+  wxKey='outside';
   if(out&&!w.rainAt){const x=wxAt(out.arrive);return `It'll be ${Math.round(x.temp)}°C and dry, so sit outside at ${out.p.name}.`}
   const s=ctx.start,sun=sunFor(s),dark=sun?(s>=sun.set||s<sun.rise):!w.isDay;
   let k='any';
@@ -1101,8 +1157,8 @@ function weatherSentence(v){
   else if(w.rainAt)k='rainLater';
   else if(w.minFeels<7)k='cold';
   else if(!dark&&w.code<=1&&w.temp>=17)k='sunny';
-  else if(when==='now'&&!ctx.rolled&&dark&&w.sunnyHrs>=2)k='sunnyEarlier';
-  else if(w.feels>=12)k='mild';
+  else return null;    // unremarkable weather goes unsaid
+  wxKey=k;
   return say(WEATHER[k],v);
 }
 function signLine(v){
@@ -1150,15 +1206,16 @@ function linesWanted(){
     if(F.remote)want.push({k:'plan',text:say(F.nearest?NOPLAN.remote:NOPLAN.remoteNone,v)});
     else if(P.steps){
       const lead=P.rolled?say(P.allShut?ROLL.allShut:ROLL.nothing,v):P.widened?say(WIDER[P.widened],v):P.tier===1&&!P.beyond?say(STAYLOCAL,v):null;
-      const S=planSentences(P);
+      const {stops:S,back}=planSentences(P);
+      /* Weather only when it changes something: up front if it frames the day, at the end if it's "sit outside" */
+      const w=wxReady?weatherSentence(v):null,wOut=w&&!/^(sunny|rainNow)$/.test(wxKey);
+      if(w&&!wOut)S[0]=w+' '+S[0];
       if(lead)S[0]=lead+' '+S[0];
       /* The plan breathes in short paragraphs: getting there and the first stop, the rest, the way back */
-      const back=S.splice(S.length-(P.nightcap&&placeWord()?2:1));
-      want.push({k:'plan',text:S.slice(0,1).join(' ')});
+      want.push({k:'plan',text:S[0]});
       if(S.length>1)want.push({k:'plan2',text:S.slice(1).join(' ')});
-      let tailText=back.join(' ');
-      if(wxReady){const w=weatherSentence(v);if(w)tailText+=(tailText?' ':'')+w}
-      if(tailText)want.push({k:'back',text:tailText});
+      if(wOut)back.push(w);
+      if(back.length)want.push({k:'back',text:back.join(' ')});
     }else{
       let para=P.nLocal>=3&&P.nKnown<3?say(NOPLAN.unknown,v):say(NOPLAN.nothing,v);
       if(wxReady){const w=weatherSentence(v);if(w)para+=' '+w}
@@ -1312,13 +1369,14 @@ async function run(opts={}){
   const pPost=pcInfo?Promise.resolve(pcInfo):timed('Postcode',()=>reversePostcode(q),8000).catch(()=>null);
   const pName=timed('Place name',()=>placeName(q),8000).catch(()=>null);
   const pWx=timed('Weather',()=>getJSON(weatherUrl(q),9000),10000).catch(()=>null);
-  const pLocal=timed('Places',()=>overpass(localQuery(q)),40000).catch(()=>null);
+  const M=await loadManifest(),ours=inData(M,q);
+  const pLocal=timed('Places',()=>ours?localFromData(M,q).catch(()=>overpass(localQuery(q))):overpass(localQuery(q)),40000).catch(()=>null);
   const pi=await pPost;
   if(id!==runId)return;
   F.postcode=pi&&pi.postcode;F.country=pi&&pi.country;
   F.inGM=pi?GM.includes(pi.district):null;
   F.hubs=F.inGM?pickHubs(pos):[];
-  const pHubs=F.hubs.length?timed('Further afield',()=>overpass(hubQuery(F.hubs)),40000).catch(()=>null):Promise.resolve(null);
+  const pHubs=F.hubs.length?timed('Further afield',()=>ours?hubsFromData(M,F.hubs).catch(()=>overpass(hubQuery(F.hubs))):overpass(hubQuery(F.hubs)),40000).catch(()=>null):Promise.resolve(null);
   const nm=await pName;
   if(id!==runId)return;
   F.placeName=nm||(pi&&(pi.ward||pi.district))||null;
@@ -1428,7 +1486,7 @@ function factsPack(){
   const P=F.plan,iso=d=>d?new Date(d.getTime()-d.getTimezoneOffset()*6e4).toISOString().slice(0,16):null;
   const placeOut=p=>({name:p.name,role:p.role,kind:p.kind,cuisine:p.cuisine||null,lat:+p.lat.toFixed(5),lon:+p.lon.toFixed(5),
     walkFromStart:p.walk,zone:p.hub||p.zone,chain:p.chain,traits:p.traits.map(t=>t.k),pick:p.pick,hours:p.raw||null,
-    website:p.t.website||p.t['contact:website']||null});
+    website:p.t.website||p.t['contact:website']||null,mapEdited:p.meta?p.meta.edited:null,firstSeen:p.meta?p.meta.seen:null});
   const legOut=L=>L&&Object.assign({mode:L.mode,mins:L.mins},L.mode==='taxi'?{cost:L.cost,tramGone:!!L.tramGone}:{},
     L.mode==='tram'?{walkTo:L.w1,from:L.from.name,to:L.to.name,ride:L.ride,change:L.change,walkFrom:L.w2}:{},L.m?{metres:Math.round(L.m)}:{});
   const at=P.start,open=F.places.filter(p=>p.zone==='local'&&p.walk<=15&&(p.oh||p.role==='park')&&openAt(p,at));

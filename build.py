@@ -184,6 +184,13 @@ def main():
     write('decentish/index.html', html)
     ver = re.search(r"const VERSION='([0-9.]+)'", html).group(1)
     print(f'decentish {ver}: docs/decentish/index.html ({len(html.encode()) // 1024} KB, copied after a syntax check)')
+    # Decentish's own copy of the map (built weekly by the Decentish data workflow)
+    data = os.path.join(ROOT, 'decentish', 'data')
+    shutil.rmtree(os.path.join(DOCS, 'decentish', 'data'), ignore_errors=True)
+    if os.path.isdir(data):
+        shutil.copytree(data, os.path.join(DOCS, 'decentish', 'data'), ignore=shutil.ignore_patterns('seen.json'))
+        n = len(os.listdir(os.path.join(data, 'cells'))) if os.path.isdir(os.path.join(data, 'cells')) else 0
+        print(f'decentish data: docs/decentish/data/ ({n} cells)')
     # UI stream pages (reviews now, the component page later), copied as they are
     ui = os.path.join(ROOT, 'ui')
     if os.path.isdir(ui):
