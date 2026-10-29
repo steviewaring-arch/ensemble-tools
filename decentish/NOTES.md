@@ -1,4 +1,4 @@
-# Decentish – notes (0.4, 7 October 2026)
+# Decentish – notes (0.5, 29 October 2026)
 
 A website that works out where you are and gives you a plan – what to do, where, in what order, how to get there and back – the way a friend would lay it out. Fun on the surface, properly useful underneath. Live (unlisted) at https://steviewaring-arch.github.io/ensemble-tools/decentish/.
 
@@ -114,9 +114,50 @@ Open the link and tap *Use my location*. The stopwatch in the small print shows 
 - **Consistency:** spacing, type, buttons, borders, icons and components the same everywhere.
 - **Everything clickable actually works.** Check every button and link; nothing that looks functional and isn't.
 
+## Roadmap: from places to plans worth following (29 October 2026)
+
+Steve's brief: get the raw data right first – the voice is decoration. The target is something like:
+
+> Tomorrow looks like a nice day – head to the museum for X, then stop by Y for coffee, it's got good reviews. After that, walk through Z park to the new darts and dominoes bar – but book ahead, it gets busy.
+
+…with the shape, the context and the links between things different every time. Less weather and transport; only when they change something.
+
+**What each part of that needs, and where we are**
+
+| In the sentence | What it needs | Now |
+|---|---|---|
+| "Tomorrow looks like a nice day" | Weather for the plan's hours | Have it (Open-Meteo). Now only said when it matters |
+| "the museum for X" | What's on: exhibitions, gigs, films | Missing. No free feed covers Manchester's galleries – needs a weekly read of the venues' own pages |
+| "Y for coffee, it's got good reviews" | Ratings and review counts | Missing. Google Places, through our own server, within Google's terms |
+| "walk through Z park" | Parks, and which one is on the way | Have parks; "on the way" is a planner job |
+| "the new darts and dominoes bar" | What's new, and what a place actually is | Partly: the weekly map build records when each place first appears. Later: a weekly read of Manchester food and drink news |
+| "book ahead, it gets busy" | Takes bookings; how busy it gets | Partly: Google says whether a place takes reservations. No official source says how busy – it'd be an inference from reviews, day and time, and should say so |
+| "different every time" | A writer that isn't a template | A language model (Claude) writing from the facts pack, checked against it |
+
+**How it fits together**
+
+1. **Gather.** Our own data, built on a schedule and served with the page: the map (weekly – done in 0.5), what's on (weekly), what's new (weekly). Live at the moment you ask: weather, ratings, trams. Keys live on our server, never in the page.
+2. **Choose.** The planner in the page: open when you arrive, open long enough, walking times, the last tram. Correctness lives here, in code, with tests.
+3. **The facts pack.** Exactly what was chosen, why, and what else is around (built – `window.decentish.facts()`).
+4. **Write.** Claude writes the plan from the facts pack and nothing else, in a different shape each time. A checker rejects anything that isn't in the pack – a name, a time, a claim like "good reviews" – and falls back to today's sentences. The dial becomes a brief to the writer, not a template set.
+
+**Phases**
+
+1. **Data you can trust (now).** Our own copy of the map (0.5). The live check (`Actions › Decentish live check`) runs the real page against the real services for eight places and three times and lists what looks wrong. Fix what it finds: tram stop names, opening-hours coverage, destination centres, place names.
+2. **A small server.** A Cloudflare Worker on the Decentish domain: holds the keys, caches answers, talks to Google, Claude and TfGM.
+3. **Quality.** Google Places: rating, number of reviews, price level, takes reservations, a one-line summary – matched to our places by name and position.
+4. **The writer.** Claude through the server, from the facts pack, with the checker and the fallback. Then the dial's personalities become briefs.
+5. **What's on.** Exhibitions (weekly read of the main venues' pages), gigs and events (Ticketmaster, Skiddle), new openings (news plus first-seen in the map), films later.
+6. **Getting about, live.** TfGM Metrolink departures; buses from the Bee Network timetables built into our data.
+7. Then the voice, then the polish checklist above, then launch.
+
+**What Steve needs to do**
+
+- No cost, any time: test on the phone at real moments and screenshot anything wrong (with *Workings* open); write down ten real situations and what a good answer would be – that's the test set the writer gets judged against; list 30–50 places across Greater Manchester you'd send a mate to, with one line on why – that's the taste nobody else's data has.
+- Accounts only Steve can open (keys go straight into GitHub or Cloudflare secrets, never into a chat): the domain and a Cloudflare account (free plan); an Anthropic API key with a monthly spending limit; a Google Cloud account with billing, the Places API (New) switched on and a budget alert; a TfGM developer key; a Ticketmaster key.
+- A decision: written-by-Claude plans cost a little per plan and need the server running. Worth it?
+
 ## Next
 
 1. Steve: check plans against reality on the phone – especially the tram stops in *Workings* and whether the Nearby plans pick somewhere you'd actually go.
-2. Then the voice: dialect and tone for the plan sentences, per dial.
-3. Buses, live trams and ratings: domain and hosting (decentish.co.uk on Cloudflare) with a small server-side function and caching, then TfGM/Bee Network, Google Places ratings, gigs and a film-listings trial.
-4. A hand-picked list of Manchester venues (cinemas, galleries, gig venues, the good pubs) with their own listings – grows out of `PICKS`.
+2. The roadmap above, phase by phase. Voice and dialect after the writer is in.
