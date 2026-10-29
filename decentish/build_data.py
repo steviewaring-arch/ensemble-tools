@@ -39,6 +39,17 @@ def centre(geom):
     else: return None
     return sum(p[1] for p in ring) / len(ring), sum(p[0] for p in ring) / len(ring)
 
+def area(geom):
+    """Square metres of a polygon's outer ring, roughly – enough to tell a park from a square of grass."""
+    t, c = geom['type'], geom['coordinates']
+    rings = [c[0]] if t == 'Polygon' else [p[0] for p in c] if t == 'MultiPolygon' else []
+    total = 0
+    for ring in rings:
+        lat0 = math.radians(ring[0][1]); kx, ky = 111320 * math.cos(lat0), 110540
+        pts = [(x * kx, y * ky) for x, y in ring]
+        total += abs(sum(pts[i][0] * pts[i - 1][1] - pts[i - 1][0] * pts[i][1] for i in range(len(pts)))) / 2
+    return round(total) if total else None
+
 def main(src):
     today = dt.date.today().isoformat()
     seen_path = os.path.join(OUT, 'seen.json')
@@ -63,6 +74,7 @@ def main(src):
             ts = props.get('@timestamp')    # osmium gives seconds since 1970; other tools an ISO date
             edited = dt.datetime.fromtimestamp(ts, dt.timezone.utc).date().isoformat() if isinstance(ts, (int, float)) else (ts or '')[:10]
             rec = {'i': oid, 'n': props['name'], 'a': lat, 'o': lon, 't': tags, 'v': props.get('@version'), 'e': edited, 's': first}
+            if tags.get('leisure') == 'park': rec['m2'] = area(feat['geometry'])
             cells[f'{math.floor(lat / CELL[0])}_{math.floor(lon / CELL[1])}'].append(rec)
             kinds[tags.get('amenity') or tags.get('tourism') or tags.get('leisure') or tags.get('shop') or tags.get('railway') or '?'] += 1
             lat0, lat1, lon0, lon1 = min(lat0, lat), max(lat1, lat), min(lon0, lon), max(lon1, lon)

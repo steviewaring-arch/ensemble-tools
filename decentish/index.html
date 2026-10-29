@@ -187,7 +187,7 @@ const METROLINK=[
   ["St Werburgh's Road",'Barlow Moor Road','Sale Water Park','Northern Moor','Wythenshawe Park','Moor Road','Baguley','Roundthorn','Martinscroft','Benchill','Crossacres','Wythenshawe Town Centre','Robinswood Road','Peel Hall','Shadowmoss','Manchester Airport'],
   ['Cornbrook','Pomona','Exchange Quay','Salford Quays','Anchorage','Harbour City','Broadway','Langworthy','Weaste','Ladywell','Eccles'],
   ['Harbour City','MediaCityUK'],
-  ['Pomona','Wharfside','Imperial War Museum','Village','Parkway','Barton Dock Road','EventCity','The Trafford Centre']
+  ['Pomona','Wharfside','Imperial War Museum','Village','Parkway','Trafford Palazzo','The Trafford Centre']
 ];
 const CITY_STOPS=['Victoria','Shudehill','Market Street','Piccadilly Gardens','Piccadilly','Exchange Square',"St Peter's Square",'Deansgate-Castlefield'];
 
@@ -210,7 +210,7 @@ const PROFILES=[
   {key:'mad',name:'Pissed-up uncle on a mad one',endHour:30,tomorrow:[17.5,14],late:true,taxiSlack:20,foodAfter:23,max:5,
    steps:s=>{const h=s.getHours();return h>=1&&h<6?[['club','bar','pub','food']]:[['pub','bar'],['bar','activity','pub'],['bar','pub','club'],['club','bar'],['food']]},
    stay:{culture:20,park:15,cafe:15,food:25,pub:65,bar:65,club:120,activity:50,shop:5},
-   q:{chain:0,indie:0,ale:1,heritage:.5,free:0,outdoor:1,pick:2},
+   q:{chain:-1,indie:.5,ale:1,heritage:.5,free:0,outdoor:1,pick:2},
    hubPref:(h,s)=>h.key==='town'&&(s.getHours()>=19||s.getHours()<5)?5:0}
 ];
 /* The distance dial.
@@ -486,7 +486,7 @@ async function cellsAround(M,centres){
   return{recs:lists.flat(),kb:Math.round(kb),n:keys.size};
 }
 /* A record from the data, in the shape the map servers return */
-const asElement=r=>({type:'node',lat:r.a,lon:r.o,tags:Object.assign({name:r.n},r.t),meta:{id:r.i,edited:r.e,seen:r.s,version:r.v}});
+const asElement=r=>({type:'node',lat:r.a,lon:r.o,tags:Object.assign({name:r.n},r.t),meta:{id:r.i,edited:r.e,seen:r.s,version:r.v,m2:r.m2}});
 const hasHours=t=>!!t.opening_hours;
 const isStopTag=t=>!!t.railway;
 const isAmen=t=>!!t.amenity&&new RegExp('^('+AMEN+')$').test(t.amenity);
@@ -548,14 +548,16 @@ function roleOf(t){
   if(a==='cinema'||a==='theatre'||a==='music_venue')return 'listing';
   return null;
 }
-const isTramStop=t=>t.railway==='tram_stop'||(t.railway==='station'&&(t.station==='light_rail'||t.tram==='yes'||/metrolink/i.test(t.network||'')));
+/* Metrolink only: the Heaton Park heritage tramway's stops are tram stops too, but you can't get home on them */
+const isTramStop=t=>(t.railway==='tram_stop'&&(/metrolink/i.test(t.network||'')||(!t.network&&NET.adj.has(norm(t.name||'')))))||
+  (t.railway==='station'&&(t.station==='light_rail'||/metrolink/i.test(t.network||'')));
 /* Quality signals the map knows. Each is a verb phrase that follows "it". */
 function traitsOf(p){
   const t=p.t,r=[];
   if(t.microbrewery==='yes')r.push({k:'ale',vp:'brews its own beer'});
   else if(t.real_ale==='yes'||t['drink:real_ale']==='yes')r.push({k:'ale',vp:'does real ale'});
   if(t.heritage||t.listed_status||t['heritage:operator'])r.push({k:'heritage',vp:'is in a listed building'});
-  else if(t.wikipedia&&p.role!=='culture')r.push({k:'heritage',vp:'is notable enough for Wikipedia'});
+  else if(t.wikipedia&&!/^(culture|park)$/.test(p.role))r.push({k:'heritage',vp:'is notable enough for Wikipedia'});
   if(p.role==='culture'&&t.fee==='no')r.push({k:'free',vp:'is free to get in'});
   if(t.beer_garden==='yes'||t.amenity==='biergarten')r.push({k:'outdoor',vp:'has a beer garden'});
   else if(t.outdoor_seating==='yes')r.push({k:'outdoor',vp:'has seats outside'});
@@ -749,6 +751,7 @@ function startFor(w,prof,now){
 }
 function openAt(p,d){
   if(p.role==='park'){
+    if(p.meta&&p.meta.m2!=null&&p.meta.m2<20000)return false;    // under 2 hectares isn't a walk
     const sun=sunFor(d);
     if(!sun||d<sun.rise||d>addMins(sun.set,-30))return false;
     const w=wxAt(d);if(w&&w.wet)return false;
@@ -1058,10 +1061,11 @@ function whyVps(s){
 }
 function openVp(s){
   if(s.role==='park')return 'is light till '+clock(s.closes,s.arrive);
-  if(!s.closes)return 'is open all night';
+  if(!s.closes)return null;    // the map doesn't say when it shuts, so neither do we
   return (s.latest&&!s.only&&!s.p.pick?'is open latest, till ':'is open till ')+clock(s.closes,s.arrive);
 }
-const tail=s=>' – '+itSays([...whyVps(s),openVp(s)]);
+const vps=s=>[...whyVps(s),openVp(s)].filter(Boolean);
+const tail=s=>{const v=vps(s);return v.length?' – '+itSays(v):''};
 function relText(m,w){
   if(m<=60)return 'next door';
   if(m<=160)return 'a few doors down';
@@ -1079,7 +1083,7 @@ function firstSentence(s,P){
   }
   if(L.mode==='walk'){
     const far=L.m<800?'is '+yardsText(L.m)+' away':`is ${milesText(L.m)} away, about ${L.mins} minutes' walk`;
-    return `Start at ${nm}${fws} – ${itSays([far,...whyVps(s),openVp(s)])}.`;
+    return `Start at ${nm}${fws} – ${itSays([far,...vps(s)])}.`;
   }
   if(P.hub){
     const go=L.mode==='tram'
@@ -1090,8 +1094,9 @@ function firstSentence(s,P){
   }
   const how=L.mode==='tram'
     ?`walk ${L.w1} minutes to ${L.from.name} and get the tram to ${L.to.name}, about ${L.ride} minutes${changeText(L)}, then it's ${L.w2} minutes' walk`
-    :`a ${L.mins}-minute taxi`+(L.walk?` or ${minsText(L.walk)} on foot`:'');
-  return `Start at ${nm}${fws}, ${milesText(s.p.dist)} away – ${how}. ${cap(itSays([...whyVps(s),openVp(s)]))}.`;
+    :`${/^(8|11|18|80)/.test(String(L.mins))?'an':'a'} ${L.mins}-minute taxi`+(L.walk?` or ${minsText(L.walk)} on foot`:'');
+  const v=vps(s);
+  return `Start at ${nm}${fws}, ${milesText(s.p.dist)} away – ${how}.`+(v.length?' '+cap(itSays(v))+'.':'');
 }
 function nextSentence(s,prev,i,n,P){
   const nm=s.p.name,last=i===n-1,L=s.leg,m=L.m||metres(prev.p,s.p),w=L.mins,rel=relText(m,w);
@@ -1102,8 +1107,9 @@ function nextSentence(s,prev,i,n,P){
   const drink=r=>/^(pub|bar|club|activity)$/.test(r);
   if(s.homeward){
     const place=placeWord()||'your end';
-    const how=L.mode==='walk'?`${w} minutes' walk`:L.mode==='taxi'?`a ${w}-minute taxi (around £${L.cost})`:`about ${minsText(L.mins)} on the tram from ${L.from.name}`;
-    return `Then it's ${how} back to ${place}${fws} at ${nm}, which ${andList([...whyVps(s),openVp(s)])}.`;
+    const how=L.mode==='walk'?`${w} minutes' walk`:L.mode==='taxi'?`${/^(8|11|18|80)/.test(String(w))?'an':'a'} ${w}-minute taxi (around £${L.cost})`:`about ${minsText(L.mins)} on the tram from ${L.from.name}`;
+    const v=vps(s);
+    return `Then it's ${how} back to ${place}${fws} at ${nm}`+(v.length?`, which ${andList(v)}.`:'.');
   }
   if(shutsSoon){
     const k=P.steps.slice(1,i).filter(x=>x.after==='shuts').length;s.after='shuts';
