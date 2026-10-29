@@ -134,6 +134,12 @@ Steve's brief: get the raw data right first – the voice is decoration. The tar
 | "book ahead, it gets busy" | Takes bookings; how busy it gets | Partly: Google says whether a place takes reservations. No official source says how busy – it'd be an inference from reviews, day and time, and should say so |
 | "different every time" | A writer that isn't a template | A language model (Claude) writing from the facts pack, checked against it |
 
+**What the first live checks found (29 October)**
+
+- The public map servers failed every request from GitHub's machines – 502s and minute-long timeouts, even for a one-line query. So 0.5 has its own copy of the map, rebuilt weekly. That part is fixed.
+- **Opening hours are the real gap.** Only 16% of Greater Manchester's food and drink places have them on OpenStreetMap. Within 1.3 km: Northern Quarter 229 of 886, Didsbury 65 of 96, Chorlton 16 of 107, Monton 5 of 36, Altrincham 11 of 100, Bolton 7 of 169 (and 0 of its 45 pubs and bars). The planner only uses places it knows are open, so outside town and Didsbury it has almost nothing – that's why Monton plans keep landing on the same two places. Google Places has hours for nearly everything, so Google comes before the writer: it's the backbone, not just the reviews.
+- 98 of the 100 Metrolink stops on our list match the map by name; the two that didn't were the Trafford Park line, now corrected from the map.
+
 **How it fits together**
 
 1. **Gather.** Our own data, built on a schedule and served with the page: the map (weekly – done in 0.5), what's on (weekly), what's new (weekly). Live at the moment you ask: weather, ratings, trams. Keys live on our server, never in the page.
@@ -143,9 +149,9 @@ Steve's brief: get the raw data right first – the voice is decoration. The tar
 
 **Phases**
 
-1. **Data you can trust (now).** Our own copy of the map (0.5). The live check (`Actions › Decentish live check`) runs the real page against the real services for eight places and three times and lists what looks wrong. Fix what it finds: tram stop names, opening-hours coverage, destination centres, place names.
+1. **Data you can trust (now).** Our own copy of the map (0.5, done). The live check (`Actions › Decentish live check`) runs the real page against the real services for eight places and three times and lists what looks wrong. Keep fixing what it finds.
 2. **A small server.** A Cloudflare Worker on the Decentish domain: holds the keys, caches answers, talks to Google, Claude and TfGM.
-3. **Quality.** Google Places: rating, number of reviews, price level, takes reservations, a one-line summary – matched to our places by name and position.
+3. **Hours and quality from Google.** Opening hours first, then rating, number of reviews, price level, takes reservations and a one-line summary – matched to our places by name and position. Google's terms limit how long its data can be kept, so this is fetched through the server and cached briefly, not baked into our map.
 4. **The writer.** Claude through the server, from the facts pack, with the checker and the fallback. Then the dial's personalities become briefs.
 5. **What's on.** Exhibitions (weekly read of the main venues' pages), gigs and events (Ticketmaster, Skiddle), new openings (news plus first-seen in the map), films later.
 6. **Getting about, live.** TfGM Metrolink departures; buses from the Bee Network timetables built into our data.

@@ -1,5 +1,17 @@
 # Changelog
 
+## 29 October 2026 – Decentish 0.5: our own map, and the first live checks
+
+**Decentish 0.5** – getting the raw data right. No changes to Rubato, Tempo or Tutti.
+- **Our own copy of the map.** Every place Decentish can use in Greater Manchester (8,586 of them), rebuilt every Monday from OpenStreetMap by the *Decentish data* workflow and served in small area files. Inside Greater Manchester the page no longer asks the public map servers, which failed every request in the first live check (502s and minute-long timeouts). Monton now loads its places in under a tenth of a second. Outside Greater Manchester it still asks the servers. Each place records when it first appeared, which is how "new" will be spotted.
+- **Live check.** *Actions › Decentish live check* runs the real page against the real services for eight places at three times, and lists what looks wrong. A map-service probe runs first.
+- **The facts pack.** Everything a plan was built from, as plain data (`window.decentish.facts()`) – what the live check reads now, and what a writer will write from later.
+- **Less weather and transport.** Weather only when it changes something (sunny, raining, cold, sit outside). Getting there in a few words ("Head into town – about 25 minutes in a taxi"); the way back only when it matters.
+- **Fixes from real data:** Metrolink stops only (the Heaton Park heritage tramway's stops were counting); the Trafford Park line as it is on the map (Trafford Palazzo); parks must be over 2 hectares to be "a walk"; no "open all night" when the map simply doesn't say; "the Northern Quarter" rather than "City Centre"; "an 11-minute taxi".
+- Map data and weather are credited at the foot of the page.
+- **Found, not fixed:** only 16% of Greater Manchester's food and drink places have opening hours on OpenStreetMap (Bolton: 0 of 45 pubs and bars). Outside town and Didsbury the planner has very little it can safely use. Opening hours from Google are the next job – see the roadmap in `decentish/NOTES.md`.
+- Tested: `tests/decentish_check.py`, 63 of 63, now through the same area-file path the live page uses; plans read against the real map data for Monton.
+
 ## 29 October 2026 – Tempo 0.11.1: Mac savers install for one user or all
 
 - **The Mac screen saver engine is rebuilt** (WebViewScreenSaver 2.5 with one change): the saver finds its page inside itself, so it plays whether it's installed for one user or for all. Before, "this user only" gave a blank screen.
