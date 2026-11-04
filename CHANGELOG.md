@@ -1,5 +1,22 @@
 # Changelog
 
+## 4 November 2026 – Segue 0.2: kinds of motion, lag and depth, over and under
+
+Built from Steve's four screen recordings (phone swipe, columns, posters, Milky Way), measured frame by frame, and his notes on the panel. Segue only – nothing shared changed.
+
+- **The panel follows the work:** Media, Canvas, Motion, Shapes, Captions, Overlay. Motion opens on six **kinds** as tiles – One, Line (a row or a column: Direction decides), Grid, Columns, Frames, Float – and shows only that kind's controls, always in the same order: how many, what moves and which way, timing, the feel, then its character. Columns and frame counts moved into Motion; Fonts moved into Captions.
+- **Columns** (new): every column runs through all the media on its own – down, up, down (or all one way), drifting at its own speed (Varied: two, three and four laps in a loop twice as long, about the 1 : 1.4 : 2.3 of the reference) or stepping a shape at a time, each column a beat **out of step** with the last. Offset sets every other column down by part of a shape. "The media's own" shape gives each piece its own height – a wall.
+- **Frames** (new): the frames stay put and the media changes inside them – push, cover, fade or cut, each frame a beat after the last. With as many frames as media nothing changes and video plays inside them: static posters with motion in them.
+- **Float** (new): shapes scattered at three depths – nearer is bigger and faster, in proportion – drifting or stepping past. Depth, Spread and Shuffle.
+- **Lag** (Line and Grid): each shape sets off a beat after the one ahead, so the gaps open as they move and close as they land – the phone reference sets off about 75 ms apart.
+- **Keep drifting** (stepping kinds): everything keeps moving gently while it rests, and still meets each stop exactly.
+- **Feels:** **Coast** (a short push, then a long glide in – fitted to the phone reference) and **Soft** (a gentle ease in and out). The pull back now eases with Soft, for smoother zooms out and in.
+- **Background image** behind everything (fill or fit, strength), and **Overlay**: text (any font, size, tracking, leading, colour, case, *stars* and {#hex:} colours) or an image, placed on a 3 × 3 pad with a margin and a nudge, in Normal, Difference, Multiply or Screen, at any opacity – and in Float, among the shapes so the nearest pass in front of it. Presets set the overlay's look but never remove what you've put there.
+- **Border:** a mount inside each shape, in its own colour, with its own inner corners (the posters' white border).
+- **Presets:** Phone swipe, Columns, Wall, Posters and Milky Way join Card stack, Carousel, Deck, Stack, Fade and Grid. Each shows its kind in the list.
+- Folds say what's set when shut (Border and edge, Position, Pull back, Nudge, Fonts).
+- `tests/segue_check.py`: 54 checks (19 new) – each kind's controls, lag, keep drifting, columns' directions, speeds and timing, frames that never move, float depths, every new kind looping exactly, background, overlay in Difference, border, text placement, presets keeping the overlay, both images back after a reload.
+
 ## 4 November 2026 – Segue 0.1: framed loops for case studies
 
 A new tool, internal for now (unlisted at /segue/). Images and video in; framed loops and stills out – the kind of thing brand identity packs do in After Effects, for showing decks, guides, screens and social posts in case studies. Built for Tempo's promo reel first.

@@ -1,88 +1,99 @@
-# Segue – handover (4 November 2026, Segue 0.1)
+# Segue – handover (4 November 2026, Segue 0.2)
 
 For the Segue chat. Read this, then the repo's `README.md` and `HANDOVER.md` (how the repo, the build, storage and the other streams work). Segue is internal for now: built to `docs/segue/`, live at https://steviewaring-arch.github.io/ensemble-tools/segue/, and not linked from the index page.
 
 ## What it is
 
-Framed loops of images and video, for case studies, social reels and decks – the kind of thing The Brand Identity's motion packs do in After Effects, without After Effects. Media goes into **shapes** (the frames it sits in) on a **canvas**; the shapes move with a **feel**, and everything **loops** exactly. Captions are optional. Out as MP4, GIF or a PNG of the frame on the stage.
+Framed loops of images and video, for case studies, social reels and decks – the kind of thing The Brand Identity's motion packs do in After Effects, without After Effects. Media goes into **shapes** (the frames it sits in) on a **canvas**; the shapes move in one of six **kinds** of motion with a **feel**, and everything **loops** exactly. A background image can sit behind it all and text or an image over it. Captions are optional. Out as MP4, GIF or a PNG of the frame on the stage.
 
 Steve's brief (4 Nov), in his words where they matter:
-- "a) the overall output size / canvas. b) the option to change the ratio and amount of 'shapes' (which are invariably the mockup elements) – rounded corners also. c) the transition type (and ability to loop)." Slides "could have an inertia to them, or just glide".
-- Motion or statics, or both, in any arrangement.
-- Captions with or without: "own font, colour in own way (per word / line) and be specific about kerning, letterspacing and position".
-- Keep it simple; transitions "not overly crazy – swipes, zoom out (maybe the ability to join up transitions)".
-- Presets you can alter, and change the output size without starting again.
-- References: Steve's screen recording of a card stack that pulls back to a grid (→ the Card stack preset and Pull back), and `MinImp_Social_Carousel` on Dropbox (a row of tall cards drifting left, 9:20 cards 361 × 800 with a 49 px gap on 1080 × 1350, #1D1C23, 2.67 s a card, 16 s for six – → the Carousel preset). The Brand Identity's packs for the standard.
+- 0.1: "a) the overall output size / canvas. b) the option to change the ratio and amount of 'shapes' (which are invariably the mockup elements) – rounded corners also. c) the transition type (and ability to loop)." Slides "could have an inertia to them, or just glide". Motion or statics, or both. Captions with "own font, colour in own way (per word / line) and be specific about kerning, letterspacing and position". Keep it simple; transitions "not overly crazy – swipes, zoom out (maybe the ability to join up transitions)". Presets you can alter; change the output size without starting again.
+- 0.2 (same day, with four screen recordings): a background image fixed; "an image (or text) over the top also"; "wrap 'fonts' module into captions"; "if each preset has its own controls, they should be obvious … canvas size and uploaded elements a given, but how we show the variables in each 'preset'"; "making each column move up or down (at different times) independently"; "really study the attached – the motion quality, the variances (the smoothness of transitions – zooming in and out, even the phone UI example and the slight lag on the next one coming in)"; then audit the UI for function and usability – "it can be easy to get lost in the modules and their sub parameters"; and "the frame / poster is static and the elements can move within them". The house UI style is being audited in another thread – this stream is about the tool and its parameters.
 - Name: Segue. Internal only for now.
+
+## The references (measured 4 Nov – slit-scans and edge tracking, not by eye)
+Steve's recordings are 554 × 370 at 60 fps, variable frame rate (two of the five files are the same clip). What each does, and where it went:
+
+| Recording | What it does | In Segue |
+|---|---|---|
+| Phone swipe (16.42.53) | A row of phone screens steps left. Each sets off ~75 ms after the one ahead (left edges at one moment moved 39, 25, 15, 8 px), so the gaps open from ~40 to ~54 px and close as they land. A short push, then a long glide that only just stops before the next (cycle ~2.4 s) | **Lag**, the **Coast** feel (`bezier(.18,0,.02,1)`, fitted to the tracked edges), the **Phone swipe** preset |
+| Columns (16.41.27) | Three columns drifting at steady speeds, down, up, down, about 1 : 1.37 : 2.3 (60, 82, 139 px/s on a 370-px frame) | **Columns** kind, Varied speeds (2, 3, 4 laps → 1 : 1.5 : 2; ours measured 60, 90, 120 at the same scale), the **Wall** preset |
+| Posters (16.39.23) | Three white-bordered posters stay put; inside each the work pushes up with a slow–fast–slow ease (~0.8 s), each poster at its own moment | **Frames** kind, **Border**, the **Posters** preset |
+| Milky Way (16.35.11) | Cards at different sizes step upward – a fast move, a long slow drift, a fast move – nearer cards further; a fixed title between the near and far cards in difference blend (cyan over red) | **Float** kind, **Keep drifting**, **Overlay** in Difference among the shapes, the **Milky Way** preset |
+
+`compare.py`-style checks (render a preset at the reference's shape, slit-scan the same row or column) put the phone swipe's cycle and S-curve and the wall's speeds close to the recordings; the reference's knee into the push is a touch sharper than Coast's, partly the recording's dropped frames.
 
 ## The model
 
 | Part | Settings |
 |---|---|
-| **Canvas** | 4:5 1080 × 1350, 9:16 1080 × 1920, 1:1, 16:9 1920 × 1080, 4:3 1440 × 1080, or custom (made even for video); background; 24/25/30/60 fps |
-| **Shapes** | Layout (One, Row, Column, Grid); shape ratio (the media's own, 16:10, 16:9, 4:3, 3:2, square, 4:5, 3:4, 2:3, 9:16, 9:19.5 phone, A4 either way, custom); size; columns (Grid); gap; corners; fill (crop) or fit (no crop) with a colour behind; edge; nudge across and up/down |
-| **Motion** | One: Slide, Stack, Fade, Zoom, Cut, Still – and each shape can arrive by its own move (Media › Arrives by). Row/Column/Grid: Step, Drift, Still. Direction. Feel: Glide, Inertia, Spring, Linear. Rest and Move times; Drift's "Each shape"; Still's length. After the last: Carry on round, or Pull back to them all (grid columns, gap, how much it fills, out / all in view / in times, its own feel) |
-| **Captions** | Under, above, on the shape, or fixed on the canvas (top or bottom, margin); align; space from the shape; nudge. Title, Line and Tags each with font, size, tracking (thousandths of the size), leading, colour, case; tags as outline or filled chips, or plain. Accent colour for `*starred*` words; `{#hex:words}` for any colour. Font kerning on/off and your own kerning pairs (`AV -40, To -30`, thousandths). Arrives: as it is, fade, rise, scramble, over a set time |
+| **Canvas** | 4:5 1080 × 1350, 9:16 1080 × 1920, 1:1, 16:9 1920 × 1080, 4:3 1440 × 1080, or custom (made even for video); background colour; **background image** (fill or fit, strength); 24/25/30/60 fps |
+| **Motion** | **Kind** first, as six tiles; then only that kind's controls, in the same order – how many, what moves and which way, timing, the feel, then its character (below) |
+| **Shapes** | Shape ratio (the media's own – per shape in Columns and Float – 16:10, 16:9, 4:3, 3:2, square, 4:5, 3:4, 2:3, 9:16, 9:19.5 phone, A4 either way, custom); size (Width for Grid and Columns; Float's own); gap; corners; fill (crop) or fit with a colour behind; **Border and edge** fold: border (a mount inside the shape), its colour and inner corners, edge; **Position** fold: nudge (not Float) |
+| **Captions** | Under, above, on the shape, or fixed on the canvas (One, Line, Grid only); align; space; nudge. Title, Line and Tags each with font, size, tracking (thousandths of the size), leading, colour, case; tags as outline or filled chips, or plain. Accent for `*starred*` words; `{#hex:words}` for any colour. Font kerning on/off and kerning pairs (`AV -40, To -30`). Arrives: as it is, fade, rise, scramble (not Columns or Float). **Fonts** fold: built in (Aktiv Grotesk via the Adobe Fonts kit, Inter Tight 400/600/800, IBM Plex Mono 400/500, Helvetica) and your own (OTF, TTF, WOFF, WOFF2, kept in the browser) – every Font menu lists them |
+| **Overlay** | Over the top: Text (font, size, tracking, leading, colour, case, rich colours, the Captions kerning pairs) or Image (width); Place on a 3 × 3 pad, margin, nudge; Blend: Normal, Difference, Multiply, Screen; opacity; in Float with depth, Sits over everything or among the shapes |
 | **Media** | Images and video mixed. Drag to reorder (or Move up/down); per shape: Title, Line, Tags, Start at (video), Arrives by (One), Lift washed-out colours (video) |
-| **Fonts** | Built in: Aktiv Grotesk (Adobe Fonts kit, regular and bold), Inter Tight (400/600/800), IBM Plex Mono (400/500), Helvetica. Add your own (OTF, TTF, WOFF, WOFF2) – kept in the browser |
-| **Presets** | Card stack, Carousel, Deck, Stack, Fade, Grid, and your own (save, delete, download, load). A preset carries the look and motion – not the media, captions, canvas size or frame rate – and its px values are kept for a 1080 short side and scaled to the canvas it lands on |
-| **Export** | MP4 (H.264, 1–3 loops, named from File name and size), GIF (full, half or quarter size, 12–25 fps, each frame its own 256 colours), PNG of the frame on the stage |
+| **Presets** | Card stack, Phone swipe, Carousel, Columns, Wall, Posters, Milky Way, Deck, Stack, Fade, Grid, and your own (save, delete, download, load). Each lists its kind. A preset carries the look and motion – not the media, captions, canvas size, frame rate, or what's over the top (on/off, text or image, the text itself – it does carry the overlay's font, blend and place) – and its px values are kept for a 1080 short side and scaled to the canvas |
+| **Export** | MP4 (H.264, 1–3 loops, named from File name and size), GIF (full, half or quarter size, 12–25 fps, each frame its own 256 colours), PNG of the frame on the stage. Background and overlay go into all three |
+
+### The kinds and their controls
+| Kind | Engine `layout` | Controls (in order) |
+|---|---|---|
+| **One** | `one` | Move (Slide, Stack, Fade, Zoom, Cut, Still), Direction, Rest, Move time, Feel, After the last (+ Pull back fold) |
+| **Line** | `row` / `column` – Direction picks | Move (Step, Drift, Still), Direction (left/right → row, up/down → column), Rest, Move time / Each shape, Feel, **Lag**, **Keep drifting**, After the last (+ Pull back) |
+| **Grid** | `grid` | Columns, Move, Direction (up/down), Rest, Move time / Each shape, Feel, Lag (row by row), Keep drifting |
+| **Columns** | `columns` | Columns, Move, Directions (Alternate – down, up, down…, All up, All down), Rest, Move time, Feel, **Out of step**, Keep drifting / Each shape, **Speeds** (Same, Varied), **Offset** |
+| **Frames** | `frames` | Across, Down, Change (Push, Cover, Fade, Cut, Still), Direction, Rest, Move time, Feel, **Lag** between frames. With as many frames as media: a note, and Length only |
+| **Float** | `float` | Move, Direction, **Depth**, **Spread**, Shuffle, Rest, Move time / Each shape, Feel, Keep drifting |
 
 ### How the loop works (`segue/engine.js`)
-- **Stops.** Shapes sit on a track (One, Row, Column) or in a grid that scrolls a row at a time. The camera visits each stop: rest, then move to the next with the feel. One's pitch is the whole canvas, so the next shape starts off screen; Row and Column's is the shape plus the gap (neighbours show). A grid steps until its rows repeat (10 shapes, 3 across: 10 rows).
-- **Loop length** = shapes × rest + moves (+ out, all in view and in for Pull back), or shapes × "Each shape" for Drift. Shown in the top bar.
-- **Feels:** Glide is an ease in and out; Inertia a push that coasts to a stop (cubic-bezier .35, .85, .2, 1 – softened on 4 Nov after the first render jumped 200 px in its first frame at 30 fps); Spring overshoots about 5% and settles, pinned to land exactly; Linear.
-- **Video timing.** On a stepping track each video plays from its Start at as its shape starts to arrive, and keeps going (wrapping round its own length); in a grid, drifting or still it runs from Start at with the loop. Set Start at so a transition lands while the shape rests – about Move + a third of Rest after its start point.
-- **Pull back.** One camera move from the shape in focus to every shape in a grid and back in to the first. Shapes that are neighbours on the track and in the grid (the grid is filled along the track's direction) just ride the camera; the rest fade out where they were and fade up in the grid. The shape in focus is drawn last. The grid is centred however many columns it ends up with.
-- **Captions** are laid out a glyph at a time: each glyph's advance, the font's kerning (measured as the pair's width minus the two glyphs'), your kerning pair and the tracking. So tracking and kerning are exact, scramble doesn't jitter, and per-word colour is free. Under/above captions take the height of the tallest caption in the set, so every shape sits the same.
-- **Exports** draw every frame at full size at its own moment, seeking each video to the frame wanted before drawing – the file is the loop frame for frame, however slow the machine. If the loop isn't a whole number of frames long, each frame's moment is stretched by a fraction of a frame so the file still loops exactly.
+- **One, Line, Grid** – as 0.1: shapes on a track (or a grid scrolling a row at a time); a camera visits each stop, rest then move with the feel. Loop = shapes × rest + moves (+ pull back), or shapes × Each shape for Drift.
+- **Lag:** each shape's step is read a beat late – `stepAbs(t − lag × rank)` – rank counted from the leading edge of what's visible, so the one ahead sets off first and the one coming in last. The reference stop for the ranks only changes once every shape has landed, so nothing jumps; the beat is capped (`0.9 × rest ÷ shapes in view`) so the last lands before the next move. Lag is shown in the Lag control but takes from the rest.
+- **Keep drifting:** the camera is `(1 − k) × the step path + k × a steady drift`, the drift advancing a stop each rest-and-move, so the two meet at every stop and the loop stays exact. Not in the last rest before a pull back.
+- **Columns:** each column runs through all the media from its own starting point (`round(N × c / C)`), so the loop is N steps (Step) or N × Each shape (Drift; Varied doubles it, laps 2, 3, 4). Out of step offsets each column's clock; Offset shifts every other column's start by part of a shape. Heights per shape when the shape is the media's own.
+- **Frames:** fixed rectangles (Across × Down, fitted inside Size); frame f shows media f, f + F, f + 2F… (N ÷ gcd(N, F) entries), changing every rest + move, each frame Lag later. Push and cover slide the media inside the frame (`slide` on the op); fade crossfades; captions crossfade at the halfway point. Video in a frame plays from its start point as it arrives.
+- **Float:** one, or three, depths (Depth > 0), sized 1 − 0.6 × Depth for the farthest. Each depth is a strip of K places; its length is in proportion to its size, and every strip goes round once a loop – so speed is in proportion to size and everything joins up. K is enough places that the farthest strip covers the canvas with nothing shown twice. Places are scattered across by a seeded hash (Shuffle changes the seed). Step moves the whole field a place at a time.
+- **Feels:** Glide (ease in and out), **Soft** (`bezier(.42,0,.58,1)`, the pull back's default from 0.2), **Coast** (`bezier(.18,0,.02,1)`), Inertia, Spring, Linear.
+- **Drawing order:** background colour, background image, shapes (each: border, inner clip, behind colour, media – slid within the frame if Frames is changing – edge), captions, fixed caption, overlay. In Float with Sits among the shapes, the overlay is drawn before the nearest depth (`SC.mid`).
+- Every op carries a `key` (its place: `t12`, `g3.1`, `c0.4`, `l2.7`), so tests can follow a shape from frame to frame.
+- **Exports** draw every frame at full size at its own moment, seeking each video first – as 0.1.
 
 ## Colour – the range business
-
-The background of Tempo's promo MP4s showed as #E2E2E0 instead of #F5F5F3 in anything ffmpeg-based (Instagram among them) but looked right in QuickTime. Cause: the H.264 that Chrome's encoder makes on a Mac (Apple's VideoToolbox) says "full range" in the stream's own header (the SPS), while the frames are video range and the MP4's `colr` box says so. QuickTime reads the box; ffmpeg reads the stream.
-
-Segue deals with it at both ends:
-1. **Out:** it converts each frame to BT.709 video range itself (as Tempo 0.9.2 does, picking the codes that play back nearest for flat colours), labels the file to match (`colr`: BT.709, sRGB transfer, video range), and **sets the SPS range flag to video range** in the avcC and in any SPS inside the frames (`spsVideoRange`, `avcCVideoRange`, `chunkVideoRange` in `export.js`). Checked on Steve's Dial 01 Motion_01: with the fixed header, ffmpeg decodes the background as 245 instead of 226.
-2. **In:** a video whose stream says full range while its file says video range is put right as it's added (`fixSourceRange` in `app.js` – one bit, same length; the Media row says "range put right"). All twelve Tempo Motion clips have this.
-3. **Lift washed-out colours** per video, for anything else that looks lifted: reads it as video range when drawing.
-
-Tempo's own MP4 export still writes the mismatched flag – the fix for `tempo/promo.js` is logged in the Project doc `claude/tempo-promo-log.md` (Steve said log, don't action, 3 Nov). It's the same three functions.
+Unchanged from 0.1: Segue converts each frame to BT.709 video range itself, labels the file to match and sets the H.264 stream's own range flag to agree (`spsVideoRange`, `avcCVideoRange`, `chunkVideoRange` in `export.js`); a video whose stream says full range while its file says video range is put right as it's added (`fixSourceRange`); Lift washed-out colours reads any other lifted video as video range. Tempo's own MP4 export still writes the mismatched flag – logged in the Project doc `claude/tempo-promo-log.md`, for the Tempo chat.
 
 ## Files
-
 | File | What |
 |---|---|
-| `segue/engine.js` | `SegueEngine`: sizes and ratios, feels, the plan (stops, segments, arrival times), the camera, geometry, the scene for a moment (every shape's rect, alpha, scale, caption reveal, video time), captions (rich text, glyph layout, blocks), drawing. No DOM beyond the canvas. Its own `<script id="segue-engine">` |
-| `segue/frame.js` | The UI system's parts – cards, folds, summaries, sheets, Preview, sliders, segmented controls, toggles, colours (with a hex field), menus, number pairs, text fields, tooltips, theme, keys, panel width, status, downloads. A copy of `shared/core.js` / `core-end.js`'s, because the shared core is still tied to Rubato's settings and type engine (Tutti does the same with `tutti/frame.js`). Move onto the core when it's split |
-| `segue/app.js` | Settings (`D`, `LOOK`, `PX`), fonts, IndexedDB, media (adding, the range fix, restoring, reordering, drawing into a shape), the preview and video sync, the cards, presets |
-| `segue/export.js` | Frames, MP4 (WebCodecs + mp4-muxer, I420 conversion, the SPS fix), GIF, PNG, the Export sheet, start-up, `window.segue` (for tests and scripted renders) |
-| `segue/app.html`, `app.css` | The frame's markup (Tempo's), an extra Google Fonts link (Inter Tight 400/600/800, IBM Plex Mono), and Segue's own styles |
-| `tests/segue_check.py` | 35 checks – see below |
+| `segue/engine.js` | `SegueEngine`: sizes and ratios, feels, kinds, the plan for each kind, the camera, lag and keep drifting, geometry, the scene (every shape's rect, alpha, scale, slide, caption reveal, video time, key), captions and the overlay's text (glyph layout), drawing (background image, border, overlay and blends). No DOM beyond the canvas |
+| `segue/frame.js` | The UI system's parts (a copy of `shared/core.js`'s – see 0.1). 0.2: a seg can `pick` (run a function instead of setting a key) and show a `val` other than its key; folds can have their own summary |
+| `segue/app.js` | Settings (`D`, `LOOK`, `PX`), fonts, IndexedDB, media, the background and overlay pictures (`PICS`, `setPic`, `clearPic`, `restorePics`), the preview, the cards (kind tiles, the place pad, picture rows), presets |
+| `segue/export.js` | Frames, MP4, GIF, PNG, the Export sheet, start-up, `window.segue` (for tests and scripted renders – now with `pics`, `setPic`, `clearPic`) |
+| `segue/app.html`, `app.css` | The frame's markup (plus `#bgfile`, `#ovfile`), the extra Google Fonts link, Segue's own styles (0.2: `.kinds`, `.kind`, `.place`, `.spot`) |
+| `tests/segue_check.py` | 54 checks – see below |
 
-`build.py` builds it with `build_segue()`: shared tokens and components + `segue/app.css`; tagged scripts `segue-engine` and `segue-mp4` (Tempo's `tempo/vendor/mp4-muxer.js`, MIT); `shared/gif.js` before the wrapper; then `frame.js`, `app.js`, `export.js` in one scope. Version in `SEGUE` in `build.py`. If Tempo's promo tools come out before a public launch, keep `tempo/vendor/mp4-muxer.js` (or move it to `shared/`) – Segue needs it.
+`build.py` builds it with `build_segue()` (version in `SEGUE`). Segue needs `tempo/vendor/mp4-muxer.js` – keep it (or move it to `shared/`) if Tempo's promo tools come out.
 
 ## Storage
-`localStorage` `segue:settings`, `segue:items` (the media list – name, kind, size, length, start, captions, arrive, levels, fixed – the files themselves are in IndexedDB), `segue:fonts` (ids of fonts added), `segue:presets`, `segue:preset`, `segue:presetEdited`, `segue:collapsed`, `segue:folds`, `segue:mode`, `segue:panelW`. IndexedDB `segue` › `media` and `fonts`, by id. Nothing is shared with the other tools.
+`localStorage` `segue:settings`, `segue:items`, `segue:fonts`, `segue:presets`, `segue:preset`, `segue:presetEdited`, `segue:collapsed`, `segue:folds`, `segue:mode`, `segue:panelW`, and from 0.2 `segue:pic:bg`, `segue:pic:ov` (the image's name). IndexedDB `segue` › `media` (the media by id, and the two pictures as `pic:bg`, `pic:ov`) and `fonts`. Settings from 0.1 load as they were: every new key has a default, and 0.1's layouts are 0.2's One, Line (row/column) and Grid. Nothing is shared with the other tools.
 
 ## Tests
-`python3 tests/segue_check.py` – Playwright's Chromium, ffmpeg (libx264, libvpx) and Pillow. Makes its own fixtures in `tests/out/segue/`. Playwright's Chromium has no H.264, so the MP4 export comes out as VP9 there (as Tempo's does) and the H.264 parts are checked against streams made by x264. Last run 4 Nov: 35 of 35. Also run `tests/licence_check.py` before every push.
+`python3 tests/segue_check.py` – Playwright's Chromium, ffmpeg (libx264, libvpx) and Pillow. Last run 4 Nov: 54 of 54. 0.2 adds: Motion's six kinds; each kind shows only its own controls in order; Line's Direction picks row or column; the fonts are in Captions; lag (the one ahead sets off first, gaps open mid-move and close on landing, none without lag); keep drifting (moves while resting, still meets each stop); Columns (down, up, down; Varied speeds 2 : 3 : 4; out of step by half a second); Frames (the frames never move; the media changes, each frame later); Float (three depths, size and speed in proportion); the new kinds loop exactly; background image; overlay image in Difference (white over red → cyan); border colour; overlay text bottom centre on its margin; a preset keeping the overlay; both pictures back after a reload. Every kind × move × direction × caption place (with lag and keep drifting) draws all the way round. Run `tests/licence_check.py` before every push.
 
-Not tested here: H.264 decoding and encoding in a real Chrome or Safari (Steve's Mac), Adobe Fonts in captions (works in the test browser, but the kit is tied to the site), MOV files, very long or 4K exports.
+Not tested here: H.264 in a real Chrome or Safari (the test browser now makes H.264 too, but Steve's Mac is the one that matters), Adobe Fonts in captions, MOV files, very long or 4K exports.
 
 ## The first job – Tempo Series 1 reel (4 Nov)
-`Tempo_Series1_Segue_4x5.mp4`, 1080 × 1350, 23.7 s, 30 fps, H.264. Rendered from Segue in the test browser (frames piped to x264 there, because that browser can't encode H.264 – Steve's Chrome on a Mac makes the same file from Export).
-- Media: the twelve Motion_01 clips (screen only, 16:10; Face 02's is 16:9 and is cropped to fill), in the naming order – Numeral 01 Mono, Numeral 01 Colour, Stack 01 Mono, Stack 02 Mono, Face 01 Colour, Face 02 Colour, Block 01 Mono, Dial 01 Mono, Form 01 Mono, Form 01 Colour, Form 02 Mono, Index 01 Light. Range put right on all twelve.
-- Start at (s): 9.3, 3.1, 0, 1.4, 0.1, 0, 4.7, 2.4, 0, 13.1, 0.9, 4.1 – chosen from where each clip changes most (theme changes in Numeral 01 Mono and Colour, Block 01 and Form 01 Colour), so the change lands while the shape rests. Numeral 01 Mono arrives by the zoom back in, so its change lands just after the camera settles.
-- Canvas 4:5, background #E4E4E0 (on #F5F5F3 the light savers – Dial, Index, Stack 02 – vanish into the ground). Column, 16:10, size 84%, gap 72, corners 10. Step up, Inertia, rest 1.0 s, move 0.65 s, Pull back: 3 columns, gap 36, fills 90%, out 1.15 s, all in view 2.25 s, in 1.15 s, Glide.
-- Captions under, left, space 26, Timeless Sans Regular 40 px, tracking -12, #1E1D23 (the lockup's ink), the variant in {#808286:grey} – "Numeral 01 {#808286:Mono}". Scramble over 0.7 s.
+`Tempo_Series1_Segue_4x5.mp4` – made with 0.1; see the Project doc `claude/tempo-promo-log.md`. Settings: Line (column) stepping up, Inertia, rest 1.0 s, move 0.65 s, pull back 3 columns, Glide; Timeless Sans captions under. Settings saved by 0.1 open in 0.2 unchanged and make the same reel (lag and keep drifting default to none). Applying the Card stack preset now gives the pull back the Soft feel – set Pull back › Feel to Glide to match the reel exactly.
 
-## Backlog – ideas not in 0.1
-- **Overlay layer:** a PNG fixed on the canvas (lockups like Tempo's "Tempo / A collection of twelve…") with its own position – the obvious next one.
-- **Project files:** save a job (settings, order, captions, start points, media names) and reopen it, matching media by name.
-- **More sizes at once:** export the same job at 4:5 and 9:16 (and 1:1) in one go; for 9:16, extend the ground rather than reflow.
-- Per-shape rest time; a focal point for cropping each piece of media; title cards (a shape that's just type).
-- Shadows and device frames (left out on purpose – "not in the mockup device"); background image or gradient.
-- More joins: a list of moves that repeats (slide, slide, zoom, pull back…), beyond each shape's own Arrives by.
-- Faster video export: decode with WebCodecs (needs a demuxer, e.g. mp4box.js) instead of seeking a `<video>` per frame. Today the speed depends on how often the video has a keyframe – Tempo's exports have one a second, which is fine; camera footage with a keyframe every few seconds will be slow.
-- Move onto the shared core once it's split from Rubato's settings; tags that wrap onto a second row; captions on the grid only when pulled back.
+## Backlog – not in 0.2
+- **Project files:** save a job (settings, order, captions, start points, media names, background and overlay) and reopen it, matching media by name.
+- **More sizes at once:** export the same job at 4:5, 9:16 and 1:1 in one go; for 9:16, extend the ground rather than reflow.
+- Overlay: more than one layer; an arrival (fade or scramble in); video as a background.
+- Per-shape rest time; a focal point for cropping each piece; title cards (a shape that's just type).
+- Frames: a mosaic inside a poster (Steve: not needed now); Ken Burns inside a still frame.
+- Float: depth blur or dimming for the far shapes; more than three depths.
+- The pull back still crossfades the shapes that aren't neighbours (so nothing flies across the one in focus) – if zooms still don't feel smooth enough, try flying them instead and judge it on the reel.
+- Shadows and device frames (left out on purpose); background gradient.
+- More joins: a list of moves that repeats (slide, slide, zoom, pull back…).
+- Faster video export: decode with WebCodecs (needs a demuxer, e.g. mp4box.js).
+- Move onto the shared core once it's split from Rubato's settings.
 - Public release: decide on built-in fonts (Aktiv Grotesk is Adobe Fonts – fine in the browser on Ensemble's kit, not as a file), then list it on the index page.

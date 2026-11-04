@@ -12,7 +12,7 @@ function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=
 let dirty=true,saveT=0;
 function set(k,v,silent){S[k]=v;dirty=true;onSet(k);clearTimeout(saveT);saveT=setTimeout(saveSettings,300);if(!silent)refreshAll();}
 /* ---------------- cards and folds ---------------- */
-const collapsed=LS.get('collapsed')||{canvas:true,motion:false,captions:true,fonts:true};
+const collapsed=LS.get('collapsed')||{canvas:true,motion:false,shapes:true,captions:true,overlay:true};
 let curGroup='';
 const CHEV='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function card(id,title,show){curGroup=id;
@@ -22,11 +22,11 @@ function card(id,title,show){curGroup=id;
   h.append(b);const body=el('div','card-body');c.append(h,body);panel.append(c);
   controls.push({d:{show:show||null},w:c,update(){},card:id});return body;}
 const FOLDS=LS.get('folds')||{};
-function fold(parent,id,title,show,shut){
+function fold(parent,id,title,show,shut,sum){
   const box=el('div'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');head.type='button';chev.innerHTML=CHEV;
   const open=FOLDS[id]!=null?FOLDS[id]:!shut,paint=o=>{body.hidden=!o;head.setAttribute('aria-expanded',o);if(o)requestAnimationFrame(()=>syncRanges(body));};paint(open);
   head.onclick=()=>{const o=body.hidden;FOLDS[id]=o;LS.set('folds',FOLDS);paint(o);};
-  head.append(label,chev);box.append(head,body);addCustom(parent,show||null,box);return body;}
+  head.append(label,chev);head._sum=sum||null;box.append(head,body);addCustom(parent,show||null,box);return body;}
 const SUMMARY={};
 function optLabel(opts,v){const o=(opts||[]).find(o=>o[0]===v);return o?o[1]:null;}
 function autoSummary(id,inside){
@@ -42,7 +42,7 @@ function autoSummary(id,inside){
 function refreshSummaries(){document.querySelectorAll('section.card[data-id]').forEach(sec=>{const sm=sec.querySelector(':scope>h2 .sum');if(!sm)return;
   let t='';try{t=SUMMARY[sec.dataset.id]?SUMMARY[sec.dataset.id](S):autoSummary(sec.dataset.id);}catch(e){}if(sm.textContent!==(t||''))sm.textContent=t||'';});
   document.querySelectorAll('.fold-head').forEach(hd=>{const body=hd.nextElementSibling;if(!body)return;let sm=hd.querySelector('.sum');
-    if(!sm){sm=el('span','sum');hd.insertBefore(sm,hd.querySelector('.chev'));}const t=autoSummary(null,body);if(sm.textContent!==t)sm.textContent=t;});}
+    if(!sm){sm=el('span','sum');hd.insertBefore(sm,hd.querySelector('.chev'));}let t='';try{t=hd._sum?hd._sum(S):autoSummary(null,body);}catch(e){}if(sm.textContent!==t)sm.textContent=t;});}
 /* ---------------- sheets, island, Presets, Preview ---------------- */
 const SHEETS={};
 const sheetObs=new MutationObserver(ms=>{for(const m of ms){const n=m.target;if(!n.hidden)for(const k in SHEETS)if(SHEETS[k].el!==n)SHEETS[k].el.hidden=true;}syncSheets();});
@@ -109,9 +109,9 @@ function addRange(parent,d){
 function addSeg(parent,d){
   const w=el('div','ctl');d.group=d.group||curGroup;if(d.label){const hd=el('div','ctl-head');hd.append(el('span',null,d.label));const q=qMark(d);if(q)hd.append(q);w.append(hd);}
   const g=el('div','seg');g.setAttribute('role','group');if(d.label)g.setAttribute('aria-label',d.label);w.append(g);parent.append(w);let sig='',bs=[];
-  const paint=opts=>{g.textContent='';bs=opts.map(([v,t,tip])=>{const b=el('button','pill small',t);b.type='button';if(tip)b.dataset.tip=tip;b.onclick=()=>set(d.k,v);g.append(b);return[v,b];});};
+  const paint=opts=>{g.textContent='';bs=opts.map(([v,t,tip])=>{const b=el('button','pill small',t);b.type='button';if(tip)b.dataset.tip=tip;b.onclick=()=>d.pick?d.pick(v):set(d.k,v);g.append(b);return[v,b];});};
   if(d.opts)paint(d.opts);
-  const c={d,w,update(){if(d.optsFn){const o=d.optsFn(),ns=JSON.stringify(o);if(ns!==sig){sig=ns;paint(o);}}bs.forEach(([v,b])=>b.setAttribute('aria-pressed',S[d.k]===v));}};controls.push(c);return c;}
+  const c={d,w,update(){if(d.optsFn){const o=d.optsFn(),ns=JSON.stringify(o);if(ns!==sig){sig=ns;paint(o);}}const cur=d.val?d.val(S):S[d.k];bs.forEach(([v,b])=>b.setAttribute('aria-pressed',cur===v));}};controls.push(c);return c;}
 function addToggle(parent,d){
   const w=el('div','toggle-row'),b=el('button','toggle');b.type='button';b.setAttribute('role','switch');b.setAttribute('aria-label',d.label);d.group=d.group||curGroup;
   b.append(el('span','box'),el('span',null,d.label));w.append(b);const q=qMark(d);if(q)w.append(q);

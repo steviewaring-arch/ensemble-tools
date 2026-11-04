@@ -1,4 +1,4 @@
-"""Checks for Segue 0.1: framed loops of images and video for case studies, reels and decks.
+"""Checks for Segue 0.2: framed loops of images and video for case studies, reels and decks.
 
     python3 tests/segue_check.py
 
@@ -57,7 +57,7 @@ with sync_playwright() as p:
 
     # ---- the frame ----
     titles = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .card-toggle>span:first-child')].map(e=>e.textContent)")
-    check('the panel: Media, Canvas, Shapes, Motion, Captions, Fonts', titles == ['Media', 'Canvas', 'Shapes', 'Motion', 'Captions', 'Fonts'], str(titles))
+    check('the panel: Media, Canvas, Motion, Shapes, Captions, Overlay', titles == ['Media', 'Canvas', 'Motion', 'Shapes', 'Captions', 'Overlay'], str(titles))
     check('Export and Presets are sheets', pg.evaluate("!!document.querySelector('#islandSheets [data-sheet=export]')&&!!document.querySelector('#pcapSheets [data-sheet=presets]')"))
     blank = pg.evaluate("(()=>{const c=document.querySelector('#cv'),x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height).data;const s=new Set();for(let i=0;i<d.length;i+=4*97)s.add(d[i]+','+d[i+1]+','+d[i+2]);return s.size;})()")
     check('with no media, the stage shows the layout with numbered placeholders', blank > 2, f'{blank} colours')
@@ -140,13 +140,14 @@ with sync_playwright() as p:
 
     # ---- every layout and move draws, across the loop ----
     bad = pg.evaluate("""(()=>{const E=segue.E,c=document.createElement('canvas');c.width=540;c.height=675;const x=c.getContext('2d');const bad=[];
-      const L=[['one',['slide','stack','fade','zoom','cut','still']],['row',['step','drift','still']],['column',['step','drift','still']],['grid',['step','drift','still']]];
+      const L=[['one',['slide','stack','fade','zoom','cut','still']],['row',['step','drift','still']],['column',['step','drift','still']],['grid',['step','drift','still']],
+        ['columns',['step','drift','still']],['frames',['push','cover','fade','cut','still']],['float',['step','drift','still']]];
       for(const [lay,ms] of L)for(const m of ms)for(const after of ['carry','pull'])for(const dir of ['left','right','up','down'])for(const cw of ['under','over','above','fixed']){
-        const S=Object.assign({},segue.S,{layout:lay,oneMove:m,trackMove:m,after,dir,capWhere:cw,cSize:'custom',cW:540,cH:676});
+        const S=Object.assign({},segue.S,{layout:lay,oneMove:m,trackMove:m,fMove:m,after,dir,capWhere:cw,cSize:'custom',cW:540,cH:676,lag:after==='pull'?.08:0,creep:after==='pull'?20:0,colSpeed:dir==='up'?'varied':'same'});
         try{const P=E.plan(S,segue.items);for(let t=0;t<P.L;t+=P.L/7){const sc=E.scene(S,segue.items,x,segue.fonts,540,676,t);E.paint(x,sc,S,segue.fonts,{});
           if(!sc.ops.length&&m!=='cut')bad.push([lay,m,after,dir,cw,t,'empty']);}}catch(e){bad.push([lay,m,after,dir,cw,String(e)]);}}
       return bad.slice(0,5);})()""")
-    check('every layout × move × direction × caption place draws something, all the way round', not bad, str(bad))
+    check('every kind × move × direction × caption place draws something, all the way round', not bad, str(bad))
     # the loop is seamless: the first frame and the frame one loop on are the same picture (images only, so no video timing)
     seam = pg.evaluate("""async()=>{const its=segue.items.filter(i=>i.kind==='image');const E=segue.E,S=Object.assign({},segue.S,{cSize:'custom',cW:540,cH:676});
       const draw=t=>{const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d');E.paint(x,E.scene(S,its,x,segue.fonts,540,676,t),S,segue.fonts,{media:(cx,o,r)=>cx.drawImage(o.item.src,r.x,r.y,r.w,r.h)});return x.getImageData(0,0,540,676).data;};
@@ -158,8 +159,114 @@ with sync_playwright() as p:
       return ids.size===segue.items.length&&sc.ops.every(o=>o.rect.x>=0&&o.rect.y>=0&&o.rect.x+o.rect.w<=W&&o.rect.y+o.rect.h<=H)&&Math.abs(Math.min(...xs)-(W-Math.max(...ws)))<1;})()""")
     check('pulled back, every shape is in view, the grid centred', pullok)
 
+    # ---- 0.2: each kind shows its own controls, and only those ----
+    def motion_labels():
+        return pg.evaluate("""[...document.querySelectorAll('#panel section.card[data-id=motion] .card-body > *')].filter(e=>!e.hidden&&e.offsetParent)
+          .map(e=>{const h=e.querySelector(':scope>.ctl-head>span,:scope>.ctl-head>label,:scope .rng-box>.ctl-head>label');return h?h.textContent:(e.querySelector('button.pill')?e.querySelector('button.pill').textContent:null);}).filter(Boolean)""")
+    pg.evaluate("document.querySelectorAll('#panel section.card').forEach(c=>{if(c.dataset.id==='motion'&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();})")
+    kinds = pg.evaluate("[...document.querySelectorAll('.kinds .kind')].map(b=>b.textContent)")
+    check('Motion opens on six kinds', kinds == ['One', 'Line', 'Grid', 'Columns', 'Frames', 'Float'], str(kinds))
+    want = {
+        'Line': (['Kind', 'Move', 'Direction', 'Rest', 'Move time', 'Feel', 'Lag', 'Keep drifting', 'After the last'], {'trackMove': 'step'}),
+        'One': (['Kind', 'Move', 'Direction', 'Rest', 'Move time', 'Feel', 'After the last'], {'oneMove': 'slide'}),
+        'Grid': (['Kind', 'Columns', 'Move', 'Direction', 'Rest', 'Move time', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
+        'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Rest', 'Move time', 'Feel', 'Out of step', 'Keep drifting', 'Offset'], {'trackMove': 'step'}),
+        'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', 'Rest', 'Move time', 'Feel', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
+        'Float': (['Kind', 'Move', 'Direction', 'Depth', 'Spread', 'Shuffle', 'Rest', 'Move time', 'Feel', 'Keep drifting'], {'trackMove': 'step'})}
+    seen = {}
+    for name, (labels, setup) in want.items():
+        pg.locator('.kinds .kind', has_text=name).click(); time.sleep(.15)
+        pg.evaluate("o=>{for(const k in o)segue.set(k,o[k]);segue.set('after','carry')}", setup); time.sleep(.15)
+        seen[name] = motion_labels()
+    check('each kind shows only its own controls, in the same order (how many, what moves, timing, feel, character)',
+          all(seen[k] == v[0] for k, v in want.items()), '; '.join(f'{k}: {seen[k]}' for k in want if seen[k] != want[k][0]))
+    pg.locator('.kinds .kind', has_text='Line').click(); time.sleep(.1)
+    pg.locator('#panel section.card[data-id=motion] .seg[aria-label=Direction] .pill', has_text='Up').click(); time.sleep(.1)
+    a = pg.evaluate("segue.S.layout")
+    pg.locator('#panel section.card[data-id=motion] .seg[aria-label=Direction] .pill', has_text='Left').click(); time.sleep(.1)
+    b2 = pg.evaluate("segue.S.layout")
+    check('Line: Up makes a column, Left makes a row', a == 'column' and b2 == 'row', f'{a} {b2}')
+    check('the fonts are in Captions', pg.evaluate("!!document.querySelector('#panel section.card[data-id=captions] .font-list')&&!document.querySelector('#panel section.card[data-id=fonts]')"))
+
+    # ---- 0.2: motion, measured on the engine ----
+    lagm = pg.evaluate("""(()=>{const E=segue.E,its=Array.from({length:7},()=>({kind:'image',w:16,h:10}));
+      const S={layout:'row',size:40,ratio:'9:19.5',gap:40,trackMove:'step',dir:'left',feel:'coast',hold:.4,dur:1.5,after:'carry',capOn:false,cSize:'custom',cW:1200,cH:800};
+      const at=(o,t)=>E.scene(Object.assign({},S,o),its,null,{},1200,800,t).ops.filter(q=>q.rect.x+q.rect.w>0&&q.rect.x<1200).map(q=>q.rect).sort((a,b)=>a.x-b.x);
+      const gaps=(o,t)=>{const r=at(o,t);return r.slice(1).map((q,i)=>q.x-(r[i].x+r[i].w));};
+      /* how far each visible shape has gone from where it rested (all landed by .36 s: the last of the
+         previous move lands 0.04 × 9 after the loop starts), early in the next move */
+      const keyed=(o,t)=>{const m={};for(const q of E.scene(Object.assign({},S,o),its,null,{},1200,800,t).ops)m[q.key]=q.rect.x;return m;};
+      const moved=(o,t)=>{const a=keyed(o,.39),b=keyed(o,t);return Object.keys(a).filter(k=>a[k]+148>0&&a[k]<1200).sort((x,y)=>a[x]-a[y]).map(k=>a[k]-b[k]);};
+      return {rest:gaps({lag:.06},.39),mid:gaps({lag:.06},.62),land:gaps({lag:.06},2.29),none:gaps({},.62),early:moved({lag:.06},.5)};})()""")
+    check('Lag: the shape ahead sets off first, each one after it a beat later',
+          all(lagm['early'][i] >= lagm['early'][i + 1] - .01 for i in range(len(lagm['early']) - 1)) and lagm['early'][0] > lagm['early'][-1] + 1, str([round(x, 1) for x in lagm['early']]))
+    check('Lag: the gaps open mid-move and close again as they land',
+          all(abs(g - 40) < .5 for g in lagm['rest'] + lagm['land']) and max(lagm['mid']) > 52 and all(abs(g - 40) < .5 for g in lagm['none']),
+          f"rest {lagm['rest']} mid {[round(g) for g in lagm['mid']]} landed {lagm['land']} without lag {[round(g) for g in lagm['none']]}")
+    creep = pg.evaluate("""(()=>{const E=segue.E,its=Array.from({length:5},()=>({kind:'image',w:16,h:10}));
+      const S={layout:'column',trackMove:'step',hold:1,dur:1,feel:'glide',after:'carry',creep:20};const P=E.plan(S,its);
+      return [E.cameraAt(P,S,.1).p,E.cameraAt(P,S,.9).p,E.cameraAt(P,S,2).p,E.cameraAt(P,Object.assign({},S,{creep:0}),.9).p];})()""")
+    check('Keep drifting: it keeps moving while it rests, and still meets each stop', creep[1] > creep[0] + .05 and abs(creep[2] - 1) < 1e-9 and creep[3] == 0, str([round(x, 3) for x in creep]))
+    cols = pg.evaluate("""(()=>{const E=segue.E,its=Array.from({length:6},()=>({kind:'image',w:16,h:10}));
+      const S={layout:'columns',cols:3,size:90,gap:20,ratio:'4:5',trackMove:'drift',colDir:'alt',colSpeed:'varied',spsh:2,capOn:false,cSize:'4:5',colOff:0};
+      const P=E.plan(S,its),y=(t,c)=>{const o=E.scene(S,its,null,{},1080,1350,t).ops.find(q=>q.key==='c'+c+'.0');return o?o.rect.y:null;};
+      const v=c=>{let a=y(0,c),b=y(.05,c);return (b-a)/.05;};
+      return {L:P.L,v:[v(0),v(1),v(2)]};})()""")
+    check('Columns: alternate columns run down, up, down', cols['v'][0] > 0 and cols['v'][1] < 0 and cols['v'][2] > 0, str([round(x) for x in cols['v']]))
+    check('Columns: Varied – speeds two, three and four laps a loop', abs(abs(cols['v'][1]) / cols['v'][0] - 1.5) < .02 and abs(cols['v'][2] / cols['v'][0] - 2) < .02, str([round(x) for x in cols['v']]))
+    cstep = pg.evaluate("""(()=>{const E=segue.E,its=Array.from({length:6},()=>({kind:'image',w:16,h:10}));
+      const S={layout:'columns',cols:3,size:90,gap:20,ratio:'4:5',trackMove:'step',colDir:'up',colLag:.5,hold:2,dur:.5,feel:'glide',capOn:false,cSize:'4:5',colOff:0};
+      const y=(t,c)=>E.scene(S,its,null,{},1080,1350,t).ops.find(q=>q.key==='c'+c+'.0').rect.y;
+      return [2.2,2.7,3.2].map(t=>[0,1,2].map(c=>+(y(t,c)-y(1,c)).toFixed(1)));})()""")
+    check('Columns: out of step – each column moves half a second after the one before', cstep[0][0] < -1 and cstep[0][1] == 0 and cstep[1][1] < -1 and cstep[1][2] == 0 and cstep[2][2] < -1, str(cstep))
+    fr = pg.evaluate("""(()=>{const E=segue.E,its=Array.from({length:6},(_,i)=>({kind:'image',w:16,h:10,n:i}));
+      const S={layout:'frames',fCols:3,fRows:1,fMove:'push',dir:'up',hold:1,dur:.5,fLag:.3,feel:'glide',capOn:false,cSize:'16:9',size:90,gap:30,ratio:'3:4'};
+      const P=E.plan(S,its),sc=t=>E.scene(S,its,null,{},1920,1080,t).ops,frames=t=>sc(t).filter(o=>o.frame!==false).map(o=>[Math.round(o.rect.x),Math.round(o.rect.y),Math.round(o.rect.w)]).join('|');
+      const shown=t=>sc(t).filter(o=>o.frame!==false).map(o=>o.i);
+      let same=true;for(let t=0;t<P.L;t+=P.L/37)if(frames(t)!==frames(0))same=false;
+      return {L:P.L,same,before:shown(.9),mid:sc(1.4).map(o=>[o.i,o.slide?+o.slide[1].toFixed(2):0]),after:shown(2.4)};})()""")
+    check('Frames: the frames never move', fr['same'], str(fr['L']))
+    check('Frames: the media changes inside them, each frame a beat after the one before', fr['before'] == [0, 1, 2] and fr['after'] == [3, 4, 5] and len(fr['mid']) == 5,
+          f"{fr['before']} → {fr['mid']} → {fr['after']}")
+    fl = pg.evaluate("""(()=>{const E=segue.E,its=Array.from({length:6},()=>({kind:'image',w:16,h:10}));
+      const S={layout:'float',dir:'up',flSize:30,depth:60,spread:60,trackMove:'drift',spsh:2,capOn:false,cSize:'4:5'};
+      const at=t=>E.scene(S,its,null,{},1080,1350,t).ops,a=at(0),b=at(.02);const by={};
+      for(const o of a){const q=b.find(x=>x.key===o.key);if(!q)continue;(by[o.depth]=by[o.depth]||[]).push([o.rect.w,(o.rect.y-q.rect.y)/.02]);}
+      return Object.keys(by).sort().map(d=>[by[d][0][0],by[d].reduce((s,x)=>s+x[1],0)/by[d].length]);})()""")
+    check('Float: three depths – nearer is bigger and faster, size and speed in step', len(fl) == 3 and fl[0][0] < fl[1][0] < fl[2][0] and fl[0][1] < fl[1][1] < fl[2][1]
+          and abs(fl[2][1] / fl[0][1] - fl[2][0] / fl[0][0]) < .02, str([[round(w), round(v)] for w, v in fl]))
+    seams = pg.evaluate("""async()=>{const its=segue.items.filter(i=>i.kind==='image');const E=segue.E;const out={};
+      const cases={line:{layout:'row',trackMove:'step',lag:.08,creep:20,feel:'coast',after:'carry'},columns:{layout:'columns',trackMove:'step',colLag:.4,creep:15},wall:{layout:'columns',trackMove:'drift',colSpeed:'varied',ratio:'media'},
+        frames:{layout:'frames',fCols:2,fRows:1,fMove:'push',fLag:.3},float:{layout:'float',trackMove:'step',creep:20,depth:60},floatdrift:{layout:'float',trackMove:'drift',dir:'left'}};
+      for(const k in cases){const S=Object.assign({},segue.S,{cSize:'custom',cW:540,cH:676,capOn:true,capWhere:'under'},cases[k]);
+        const draw=t=>{const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d');E.paint(x,E.scene(S,its,x,segue.fonts,540,676,t),S,segue.fonts,{media:(cx,o,r)=>cx.drawImage(o.item.src,r.x,r.y,r.w,r.h)});return x.getImageData(0,0,540,676).data;};
+        const P=E.plan(S,its),a=draw(0.0001),b=draw(P.L+0.0001);let d=0;for(let i=0;i<a.length;i++)d=Math.max(d,Math.abs(a[i]-b[i]));out[k]=d;}return out;}""")
+    check('the new kinds loop exactly – a loop on, the same picture', all(v <= 1 for v in seams.values()), str(seams))
+
+    # ---- 0.2: background, mat and overlay ----
+    RED = os.path.join(OUT, 'red.png'); Image.new('RGB', (400, 300), '#EA2631').save(RED)
+    WHITE = os.path.join(OUT, 'white.png'); Image.new('RGBA', (200, 200), (255, 255, 255, 255)).save(WHITE)
+    pg.set_input_files('#bgfile', RED); pg.set_input_files('#ovfile', WHITE); time.sleep(1)
+    px = pg.evaluate("""async()=>{for(const [k,v] of [['layout','frames'],['fCols',1],['fRows',1],['fMove','still'],['size',50],['mat',20],['matC','#0000FF'],['radius',0],['capOn',false],
+        ['ovOn',true],['ovKind','image'],['ovW',20],['ovPos','tl'],['ovM',0],['ovBlend','difference'],['bgFit','fill'],['bgImgA',100],['cSize','custom'],['cW',540],['cH',676]])segue.set(k,v);
+      const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d');await segue.frameAt(c,x,540,676,0);
+      const p=(a,b)=>[...x.getImageData(a,b,1,1).data.slice(0,3)],sc=segue.E.scene(segue.S,segue.items,x,segue.fonts,540,676,0).ops[0].rect;
+      return {bg:p(530,660),ov:p(20,20),mat:p(Math.round(sc.x+6),Math.round(sc.y+sc.h/2)),inside:p(Math.round(sc.x+sc.w/2),Math.round(sc.y+sc.h/2))};}""")
+    check('a background image fills the canvas', max(abs(a - b) for a, b in zip(px['bg'], (0xEA, 0x26, 0x31))) <= 2, str(px['bg']))
+    check('an image over the top, in Difference: white over red turns cyan', max(abs(a - b) for a, b in zip(px['ov'], (255 - 0xEA, 255 - 0x26, 255 - 0x31))) <= 2, str(px['ov']))
+    check('a border inside the shape, in its own colour', px['mat'] == [0, 0, 255] and px['inside'] != [0, 0, 255], f"{px['mat']} {px['inside']}")
+    txt = pg.evaluate("""async()=>{for(const [k,v] of [['ovKind','text'],['ovText','HELLO'],['OS',120],['OC','#FFFFFF'],['ovBlend','normal'],['ovPos','bc'],['ovM',40]])segue.set(k,v);
+      const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d');await segue.frameAt(c,x,540,676,0);
+      const rows=[];const d=x.getImageData(0,0,540,676).data;let top=676,bot=0,l=540,r=0;
+      for(let y=0;y<676;y++)for(let i=0;i<540;i++){const j=(y*540+i)*4;if(d[j]>250&&d[j+1]>250&&d[j+2]>250){top=Math.min(top,y);bot=Math.max(bot,y);l=Math.min(l,i);r=Math.max(r,i);}}
+      return [top,bot,l,r];}""")
+    check('text over the top: placed bottom centre, its baseline on the margin', abs(txt[1] - (676 - 40)) <= 2 and abs((txt[2] + txt[3]) / 2 - 270) <= 4, str(txt))
+    mw = pg.evaluate("segue.applyPreset('Milky Way');[segue.S.ovOn,segue.S.ovKind,segue.S.ovText,segue.S.ovBlend,segue.S.layout]")
+    check('a preset sets the overlay’s look but keeps what you put over the top', mw == [True, 'text', 'HELLO', 'difference', 'float'], str(mw))
+    pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false)")
+
     # ---- exports ----
-    pg.evaluate("for(const [k,v] of [['hold',.3],['dur',.3],['zOut',.3],['gHold',.3],['zIn',.3],['cSize','custom'],['cW',540],['cH',676],['bg','#F5F5F3'],['name','Test reel']])segue.set(k,v)")
+    pg.evaluate("for(const [k,v] of [['hold',.3],['dur',.3],['zOut',.3],['gHold',.3],['zIn',.3],['cSize','custom'],['cW',540],['cH',676],['bg','#F5F5F3'],['bgImgA',0],['name','Test reel']])segue.set(k,v)")
     L = pg.evaluate("segue.plan().L")
     got = {}
     for fmt in ['mp4', 'gif', 'png']:
@@ -180,8 +287,8 @@ with sync_playwright() as p:
 
     # ---- it all comes back ----
     pg.reload(); time.sleep(2.5)
-    back = pg.evaluate("[segue.items.length,segue.items[0].title,segue.S.cW,segue.S.name]")
-    check('after a reload: the media, captions and settings are back', back == [4, 'Title 1', 540, 'Test reel'], str(back))
+    back = pg.evaluate("[segue.items.length,segue.items[0].title,segue.S.cW,segue.S.name,!!segue.pics.bg,!!segue.pics.ov]")
+    check('after a reload: the media, captions, settings and both images are back', back == [4, 'Title 1', 540, 'Test reel', True, True], str(back))
     check('no errors on the page', not errs, '; '.join(errs[:3]))
     b.close()
 

@@ -8,8 +8,8 @@ async function frameAt(c,x,W,H,t){
   const sc=E.scene(S,items,x,FONTS,W,H,t),want=new Map();
   for(const o of sc.ops)if(o.item.kind==='video'&&o.time!=null&&!want.has(o.item))want.set(o.item,o.time);
   for(const [it,tm] of want){const v=it.el,d=Math.max(.01,it.dur||v.duration||1),tt=Math.min(d-1e-3,((tm%d)+d)%d);if(Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
-  E.paint(x,sc,S,FONTS,{scale:1,media:drawMedia});}
-async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>S[r+'F']));
+  E.paint(x,sc,S,FONTS,{scale:1,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});}
+async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>S[r+'F']));if(S.ovOn&&S.ovKind==='text')used.add(S.OF);
   await Promise.all([...used].map(id=>FONTS[id]?document.fonts.load(fontStr(FONTS[id])).catch(()=>null):null));await document.fonts.ready;E.resetMeasure();}
 let stopFlag=false;
 /* n frames across the loops; when the loop isn't a whole number of frames long, each frame's
@@ -122,15 +122,17 @@ function exportInfo(){if(!xInfo)return;const [W,H]=size(),P=planNow(),f=S.xForma
 /* ---------------- start ---------------- */
 {const _r=appRefresh;appRefresh=function(){_r();exportInfo();};}
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};
+$('#bgfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)setPic('bg',f);};
+$('#ovfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)setPic('ov',f);};
 $('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs).then(paintFonts);};
 {let depth=0;const drop=$('#drop');
   window.addEventListener('dragenter',e=>{if(!dragId&&e.dataTransfer&&[...e.dataTransfer.types].includes('Files')){depth++;drop.classList.add('on');}});
   window.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)drop.classList.remove('on');});
   window.addEventListener('dragover',e=>e.preventDefault());
   window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(fs.length)addFiles(fs).then(paintFonts);});}
-window.segue={E,S,get items(){return items;},fonts:FONTS,refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
+window.segue={E,S,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
   setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;}};
 frameStart();paintMedia();paintFonts();paintPresets();refreshAll();fitCanvas();layoutUI();
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
-loadBuiltinFonts();restoreFonts().then(paintFonts);restoreMedia();
+loadBuiltinFonts();restoreFonts().then(paintFonts);restoreMedia();restorePics();
 requestAnimationFrame(tick);
