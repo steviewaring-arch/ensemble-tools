@@ -10,6 +10,8 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
+**Segue** 0.1 is also in here, unlisted and internal for now: framed loops of images and video for case studies, reels and decks – shapes on a canvas that step, drift, fade or pull back to show the lot, with captions, out as MP4, GIF or PNG. https://steviewaring-arch.github.io/ensemble-tools/segue/ – see `segue/HANDOVER.md`.
+
 **Decentish** 0.4 is also in here, unlisted: a prototype website that gives you a plan for where you are – now, soon or tomorrow, on the doorstep, nearby or further afield, with the way there and back – in a voice you set with a dial. Greater Manchester first. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
 
 Rubato and Tempo share one core (font loading, controls, design system) and nothing else: each has its own type engine, settings and fonts in the browser, so a change in one never reaches the other. All three share one interface system (`shared/tokens.css`, `shared/components.css`, described in `shared/UI.md`): Tutti keeps its own page and script and takes the shared styles at build time; it moves onto the shared core (fonts, controls) later.
@@ -35,6 +37,8 @@ tempo/         engine.js (Tempo's type engine), app.html, app.js (screen saver c
   win/             Windows .scr host – C source, built .exe, and its base64 copy (host.js)
 tutti/         index.html – Tutti 6.1 (its own page and script); frame.css and frame.js put it on the shared tokens, components and frame
 decentish/     index.html – Decentish prototype, one self-contained page; NOTES.md
+segue/         engine.js (layouts, moves, the loop, captions, drawing), frame.js (the UI system's parts, its own copy for now),
+               app.js (media, fonts, cards, presets), export.js (MP4, GIF, PNG), app.html, app.css, HANDOVER.md
 reference/     rubato-0.8.1.html – the last combined app, kept for the parity tests
 archive/       earlier versions still served live – rubato-0.9.html → docs/rubato/0.9/
 tests/         parity.py, split_check.py, tempo_check.py, tempo09_check.py, rubato_regress.py, rubato_features.py, legacy/ (the v0.8.1 handover tests)
@@ -50,7 +54,7 @@ build.py       stitches each app into one file in docs/
 python3 build.py
 ```
 
-Writes `docs/rubato/index.html`, `docs/tempo/index.html`, `docs/tutti/index.html`, `docs/decentish/index.html`, `docs/index.html` and the archived `docs/rubato/0.9/`, and checks every script for syntax errors. Commit `docs/` along with the source – it's what gets published.
+Writes `docs/rubato/index.html`, `docs/tempo/index.html`, `docs/tutti/index.html`, `docs/decentish/index.html`, `docs/segue/index.html`, `docs/index.html` and the archived `docs/rubato/0.9/`, and checks every script for syntax errors. Commit `docs/` along with the source – it's what gets published.
 
 ## Test
 
@@ -72,6 +76,7 @@ python3 tests/licence_check.py # licensed fonts kept out of this public repo –
 python3 tests/rubato_regress.py   # Rubato 1.0 draws exactly what 0.9 drew, for 0.9's settings
 python3 tests/rubato_features.py  # Rubato 1.0's new features
 python3 tests/decentish_check.py  # Decentish logic and voice, all sources faked
+python3 tests/segue_check.py   # Segue: layouts, moves and loops, captions, presets, exports and their colours
 ```
 
 Export and Presets live in sheets (the island, the Presets capsule), so the tests open the sheet a control is in before using it – `tests/ui_helpers.py`. Labels and accessible names are the contract between the interface and the tests.

@@ -9,6 +9,7 @@ Google Fonts and opentype.js links it has always had):
     docs/tempo/index.html    Tempo – clock screen saver
     docs/tutti/index.html    Tutti – its own page, on the shared tokens and components
     docs/decentish/index.html  Decentish – prototype, copied after a syntax check
+    docs/segue/index.html    Segue – framed loops for case studies (internal, unlisted)
     docs/index.html          a small page linking to all three
     docs/rubato/0.9/         earlier versions kept live, from archive/
 
@@ -57,6 +58,32 @@ APPS = {
         parts=['tempo/app.js', 'tempo/promo.js'],
     ),
 }
+
+# Segue keeps its own frame (segue/frame.js) on the shared tokens and components, as Tutti
+# does: the shared core is still tied to Rubato's settings and type engine. It takes the
+# shared GIF encoder and Tempo's copy of mp4-muxer (MIT).
+SEGUE = dict(
+    title='Segue – by Ensemble', version='0.1',
+    body='segue/app.html', css='segue/app.css',
+    tagged=[('segue-engine', 'segue/engine.js'), ('segue-mp4', 'tempo/vendor/mp4-muxer.js')],
+    before='shared/gif.js',
+    parts=['segue/frame.js', 'segue/app.js', 'segue/export.js'],
+)
+
+def build_segue(cfg):
+    css = read('shared/tokens.css') + read('shared/components.css') + read(cfg['css'])
+    body = read(cfg['body']).replace('{{version}}', cfg['version'])
+    scripts = ''
+    for sid, path in cfg['tagged']:
+        scripts += f'<script id="{sid}">\n{strip1(read(path))}\n</script>\n'
+    main = read(cfg['before']) + '\n\n' + "(()=>{\n'use strict';\nconst $=s=>document.querySelector(s);\n"
+    for p in cfg['parts']:
+        main += read(p)
+    main += '})();'
+    scripts += f'<script>\n{main}\n</script>\n'
+    page = read('shared/page.html')
+    page = page.replace('{{title}}', cfg['title']).replace('{{css}}', css)
+    return page.replace('{{body}}', strip1(body)).replace('{{scripts}}', scripts)
 
 def build_app(name, cfg):
     css = read('shared/tokens.css') + read('shared/components.css')
@@ -133,6 +160,10 @@ def main():
         ok = check_scripts(name, html) and ok
         write(f'{name}/index.html', html)
         print(f'{name} {cfg["version"]}: docs/{name}/index.html ({len(html.encode()) // 1024} KB)')
+    html = build_segue(SEGUE)
+    ok = check_scripts('segue', html) and ok
+    write('segue/index.html', html)
+    print(f'segue {SEGUE["version"]}: docs/segue/index.html ({len(html.encode()) // 1024} KB, unlisted)')
     # Tempo's built-in fonts: whatever tempo/fonts/fonts.json lists, served next to
     # the app and loaded when switched on. Only fonts cleared to publish go here –
     # everything in docs/ is public.

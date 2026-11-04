@@ -1,6 +1,6 @@
-# Ensemble Tools – handover (8 October 2026, updated for Rubato 1.0 and Tempo 0.9 on 13 October)
+# Ensemble Tools – handover (8 October 2026, updated for Rubato 1.0 and Tempo 0.9 on 13 October, Segue 0.1 on 4 November)
 
-Read this and `README.md` before changing anything. Tutti's own notes are in `tutti/HANDOVER.md`.
+Read this and `README.md` before changing anything. Tutti's own notes are in `tutti/HANDOVER.md`; Segue's are in `segue/HANDOVER.md`.
 
 ## Where things are
 - **Repo:** `ensemble-tools` – source of truth for Rubato, Tempo and Tutti.
@@ -50,6 +50,8 @@ Everything is per browser and per site. From Tempo 0.3 each app keeps to its own
 | `tempo:folds` | Tempo | Which folds inside the cards are shut. |
 | `tempo:presets` | Tempo | Saved screen savers (0.6): `{id, name, exportName, settings, fonts:{id:{name,family,file}}, on, pool, tracks, themes, saved}`. |
 | `tempo:active`, `tempo:back` | Tempo | The preset open and its signature when opened or saved (for “changed since saved”); what was on screen, unsaved, before a preset was opened over it. |
+| `segue:settings`, `segue:items`, `segue:fonts`, `segue:presets`, `segue:preset`, `segue:presetEdited`, `segue:collapsed`, `segue:folds`, `segue:mode`, `segue:panelW` | Segue (0.1) | Settings; the media list with captions and start points (the files themselves are in IndexedDB); the ids of fonts added; saved presets; the preset in use and whether it's been changed. |
+| IndexedDB `segue` › `media`, `fonts` | Segue | The media and font files, by id. |
 | IndexedDB `tempo` › `fonts` | Tempo | Font files and styles (a style can be `off`: kept, but not used). The first time Tempo 0.3 opens, it copies the fonts in IndexedDB `rubato` (not the image); after that the two are separate. |
 
 ## Behaviour notes (all as in v0.8.1 unless marked)
@@ -59,7 +61,7 @@ Everything is per browser and per site. From Tempo 0.3 each app keeps to its own
 - Fixed in Tempo 0.4 (shared, so Rubato too): a small pressed pill lost its label while the pointer was over it.
 
 ## Working in separate chats
-One chat per stream: **Tutti**, **Rubato**, **Tempo**, **Decentish**. Each starts by cloning this repo and reading this file.
+One chat per stream: **Tutti**, **Rubato**, **Tempo**, **Decentish**, **Segue**. Each starts by cloning this repo and reading this file (Segue's chat reads `segue/HANDOVER.md` too).
 
 What's linked:
 
@@ -69,6 +71,7 @@ What's linked:
 | `tempo/` (incl. `saver.js`, `mac/`, `win/`) | Tempo only |
 | `tutti/` | Tutti only – it shares nothing yet |
 | `decentish/` | Decentish only – it shares nothing with the tools |
+| `segue/` | Segue only – it takes `shared/tokens.css`, `components.css`, `page.html` and `gif.js`, and Tempo's copy of mp4-muxer (`tempo/vendor/`), but not the core |
 | `rubato/engine.js` | Rubato only (from 1.0) |
 | `tempo/engine.js` | Tempo only – and every screen saver Tempo exports from then on |
 | `shared/core.js`, `core-end.js`, `tokens.css`, `components.css`, `page.html` | Rubato **and** Tempo (controls, font loading, look and feel) |
@@ -226,6 +229,7 @@ Rules:
 - **Windows** stays unsigned for now (Artifact Signing needs a UK organisation; see the plan doc).
 
 ## Tests
+- `tests/segue_check.py` – Segue 0.1: the panel and sheets, placeholders, loop lengths for every way of moving, the feels, canvas sizes, adding, opening and reordering media, the range put right in a mislabelled MP4 (and the colour it then plays back), the range flag in an x264 header, tracking, kerning pairs, rich text and case in captions, presets keeping to the canvas and scaling to it, saving one, every layout × move × direction × caption place drawing all the way round, the loop joining up, the pull back showing every shape centred, MP4, GIF and PNG (sizes, frame counts, colours, name), and everything back after a reload. Last run (4 Nov): 35 of 35.
 - `tests/tempo011_check.py` – Tempo 0.11: Orbit says what Rings says (5 moments × 6 option sets), Tuner's words and figures, Orbit's mark, dot, column and settings, Tuner's needle, glide vs step, settings, the hour label under the needle, the panel (Show, cards, the accent row), export, Open a file and the exported page. Last run (29 Oct, 0.11.1): 18 of 18 – adds the Mac export's engine, page path and ad hoc signature (page hashes, Info.plist and CodeResources slots). 20 Oct: 17 of 17.
 - `tests/licence_check.py` – keeps licensed fonts out of the public repo (see `LICENCES.md`). Last run (15 Oct): 4 of 4, 35 probes – Univers included.
 - `tests/tempo09_check.py` – Tempo 0.9: what Columns and Rings say at the awkward moments (teens, round tens, midnight, the 20th, 30th and 31st, a new decade, 24-hour, Oh, case), their cards, themes and drawing; theme tiles, a built-in kept as a copy when changed, yours saved as you go and renamed; every hour in order with each theme lasting 4 hours, the strip, looking at an hour, the export carrying the day; an older download with hourly themes reopening with them; the dial's fill and hands; Download everything (contents, generic read-me, the Mac binary still executable); promo specs and stills. Last run (0.11): 42 of 42. 0.10: 42 of 42 – adds the Layers card, Custom and the hand picker. 0.9.8: 41 of 41 – adds margins per side. 0.9.7: 40 of 40 – adds the leading 1. 0.9.6: 39 of 39. 0.9.5: 39 of 39 – adds the picker's sliders, hex and preview dropper. 0.9.4: 37 of 37 – adds per-line tracking and Even spacing. 0.9.3: 35 of 35 – adds Stack (lines as drawn, 12-hour/short names/three lines, five lines, nothing moving across dates, drift inside the margin). 0.9.2: 30 of 30 – adds copying a theme to the other designs, the picker and saved colours. Earlier: 27 of 27 – adds the date on Rings, tracking and spacing, the fill's styles and layers, and device stills.

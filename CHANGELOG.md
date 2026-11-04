@@ -1,5 +1,22 @@
 # Changelog
 
+## 4 November 2026 – Segue 0.1: framed loops for case studies
+
+A new tool, internal for now (unlisted at /segue/). Images and video in; framed loops and stills out – the kind of thing brand identity packs do in After Effects, for showing decks, guides, screens and social posts in case studies. Built for Tempo's promo reel first.
+
+- **Canvas:** 4:5, 9:16, 1:1, 16:9, 4:3 or any size; background colour; 24, 25, 30 or 60 fps.
+- **Shapes** – the frames the media sits in: their ratio (the media's own, 16:10, 16:9, 4:5, 9:16, phone, A4 and more, or custom), size, gap, corners, fill or fit, a colour behind, an optional edge, and a nudge for the lot.
+- **Layouts:** One (a shape at a time), Row, Column, Grid.
+- **Moves:** One slides, stacks (the next over this one), fades, zooms or cuts – and each shape can arrive by its own move. Row, Column and Grid step a shape (or a row) at a time, or drift without stopping. Still holds everything while the video plays.
+- **Feels:** Glide, Inertia (a flick that coasts to a stop), Spring (a touch past, then settles), Linear.
+- **Loops:** always exact. After the last shape, carry on round, or **pull back** to show every shape in a grid and come back in to the first – one camera move, with shapes that aren't neighbours fading rather than flying across.
+- **Captions,** with or without: under, above, on the shape, or fixed on the canvas; title, line and tags (chips), each with its own font (yours or built in), size, tracking, leading, colour and case. *Stars* colour words with the accent, {#hex:words} with any colour. The font's kerning on or off, plus your own kerning pairs. They arrive as they are, fading, rising or scrambling.
+- **Media:** images and video, mixed; drag to reorder; each video's start point (to catch a transition); captions per shape. Kept in the browser, so it's all there next time.
+- **Presets** that keep to the canvas size you've set and scale to it: Card stack, Carousel, Deck, Stack, Fade, Grid, and your own.
+- **Exports:** MP4 (H.264, 1–3 loops), GIF (each frame its own colours), PNG of the frame on the stage.
+- **True colour.** Segue converts every frame to video colours itself and labels the file to match, and it sets the range flag inside the H.264 stream to agree – Apple's encoder writes "full range" there, which is why Tempo's MP4s show #F5F5F3 as #E2E2E0 in ffmpeg-based players (Instagram among them). Video added to Segue that has the same mismatch (Tempo's promo MP4s up to 0.11.1) is put right as it comes in; "Lift washed-out colours" is there for anything else that looks lifted.
+- `tests/segue_check.py` (35 checks).
+
 ## 29 October 2026 – Decentish 0.5: our own map, and the first live checks
 
 **Decentish 0.5** – getting the raw data right. No changes to Rubato, Tempo or Tutti.
