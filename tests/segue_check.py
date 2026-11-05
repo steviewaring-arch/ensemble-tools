@@ -1,4 +1,4 @@
-"""Checks for Segue 0.3: framed loops of images and video for case studies, reels and decks.
+"""Checks for Segue 0.4: framed loops of images and video for case studies, reels and decks.
 
     python3 tests/segue_check.py
 
@@ -147,13 +147,13 @@ with sync_playwright() as p:
     check('case', cap['up'] == 'ABC')
 
     # ---- presets adapt to the canvas ----
-    pg.evaluate("segue.set('cSize','4:5');segue.applyPreset('Ostinato')")
+    pg.evaluate("segue.set('cSize','4:5');segue.applyPreset('Carousel')")
     g1 = pg.evaluate("[segue.S.gap,segue.S.layout,segue.S.trackMove,segue.S.bg,segue.S.cSize]")
-    pg.evaluate("segue.set('cSize','custom');segue.set('cW',2160);segue.set('cH',2700);segue.applyPreset('Ostinato')")
+    pg.evaluate("segue.set('cSize','custom');segue.set('cW',2160);segue.set('cH',2700);segue.applyPreset('Carousel')")
     g2 = pg.evaluate("[segue.S.gap,segue.S.cW,segue.S.cH]")
     check('a preset sets the look and motion, not the canvas size', g1[1:] == ['row', 'drift', '#1D1C23', '4:5'], str(g1))
     check('…and scales its px to the canvas (gap 49 at 1080 is 98 at 2160)', g1[0] == 49 and g2[0] == 98 and g2[1:] == [2160, 2700], f'{g1[0]} / {g2}')
-    pg.evaluate("segue.set('cSize','4:5');segue.applyPreset('Coda')")
+    pg.evaluate("segue.set('cSize','4:5');segue.applyPreset('Card stack')")
     pg.evaluate("segue.set('xFormat','mp4')"); sheet(pg, 'presets')
     pg.get_by_label('Preset name').fill('Mine'); pg.locator('.save-row .pill').click(); time.sleep(.2)
     check('Save adds your own preset, named', pg.evaluate("JSON.parse(localStorage.getItem('segue:presets')).map(p=>p.name)") == ['Mine'])
@@ -174,7 +174,7 @@ with sync_playwright() as p:
       const draw=t=>{const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d');E.paint(x,E.scene(S,its,x,segue.fonts,540,676,t),S,segue.fonts,{media:(cx,o,r)=>cx.drawImage(o.item.src,r.x,r.y,r.w,r.h)});return x.getImageData(0,0,540,676).data;};
       const P=E.plan(S,its),a=draw(0.0001),b=draw(P.L+0.0001);let d=0;for(let i=0;i<a.length;i++)d=Math.max(d,Math.abs(a[i]-b[i]));return d;}""")
     check('the loop joins up – a loop on, the same picture', seam <= 1, f'largest difference {seam}')
-    pullok = pg.evaluate("""(()=>{const E=segue.E,S=Object.assign({},segue.S,{after:'pull',layout:'column',trackMove:'step'});const P=E.plan(S,segue.items);const g=P.segs.find(s=>s.k==='grid');
+    pullok = pg.evaluate("""(()=>{const E=segue.E,S=Object.assign({},segue.S,{after:'pull',layout:'column',trackMove:'step',gFloat:0});const P=E.plan(S,segue.items);const g=P.segs.find(s=>s.k==='grid');
       const [W,H]=E.canvasSize(S),x=document.createElement('canvas').getContext('2d'),sc=E.scene(S,segue.items,x,segue.fonts,W,H,(g.t0+g.t1)/2);
       const ids=new Set(sc.ops.map(o=>o.i));const xs=sc.ops.map(o=>o.rect.x),ws=sc.ops.map(o=>o.rect.x+o.rect.w);
       return ids.size===segue.items.length&&sc.ops.every(o=>o.rect.x>=0&&o.rect.y>=0&&o.rect.x+o.rect.w<=W&&o.rect.y+o.rect.h<=H)&&Math.abs(Math.min(...xs)-(W-Math.max(...ws)))<1;})()""")
@@ -282,16 +282,16 @@ with sync_playwright() as p:
       for(let y=0;y<676;y++)for(let i=0;i<540;i++){const j=(y*540+i)*4;if(d[j]>250&&d[j+1]>250&&d[j+2]>250){top=Math.min(top,y);bot=Math.max(bot,y);l=Math.min(l,i);r=Math.max(r,i);}}
       return [top,bot,l,r];}""")
     check('text over the top: placed bottom centre, its baseline on the margin', abs(txt[1] - (676 - 40)) <= 2 and abs((txt[2] + txt[3]) / 2 - 270) <= 4, str(txt))
-    mw = pg.evaluate("segue.applyPreset('Nocturne');[segue.S.ovOn,segue.S.ovKind,segue.S.ovText,segue.S.ovBlend,segue.S.layout]")
+    mw = pg.evaluate("segue.applyPreset('Float with title');[segue.S.ovOn,segue.S.ovKind,segue.S.ovText,segue.S.ovBlend,segue.S.layout]")
     check('a preset sets the overlay’s look but keeps what you put over the top', mw == [True, 'text', 'HELLO', 'difference', 'float'], str(mw))
-    pg.evaluate("segue.applyPreset('Coda');segue.set('ovOn',false)")
+    pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false)")
 
     # ---- 0.3: Slides – the showcase kind ----
     names = pg.evaluate("[...document.querySelectorAll('#pcapSheets .preset-row .slot-name')].map(e=>e.textContent)")
     heads = pg.evaluate("[...document.querySelectorAll('#pcapSheets .preset-list .sub-head')].map(e=>e.textContent)")
-    check('presets in our own names, grouped by kind – the showcase five climbing in tempo',
-          names[:5] == ['Semplice', 'Adagio', 'Andante', 'Allegro', 'Presto'] and 'Milky Way' not in names and 'Card stack' not in names and heads[:2] == ['Slides', 'Line'], f'{names} {heads}')
-    pg.evaluate("segue.set('xFormat','mp4');segue.applyPreset('Presto')")
+    check('presets named for what they do, grouped by kind – the showcase five first, plainest to most extreme',
+          names[:5] == ['Straight cuts', 'Slow fades', 'Push and drift', 'Open and zoom', 'Zoom through'] and not {'Milky Way', 'Semplice', 'Presto', 'Nocturne'} & set(names) and heads[:2] == ['Slides', 'Line'], f'{names} {heads}')
+    pg.evaluate("segue.set('xFormat','mp4');segue.applyPreset('Zoom through')")
     check('a showcase preset sets the export to GIF', pg.evaluate("segue.S.xFormat") == 'gif')
     def slide_labels(setup):
         pg.evaluate("o=>{for(const k in o)segue.set(k,o[k])}", setup); time.sleep(.15)
@@ -346,6 +346,43 @@ with sync_playwright() as p:
         const P=E.plan(S,its),a=draw(0.0001),b=draw(P.L+0.0001);let d=0;for(let i=0;i<a.length;i++)d=Math.max(d,Math.abs(a[i]-b[i]));out[k]=d;}return out;}""")
     check('Slides loop exactly with movement, in every framing', all(v <= 1 for v in seam3.values()), str(seam3))
 
+    # ---- 0.4: type a value; drag a piece; a looser pull back ----
+    pg.evaluate("segue.applyPreset('Card stack');document.querySelectorAll('#panel section.card').forEach(c=>{if(c.dataset.id==='motion'&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();})"); time.sleep(.2)
+    def type_into(label, text):
+        v = pg.locator('#panel section[data-id=motion] .rng-box', has=pg.locator('label', has_text=label)).first.locator('.val')
+        v.click(); time.sleep(.05); pg.keyboard.press('Control+A'); pg.keyboard.type(text); pg.keyboard.press('Enter'); time.sleep(.1)
+    type_into('Rest', '2.37'); typed = pg.evaluate("segue.S.hold")
+    type_into('Move time', '1.5 s'); typed2 = pg.evaluate("segue.S.dur")
+    type_into('Move time', '99'); clamped = pg.evaluate("segue.S.dur")
+    shown = pg.locator('#panel section[data-id=motion] .rng-box', has=pg.locator('label', has_text='Rest')).first.locator('.val').text_content()
+    check('type a value: click a slider’s number, type, Enter – exact, units optional, kept to the range', typed == 2.37 and typed2 == 1.5 and clamped == 4 and shown == '2.37 s', f'{typed} {typed2} {clamped} “{shown}”')
+    pg.evaluate("segue.applyPreset('Card stack')")
+    pb = pg.evaluate("""(()=>{const E=segue.E,its=Array.from({length:9},()=>({kind:'image',w:1600,h:1000}));
+      const S={layout:'column',ratio:'16:10',size:86,gap:64,trackMove:'step',dir:'up',feel:'inertia',hold:1,dur:.7,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',capOn:false,cSize:'4:5'};
+      const P=E.plan(S,its),g=P.segs.find(x=>x.k==='out'),h=P.segs.find(x=>x.k==='grid');
+      const ys=(o,t)=>E.scene(Object.assign({},S,o),its,null,{},1080,1350,t).ops.map(q=>[q.i,+q.rect.x.toFixed(2),+q.rect.y.toFixed(2),+q.alpha.toFixed(3)]).sort().join('|');
+      return {start:ys({gStag:60,gFloat:60},g.t0+1e-4)===ys({gStag:0,gFloat:0},g.t0+1e-4),mid:ys({gStag:60,gFloat:0},(g.t0+g.t1)/2)!==ys({gStag:0,gFloat:0},(g.t0+g.t1)/2),
+        floats:ys({gStag:0,gFloat:60},h.t0+.3)!==ys({gStag:0,gFloat:60},h.t0+.9),still:ys({gStag:0,gFloat:0},h.t0+.3)===ys({gStag:0,gFloat:0},h.t0+.9)};})()""")
+    check('Pull back: Stagger settles each shape a beat apart, Float drifts them while pulled back – and both start from nothing', all(pb.values()), str(pb))
+    pg.evaluate("window._keep=segue.items.slice();segue.items.splice(0,segue.items.length,...segue.items.filter(i=>i.kind==='image').slice(0,2));segue.items.forEach(i=>{i.px=0;i.py=0;i.zm=100;i.ox=0;i.oy=0;});segue.refresh()")
+    pg.evaluate("for(const [k,v] of [['cSize','custom'],['cW',540],['cH',676],['bgImgA',0]])segue.set(k,v);segue.applyPreset('Straight cuts');segue.set('bgImgA',0);segue.setPlaying(false);segue.setClock(.3)"); time.sleep(.4)
+    pg.evaluate("ensembleUI.close();document.querySelectorAll('.media-list .slot-det').length"); time.sleep(.2)
+    pg.evaluate("segue.items.forEach(i=>{})"); openrows = pg.evaluate("document.querySelectorAll('.media-list .slot-det').length")
+    box = pg.locator('#cv').bounding_box(); cx, cy = box['x'] + box['width'] / 2, box['y'] + box['height'] / 2
+    pg.mouse.move(cx, cy); pg.mouse.down(); pg.mouse.move(cx + box['width'] * .3, cy + 40, steps=6); pg.mouse.up(); time.sleep(.3)
+    drag = pg.evaluate("[segue.items[0].px,segue.items[0].py,segue.S.oneFit,document.querySelectorAll('.media-list .slot-det').length]")
+    crop = pg.evaluate("""async()=>{const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d'),it=segue.items[0],px=v=>{it.px=v;};
+      const at=async v=>{px(v);await segue.frameAt(c,x,540,676,.3);return [...x.getImageData(400,100,1,1).data.slice(0,3)];};const r=[await at(100),await at(0)];px(0);return r;}""")
+    check('drag a full-bleed slide on the canvas: it pans the picture across (the only way it has to spare), and its row opens',
+          drag[0] > 20 and drag[1] == 0 and drag[2] == 'bleed' and drag[3] >= 1, f'{drag} (rows open before: {openrows})')
+    check('Crop across: 100% shows the picture’s left edge, 0 its middle', crop[0] == [245, 245, 243] and crop[1] != [245, 245, 243], str(crop))
+    pg.evaluate("segue.set('oneFit','own');segue.set('size',60);segue.setClock(.3)"); time.sleep(.3)
+    r0 = pg.evaluate("segue.E.scene(segue.S,segue.items,null,segue.fonts,540,676,.3).ops[0].rect")
+    pg.mouse.move(cx, cy); pg.mouse.down(); pg.mouse.move(cx - 30, cy - 20, steps=4); pg.mouse.up(); time.sleep(.3)
+    own = pg.evaluate("[segue.items[0].ox,segue.items[0].oy,segue.E.scene(segue.S,segue.items,null,segue.fonts,540,676,.3).ops[0].rect]")
+    check('drag a slide shown as it is: it moves the slide itself, nothing cropped', own[0] < 0 and own[1] < 0 and own[2]['x'] < r0['x'] and abs(own[2]['w'] - r0['w']) < .01, f"{own[0]} {own[1]} {round(r0['x'])}→{round(own[2]['x'])}")
+    pg.evaluate("segue.items.forEach(i=>{i.px=0;i.py=0;i.zm=100;i.ox=0;i.oy=0;});segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack')")
+
     # ---- 0.3: GIFs made for showcasing ----
     pg.evaluate("for(const [k,v] of [['cSize','custom'],['cW',540],['cH',676],['xGifScale',.5],['xGifFps',20],['xFormat','gif'],['bg','#F5F5F3'],['bgImgA',0],['ovOn',false]])segue.set(k,v)")
     def gif_of(js):
@@ -361,7 +398,7 @@ with sync_playwright() as p:
                 im.seek(im.tell() + 1)
         except EOFError: pass
         return path, n, total, first
-    L1 = pg.evaluate("segue.applyPreset('Semplice');for(const [k,v] of [['xGifScale',.5],['xGifFps',20],['bg','#F5F5F3'],['bgImgA',0]])segue.set(k,v);segue.plan().L")
+    L1 = pg.evaluate("segue.applyPreset('Straight cuts');for(const [k,v] of [['xGifScale',.5],['xGifFps',20],['bg','#F5F5F3'],['bgImgA',0]])segue.set(k,v);segue.plan().L")
     imgs = pg.evaluate("segue.items.filter(i=>i.kind==='image').length")
     pg.evaluate("window._keep=segue.items.slice();segue.items.splice(0,segue.items.length,...segue.items.filter(i=>i.kind==='image'));segue.refresh()")
     L1 = pg.evaluate("segue.plan().L")
@@ -378,7 +415,7 @@ with sync_playwright() as p:
     rects = gif_rects(p3); part = sum(1 for r in rects[1:] if r[2] * r[3] < 270 * 338)
     check('GIF: with movement, the frames are written – but only the part of each that changed',
           n3 > 3 * imgs and abs(t3 - L3 * 1000) <= 10 and rects[0] == (0, 0, 270, 338) and part >= len(rects) // 2, f'{n3} frames (loop {L3:.2f} s), {os.path.getsize(p3)//1000} KB, {part} of {len(rects)} partial')
-    pg.evaluate("segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Coda');segue.set('ovOn',false)")
+    pg.evaluate("segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack');segue.set('ovOn',false)")
 
     # ---- exports ----
     pg.evaluate("for(const [k,v] of [['hold',.3],['dur',.3],['zOut',.3],['gHold',.3],['zIn',.3],['cSize','custom'],['cW',540],['cH',676],['bg','#F5F5F3'],['bgImgA',0],['name','Test reel']])segue.set(k,v)")

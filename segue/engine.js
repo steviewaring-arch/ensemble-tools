@@ -319,6 +319,8 @@ function oneFinish(S,G,P,cam,ops){
   for(const o of ops){if(o.k==null||!o.item)continue;let r=o.rect;o.key='s'+o.k;
     if(own&&o.item.w&&o.item.h){const q=o.item.w/o.item.h,f=G.rel?G.rel(o.item):1;let w=r.w,h=r.h;if(w/h>q)w=h*q;else h=w/q;w*=f;h*=f;
       const y=where==='under'&&S.capOn?r.y+r.h-h:where==='above'&&S.capOn?r.y:r.y+(r.h-h)/2;r={x:r.x+(r.w-w)/2,y,w,h};}
+    /* As it is: this slide's own size and position, set in Media or by dragging it on the canvas */
+    if(own){const z=clamp((+o.item.zm||100)/100,.2,4),w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2+(+o.item.ox||0)*G.u,y:r.y-(h-r.h)/2+(+o.item.oy||0)*G.u,w,h};o.whole=true;}
     const m=moveKind(S,o.item,o.i);
     if(m!=='none'&&amt>0){const u=uOf(P,cam,o.k),off=(m==='back'?-sg:sg)*(u-.5)*amt;
       if(m==='in'||m==='out'){const z=1+amt*(m==='in'?u:1-u);if(own){const w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2,y:r.y-(h-r.h)/2,w,h};}else o.inner={s:z,x:0,y:0};}
@@ -326,25 +328,37 @@ function oneFinish(S,G,P,cam,ops){
       else if(m==='parallax'){r=Object.assign({},r,hz?{x:r.x+off*r.w}:{y:r.y+off*r.h});o.inner={s:1+amt,x:hz?-off:0,y:hz?0:-off};}}
     o.rect=r;}}
 /* pull back: the camera zooms out until every shape shows in a grid, then back in. Shapes that
-   are neighbours both on the track and in the grid stay put and the camera simply moves; the
-   rest fade out where they were on the track and fade up in their place in the grid, so
-   nothing flies across the shape you're looking at. The one in focus is drawn last. */
+   are neighbours both on the track and in the grid travel into place; the rest fade out where
+   they were on the track and fade up in their place in the grid, so nothing flies across the
+   shape you're looking at. The one in focus is drawn last.
+   Stagger (0.4): each shape settles a beat after the one before, nearest the focus first –
+   and those fading up drift in from a little further out – so the grid gathers rather than
+   arriving as one sheet; coming back in, the furthest go first. Float: while they're pulled
+   back, every shape drifts gently on its own path. Both are nothing at the start and end of
+   the pull back, so it still joins the steps either side exactly. */
 function pullScene(S,G,P,cam,N,push){
   const c=mod(cam.seg.k==='in'?0:cam.seg.s,N),gC=Math.max(1,Math.min(N,Math.round(S.gCols)||3)),gR=Math.ceil(N/gC),gg=Math.max(0,+S.gGap||0);
   const cr=i=>G.hz?[i%gC,Math.floor(i/gC)]:[Math.floor(i/gR),i%gR];
   const cols=G.hz?gC:Math.ceil(N/gR),rows=gR;
   const cell=i=>{const [col,row]=cr(i);let x=(col-(cols-1)/2)*(G.slotW+gg),y=(row-(rows-1)/2)*(G.slotH+gg);if(G.sgn<0){if(G.hz)x=-x;else y=-y;}return[x,y];};
   const gw=cols*G.slotW+(cols-1)*gg,gh=rows*G.slotH+(rows-1)*gg,fit=Math.min(1,Math.min(G.W/gw,G.H/gh)*clamp(+S.gSize||88,10,100)/100);
-  const sc=Math.pow(fit,cam.z),u=fit<1?(1-sc)/(1-fit):cam.z,c0=cell(c),fx=lerp(0,-c0[0],u),fy=lerp(0,-c0[1],u),m=smooth(cam.z);
+  const sc=Math.pow(fit,cam.z),u=fit<1?(1-sc)/(1-fit):cam.z,c0=cell(c),fx=lerp(0,-c0[0],u),fy=lerp(0,-c0[1],u);
   const at=(wx,wy)=>shapeIn(G,S,G.cx+(wx-fx)*sc,G.cy+(wy-fy)*sc,sc);
-  const out=smooth(cam.z/.3),up=smooth((cam.z-.08)/.5),later=[];let focus=null;
+  /* each shape's own progress: the camera's, or a beat behind it */
+  const stag=clamp((+S.gStag||0)/100,0,1)*.6,ez=feel(S.zFeel||'soft'),seg=cam.seg.k;
+  let far=1e-6;for(let i=0;i<N;i++){const q=cell(i);far=Math.max(far,Math.hypot(q[0]-c0[0],q[1]-c0[1]));}
+  const zOf=i=>{if(!stag||seg==='grid')return cam.z;const q=cell(i),r=Math.hypot(q[0]-c0[0],q[1]-c0[1])/far,d=stag*(seg==='out'?r:1-r),k=clamp((cam.k-d)/(1-stag),0,1);return seg==='out'?ez(k):1-ez(k);};
+  const fl=clamp((+S.gFloat||0)/100,0,1)*.045*Math.min(G.slotW,G.slotH),tt=cam.tt;
+  const drift=(i,z)=>{if(!fl)return[0,0];const a=hash(i*7+3,11)*6.283,b=hash(i*13+5,17)*6.283,w=z*fl;return[w*Math.sin(tt*2.03+a),w*Math.sin(tt*1.61+b)];};
+  const later=[];let focus=null;
   for(let i=0;i<N;i++){const k=((i-c)%N+N+Math.floor(N/2))%N-Math.floor(N/2),tw=k*G.pitch*G.sgn,ci=cell(i),gx=ci[0]-c0[0],gy=ci[1]-c0[1];
     const [a0,b0]=cr(c),[a1,b1]=cr(i),along=G.hz?(b1===b0&&a1-a0===k):(a1===a0&&b1-b0===k);
-    const kk=i===0?P.stops:i;
-    if(i===c){focus=[i,at(0,0),kk];continue;}
-    if(along){later.push([i,at(lerp(G.hz?tw:0,gx,m),lerp(G.hz?0:tw,gy,m)),{scale:sc,rev:1,k:kk}]);continue;}
+    const kk=i===0?P.stops:i,zi=zOf(i),m=smooth(zi),[ox,oy]=drift(i,zi);
+    if(i===c){const [fx2,fy2]=drift(i,cam.z);focus=[i,at(fx2,fy2),kk];continue;}
+    if(along){later.push([i,at(lerp(G.hz?tw:0,gx,m)+ox,lerp(G.hz?0:tw,gy,m)+oy),{scale:sc,rev:1,k:kk}]);continue;}
+    const out=smooth(zi/.3),up=smooth((zi-.08)/.5),spread=1+.35*stag/.6*(1-up);
     if(out<1)push(i,at(G.hz?tw:0,G.hz?0:tw),{scale:sc,rev:1,alpha:1-out,k:kk});
-    if(up>0)push(i,at(gx,gy),{scale:sc,rev:1,alpha:up,k:kk});}
+    if(up>0)push(i,at(gx*spread+ox,gy*spread+oy),{scale:sc,rev:1,alpha:up,k:kk});}
   for(const l of later)push(l[0],l[1],l[2]);
   if(focus)push(focus[0],focus[1],{scale:sc,rev:1,k:focus[2]});}
 

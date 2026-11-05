@@ -1,5 +1,15 @@
 # Changelog
 
+## 5 November 2026 – Segue 0.4: literal names, a looser pull back, artwork you can drag, values you can type
+
+Segue only.
+
+- **Presets are named for what they do** (the musical names were one puzzle too many): Straight cuts, Slow fades, Push and drift, Open and zoom, Zoom through, Flick across, Spring up, Fade with caption (Slides); Card stack, Phone swipe, Carousel (Line); Rows up (Grid); Columns up and down, Masonry drift (Columns); Posters (Frames); Float with title (Float). Any earlier name in use carries over.
+- **Pull back, less rigid:** **Stagger** – each shape settles into the grid a beat after the one before, nearest the focus first, and the ones fading up drift in from a little further out, so the grid gathers rather than arriving as one sheet (the furthest leave first on the way back in). **Float** – every shape drifts gently on its own path while they're pulled back. Both start from nothing, so the pull back still joins the steps exactly. With Feel (Inertia, Spring and the rest) beside them in the Pull back fold. On by default (40% and 30%); 0 for the old rigid move.
+- **Grab the artwork:** drag a piece on the canvas to position it – where it's cropped (full bleed, or a shape it fills) the picture pans inside its frame, only the way it has to spare; shown as it is, the slide itself moves. Ctrl or Alt and scroll zooms it; double-click resets. The same values are in its row in Media – Crop (Across, Up and down, Zoom) or Position (Across, Up and down, Size), with Reset – and the row opens when you let go. It pauses the preview while you hold it.
+- **Type a value:** click the number on any slider (or Tab to it and press Enter), type, Enter. Units are optional ("2.5 s", "80%"), it's kept to the slider's range but not rounded to its steps, and Escape leaves it as it was. Every slider in Segue, the media rows included. (A first step – the sliders themselves are for the house UI thread.)
+- `tests/segue_check.py`: 75 checks (5 new) – typing a value, the pull back's stagger and float, dragging a full-bleed slide (pan, crop edge) and an as-it-is slide (moves it).
+
 ## 5 November 2026 – Segue 0.3: Slides, the showcase kind, and GIFs made for it
 
 Built around Steve's showcase GIFs (usually made in Photoshop) and his zoom-through reference, measured frame by frame – "at the more extreme end", so with cleaner options below it. Segue only.

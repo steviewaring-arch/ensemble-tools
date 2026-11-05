@@ -8,7 +8,7 @@ const D={
   layout:'column',ratio:'16:10',rW:16,rH:10,size:86,cols:3,gap:64,radius:12,fit:'fill',shapeBg:'#E6E6E3',edge:false,edgeC:'#111111',edgeW:2,nudgeX:0,nudgeY:0,
   mat:0,matC:'#FFFFFF',matR:0,
   oneFit:'shape',ownScale:'fit',kb:'none',kbAmt:6,
-  oneMove:'slide',trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',
+  oneMove:'slide',trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',gStag:40,gFloat:30,
   colDir:'alt',colSpeed:'same',colLag:.4,colOff:50,
   fCols:3,fRows:1,fMove:'push',fLag:.15,
   flSize:34,depth:60,spread:80,seed:0,
@@ -61,7 +61,7 @@ const DB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=i
   return{put:(st,k,v)=>tx(st,'readwrite',s=>s.put(v,k)),get:(st,k)=>tx(st,'readonly',s=>s.get(k)),del:(st,k)=>tx(st,'readwrite',s=>s.delete(k))};})();
 /* ---------------- media ---------------- */
 let items=[];
-const META=['id','name','kind','w','h','dur','start','title','line','tags','arrive','levels','fixed','hold','moves'];
+const META=['id','name','kind','w','h','dur','start','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','ox','oy'];
 function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));}
 const isVideo=f=>/^video\//.test(f.type)||/\.(mp4|m4v|mov|webm)$/i.test(f.name);
 const isImage=f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif|svg|avif)$/i.test(f.name);
@@ -126,7 +126,10 @@ async function restorePics(){for(const w of ['bg','ov']){const m=LS.get('pic:'+w
 const lvCanvas=document.createElement('canvas'),lvCtx=lvCanvas.getContext('2d',{willReadFrequently:true});
 const LV=new Uint8ClampedArray(256).map((_,i)=>Math.round((i-16)*255/219));
 function drawMedia(ctx,o,r,mode){const it=o.item,src=it.src;if(!src||!it.w||!it.h)return;if(it.kind==='video'&&src.readyState<2)return;
-  const s=mode==='cover'?Math.max(r.w/it.w,r.h/it.h):Math.min(r.w/it.w,r.h/it.h),dw=it.w*s,dh=it.h*s,dx=r.x+(r.w-dw)/2,dy=r.y+(r.h-dh)/2;
+  /* cropped: its own zoom, and which part shows (−100…100% of what's to spare each way) */
+  const crop=mode==='cover'&&!o.whole,z=crop?Math.max(1,(+it.zm||100)/100):1;
+  const s=(mode==='cover'?Math.max(r.w/it.w,r.h/it.h):Math.min(r.w/it.w,r.h/it.h))*z,dw=it.w*s,dh=it.h*s,sx=(dw-r.w)/2,sy=(dh-r.h)/2;
+  const dx=r.x-sx+(crop?clamp(+it.px||0,-100,100)/100*sx:0),dy=r.y-sy+(crop?clamp(+it.py||0,-100,100)/100*sy:0);
   if(!it.levels){ctx.drawImage(src,dx,dy,dw,dh);return;}
   /* lift washed-out colours: video that says it's full range but is video range, read as video range */
   const k=ctx.getTransform().a||1,pw=Math.max(1,Math.ceil(dw*k)),ph=Math.max(1,Math.ceil(dh*k));
@@ -165,6 +168,32 @@ function tick(now){const dt=lastT?Math.min(100,now-lastT):0;lastT=now;
   if(playing&&!busy){clock+=dt/1000;dirty=true;}
   if(dirty&&!busy){dirty=false;try{render();}catch(e){console.error(e);}}
   requestAnimationFrame(tick);}
+/* Grab a piece on the canvas and move it: inside its frame where it's cropped (full bleed, a
+   shape it fills), or the slide itself when Slides show each as it is. Ctrl or Alt and scroll
+   zooms it; double-click puts it back. It pauses, so what's under the pointer stays put. */
+const canvasPt=e=>{const b=cv.getBoundingClientRect(),[W,H]=size();return[(e.clientX-b.left)*W/b.width,(e.clientY-b.top)*H/b.height];};
+function inClip(c,x,y){if(!c)return true;const inside=x>=c.x&&x<=c.x+c.w&&y>=c.y&&y<=c.y+c.h;return c.out?!inside:inside;}
+function hitAt(x,y){if(!cur)return null;for(let j=cur.ops.length-1;j>=0;j--){const o=cur.ops[j],r=o.rect;if(!o.item||o.item.placeholder||!o.item.w||o.alpha<=.05||!r)continue;
+    if(x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h&&inClip(o.clip,x,y))return o;}return null;}
+function spare(o){const S2=cur.S||S,r=o.rect,m=Math.min(Math.max(0,+S2.mat||0)*o.scale,r.w/3,r.h/3),w=r.w-2*m,h=r.h-2*m,it=o.item,k=Math.max(w/it.w,h/it.h)*Math.max(1,(+it.zm||100)/100);
+  return[(it.w*k-w)/2,(it.h*k-h)/2];}
+const croppable=o=>o.whole||(cur.S||S).fit!=='fit';
+let grab=null,zoomT=0;
+cv.addEventListener('pointerdown',e=>{if(busy||e.button!==0)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;
+  e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);const it=o.item,[sx,sy]=o.whole?[0,0]:spare(o);
+  grab={it,whole:!!o.whole,x0:x,y0:y,px:+it.px||0,py:+it.py||0,ox:+it.ox||0,oy:+it.oy||0,sx,sy,u:E.unitOf(...size())};cv.classList.add('grabbing');});
+cv.addEventListener('pointermove',e=>{const [x,y]=canvasPt(e);
+  if(!grab){const o=e.buttons?null:hitAt(x,y);cv.classList.toggle('grab',!!(o&&croppable(o)));return;}
+  const g=grab,it=g.it,dx=x-g.x0,dy=y-g.y0;
+  if(g.whole){it.ox=Math.round(g.ox+dx/g.u);it.oy=Math.round(g.oy+dy/g.u);}
+  else{if(g.sx>.5)it.px=+clamp(g.px+dx/g.sx*100,-100,100).toFixed(1);if(g.sy>.5)it.py=+clamp(g.py+dy/g.sy*100,-100,100).toFixed(1);}
+  dirty=true;});
+const letGo=()=>{if(!grab)return;const it=grab.it;grab=null;cv.classList.remove('grabbing');saveItems();openRows.add(it.id);paintMedia();};
+cv.addEventListener('pointerup',letGo);cv.addEventListener('pointercancel',letGo);
+cv.addEventListener('dblclick',e=>{const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;const it=o.item;for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMedia();toast('Position reset');});
+cv.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.altKey))return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;e.preventDefault();setPlaying(false);
+  const it=o.item,lo=o.whole?30:100,hi=o.whole?200:400;it.zm=+clamp((+it.zm||100)*Math.exp(-e.deltaY*.0025),lo,hi).toFixed(1);dirty=true;
+  clearTimeout(zoomT);zoomT=setTimeout(()=>{saveItems();openRows.add(it.id);paintMedia();},250);},{passive:false});
 function setPlaying(v){playing=v;const b=$('#play');b.textContent=v?'Pause':'Play';b.setAttribute('aria-label',v?'Pause':'Play');dirty=true;}
 $('#play').onclick=()=>setPlaying(!playing);
 $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();clock=$('#scrub').value/1000*P.L;dirty=true;});
@@ -193,7 +222,7 @@ Object.assign(TIPS,{
   lag:'Each shape sets off a beat after the one ahead of it, so the gaps open as they move and close as they land. It takes from the rest time.',
   creep:'Keeps everything moving gently while it rests, so it never quite stops',
   after:'After the last shape: carry straight on round, or pull back to show every shape in a grid, then come back in to the first',
-  gCols:'Columns in the grid you pull back to',gSize:'How much of the canvas the grid fills when it’s furthest out',gHold:'How long the whole range stays in view',zFeel:'How the camera eases out and back in',
+  gCols:'Columns in the grid you pull back to',zFeel:'How the camera eases out and back in. Inertia flicks out and coasts; Spring overshoots and settles.',gSize:'How much of the canvas the grid fills when it’s furthest out',gHold:'How long the whole range stays in view',
   colDir:'Which way each column runs. Alternate: down, up, down…',colSpeed:'Same: each column goes round once a loop. Varied: two, three or four times in a loop twice as long.',
   colLag:'Each column moves this long after the one to its left',colOff:'Sets every other column down by part of a shape, so they don’t line up',
   fCols:'Frames across',fRows:'Frames down',fMove:'How the media changes inside each frame',fLag:'Each frame changes this long after the one before it',
@@ -246,28 +275,47 @@ function paintMedia(){
     row.ondrop=e=>{if(!dragId)return;e.preventDefault();e.stopPropagation();row.classList.remove('over');moveItem(dragId,i);};
     if(openRows.has(it.id))row.append(itemDetail(it,i));
     mediaBox.append(row);});}
+/* a slider for one slide's own value – typeable, double-click its name to reset */
+function itemRange(det,it,o){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,o.label),val=el('span','val'),inp=el('input');
+  inp.type='range';inp.min=o.min;inp.max=o.max;inp.step=o.step;inp.id=`i_${o.key}_${it.id}`;lb.htmlFor=inp.id;
+  const get=()=>it[o.key]==null||it[o.key]===''?o.def:+it[o.key],show=()=>o.fmt?o.fmt(get()):`${+get().toFixed(2)}${o.unit||''}`;
+  const put=v=>{it[o.key]=v;inp.value=v;if(!val.classList.contains('editing'))val.textContent=show();saveItems();dirty=true;if(o.after)o.after();};
+  inp.value=get();val.textContent=show();inp.oninput=()=>put(+inp.value);if(o.change)inp.onchange=o.change;
+  lb.title='Double-click to reset';lb.ondblclick=()=>{put(o.def);if(o.change)o.change();};
+  typable(val,{label:o.label,get,put:v=>{put(v);if(o.change)o.change();},min:+o.min,max:+o.max,show});
+  hd.append(lb);if(o.tip){const q=el('button','q','?');q.type='button';q.dataset.tip=o.tip;q.setAttribute('aria-label',o.label+': '+o.tip);hd.append(q);}hd.append(val);w.append(hd,inp);det.append(w);return{inp,val,put};}
+/* the shape of the frame a piece sits in now – to know which way it can be moved inside it */
+function frameAspect(it){const o=cur&&cur.ops.find(q=>q.item===it&&q.rect&&q.rect.w>1);if(o)return o.rect.w/o.rect.h;
+  const [W,H]=size();return S.layout==='one'&&S.oneFit==='bleed'?W/H:E.ratioOf(S,items);}
 function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one';
   const sel=(label,key,opts,tip)=>{const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,label),s=el('select');s.id=`i_${key}_${it.id}`;lb.htmlFor=s.id;
     for(const [v,t] of opts){const o=el('option',null,t);o.value=v;s.append(o);}s.value=it[key]||'default';if(!opts.some(o=>o[0]===s.value))s.value='default';
     s.onchange=()=>{it[key]=s.value;saveItems();dirty=true;refreshAll();};hd.append(lb);if(tip){const q=el('button','q','?');q.type='button';q.dataset.tip=tip;q.setAttribute('aria-label',label+': '+tip);hd.append(q);}w.append(hd,s);det.append(w);};
   /* Slides: this slide's own time, transition and movement – each says what it falls back to */
-  if(one){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,'On screen'),val=el('span','val'),inp=el('input');
-    inp.type='range';inp.min=0;inp.max=Math.max(12,Math.ceil(+it.dur||0));inp.step=.05;inp.value=+it.hold||0;inp.id='i_hold_'+it.id;lb.htmlFor=inp.id;
-    const say=()=>{val.textContent=+it.hold>0?`${+(+it.hold).toFixed(2)} s`:`As set · ${+(+S.hold).toFixed(2)} s`;};say();
-    inp.oninput=()=>{it.hold=+inp.value;say();saveItems();dirty=true;refreshAll();};lb.title='Double-click for the time set in Motion';lb.ondblclick=()=>{it.hold=0;inp.value=0;say();saveItems();dirty=true;refreshAll();};
-    hd.append(lb,val);w.append(hd,inp);det.append(w);
-    if(it.kind==='video'){const r=el('div','btn-row'),b=el('button','pill small','Whole clip');b.type='button';b.dataset.tip='Stays on screen long enough for the whole clip to play, transitions included';
-      b.onclick=()=>{const tr=S.oneMove==='cut'?0:+S.dur||0;it.hold=Math.max(.2,+((+it.dur||1)-2*tr).toFixed(2));inp.value=it.hold;say();saveItems();dirty=true;refreshAll();};r.append(b);det.append(r);}
-    sel('Arrives by','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.filter(o=>o[0]!=='still').map(o=>[o[0],o[1]])));
+  if(one){const r=itemRange(det,it,{label:'On screen',key:'hold',min:0,max:Math.max(12,Math.ceil(+it.dur||0)),step:.05,def:0,
+      fmt:v=>v>0?`${+v.toFixed(2)} s`:`As set · ${+(+S.hold).toFixed(2)} s`,after:refreshAll,tip:'This slide’s own time on screen. 0 – or double-click the name – for the time set in Motion.'});
+    if(it.kind==='video'){const row=el('div','btn-row'),b=el('button','pill small','Whole clip');b.type='button';b.dataset.tip='Stays on screen long enough for the whole clip to play, transitions included';
+      b.onclick=()=>{const tr=S.oneMove==='cut'?0:+S.dur||0;r.put(Math.max(.2,+((+it.dur||1)-2*tr).toFixed(2)));};row.append(b);det.append(row);}
+    sel('Arrives by','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.map(o=>[o[0],o[1]])));
     sel('Moves','moves',[['default',`As set · ${optLabel(KB,S.kb)}`]].concat(KB.filter(o=>o[0]!=='vary'&&!(S.oneFit==='bleed'&&o[0]==='parallax')).map(o=>[o[0],o[1]])));}
+  /* where it sits: As it is moves the slide itself; anything cropped moves the picture inside its frame */
+  {const own=one&&S.oneFit==='own',crop=!own&&(S.fit!=='fit'||(one&&S.oneFit==='bleed'));
+    if(own||crop){det.append(el('div','sub-head',own?'Position':'Crop'));const again=()=>paintMediaKeepFocus();
+      if(own){itemRange(det,it,{label:'Across',key:'ox',min:-600,max:600,step:1,def:0,unit:' px'});itemRange(det,it,{label:'Up and down',key:'oy',min:-600,max:600,step:1,def:0,unit:' px'});
+        itemRange(det,it,{label:'Size',key:'zm',min:30,max:200,step:1,def:100,unit:'%',tip:'This slide bigger or smaller than the rest'});}
+      else{const fa=frameAspect(it),ia=it.w&&it.h?it.w/it.h:fa,zoomed=(+it.zm||100)>100.5,wide=ia>fa*1.005,tall=ia<fa/1.005;
+        if(zoomed||wide)itemRange(det,it,{label:'Across',key:'px',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows across: −100% the right edge, 100% the left'});
+        if(zoomed||tall)itemRange(det,it,{label:'Up and down',key:'py',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows up and down: −100% the bottom, 100% the top'});
+        itemRange(det,it,{label:'Zoom',key:'zm',min:100,max:400,step:1,def:100,unit:'%',change:again,tip:'Crop in tighter. Zoomed in, it can move both ways.'});
+        if(!zoomed&&!wide&&!tall)addHint(det,'It fits its frame exactly – zoom in to move it.');}
+      const row=el('div','btn-row'),rs=el('button','pill small','Reset');rs.type='button';rs.onclick=()=>{for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMediaKeepFocus();};row.append(rs);det.append(row);
+      det.append(el('p','hint','Or drag it on the canvas. Ctrl or Alt and scroll to zoom; double-click to reset.'));}}
   /* the caption, when there are captions */
   if(S.capOn){const txt=(label,key,multi,ph)=>{const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,label),inp=el(multi?'textarea':'input');if(!multi)inp.type='text';else inp.rows=2;
       inp.id=`i_${key}_${it.id}`;lb.htmlFor=inp.id;inp.value=it[key]||'';inp.placeholder=ph||'';inp.spellcheck=false;
       inp.oninput=()=>{it[key]=inp.value;E.resetMeasure();dirty=true;saveItems();};inp.onchange=()=>{paintMediaKeepFocus();refreshAll();};hd.append(lb);w.append(hd,inp);det.append(w);};
     txt('Title','title',true,'A title – Enter for a new line');txt('Line','line',true,'A line under it');txt('Tags','tags',false,'Tags, split with commas');}
-  if(it.kind==='video'){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,'Start at'),val=el('span','val'),inp=el('input');inp.type='range';inp.min=0;inp.max=Math.max(.1,+it.dur||1);inp.step=.04;inp.value=+it.start||0;
-    inp.id='i_start_'+it.id;lb.htmlFor=inp.id;val.textContent=(+it.start||0).toFixed(2)+' s';
-    inp.oninput=()=>{it.start=+inp.value;val.textContent=it.start.toFixed(2)+' s';saveItems();if(!playing)dirty=true;};hd.append(lb,val);w.append(hd,inp);det.append(w);
+  if(it.kind==='video'){itemRange(det,it,{label:'Start at',key:'start',min:0,max:Math.max(.1,+it.dur||1),step:.04,def:0,fmt:v=>`${v.toFixed(2)} s`});
     const tr=el('div','toggle-row'),tb=el('button','toggle');tb.type='button';tb.setAttribute('role','switch');tb.setAttribute('aria-checked',!!it.levels);tb.setAttribute('aria-label','Lift washed-out colours');tb.append(el('span','box'),el('span',null,'Lift washed-out colours'));
     tb.onclick=()=>{it.levels=!it.levels;tb.setAttribute('aria-checked',it.levels);saveItems();dirty=true;};tr.append(tb);const q=el('button','q','?');q.type='button';q.dataset.tip='For video whose greys look lifted and colours dull – it says it’s full range when it isn’t (Tempo’s promo MP4s up to 0.11.1). Reads it as video range.';q.setAttribute('aria-label','Lift washed-out colours: '+q.dataset.tip);tr.append(q);det.append(tr);}
   const r=el('div','btn-row pairs'),up=el('button','pill small','Move up'),dn=el('button','pill small','Move down');up.type=dn.type='button';up.disabled=i===0;dn.disabled=i===items.length-1;
@@ -353,7 +401,9 @@ const kindName=s=>optLabel(KINDS,KIND(s));
   const f=fold(b,'pull','Pull back',s=>stepping(s)&&isK('one','line')(s)&&s.after==='pull',false,s=>`${Math.round(s.gCols)} across · ${(+s.zOut+ +s.gHold+ +s.zIn).toFixed(1)} s`);
   build(f,[{t:'range',k:'gCols',label:'Columns',min:1,max:8,step:1,group:'pullfold'},{t:'range',k:'gGap',label:'Gap',min:0,max:240,step:1,unit:' px'},{t:'range',k:'gSize',label:'Fills',min:30,max:100,step:1,unit:'%'},
     {t:'range',k:'zOut',label:'Out',min:.2,max:4,step:.05,unit:' s',tip:'How long the pull back takes'},{t:'range',k:'gHold',label:'All in view',min:0,max:8,step:.05,unit:' s'},{t:'range',k:'zIn',label:'In',min:.2,max:4,step:.05,unit:' s',tip:'How long it takes to come back in to the first'},
-    {t:'seg',k:'zFeel',label:'Feel',opts:FEELS}]);
+    {t:'seg',k:'zFeel',label:'Feel',opts:FEELS},
+    {t:'range',k:'gStag',label:'Stagger',min:0,max:100,step:1,unit:'%',tip:'Each shape settles into the grid a beat after the one before, nearest first, so it gathers rather than arriving as one sheet. 0 for one rigid move.'},
+    {t:'range',k:'gFloat',label:'Float',min:0,max:100,step:1,unit:'%',tip:'Every shape drifts gently on its own path while they’re pulled back'}]);
   SUMMARY.motion=s=>{const P=planNow(),k=KIND(s),m=k==='one'?[optLabel(FITS,s.oneFit),optLabel(MOVES_ONE,s.oneMove)].join(' · '):k==='frames'?(framesStatic(s)?'Still':optLabel(MOVES_FRAME,s.fMove)):optLabel(MOVES_TRACK,s.trackMove);
     return [kindName(s),m,k==='one'?(s.kb!=='none'?optLabel(KB,s.kb):''):stepping(s)?optLabel(FEELS,s.feel):'',`${P.L.toFixed(1)} s loop`].filter(Boolean).join(' · ');};}
 /* Shapes: how they look – the kind decides where they go */
@@ -437,31 +487,32 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
     optLabel(PLACES,s.ovPos),s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):''].filter(Boolean).join(' · ');}
 
 /* ---------------- presets ---------------- */
-/* Built in, grouped by kind, named in Segue's own voice: musical terms, like the tools
-   themselves. The five showcase presets climb in tempo – Semplice (straight cuts, the classic
-   GIF), Adagio, Andante, Allegro, Presto (the extreme end – Steve's zoom-through reference,
-   5 Nov). Canon, Counterpoint, Polyrhythm, Fermata and Nocturne come from his 4 Nov references.
-   Showcase presets also set the export to GIF – they're made for it. */
+/* Built in, grouped by kind, named for what they do. The first five are for showcase GIFs and
+   go from plainest to most extreme – Straight cuts (the classic GIF) to Zoom through (Steve's
+   reference, 5 Nov); they also set the export to GIF. Phone swipe, Columns up and down, Masonry
+   drift, Posters and Float with title come from his 4 Nov references. */
 const BUILTIN=[
-  {name:'Semplice',tip:'Straight cuts, full bleed, nothing moving – the classic showcase GIF, and the smallest file',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'cut',hold:1.2,kb:'none',after:'carry',capOn:false}},
-  {name:'Adagio',tip:'Slow dissolves, full bleed, each slide drifting or zooming gently in turn',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'fade',hold:2.2,dur:.9,kb:'vary',kbAmt:7,dir:'left',after:'carry',capOn:false}},
-  {name:'Andante',tip:'Each piece at its own shape on the ground, pushed along and drifting the same way',x:{xFormat:'gif'},s:{layout:'one',oneFit:'own',ownScale:'fit',size:80,radius:4,oneMove:'slide',dir:'left',feel:'coast',hold:1.3,dur:1.1,kb:'drift',kbAmt:5,after:'carry',capOn:false,bg:'#EDEDEA'}},
-  {name:'Allegro',tip:'Full bleed, each slide opening from the middle of the last, zooming in a touch',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'open',feel:'glide',hold:.9,dur:.55,kb:'in',kbAmt:8,after:'carry',capOn:false}},
-  {name:'Presto',tip:'Full bleed and fast – each slide comes up from a small card as the last carries on past',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'through',hold:.15,dur:.38,kb:'in',kbAmt:22,after:'carry',capOn:false,bg:'#111111'}},
-  {name:'Staccato',tip:'Slides in a shape, flicked across one at a time',s:{layout:'one',oneFit:'shape',ratio:'16:9',size:88,radius:8,oneMove:'slide',dir:'left',feel:'inertia',hold:1.4,dur:.8,after:'carry',capOn:false,bg:'#ECECE9'}},
-  {name:'Pizzicato',tip:'Each one springs up over the last',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:82,radius:16,oneMove:'stack',dir:'up',feel:'spring',hold:1.2,dur:.75,after:'carry',capOn:false,bg:'#141414',shapeBg:'#222222'}},
-  {name:'Dolce',tip:'One into the next, with a caption fixed in the corner',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:78,radius:6,oneMove:'fade',hold:1.6,dur:.6,after:'carry',capOn:true,capWhere:'fixed',capV:'bottom',capAlign:'left',capMargin:64,capReveal:'rise',TF:'inter6',TS:40,TTr:-10,TCase:'as'}},
-  {name:'Coda',tip:'A column of cards with captions, a flick at a time, pulling back to show them all at the end',s:{layout:'column',ratio:'16:10',size:86,gap:64,radius:12,trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,capOn:true,capWhere:'under',capReveal:'scramble'}},
-  {name:'Canon',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.25,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
-  {name:'Ostinato',tip:'Tall cards drifting along in a row, never stopping',s:{layout:'row',ratio:'custom',rW:9,rH:20,size:59,gap:49,radius:14,trackMove:'drift',dir:'left',spsh:2.67,capOn:false,bg:'#1D1C23',shapeBg:'#2B2A31'}},
-  {name:'Chorale',tip:'Rows of shapes stepping up together, a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1,dur:.9,capOn:false}},
-  {name:'Counterpoint',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
-  {name:'Polyrhythm',tip:'A wall of work in columns drifting down and up at their own speeds, each piece its own shape',s:{layout:'columns',cols:3,ratio:'media',size:100,gap:12,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'varied',spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
-  {name:'Fermata',tip:'Three mounted posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
-  {name:'Nocturne',tip:'Work floating up at three depths past a line of type – add it in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.1,dur:1,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
+  {name:'Straight cuts',tip:'Straight cuts, full bleed, nothing moving – the classic showcase GIF, and the smallest file',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'cut',hold:1.2,kb:'none',after:'carry',capOn:false}},
+  {name:'Slow fades',tip:'Slow dissolves, full bleed, each slide drifting or zooming gently in turn',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'fade',hold:2.2,dur:.9,kb:'vary',kbAmt:7,dir:'left',after:'carry',capOn:false}},
+  {name:'Push and drift',tip:'Each piece at its own shape on the ground, pushed along and drifting the same way',x:{xFormat:'gif'},s:{layout:'one',oneFit:'own',ownScale:'fit',size:80,radius:4,oneMove:'slide',dir:'left',feel:'coast',hold:1.3,dur:1.1,kb:'drift',kbAmt:5,after:'carry',capOn:false,bg:'#EDEDEA'}},
+  {name:'Open and zoom',tip:'Full bleed, each slide opening from the middle of the last, zooming in a touch',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'open',feel:'glide',hold:.9,dur:.55,kb:'in',kbAmt:8,after:'carry',capOn:false}},
+  {name:'Zoom through',tip:'Full bleed and fast – each slide comes up from a small card as the last carries on past',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'through',hold:.15,dur:.38,kb:'in',kbAmt:22,after:'carry',capOn:false,bg:'#111111'}},
+  {name:'Flick across',tip:'Slides in a shape, flicked across one at a time',s:{layout:'one',oneFit:'shape',ratio:'16:9',size:88,radius:8,oneMove:'slide',dir:'left',feel:'inertia',hold:1.4,dur:.8,after:'carry',capOn:false,bg:'#ECECE9'}},
+  {name:'Spring up',tip:'Each one springs up over the last',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:82,radius:16,oneMove:'stack',dir:'up',feel:'spring',hold:1.2,dur:.75,after:'carry',capOn:false,bg:'#141414',shapeBg:'#222222'}},
+  {name:'Fade with caption',tip:'One into the next, with a caption fixed in the corner',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:78,radius:6,oneMove:'fade',hold:1.6,dur:.6,after:'carry',capOn:true,capWhere:'fixed',capV:'bottom',capAlign:'left',capMargin:64,capReveal:'rise',TF:'inter6',TS:40,TTr:-10,TCase:'as'}},
+  {name:'Card stack',tip:'A column of cards with captions, a flick at a time, pulling back to show them all at the end',s:{layout:'column',ratio:'16:10',size:86,gap:64,radius:12,trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,capOn:true,capWhere:'under',capReveal:'scramble'}},
+  {name:'Phone swipe',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.25,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
+  {name:'Carousel',tip:'Tall cards drifting along in a row, never stopping',s:{layout:'row',ratio:'custom',rW:9,rH:20,size:59,gap:49,radius:14,trackMove:'drift',dir:'left',spsh:2.67,capOn:false,bg:'#1D1C23',shapeBg:'#2B2A31'}},
+  {name:'Rows up',tip:'Rows of shapes stepping up together, a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1,dur:.9,capOn:false}},
+  {name:'Columns up and down',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
+  {name:'Masonry drift',tip:'A wall of work in columns drifting down and up at their own speeds, each piece its own shape',s:{layout:'columns',cols:3,ratio:'media',size:100,gap:12,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'varied',spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
+  {name:'Posters',tip:'Three mounted posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
+  {name:'Float with title',tip:'Work floating up at three depths past a line of type – add it in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.1,dur:1,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
     ovBlend:'difference',ovZ:'mid',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'}}];
-/* 0.2's names, for anyone who had one in use */
-const RENAMED={'Card stack':'Coda','Phone swipe':'Canon',Carousel:'Ostinato',Columns:'Counterpoint',Wall:'Polyrhythm',Posters:'Fermata','Milky Way':'Nocturne',Deck:'Staccato',Stack:'Pizzicato',Fade:'Dolce',Grid:'Chorale'};
+/* earlier names (0.2 and 0.3), for anyone who had one in use */
+const RENAMED={Columns:'Columns up and down',Wall:'Masonry drift','Milky Way':'Float with title',Deck:'Flick across',Stack:'Spring up',Fade:'Fade with caption',Grid:'Rows up',
+  Semplice:'Straight cuts',Adagio:'Slow fades',Andante:'Push and drift',Allegro:'Open and zoom',Presto:'Zoom through',Staccato:'Flick across',Pizzicato:'Spring up',Dolce:'Fade with caption',
+  Coda:'Card stack',Canon:'Phone swipe',Ostinato:'Carousel',Chorale:'Rows up',Counterpoint:'Columns up and down',Polyrhythm:'Masonry drift',Fermata:'Posters',Nocturne:'Float with title'};
 let mine=LS.get('presets')||[],current=LS.get('preset')||'',edited=!!LS.get('presetEdited');
 if(RENAMED[current]&&!mine.some(p=>p.name===current)){current=RENAMED[current];LS.set('preset',current);}
 const presetName=()=>current?current+(edited?' – changed':''):'';

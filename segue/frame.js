@@ -97,6 +97,21 @@ function enhance(root){if(!root||root.nodeType!==1)return;
   if(root.matches('.seg,.choice'))fitSeg(root);root.querySelectorAll('.seg,.choice').forEach(fitSeg);}
 new MutationObserver(ms=>{for(const m of ms){if(m.target.classList&&(m.target.classList.contains('seg')||m.target.classList.contains('choice')))fitSeg(m.target);m.addedNodes.forEach(enhance);}}).observe(document.body,{childList:true,subtree:true});
 const roundTo=(v,st)=>{const d=(String(st).split('.')[1]||'').length;return +(Math.round(v/st)*st).toFixed(d);};
+/* Type a value: click (or Tab to and press Enter on) the number on any slider, type it, Enter.
+   Units are optional ("2.5 s", "80%"); the value is kept to the slider's range but not
+   rounded to its steps, so 2.37 s is 2.37 s. Escape leaves it as it was. */
+function typable(val,o){
+  val.classList.add('typable');val.tabIndex=0;val.setAttribute('role','button');val.dataset.tip='Click to type a value';val.setAttribute('aria-label',(o.label||'Value')+' – click to type');
+  const open=e=>{if(e)e.preventDefault();if(val.classList.contains('editing'))return;val.classList.add('editing');
+    const cur=+o.get(),inp=el('input','val-in');inp.type='text';inp.inputMode='decimal';inp.spellcheck=false;inp.setAttribute('aria-label',o.label||'Value');
+    inp.value=Number.isFinite(cur)?String(+cur.toFixed(4)):'';val.textContent='';val.append(inp);inp.focus();inp.select();let done=false;
+    const close=ok=>{if(done)return;done=true;const v=parseFloat(String(inp.value).replace(',','.').replace(/[^0-9.+\-eE]/g,''));val.classList.remove('editing');
+      if(ok&&Number.isFinite(v))o.put(clamp(v,o.min,o.max));val.textContent=o.show();};
+    inp.onkeydown=ev=>{ev.stopPropagation();if(ev.key==='Enter'){ev.preventDefault();close(true);val.focus();}else if(ev.key==='Escape'){ev.preventDefault();close(false);val.focus();}};
+    inp.onblur=()=>close(true);inp.onpointerdown=ev=>ev.stopPropagation();};
+  val.addEventListener('pointerdown',e=>{e.stopPropagation();});val.addEventListener('click',open);
+  val.addEventListener('keydown',e=>{if(e.target===val&&(e.key==='Enter'||e.key===' ')){open(e);}});
+  return val;}
 function addRange(parent,d){
   const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,d.label),val=el('span','val');
   const id='c_'+(d.id||d.k);lb.htmlFor=id;lb.title='Double-click to reset';
@@ -104,8 +119,11 @@ function addRange(parent,d){
   const fmt=v=>d.fmt?d.fmt(v):(roundTo(v,d.step)+(d.unit||''));d.group=d.group||curGroup;
   inp.oninput=()=>{set(d.k,parseFloat(inp.value),true);val.textContent=fmt(+inp.value);refreshVis();refreshSummaries();};
   lb.ondblclick=()=>set(d.k,D[d.k]);
+  /* a typed value isn't rounded to the step, so show it as typed */
+  const show=()=>{const v=+S[d.k];return d.fmt?d.fmt(v):(roundTo(v,d.step)===v?fmt(v):+v.toFixed(4)+(d.unit||''));};
+  typable(val,{label:d.label,get:()=>S[d.k],put:v=>set(d.k,v),min:+d.min,max:+d.max,show});
   hd.append(lb);const q=qMark(d);if(q)hd.append(q);hd.append(val);w.append(hd,inp);parent.append(w);
-  const c={d,w,update(){if(document.activeElement!==inp)inp.value=S[d.k];val.textContent=fmt(S[d.k]);}};controls.push(c);return c;}
+  const c={d,w,update(){if(document.activeElement!==inp)inp.value=S[d.k];if(!val.classList.contains('editing'))val.textContent=show();}};controls.push(c);return c;}
 function addSeg(parent,d){
   const w=el('div','ctl');d.group=d.group||curGroup;if(d.label){const hd=el('div','ctl-head');hd.append(el('span',null,d.label));const q=qMark(d);if(q)hd.append(q);w.append(hd);}
   const g=el('div','seg');g.setAttribute('role','group');if(d.label)g.setAttribute('aria-label',d.label);w.append(g);parent.append(w);let sig='',bs=[];
