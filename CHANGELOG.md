@@ -1,5 +1,21 @@
 # Changelog
 
+## 5 November 2026 – Segue 0.3: Slides, the showcase kind, and GIFs made for it
+
+Built around Steve's showcase GIFs (usually made in Photoshop) and his zoom-through reference, measured frame by frame – "at the more extreme end", so with cleaner options below it. Segue only.
+
+- **One is now Slides** – a slide at a time, with its own controls in Motion:
+  - **Each slide:** **Full bleed** (fills the canvas, cropped to it – the Shapes card goes, as nothing in it applies), **As it is** (each keeps its own shape on the background – **Fit each**, or **True to scale** so a smaller piece shows smaller) or **In a shape** (as before).
+  - **Transition**, simplest first: Cut, Fade, **Dip** (out to the background and up), **Wipe**, Push, Cover, **Open** (a window opens from the middle onto the next), Zoom, **Through** (the next comes up from a 12% card in the middle as this one carries on past – the reference, on its own fitted curve). Feel only shows for the ones that travel; Direction only when something does.
+  - **On screen** and **Transition time** – the pacing.
+  - **Movement** in every slide while it's on screen, running through the transitions so it never stops: Zoom in, Zoom out, Drift, **Parallax** (the frame one way, the picture the other), **Vary** (in, across, out, back), with an **Amount**. As it is moves the whole slide, so nothing of the work is cropped; full bleed and In a shape move the picture inside its frame.
+  - **Per slide** (open a row in Media): its own time on screen, transition and movement – each says what it falls back to – and **Whole clip** for a video. Caption fields only show when captions are on.
+  - A single slide just stays, its movement going in and back out, so it loops.
+- **GIFs made for showcasing:** a frame that doesn't change isn't written again – the one before is held longer, as Photoshop's delays do – so a Semplice GIF of eight still slides is 0.85 MB at half size. A frame that changes in part writes only the rectangle that changed, the unchanged pixels inside it see-through. Flat colours come out exact (#F5F5F3 was 247, 247, 247). Optional **Dither**. Loops in the file is gone for GIF (a GIF loops for ever); a note says what movement costs; the file's size shows after each export.
+- **Presets in our own names** – musical terms, like the tools – and grouped by kind. Five new showcase presets climb in tempo and set the export to GIF: **Semplice** (straight cuts, nothing moving), **Adagio** (slow dissolves, gentle movement), **Andante** (each piece at its own shape, pushed and drifting), **Allegro** (opening from the middle, zooming in), **Presto** (through, fast – the reference). Renamed: Card stack → Coda, Phone swipe → Canon, Carousel → Ostinato, Grid → Chorale, Columns → Counterpoint, Wall → Polyrhythm, Posters → Fermata, Milky Way → Nocturne, Deck → Staccato, Stack → Pizzicato, Fade → Dolce. A 0.2 name in use carries over.
+- Fixes: in One/Slides, Zoom, Cover and Fade no longer leave the outgoing slide showing round the edge for a frame when the next doesn't cover it exactly; shapes that only touch the canvas edge aren't drawn.
+- `tests/segue_check.py`: 70 checks (16 new) – the presets and their groups, Slides showing only what each choice needs, framings (bleed, fit each, true to scale), movement through transitions and per slide, own time on screen, a single slide, Through and Open, Slides looping exactly in every framing, GIF frames held (one per still slide, the loop's length exactly), exact flat colour, partial frames.
+
 ## 4 November 2026 – Segue 0.2: kinds of motion, lag and depth, over and under
 
 Built from Steve's four screen recordings (phone swipe, columns, posters, Milky Way), measured frame by frame, and his notes on the panel. Segue only – nothing shared changed.

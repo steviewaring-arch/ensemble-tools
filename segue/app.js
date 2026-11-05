@@ -7,6 +7,7 @@ const D={
   cSize:'4:5',cW:1080,cH:1350,bg:'#F5F5F3',bgFit:'fill',bgImgA:100,fps:30,
   layout:'column',ratio:'16:10',rW:16,rH:10,size:86,cols:3,gap:64,radius:12,fit:'fill',shapeBg:'#E6E6E3',edge:false,edgeC:'#111111',edgeW:2,nudgeX:0,nudgeY:0,
   mat:0,matC:'#FFFFFF',matR:0,
+  oneFit:'shape',ownScale:'fit',kb:'none',kbAmt:6,
   oneMove:'slide',trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',
   colDir:'alt',colSpeed:'same',colLag:.4,colOff:50,
   fCols:3,fRows:1,fMove:'push',fLag:.15,
@@ -17,10 +18,10 @@ const D={
   LF:'plex',LS:17,LTr:0,LLd:1.4,LC:'#6B6A66',LCase:'as',
   GF:'plex',GS:13,GTr:20,GLd:1.2,GC:'#111111',GCase:'as',
   ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',
-  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20};
+  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false};
 /* the look: what a preset carries. Size, frame rate, the file name and what's over the top
    (it's content, like the captions) stay as they are. */
-const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','ovOn','ovKind','ovText'];
+const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','xDither','ovOn','ovKind','ovText'];
 const LOOK=Object.keys(D).filter(k=>!NOT_LOOK.includes(k));
 /* px values: presets keep them for a 1080 short side and scale them to the canvas they land on */
 const PX=['gap','radius','edgeW','nudgeX','nudgeY','gGap','capSpace','capX','capY','capMargin','capGapL','TS','LS','GS','mat','matR','OS','ovM','ovX','ovY'];
@@ -60,7 +61,7 @@ const DB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=i
   return{put:(st,k,v)=>tx(st,'readwrite',s=>s.put(v,k)),get:(st,k)=>tx(st,'readonly',s=>s.get(k)),del:(st,k)=>tx(st,'readwrite',s=>s.delete(k))};})();
 /* ---------------- media ---------------- */
 let items=[];
-const META=['id','name','kind','w','h','dur','start','title','line','tags','arrive','levels','fixed'];
+const META=['id','name','kind','w','h','dur','start','title','line','tags','arrive','levels','fixed','hold','moves'];
 function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));}
 const isVideo=f=>/^video\//.test(f.type)||/\.(mp4|m4v|mov|webm)$/i.test(f.name);
 const isImage=f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif|svg|avif)$/i.test(f.name);
@@ -167,7 +168,7 @@ function tick(now){const dt=lastT?Math.min(100,now-lastT):0;lastT=now;
 function setPlaying(v){playing=v;const b=$('#play');b.textContent=v?'Pause':'Play';b.setAttribute('aria-label',v?'Pause':'Play');dirty=true;}
 $('#play').onclick=()=>setPlaying(!playing);
 $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();clock=$('#scrub').value/1000*P.L;dirty=true;});
-function onSet(k){if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
+function onSet(k){if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
 function appRefresh(){const P=planNow();$('#loopChip').textContent=`${P.L.toFixed(1)} s loop`;$('#loopChip').title=`The loop lasts ${P.L.toFixed(2)} seconds, then starts again exactly where it began`;
   $('#countChip').textContent=items.length?(items.length===1?'1 shape':`${items.length} shapes`):'No media yet';
   const pn=$('#pcapName');pn.textContent=presetName();}
@@ -182,6 +183,10 @@ Object.assign(TIPS,{
   ratio:'The shape each piece of media sits in. It’s cropped to fill it, or fitted inside. The media’s own: in Columns and Float each shape takes its own media’s shape.',
   gap:'Space between shapes',radius:'Rounded corners on every shape',
   fit:'Fill crops the media to the shape; Fit shows all of it, on the shape’s colour',shapeBg:'Shows behind media that doesn’t fill its shape',
+  oneFit:'Full bleed fills the canvas with each slide, cropped to it. As it is keeps each slide’s own shape, on the background. In a shape puts every slide in the same shape – set it in Shapes.',
+  ownScale:'Fit each: every slide as big as the space allows. True to scale: one scale for them all, so a smaller piece shows smaller.',
+  kb:'A little movement in every slide while it’s on screen, running through the transitions so it never stops. As it is moves the whole slide; full bleed and In a shape move the picture inside its frame. Parallax moves the frame one way and the picture the other. Vary takes turns: in, across, out, back.',
+  kbAmt:'How far each slide moves while it’s on screen – the zoom, or the distance across',
   mat:'A border inside each shape, like the mount round a print',matR:'Rounded corners on the media inside the border',
   hold:'How long each shape rests before the next move',dur:'How long each move takes',spsh:'How long it takes to drift by one shape – sets the speed',
   feel:'Glide eases in and out. Soft is gentler – smoothest for zooms. Coast pushes, then glides in a long way. Inertia flicks and coasts to a stop. Spring goes a touch past and settles.',
@@ -220,6 +225,7 @@ const openRows=new Set();let mediaBox;
   const r=el('div','ctl btn-row'),add=el('button','pill','+ Add images or video');add.type='button';add.onclick=()=>$('#mediafile').click();r.append(add);
   const clr=el('button','pill small','Clear all');clr.type='button';clr.onclick=()=>{if(!items.length)return;for(const it of items.slice())removeItem(it.id);toast('Cleared');};r.append(clr);b.append(r);
   addHint(b,'Drag a row to change the order. Video plays from its start point as its shape arrives.',()=>items.length>1);
+  addHint(b,'Open a row to give that slide its own time on screen, transition or movement.',s=>s.layout==='one'&&items.length>0);
   SUMMARY.media=()=>!items.length?'No media yet':`${items.length} · `+(()=>{const v=items.filter(i=>i.kind==='video').length,i=items.length-v;return [v?`${v} video`:'',i?`${i} image${i>1?'s':''}`:''].filter(Boolean).join(', ');})();}
 function thumbOf(it){const c=el('canvas');c.width=88;c.height=64;const x=c.getContext('2d');x.fillStyle='#ddd';x.fillRect(0,0,88,64);
   try{if(it.src&&(it.kind!=='video'||it.src.readyState>=2)){const s=Math.max(88/it.w,64/it.h);x.drawImage(it.src,(88-it.w*s)/2,(64-it.h*s)/2,it.w*s,it.h*s);}}catch(e){}return c;}
@@ -229,7 +235,7 @@ function paintMedia(){
   if(!items.length){mediaBox.append(el('div','media-empty','Drop images or video here, or anywhere on the page'));return;}
   items.forEach((it,i)=>{
     const row=el('div','slot'),top=el('div','slot-top'),th=el('span','mthumb'),main=el('div','slot-main'),nm=el('div','slot-name',it.title?it.title.split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,''):it.name),meta=el('div','slot-meta');
-    th.append(thumbOf(it));meta.textContent=(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
+    th.append(thumbOf(it));meta.textContent=(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(S.layout==='one'&&+it.hold>0?` · on for ${+(+it.hold).toFixed(2)} s`:'')+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-expanded',openRows.has(it.id));main.setAttribute('aria-label',`${i+1}. ${it.name} – details`);
     const tog=()=>{openRows.has(it.id)?openRows.delete(it.id):openRows.add(it.id);paintMedia();};main.onclick=tog;main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
     const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+it.name);rm.onclick=()=>removeItem(it.id);
@@ -240,19 +246,30 @@ function paintMedia(){
     row.ondrop=e=>{if(!dragId)return;e.preventDefault();e.stopPropagation();row.classList.remove('over');moveItem(dragId,i);};
     if(openRows.has(it.id))row.append(itemDetail(it,i));
     mediaBox.append(row);});}
-function itemDetail(it,i){const det=el('div','slot-det');
-  const txt=(label,key,multi,ph)=>{const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,label),inp=el(multi?'textarea':'input');if(!multi)inp.type='text';else inp.rows=2;
-    inp.id=`i_${key}_${it.id}`;lb.htmlFor=inp.id;inp.value=it[key]||'';inp.placeholder=ph||'';inp.spellcheck=false;
-    inp.oninput=()=>{it[key]=inp.value;E.resetMeasure();dirty=true;saveItems();};inp.onchange=()=>{paintMediaKeepFocus();refreshAll();};hd.append(lb);w.append(hd,inp);det.append(w);};
-  txt('Title','title',true,'A title – Enter for a new line');txt('Line','line',true,'A line under it');txt('Tags','tags',false,'Tags, split with commas');
+function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one';
+  const sel=(label,key,opts,tip)=>{const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,label),s=el('select');s.id=`i_${key}_${it.id}`;lb.htmlFor=s.id;
+    for(const [v,t] of opts){const o=el('option',null,t);o.value=v;s.append(o);}s.value=it[key]||'default';if(!opts.some(o=>o[0]===s.value))s.value='default';
+    s.onchange=()=>{it[key]=s.value;saveItems();dirty=true;refreshAll();};hd.append(lb);if(tip){const q=el('button','q','?');q.type='button';q.dataset.tip=tip;q.setAttribute('aria-label',label+': '+tip);hd.append(q);}w.append(hd,s);det.append(w);};
+  /* Slides: this slide's own time, transition and movement – each says what it falls back to */
+  if(one){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,'On screen'),val=el('span','val'),inp=el('input');
+    inp.type='range';inp.min=0;inp.max=Math.max(12,Math.ceil(+it.dur||0));inp.step=.05;inp.value=+it.hold||0;inp.id='i_hold_'+it.id;lb.htmlFor=inp.id;
+    const say=()=>{val.textContent=+it.hold>0?`${+(+it.hold).toFixed(2)} s`:`As set · ${+(+S.hold).toFixed(2)} s`;};say();
+    inp.oninput=()=>{it.hold=+inp.value;say();saveItems();dirty=true;refreshAll();};lb.title='Double-click for the time set in Motion';lb.ondblclick=()=>{it.hold=0;inp.value=0;say();saveItems();dirty=true;refreshAll();};
+    hd.append(lb,val);w.append(hd,inp);det.append(w);
+    if(it.kind==='video'){const r=el('div','btn-row'),b=el('button','pill small','Whole clip');b.type='button';b.dataset.tip='Stays on screen long enough for the whole clip to play, transitions included';
+      b.onclick=()=>{const tr=S.oneMove==='cut'?0:+S.dur||0;it.hold=Math.max(.2,+((+it.dur||1)-2*tr).toFixed(2));inp.value=it.hold;say();saveItems();dirty=true;refreshAll();};r.append(b);det.append(r);}
+    sel('Arrives by','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.filter(o=>o[0]!=='still').map(o=>[o[0],o[1]])));
+    sel('Moves','moves',[['default',`As set · ${optLabel(KB,S.kb)}`]].concat(KB.filter(o=>o[0]!=='vary'&&!(S.oneFit==='bleed'&&o[0]==='parallax')).map(o=>[o[0],o[1]])));}
+  /* the caption, when there are captions */
+  if(S.capOn){const txt=(label,key,multi,ph)=>{const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,label),inp=el(multi?'textarea':'input');if(!multi)inp.type='text';else inp.rows=2;
+      inp.id=`i_${key}_${it.id}`;lb.htmlFor=inp.id;inp.value=it[key]||'';inp.placeholder=ph||'';inp.spellcheck=false;
+      inp.oninput=()=>{it[key]=inp.value;E.resetMeasure();dirty=true;saveItems();};inp.onchange=()=>{paintMediaKeepFocus();refreshAll();};hd.append(lb);w.append(hd,inp);det.append(w);};
+    txt('Title','title',true,'A title – Enter for a new line');txt('Line','line',true,'A line under it');txt('Tags','tags',false,'Tags, split with commas');}
   if(it.kind==='video'){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,'Start at'),val=el('span','val'),inp=el('input');inp.type='range';inp.min=0;inp.max=Math.max(.1,+it.dur||1);inp.step=.04;inp.value=+it.start||0;
     inp.id='i_start_'+it.id;lb.htmlFor=inp.id;val.textContent=(+it.start||0).toFixed(2)+' s';
     inp.oninput=()=>{it.start=+inp.value;val.textContent=it.start.toFixed(2)+' s';saveItems();if(!playing)dirty=true;};hd.append(lb,val);w.append(hd,inp);det.append(w);
     const tr=el('div','toggle-row'),tb=el('button','toggle');tb.type='button';tb.setAttribute('role','switch');tb.setAttribute('aria-checked',!!it.levels);tb.setAttribute('aria-label','Lift washed-out colours');tb.append(el('span','box'),el('span',null,'Lift washed-out colours'));
     tb.onclick=()=>{it.levels=!it.levels;tb.setAttribute('aria-checked',it.levels);saveItems();dirty=true;};tr.append(tb);const q=el('button','q','?');q.type='button';q.dataset.tip='For video whose greys look lifted and colours dull – it says it’s full range when it isn’t (Tempo’s promo MP4s up to 0.11.1). Reads it as video range.';q.setAttribute('aria-label','Lift washed-out colours: '+q.dataset.tip);tr.append(q);det.append(tr);}
-  if(S.layout==='one'){const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,'Arrives by'),s=el('select');s.id='i_arrive_'+it.id;lb.htmlFor=s.id;
-    for(const [v,t] of [['default','The move set in Motion'],['slide','Slide'],['stack','Stack'],['fade','Fade'],['zoom','Zoom'],['cut','Cut']]){const o=el('option',null,t);o.value=v;s.append(o);}
-    s.value=it.arrive||'default';s.onchange=()=>{it.arrive=s.value;saveItems();dirty=true;refreshAll();};hd.append(lb);w.append(hd,s);det.append(w);}
   const r=el('div','btn-row pairs'),up=el('button','pill small','Move up'),dn=el('button','pill small','Move down');up.type=dn.type='button';up.disabled=i===0;dn.disabled=i===items.length-1;
   up.onclick=()=>moveItem(it.id,i-1);dn.onclick=()=>moveItem(it.id,i+1);r.append(up,dn);det.append(r);
   return det;}
@@ -268,7 +285,7 @@ function paintMediaKeepFocus(){const a=document.activeElement,id=a&&a.id;paintMe
     {t:'seg',k:'fps',label:'Frame rate',opts:[[24,'24'],[25,'25'],[30,'30'],[60,'60']]}]);
   SUMMARY.canvas=s=>{const [W,H]=E.canvasSize(s);return `${W} × ${H} · ${s.fps} fps`+(PICS.bg?' · image':'');};}
 /* Motion: the kind first, then only what that kind uses */
-const KINDS=[['one','One','A shape at a time'],['line','Line','A row or a column of shapes, moving along'],['grid','Grid','Rows of shapes, moving together'],
+const KINDS=[['one','Slides','A slide at a time – full bleed, as it is or in a shape, with a transition and a little movement in each'],['line','Line','A row or a column of shapes, moving along'],['grid','Grid','Rows of shapes, moving together'],
   ['columns','Columns','Each column running up or down on its own'],['frames','Frames','The frames stay put and the media changes inside them'],['float','Float','Shapes drifting past at different depths']];
 const KIND_ICON={
   one:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="11" y="5" width="18" height="18" rx="2"/><rect x="33" y="8" width="7" height="12" rx="1.5" class="dim"/></svg>',
@@ -281,22 +298,33 @@ function pickKind(k){if(k==='line')k=['up','down'].includes(S.dir)?'column':'row
 function kindTiles(parent){const w=el('div','ctl kinds-ctl'),hd=el('div','ctl-head'),g=el('div','kinds');hd.append(el('span',null,'Kind'));g.setAttribute('role','group');g.setAttribute('aria-label','Kind');
   const bs=KINDS.map(([v,t,tip])=>{const b=el('button','kind');b.type='button';b.innerHTML=KIND_ICON[v];b.append(el('span',null,t));b.dataset.tip=tip;b.onclick=()=>pickKind(v);g.append(b);return[v,b];});
   w.append(hd,g);parent.append(w);controls.push({d:{},w,update(){const k=KIND(S);bs.forEach(([v,b])=>b.setAttribute('aria-pressed',v===k));}});}
-const MOVES_ONE=[['slide','Slide','The next one pushes this one out'],['stack','Stack','The next one slides in over this one'],['fade','Fade'],['zoom','Zoom','This one grows away as the next fades up'],['cut','Cut'],['still','Still','No moves – the video plays']];
+const MOVES_ONE=[['cut','Cut','Straight to the next'],['fade','Fade','One into the next'],['dip','Dip','Out to the background, then up into the next'],['wipe','Wipe','A straight edge crosses the canvas'],
+  ['slide','Push','The next pushes this one out'],['stack','Cover','The next slides in over this one'],['open','Open','A window opens from the middle onto the next'],['zoom','Zoom','This one grows away as the next fades up'],
+  ['through','Through','The next comes up from a small card in the middle as this one carries on past – it has its own curve, so there’s no Feel']];
+const KB=[['none','None'],['in','Zoom in'],['out','Zoom out'],['drift','Drift','Across, the way Direction says'],['parallax','Parallax','The frame one way, the picture the other'],['vary','Vary','Takes turns: in, across, out, back']];
+const FITS=[['bleed','Full bleed','Each slide fills the canvas, cropped to it'],['own','As it is','Each slide keeps its own shape, on the background'],['shape','In a shape','Every slide in the same shape – set it in Shapes']];
+const oneTravels=s=>['slide','stack','wipe'].includes(s.oneMove);
+const oneFeels=s=>['slide','stack','wipe','open','zoom'].includes(s.oneMove);
+const itemMoves=()=>items.some(it=>it.moves&&it.moves!=='default'&&it.moves!=='none');
+const kbOn=s=>s.kb!=='none'||itemMoves();
+const kbDrifts=s=>['drift','parallax','vary'].includes(s.kb)||items.some(it=>it.moves==='drift'||it.moves==='parallax');
 const MOVES_TRACK=[['step','Step','Move a shape at a time, then rest'],['drift','Drift','Keep moving, never stopping'],['still','Still','No moves – the video plays']];
 const MOVES_FRAME=[['push','Push','The next pushes this one out of the frame'],['cover','Cover','The next slides in over this one'],['fade','Fade'],['cut','Cut'],['still','Still','No changes – the video plays']];
 const FEELS=[['glide','Glide','Eases in and out'],['soft','Soft','A gentle ease in and out'],['coast','Coast','A quick push, then a long glide in'],['inertia','Inertia','A flick that coasts to a stop'],['spring','Spring','A touch past, then settles'],['linear','Linear','An even speed']];
 const DIR4=[['left','Left'],['right','Right'],['up','Up'],['down','Down']];
 const dirOpts=()=>KIND(S)==='grid'?[['up','Up'],['down','Down']]:DIR4;
 function pickDir(v){if(KIND(S)==='line'){S.dir=v;set('layout',v==='left'||v==='right'?'row':'column');return;}set('dir',v);}
-const showDir=s=>{const k=KIND(s);if(k==='one')return s.oneMove==='slide'||s.oneMove==='stack';if(k==='frames')return stepping(s)&&(s.fMove==='push'||s.fMove==='cover');if(k==='columns')return false;return mv(s)!=='still';};
+const showDir=s=>{const k=KIND(s);if(k==='one')return oneTravels(s)||kbDrifts(s);if(k==='frames')return stepping(s)&&(s.fMove==='push'||s.fMove==='cover');if(k==='columns')return false;return mv(s)!=='still';};
 const kindName=s=>optLabel(KINDS,KIND(s));
 {const b=card('motion','Motion');kindTiles(b);
   build(b,[
+    {t:'seg',k:'oneFit',label:'Each slide',opts:FITS,show:isK('one')},
+    {t:'seg',k:'ownScale',label:'Sizes',opts:[['fit','Fit each'],['true','True to scale']],show:s=>isK('one')(s)&&s.oneFit==='own'},
     {t:'range',k:'cols',label:'Columns',min:1,max:8,step:1,show:isK('grid')},
     {t:'range',k:'cols',id:'ccols',label:'Columns',min:2,max:8,step:1,show:isK('columns')},
     {t:'range',k:'fCols',label:'Across',min:1,max:6,step:1,show:isK('frames')},
     {t:'range',k:'fRows',label:'Down',min:1,max:4,step:1,show:isK('frames')},
-    {t:'seg',k:'oneMove',label:'Move',opts:MOVES_ONE,show:isK('one')},
+    {t:'seg',k:'oneMove',label:'Transition',opts:MOVES_ONE,show:isK('one')},
     {t:'seg',k:'trackMove',label:'Move',opts:MOVES_TRACK,show:isK('line','grid','columns','float')},
     {t:'seg',k:'fMove',label:'Change',opts:MOVES_FRAME,show:s=>isK('frames')(s)&&!framesStatic(s)},
     {t:'seg',k:'dir',label:'Direction',optsFn:dirOpts,pick:pickDir,show:showDir},
@@ -306,12 +334,16 @@ const kindName=s=>optLabel(KINDS,KIND(s));
   addHint(b,'As many frames as media: the frames stay as they are and video plays inside them. Add more media, or fewer frames, to have it change.',s=>isK('frames')(s)&&framesStatic(s));
   {const r=el('div','ctl btn-row'),sh=el('button','pill small','Shuffle');sh.type='button';sh.dataset.tip='Scatter the shapes another way';sh.onclick=()=>set('seed',(Math.round(+S.seed)||0)+1);r.append(sh);addCustom(b,isK('float'),r);}
   build(b,[
-    {t:'range',k:'hold',label:'Rest',min:0,max:6,step:.05,unit:' s',show:stepping},
-    {t:'range',k:'dur',label:'Move time',min:.1,max:4,step:.05,unit:' s',show:s=>stepping(s)&&!(isK('one')(s)&&s.oneMove==='cut')&&!(isK('frames')(s)&&s.fMove==='cut')},
+    {t:'range',k:'hold',id:'hold1',label:'On screen',min:0,max:8,step:.05,unit:' s',show:s=>isK('one')(s)&&stepping(s),tip:'How long each slide stays before the next transition. Give any slide its own time in Media.'},
+    {t:'range',k:'dur',id:'dur1',label:'Transition time',min:.1,max:3,step:.05,unit:' s',show:s=>isK('one')(s)&&stepping(s)&&s.oneMove!=='cut'},
+    {t:'range',k:'hold',label:'Rest',min:0,max:6,step:.05,unit:' s',show:s=>stepping(s)&&!isK('one')(s)},
+    {t:'range',k:'dur',label:'Move time',min:.1,max:4,step:.05,unit:' s',show:s=>stepping(s)&&!isK('one')(s)&&!(isK('frames')(s)&&s.fMove==='cut')},
     {t:'range',k:'spsh',label:'Each shape',min:.5,max:12,step:.05,unit:' s',show:s=>mv(s)==='drift'&&!isK('frames')(s)},
     {t:'seg',k:'colSpeed',label:'Speeds',opts:[['same','Same'],['varied','Varied']],show:s=>isK('columns')(s)&&mv(s)==='drift'},
     {t:'range',k:'still',label:'Length',min:1,max:60,step:.5,unit:' s',show:s=>mv(s)==='still'||(isK('frames')(s)&&framesStatic(s))},
-    {t:'seg',k:'feel',label:'Feel',opts:FEELS,show:s=>stepping(s)&&!(isK('one')(s)&&s.oneMove==='cut')&&!(isK('frames')(s)&&s.fMove==='cut')},
+    {t:'seg',k:'feel',label:'Feel',opts:FEELS,show:s=>stepping(s)&&(isK('one')(s)?oneFeels(s):!(isK('frames')(s)&&s.fMove==='cut'))},
+    {t:'seg',k:'kb',label:'Movement',optsFn:()=>S.oneFit==='bleed'?KB.filter(o=>o[0]!=='parallax'):KB,val:s=>s.oneFit==='bleed'&&s.kb==='parallax'?'drift':s.kb,show:isK('one')},
+    {t:'range',k:'kbAmt',label:'Amount',min:1,max:30,step:.5,unit:'%',show:s=>isK('one')(s)&&kbOn(s)},
     {t:'range',k:'lag',label:'Lag',min:0,max:.3,step:.005,unit:' s',show:s=>isK('line','grid')(s)&&stepping(s)},
     {t:'range',k:'colLag',label:'Out of step',min:0,max:3,step:.05,unit:' s',show:s=>isK('columns')(s)&&stepping(s)},
     {t:'range',k:'fLag',id:'flag',label:'Lag',min:0,max:2,step:.01,unit:' s',show:s=>isK('frames')(s)&&stepping(s)},
@@ -322,31 +354,32 @@ const kindName=s=>optLabel(KINDS,KIND(s));
   build(f,[{t:'range',k:'gCols',label:'Columns',min:1,max:8,step:1,group:'pullfold'},{t:'range',k:'gGap',label:'Gap',min:0,max:240,step:1,unit:' px'},{t:'range',k:'gSize',label:'Fills',min:30,max:100,step:1,unit:'%'},
     {t:'range',k:'zOut',label:'Out',min:.2,max:4,step:.05,unit:' s',tip:'How long the pull back takes'},{t:'range',k:'gHold',label:'All in view',min:0,max:8,step:.05,unit:' s'},{t:'range',k:'zIn',label:'In',min:.2,max:4,step:.05,unit:' s',tip:'How long it takes to come back in to the first'},
     {t:'seg',k:'zFeel',label:'Feel',opts:FEELS}]);
-  SUMMARY.motion=s=>{const P=planNow(),k=KIND(s),m=k==='one'?optLabel(MOVES_ONE,s.oneMove):k==='frames'?(framesStatic(s)?'Still':optLabel(MOVES_FRAME,s.fMove)):optLabel(MOVES_TRACK,s.trackMove);
-    return [kindName(s),m,stepping(s)?optLabel(FEELS,s.feel):'',`${P.L.toFixed(1)} s loop`].filter(Boolean).join(' · ');};}
+  SUMMARY.motion=s=>{const P=planNow(),k=KIND(s),m=k==='one'?[optLabel(FITS,s.oneFit),optLabel(MOVES_ONE,s.oneMove)].join(' · '):k==='frames'?(framesStatic(s)?'Still':optLabel(MOVES_FRAME,s.fMove)):optLabel(MOVES_TRACK,s.trackMove);
+    return [kindName(s),m,k==='one'?(s.kb!=='none'?optLabel(KB,s.kb):''):stepping(s)?optLabel(FEELS,s.feel):'',`${P.L.toFixed(1)} s loop`].filter(Boolean).join(' · ');};}
 /* Shapes: how they look – the kind decides where they go */
-{const b=card('shapes','Shapes');
-  build(b,[{t:'select',k:'ratio',label:'Shape',opts:[['media','The media’s own'],['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']]},
-    {t:'nums',keys:['rW','rH'],names:['W','H'],label:'Shape ratio',min:.1,max:100,step:.1,sep:':',show:s=>s.ratio==='custom'},
-    {t:'range',k:'size',label:'Size',min:10,max:100,step:.5,unit:'%',show:isK('one','line','frames'),tip:'How big the shapes are: 100% fills the canvas (One, Frames), its height (a row) or its width (a column)'},
+const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
+{const b=card('shapes','Shapes',s=>!(isK('one')(s)&&s.oneFit==='bleed'));
+  build(b,[{t:'select',k:'ratio',label:'Shape',show:s=>!ownFit(s),opts:[['media','The media’s own'],['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']]},
+    {t:'nums',keys:['rW','rH'],names:['W','H'],label:'Shape ratio',min:.1,max:100,step:.1,sep:':',show:s=>s.ratio==='custom'&&!ownFit(s)},
+    {t:'range',k:'size',label:'Size',min:10,max:100,step:.5,unit:'%',show:isK('one','line','frames'),tip:'How big the shapes are: 100% fills the canvas (Slides, Frames), its height (a row) or its width (a column)'},
     {t:'range',k:'size',id:'gsize',label:'Width',min:10,max:100,step:.5,unit:'%',show:isK('grid','columns'),tip:'How much of the canvas’s width they take'},
     {t:'range',k:'flSize',label:'Size',min:5,max:80,step:.5,unit:'%',show:isK('float'),tip:'How wide the nearest shapes are, against the canvas'},
     {t:'range',k:'gap',label:'Gap',min:0,max:240,step:1,unit:' px',show:isK('line','grid','columns','frames')},
     {t:'range',k:'radius',label:'Corners',min:0,max:120,step:1,unit:' px'},
-    {t:'seg',k:'fit',label:'Media',opts:[['fill','Fill the shape'],['fit','Fit inside']]},
-    {t:'colour',k:'shapeBg',label:'Behind the media'}]);
+    {t:'seg',k:'fit',label:'Media',opts:[['fill','Fill the shape'],['fit','Fit inside']],show:s=>!ownFit(s)},
+    {t:'colour',k:'shapeBg',label:'Behind the media',show:s=>!ownFit(s)}]);
   const f=fold(b,'border','Border and edge',null,true,s=>[s.mat>0?`${Math.round(s.mat)} px border`:'',s.edge?`${s.edgeW} px edge`:''].filter(Boolean).join(' · ')||'Off');
   build(f,[{t:'range',k:'mat',label:'Border',min:0,max:120,step:1,unit:' px'},{t:'colour',k:'matC',label:'Border colour',show:s=>s.mat>0},{t:'range',k:'matR',label:'Inner corners',min:0,max:120,step:1,unit:' px',show:s=>s.mat>0},
     {t:'toggle',k:'edge',label:'Edge'},{t:'colour',k:'edgeC',label:'Edge colour',show:s=>s.edge},{t:'range',k:'edgeW',label:'Edge width',min:.5,max:12,step:.5,unit:' px',show:s=>s.edge}]);
   const g=fold(b,'nudge','Position',s=>!isK('float')(s),true,s=>(+s.nudgeX||+s.nudgeY)?`${Math.round(s.nudgeX)}, ${Math.round(s.nudgeY)} px`:'Centred');
   build(g,[{t:'range',k:'nudgeX',label:'Across',min:-600,max:600,step:1,unit:' px',tip:'Move every shape left or right'},{t:'range',k:'nudgeY',label:'Up and down',min:-600,max:600,step:1,unit:' px',tip:'Move every shape up or down'}]);
-  SUMMARY.shapes=s=>[s.ratio==='custom'?`${s.rW}:${s.rH}`:s.ratio==='media'?'Media’s own':({a4p:'A4 portrait',a4l:'A4 landscape'}[s.ratio]||s.ratio),s.radius?`${s.radius} px corners`:'Square corners',s.mat>0?'Border':''].filter(Boolean).join(' · ');}
+  SUMMARY.shapes=s=>[ownFit(s)?'Their own':s.ratio==='custom'?`${s.rW}:${s.rH}`:s.ratio==='media'?'Media’s own':({a4p:'A4 portrait',a4l:'A4 landscape'}[s.ratio]||s.ratio),s.radius?`${s.radius} px corners`:'Square corners',s.mat>0?'Border':''].filter(Boolean).join(' · ');}
 /* Captions, with the fonts they're set in */
 const WHERE=[['under','Under'],['above','Above'],['over','On it'],['fixed','Fixed']];
 let fontBox;
 {const b=card('captions','Captions');
   build(b,[{t:'toggle',k:'capOn',label:'Captions'},
-    {t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','frames','float'].includes(S.layout)?WHERE.slice(0,3):WHERE,show:s=>s.capOn},
+    {t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','frames','float'].includes(S.layout)?WHERE.slice(0,3):S.layout==='one'&&S.oneFit==='bleed'?WHERE.slice(2):WHERE,show:s=>s.capOn},
     {t:'seg',k:'capAlign',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],show:s=>s.capOn},
     {t:'seg',k:'capV',label:'Sits',opts:[['top','Top'],['bottom','Bottom']],show:s=>s.capOn&&E.capWhereOf(s)==='fixed'},
     {t:'range',k:'capMargin',label:'Margin',min:0,max:300,step:1,unit:' px',show:s=>s.capOn&&E.capWhereOf(s)==='fixed'},
@@ -404,28 +437,39 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
     optLabel(PLACES,s.ovPos),s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):''].filter(Boolean).join(' · ');}
 
 /* ---------------- presets ---------------- */
-/* built in: one or two for each kind. Four of them come from Steve's references (4 Nov):
-   Phone swipe (lag and coast), Columns and Wall (columns on their own), Posters (frames that
-   stay put) and Milky Way (depth, with type over it in difference). */
+/* Built in, grouped by kind, named in Segue's own voice: musical terms, like the tools
+   themselves. The five showcase presets climb in tempo – Semplice (straight cuts, the classic
+   GIF), Adagio, Andante, Allegro, Presto (the extreme end – Steve's zoom-through reference,
+   5 Nov). Canon, Counterpoint, Polyrhythm, Fermata and Nocturne come from his 4 Nov references.
+   Showcase presets also set the export to GIF – they're made for it. */
 const BUILTIN=[
-  {name:'Card stack',tip:'A column of cards with captions, a flick at a time, pulling back to show them all',s:{layout:'column',ratio:'16:10',size:86,gap:64,radius:12,trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,capOn:true,capWhere:'under',capReveal:'scramble'}},
-  {name:'Phone swipe',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.25,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
-  {name:'Carousel',tip:'Tall cards drifting along in a row, without stopping',s:{layout:'row',ratio:'custom',rW:9,rH:20,size:59,gap:49,radius:14,trackMove:'drift',dir:'left',spsh:2.67,capOn:false,bg:'#1D1C23',shapeBg:'#2B2A31'}},
-  {name:'Columns',tip:'Columns stepping up and down in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
-  {name:'Wall',tip:'A wall of work in columns drifting up and down at their own speeds, each piece its own shape',s:{layout:'columns',cols:3,ratio:'media',size:100,gap:12,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'varied',spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
-  {name:'Posters',tip:'Three posters that stay put while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
-  {name:'Milky Way',tip:'Work floating up at three depths past a title – add the title in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.1,dur:1,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
-    ovBlend:'difference',ovZ:'mid',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'}},
-  {name:'Deck',tip:'Slides one at a time, flicked across',s:{layout:'one',ratio:'16:9',size:88,radius:8,oneMove:'slide',dir:'left',feel:'inertia',hold:1.4,dur:.8,after:'carry',capOn:false,bg:'#ECECE9'}},
-  {name:'Stack',tip:'Each one springs up over the last',s:{layout:'one',ratio:'4:5',size:82,radius:16,oneMove:'stack',dir:'up',feel:'spring',hold:1.2,dur:.75,after:'carry',capOn:false,bg:'#141414',shapeBg:'#222222'}},
-  {name:'Fade',tip:'One at a time, fading, with a caption fixed in the corner',s:{layout:'one',ratio:'4:5',size:78,radius:6,oneMove:'fade',hold:1.6,dur:.6,after:'carry',capOn:true,capWhere:'fixed',capV:'bottom',capAlign:'left',capMargin:64,capReveal:'rise',TF:'inter6',TS:40,TTr:-10,TCase:'as'}},
-  {name:'Grid',tip:'Rows of shapes stepping up a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1,dur:.9,capOn:false}}];
+  {name:'Semplice',tip:'Straight cuts, full bleed, nothing moving – the classic showcase GIF, and the smallest file',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'cut',hold:1.2,kb:'none',after:'carry',capOn:false}},
+  {name:'Adagio',tip:'Slow dissolves, full bleed, each slide drifting or zooming gently in turn',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'fade',hold:2.2,dur:.9,kb:'vary',kbAmt:7,dir:'left',after:'carry',capOn:false}},
+  {name:'Andante',tip:'Each piece at its own shape on the ground, pushed along and drifting the same way',x:{xFormat:'gif'},s:{layout:'one',oneFit:'own',ownScale:'fit',size:80,radius:4,oneMove:'slide',dir:'left',feel:'coast',hold:1.3,dur:1.1,kb:'drift',kbAmt:5,after:'carry',capOn:false,bg:'#EDEDEA'}},
+  {name:'Allegro',tip:'Full bleed, each slide opening from the middle of the last, zooming in a touch',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'open',feel:'glide',hold:.9,dur:.55,kb:'in',kbAmt:8,after:'carry',capOn:false}},
+  {name:'Presto',tip:'Full bleed and fast – each slide comes up from a small card as the last carries on past',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'through',hold:.15,dur:.38,kb:'in',kbAmt:22,after:'carry',capOn:false,bg:'#111111'}},
+  {name:'Staccato',tip:'Slides in a shape, flicked across one at a time',s:{layout:'one',oneFit:'shape',ratio:'16:9',size:88,radius:8,oneMove:'slide',dir:'left',feel:'inertia',hold:1.4,dur:.8,after:'carry',capOn:false,bg:'#ECECE9'}},
+  {name:'Pizzicato',tip:'Each one springs up over the last',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:82,radius:16,oneMove:'stack',dir:'up',feel:'spring',hold:1.2,dur:.75,after:'carry',capOn:false,bg:'#141414',shapeBg:'#222222'}},
+  {name:'Dolce',tip:'One into the next, with a caption fixed in the corner',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:78,radius:6,oneMove:'fade',hold:1.6,dur:.6,after:'carry',capOn:true,capWhere:'fixed',capV:'bottom',capAlign:'left',capMargin:64,capReveal:'rise',TF:'inter6',TS:40,TTr:-10,TCase:'as'}},
+  {name:'Coda',tip:'A column of cards with captions, a flick at a time, pulling back to show them all at the end',s:{layout:'column',ratio:'16:10',size:86,gap:64,radius:12,trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,capOn:true,capWhere:'under',capReveal:'scramble'}},
+  {name:'Canon',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.25,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
+  {name:'Ostinato',tip:'Tall cards drifting along in a row, never stopping',s:{layout:'row',ratio:'custom',rW:9,rH:20,size:59,gap:49,radius:14,trackMove:'drift',dir:'left',spsh:2.67,capOn:false,bg:'#1D1C23',shapeBg:'#2B2A31'}},
+  {name:'Chorale',tip:'Rows of shapes stepping up together, a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1,dur:.9,capOn:false}},
+  {name:'Counterpoint',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
+  {name:'Polyrhythm',tip:'A wall of work in columns drifting down and up at their own speeds, each piece its own shape',s:{layout:'columns',cols:3,ratio:'media',size:100,gap:12,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'varied',spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
+  {name:'Fermata',tip:'Three mounted posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
+  {name:'Nocturne',tip:'Work floating up at three depths past a line of type – add it in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.1,dur:1,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
+    ovBlend:'difference',ovZ:'mid',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'}}];
+/* 0.2's names, for anyone who had one in use */
+const RENAMED={'Card stack':'Coda','Phone swipe':'Canon',Carousel:'Ostinato',Columns:'Counterpoint',Wall:'Polyrhythm',Posters:'Fermata','Milky Way':'Nocturne',Deck:'Staccato',Stack:'Pizzicato',Fade:'Dolce',Grid:'Chorale'};
 let mine=LS.get('presets')||[],current=LS.get('preset')||'',edited=!!LS.get('presetEdited');
+if(RENAMED[current]&&!mine.some(p=>p.name===current)){current=RENAMED[current];LS.set('preset',current);}
 const presetName=()=>current?current+(edited?' – changed':''):'';
 const unit=()=>{const [W,H]=size();return E.unitOf(W,H);};
 function lookNow(){const u=unit(),o={};for(const k of LOOK)o[k]=PX.includes(k)?+(S[k]/u).toFixed(2):S[k];return o;}
 function applyPreset(p){const u=unit();for(const k of LOOK){const v=k in p.s?p.s[k]:D[k];S[k]=PX.includes(k)&&typeof v==='number'?+(v*u).toFixed(2):v;}
-  current=p.name;edited=false;LS.set('preset',current);LS.set('presetEdited',false);saveSettings();E.resetMeasure();clock=0;dirty=true;refreshAll();paintMedia();toast(`${p.name}`);}
+  if(p.x)for(const k in p.x)S[k]=p.x[k];
+  current=p.name;edited=false;LS.set('preset',current);LS.set('presetEdited',false);saveSettings();E.resetMeasure();clock=0;dirty=true;refreshAll();paintMedia();toast(p.x&&p.x.xFormat==='gif'?`${p.name} – export set to GIF`:`${p.name}`);}
 let presetBox,saveIn;
 {const b=card('presets','Presets');presetBox=el('div','preset-list');b.append(presetBox);
   addHint(b,'A preset sets the look and the motion. Your media, captions and canvas size stay.');
@@ -436,13 +480,13 @@ let presetBox,saveIn;
   dl.onclick=()=>saveFile('segue-presets.json',new Blob([JSON.stringify({segue:1,presets:mine},null,1)],{type:'application/json'}));ld.onclick=()=>$('#presetfile').click();r2.append(dl,ld);b.append(r2);
   cardToSheet(b,'presets');}
 function paintPresets(){presetBox.textContent='';
-  const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),meta=el('div','slot-meta',optLabel(KINDS,E.kindOf(p.s))+' · '+(own?'Yours':p.tip||'Built in'));
+  const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),meta=el('div','slot-meta',own?optLabel(KINDS,E.kindOf(p.s))+' · Yours':p.tip||'');
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
     top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);}
     if(own){const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Delete';rm.setAttribute('aria-label','Delete '+p.name);
       rm.onclick=e=>{e.stopPropagation();mine=mine.filter(x=>x!==p);LS.set('presets',mine);paintPresets();};top.append(rm);}
     r.append(top);presetBox.append(r);};
-  presetBox.append(el('div','sub-head','Built in'));for(const p of BUILTIN)row(p,false);
+  for(const [k,label] of KINDS){const ps=BUILTIN.filter(p=>E.kindOf(p.s)===k);if(!ps.length)continue;presetBox.append(el('div','sub-head',label));for(const p of ps)row(p,false);}
   if(mine.length){presetBox.append(el('div','sub-head','Yours'));for(const p of mine)row(p,true);}}
 $('#presetfile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const j=JSON.parse(await f.text()),list=(j.presets||[]).filter(p=>p&&p.name&&p.s);let n=0;for(const p of list){p.s=sanitise(p.s);mine=mine.filter(x=>x.name!==p.name);mine.push({name:String(p.name).slice(0,60),s:p.s});n++;}

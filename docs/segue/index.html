@@ -445,6 +445,7 @@
   .spot[aria-pressed="true"] i{background:var(--on-ink);opacity:1;width:7px;height:7px}
   .img-row .mthumb[hidden]{display:none}
   .img-row .slot-name.muted{color:var(--muted);font-size:var(--fs-small)}
+  .slot-det{padding-top:8px}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.js"></script>
 </head>
@@ -457,7 +458,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.2</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.3</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -528,6 +529,8 @@ const spring=t=>t<=0?0:t>=1?1:springRaw(t)+t*(1-springRaw(1));
 /* Soft: a gentle ease in and out – the least abrupt, for zooms. Coast: a short push, then a
    long glide that only just settles – fitted to Steve's phone-swipe reference (4 Nov). */
 const FEEL={glide:bezier(.65,0,.35,1),soft:bezier(.42,0,.58,1),coast:bezier(.18,0,.02,1),inertia:bezier(.35,.85,.2,1),spring,linear:t=>clamp(t,0,1)};
+/* Through's own curve, in scale: off at once, slowing as it fills the frame – fitted to the card's growth in Steve's reference (5 Nov) */
+const THROUGH=bezier(.04,.35,.76,1);
 const feel=name=>FEEL[name]||FEEL.glide;
 
 /* ---------------- sizes ---------------- */
@@ -559,7 +562,8 @@ const colsOf=S=>Math.max(1,Math.round(+S.cols)||3);
 const framesOf=S=>Math.max(1,Math.round(+S.fCols)||1)*Math.max(1,Math.round(+S.fRows)||1);
 const creepOf=S=>clamp((+S.creep||0)/100,0,.9);
 /* captions fixed on the canvas belong to a shape at a time – not to the kinds with many at once */
-const capWhereOf=S=>OWN.has(S.layout)&&S.capWhere==='fixed'?'under':(S.capWhere||'under');
+const bleedOf=S=>S.layout==='one'&&S.oneFit==='bleed';
+const capWhereOf=S=>{const w=S.capWhere||'under';if(OWN.has(S.layout)&&w==='fixed')return'under';if(bleedOf(S)&&(w==='under'||w==='above'))return'over';return w;};
 
 /* ---------------- captions: rich text, tracking, kerning ---------------- */
 const ROLES=['T','L','G'];
@@ -647,12 +651,15 @@ function plan(S,items){
     return{kind:'flstep',L:cyc>0?K*cyc:1,K,N,hold,dur};}
   const stops=stopsOf(S,N);
   if(mv==='still')return{kind:'still',L:still(),stops,N};
+  /* a single slide has nothing to change to: it just stays, its movement going in and back out */
+  if(lay==='one'&&items.length===1&&!items[0].placeholder){const it=items[0],h=+it.hold>0?+it.hold:hold;return{kind:'still',L:Math.max(.5,h+dur),stops,N};}
   if(mv==='drift')return{kind:'drift',L:Math.max(.2,stops*(+S.spsh||2.5)),stops,N};
   const pull=S.after==='pull'&&S.layout!=='grid'&&N>1;
   const segs=[];let t=0;
   const moveLen=s=>arrivalOf(S,items,s)==='cut'?0:dur;
+  const one=S.layout==='one',holdOf=s=>{const it=one?items[mod(s,N)]:null;return it&&+it.hold>0?+it.hold:hold;};
   for(let s=0;s<stops;s++){
-    const h={k:'hold',s,t0:t,t1:t+hold};segs.push(h);t+=hold;
+    const hs=holdOf(s),h={k:'hold',s,t0:t,t1:t+hs};segs.push(h);t+=hs;
     if(s<stops-1||!pull){const d=moveLen(s+1);h.next=true;segs.push({k:'move',s,to:s+1,how:arrivalOf(S,items,s+1),t0:t,t1:t+d,i0:h.t0});t+=d;}
     else{const zo=Math.max(.05,+S.zOut||1),gh=Math.max(0,+S.gHold||0),zi=Math.max(.05,+S.zIn||1);
       segs.push({k:'out',s,t0:t,t1:t+zo});t+=zo;segs.push({k:'grid',s,t0:t,t1:t+gh});t+=gh;segs.push({k:'in',s:stops,t0:t,t1:t+zi});t+=zi;}}
@@ -660,7 +667,9 @@ function plan(S,items){
   /* when each stop starts arriving: video in that shape plays from its start point then */
   const arrive=new Array(stops).fill(0);
   for(const g of segs){if(g.k==='move')arrive[mod(g.to,stops)]=g.to>=stops?g.t0-t:g.t0;if(g.k==='in')arrive[0]=g.t0-t;}
-  return{kind:'step',L:t,segs,stops,N,pull,arrive,hold,dur};}
+  /* …and when it's finished leaving: a slide's movement runs from one to the other */
+  const gone=new Array(stops).fill(t);for(const g of segs)if(g.k==='move'||g.k==='out')gone[g.s]=g.t1;
+  return{kind:'step',L:t,segs,stops,N,pull,arrive,gone,hold,dur};}
 /* a segment-based plan: the segment at loop time tt */
 function segAt(P,tt){let g=P.segs[P.segs.length-1];for(const x of P.segs)if(tt>=x.t0&&tt<x.t1){g=x;break;}return g;}
 const glides=S=>S.layout==='row'||S.layout==='column'||S.layout==='grid';
@@ -681,7 +690,7 @@ function cameraAt(P,S,t){
   const k=g.t1>g.t0?clamp((tt-g.t0)/(g.t1-g.t0),0,1):1;
   const cr=glides(S)?creepOf(S):0;
   if(g.k==='hold'){const p=cr?(1-cr)*g.s+cr*linAt(P,g,tt):g.s;return{tt,p,z:0,k:0,seg:g};}
-  if(g.k==='move'){const how=g.how,e=feel(S.feel)(k);let p=(S.layout==='one'&&how!=='slide')?g.s:g.s+e;if(cr)p=(1-cr)*p+cr*linAt(P,g,tt);return{tt,p,z:0,k,e,seg:g,how};}
+  if(g.k==='move'){const how=g.how,e=(how==='fade'||how==='dip'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(k);let p=(S.layout==='one'&&how!=='slide')?g.s:g.s+e;if(cr)p=(1-cr)*p+cr*linAt(P,g,tt);return{tt,p,z:0,k,e,seg:g,how};}
   const ez=feel(S.zFeel||'soft');
   if(g.k==='out')return{tt,p:g.s,z:ez(k),k,seg:g};
   if(g.k==='grid')return{tt,p:g.s,z:1,k,seg:g};
@@ -712,13 +721,19 @@ function geometry(S,items,ctx,fonts,W,H){
   /* room for captions under or above each shape: the tallest block among the items */
   const {capH,reserve}=capReserve(S,items,ctx,fonts);
   const size=clamp(+S.size||80,1,300)/100,gap=Math.max(0,+S.gap||0);let sw,sh;
-  if(lay==='one'){const bw=W,bh=Math.max(1,H-reserve);if(bw/bh>r){sh=bh*size;sw=sh*r;}else{sw=bw*size;sh=sw/r;}}
+  if(lay==='one'){if(S.oneFit==='bleed'){sw=W;sh=H;}
+    else{const bw=W,bh=Math.max(1,H-reserve),q=S.oneFit==='own'?bw/bh:r;if(bw/bh>q){sh=bh*size;sw=sh*q;}else{sw=bw*size;sh=sw/q;}}}
   else if(lay==='row'){sh=Math.max(1,H-reserve)*size;sw=sh*r;}
   else if(lay==='column'){sw=W*size;sh=sw/r;}
   else{const C=colsOf(S);sw=Math.max(1,(W*size-(C-1)*gap)/C);sh=sw/r;}
   const slotW=sw,slotH=sh+reserve,d=dirOf(S),hz=lay==='row'||(lay==='one'&&horiz(d));
   const pitch=lay==='one'?(hz?W:H):lay==='grid'?slotH+gap:(hz?slotW+gap:slotH+gap);
-  return{W,H,u,r,sw,sh,slotW,slotH,reserve,capH,pitch,gap,dir:d,sgn:sgnOf(d),hz,lay,cx:W/2+(+S.nudgeX||0),cy:H/2+(+S.nudgeY||0)};}
+  /* True to scale: one scale for every slide, set by the one that fits least – so a smaller
+     piece shows smaller. Fit each: every slide as big as the space allows. */
+  let rel=null;
+  if(lay==='one'&&S.oneFit==='own'&&S.ownScale==='true'){let k=Infinity;for(const it of items)if(it&&it.w&&it.h)k=Math.min(k,Math.min(sw/it.w,sh/it.h));
+    if(isFinite(k))rel=it=>it&&it.w&&it.h?k/Math.min(sw/it.w,sh/it.h):1;}
+  return{W,H,u,r,sw,sh,slotW,slotH,reserve,capH,pitch,gap,dir:d,sgn:sgnOf(d),hz,lay,rel,cx:W/2+(+S.nudgeX||0),cy:H/2+(+S.nudgeY||0)};}
 /* a shape's rectangle inside its slot (the slot holds the caption too) */
 function shapeIn(G,S,cx,cy,sc){const w=G.sw*sc,h=G.sh*sc,top=cy-G.slotH*sc/2;
   const y=S.capOn&&capWhereOf(S)==='above'&&G.reserve?top+G.reserve*sc:top;return{x:cx-w/2,y,w,h};}
@@ -727,6 +742,8 @@ function shapeIn(G,S,cx,cy,sc){const w=G.sw*sc,h=G.sh*sc,top=cy-G.slotH*sc/2;
 function scene(S,items,ctx,fonts,W,H,t){
   const real=items.length>0,list=real?items:placeholders(6,S);
   if(OWN.has(S.layout)&&S.capWhere==='fixed')S=Object.assign({},S,{capWhere:capWhereOf(S)});
+  if(bleedOf(S))S=Object.assign({},S,{radius:0,mat:0,edge:false,fit:'fill',nudgeX:0,nudgeY:0,shapeBg:S.bg});
+  else if(S.layout==='one'&&S.oneFit==='own')S=Object.assign({},S,{fit:'fill',shapeBg:'rgba(0,0,0,0)'});
   const G=geometry(S,list,ctx,fonts,W,H),P=plan(S,list),cam=cameraAt(P,S,t),N=list.length,ops=[];
   const vt=i=>{const it=list[i];if(!it||it.kind!=='video')return null;const st=+it.start||0;
     if(P.kind!=='step'||S.layout==='grid')return st+cam.tt;
@@ -743,6 +760,7 @@ function scene(S,items,ctx,fonts,W,H,t){
   else if(S.layout==='grid')gridScene(S,G,P,cam,N,push);
   else if(S.layout==='one'&&cam.seg&&cam.seg.k==='move'&&cam.how!=='slide')oneMove(S,G,cam,N,push);
   else trackScene(S,G,P,cam,N,push);
+  if(S.layout==='one')oneFinish(S,G,P,cam,ops);
   /* a caption fixed on the canvas: the current shape's, handing over during a move */
   let fixed=null;
   if(S.capOn&&capWhereOf(S)==='fixed'&&real&&!OWN.has(S.layout)){const cur=mod(Math.round(cam.p),N);
@@ -755,7 +773,7 @@ function trackScene(S,G,P,cam,N,push){
   const vis=Math.ceil((ext/2+slot/2)/G.pitch),lg=lagger(S,P,cam,vis,vis+1);
   for(let k=Math.floor(p)-span;k<=Math.ceil(p)+span;k++){
     const pk=lg?lg.at(k):p,off=(k-pk)*G.pitch*G.sgn,cx=G.hz?G.cx+off:G.cx,cy=G.hz?G.cy:G.cy+off;
-    const r=shapeIn(G,S,cx,cy,1);if(r.x>G.W||r.x+r.w<0||r.y-G.reserve>G.H||r.y+r.h+G.reserve<0)continue;push(mod(k,N),r,{key:'t'+k});}}
+    const r=shapeIn(G,S,cx,cy,1);if(r.x>=G.W||r.x+r.w<=0||r.y-G.reserve>=G.H||r.y+r.h+G.reserve<=0)continue;push(mod(k,N),r,{key:'t'+k,k});}}
 function gridScene(S,G,P,cam,N,push){
   const C=colsOf(S),span=Math.ceil((G.H/2+G.slotH)/G.pitch)+1,p=cam.p;
   const vis=Math.ceil((G.H/2+G.slotH/2)/G.pitch),lg=lagger(S,P,cam,vis,vis+1);
@@ -763,12 +781,48 @@ function gridScene(S,G,P,cam,N,push){
     for(let c=0;c<C;c++){const cx=G.cx+(c-(C-1)/2)*(G.slotW+G.gap);push(mod(r*C+c,N),shapeIn(G,S,cx,cy,1),{key:'g'+r+'.'+c});}}}
 /* One: the moves that aren't a slide */
 function oneMove(S,G,cam,N,push){
-  const a=mod(cam.seg.s,N),b=mod(cam.seg.to,N),e=cam.e,how=cam.how,at=(sc,dx,dy)=>shapeIn(G,S,G.cx+(dx||0),G.cy+(dy||0),sc);
-  if(how==='fade'){push(a,at(1),{capAlpha:1-e});push(b,at(1),{alpha:e});return;}
-  if(how==='cut'){push(e<1?a:b,at(1));return;}
-  if(how==='zoom'){push(a,at(1+.06*e),{scale:1+.06*e,capAlpha:1-e});push(b,at(.9+.1*e),{alpha:smooth(e*1.15),scale:.9+.1*e});return;}
+  const ka=cam.seg.s,kb=cam.seg.to,a=mod(ka,N),b=mod(kb,N),e=cam.e,how=cam.how,at=(sc,dx,dy)=>shapeIn(G,S,G.cx+(dx||0),G.cy+(dy||0),sc);
+  /* when the next one won't cover this one exactly (slides of their own shapes, or this one
+     grown bigger), this one fades as it goes, so nothing is left showing round the edge */
+  const own=S.oneFit==='own',bleed=bleedOf(S);
+  if(how==='fade'){push(a,at(1),{capAlpha:1-e,alpha:own?1-e:1,k:ka});push(b,at(1),{alpha:e,k:kb});return;}
+  /* dip: out to the background, then the next up from it */
+  if(how==='dip'){if(e<.5)push(a,at(1),{alpha:1-smooth(e*2),k:ka});else push(b,at(1),{alpha:smooth(e*2-1),k:kb});return;}
+  /* wipe: a straight edge crosses the canvas, the next on one side of it, this one on the other */
+  if(how==='wipe'){const W=G.W,H=G.H,d=G.dir,x=d==='left'?W*(1-e):W*e,y=d==='up'?H*(1-e):H*e;
+    const [ca,cb]=d==='left'?[{x:0,y:0,w:x,h:H},{x,y:0,w:W-x,h:H}]:d==='right'?[{x,y:0,w:W-x,h:H},{x:0,y:0,w:x,h:H}]:d==='up'?[{x:0,y:0,w:W,h:y},{x:0,y,w:W,h:H-y}]:[{x:0,y,w:W,h:H-y},{x:0,y:0,w:W,h:y}];
+    push(a,at(1),{clip:ca,k:ka});push(b,at(1),{clip:cb,k:kb});return;}
+  /* open: a window opens from the middle, the next one behind it at its full size */
+  if(how==='open'){const W=G.W,H=G.H,w=W*e,h=H*e,c={x:(W-w)/2,y:(H-h)/2,w,h};push(a,at(1),{clip:Object.assign({out:true},c),k:ka});if(e>0)push(b,at(1),{clip:c,k:kb});return;}
+  /* through: the next one comes up from a small card in the middle – growing in scale, so it
+     reads as distance, on its own curve – while this one is carried on past (Steve's reference, 5 Nov) */
+  if(how==='through'){const s0=.12,sb=Math.pow(s0,1-e),sa=1+.18*e;push(a,at(sa),{scale:sa,alpha:bleed?1:1-smooth(e),k:ka});push(b,at(sb),{scale:sb,k:kb});return;}
+  if(how==='cut'){push(e<1?a:b,at(1),{k:e<1?ka:kb});return;}
+  if(how==='zoom'){push(a,at(1+.06*e),{scale:1+.06*e,capAlpha:1-e,alpha:bleed?1:1-smooth(e),k:ka});push(b,at(.9+.1*e),{alpha:smooth(e*1.15),scale:.9+.1*e,k:kb});return;}
   /* stack: the next one slides in over this one */
-  const off=(1-e)*G.pitch*G.sgn;push(a,at(1-.04*e),{scale:1-.04*e,capAlpha:1-e});push(b,at(1,G.hz?off:0,G.hz?0:off));}
+  const off=(1-e)*G.pitch*G.sgn;push(a,at(1-.04*e),{scale:1-.04*e,capAlpha:1-e,alpha:own?1-smooth(e):1,k:ka});push(b,at(1,G.hz?off:0,G.hz?0:off),{k:kb});}
+/* One, last of all: slides that keep their own shape are fitted into their space, and each
+   slide gets its movement – a zoom, a drift or parallax that runs evenly from the moment it
+   starts arriving to the moment it's gone, so it never stops on screen. As it is moves the
+   whole slide (nothing of the work is cropped); full bleed and In a shape move the picture
+   inside its frame; parallax moves the frame one way and the picture the other. */
+const KB_VARY=['in','drift','out','back'];
+function moveKind(S,it,i){let m=it&&it.moves&&it.moves!=='default'?it.moves:(S.kb||'none');if(m==='vary')m=KB_VARY[mod(i,4)];if(m==='parallax'&&bleedOf(S))m='drift';return m;}
+function uOf(P,cam,k){
+  if(P.kind==='still')return(1-Math.cos(2*Math.PI*cam.tt/P.L))/2;   /* in and back out, so it joins up */
+  if(P.kind!=='step'||!P.gone)return 0;const s=mod(k,P.stops),A=P.arrive[s]+P.L*Math.floor(k/P.stops);
+  return clamp((cam.tt-A)/Math.max(1e-6,P.gone[s]-P.arrive[s]),0,1);}
+function oneFinish(S,G,P,cam,ops){
+  const own=S.oneFit==='own',amt=clamp((+S.kbAmt||0)/100,0,.5),where=capWhereOf(S),d=G.dir,hz=horiz(d),sg=sgnOf(d)*-1;
+  for(const o of ops){if(o.k==null||!o.item)continue;let r=o.rect;o.key='s'+o.k;
+    if(own&&o.item.w&&o.item.h){const q=o.item.w/o.item.h,f=G.rel?G.rel(o.item):1;let w=r.w,h=r.h;if(w/h>q)w=h*q;else h=w/q;w*=f;h*=f;
+      const y=where==='under'&&S.capOn?r.y+r.h-h:where==='above'&&S.capOn?r.y:r.y+(r.h-h)/2;r={x:r.x+(r.w-w)/2,y,w,h};}
+    const m=moveKind(S,o.item,o.i);
+    if(m!=='none'&&amt>0){const u=uOf(P,cam,o.k),off=(m==='back'?-sg:sg)*(u-.5)*amt;
+      if(m==='in'||m==='out'){const z=1+amt*(m==='in'?u:1-u);if(own){const w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2,y:r.y-(h-r.h)/2,w,h};}else o.inner={s:z,x:0,y:0};}
+      else if(m==='drift'||m==='back'){if(own)r=Object.assign({},r,hz?{x:r.x+off*r.w}:{y:r.y+off*r.h});else o.inner={s:1+amt,x:hz?off:0,y:hz?0:off};}
+      else if(m==='parallax'){r=Object.assign({},r,hz?{x:r.x+off*r.w}:{y:r.y+off*r.h});o.inner={s:1+amt,x:hz?-off:0,y:hz?0:-off};}}
+    o.rect=r;}}
 /* pull back: the camera zooms out until every shape shows in a grid, then back in. Shapes that
    are neighbours both on the track and in the grid stay put and the camera simply moves; the
    rest fade out where they were on the track and fade up in their place in the grid, so
@@ -784,12 +838,13 @@ function pullScene(S,G,P,cam,N,push){
   const out=smooth(cam.z/.3),up=smooth((cam.z-.08)/.5),later=[];let focus=null;
   for(let i=0;i<N;i++){const k=((i-c)%N+N+Math.floor(N/2))%N-Math.floor(N/2),tw=k*G.pitch*G.sgn,ci=cell(i),gx=ci[0]-c0[0],gy=ci[1]-c0[1];
     const [a0,b0]=cr(c),[a1,b1]=cr(i),along=G.hz?(b1===b0&&a1-a0===k):(a1===a0&&b1-b0===k);
-    if(i===c){focus=[i,at(0,0)];continue;}
-    if(along){later.push([i,at(lerp(G.hz?tw:0,gx,m),lerp(G.hz?0:tw,gy,m)),{scale:sc,rev:1}]);continue;}
-    if(out<1)push(i,at(G.hz?tw:0,G.hz?0:tw),{scale:sc,rev:1,alpha:1-out});
-    if(up>0)push(i,at(gx,gy),{scale:sc,rev:1,alpha:up});}
+    const kk=i===0?P.stops:i;
+    if(i===c){focus=[i,at(0,0),kk];continue;}
+    if(along){later.push([i,at(lerp(G.hz?tw:0,gx,m),lerp(G.hz?0:tw,gy,m)),{scale:sc,rev:1,k:kk}]);continue;}
+    if(out<1)push(i,at(G.hz?tw:0,G.hz?0:tw),{scale:sc,rev:1,alpha:1-out,k:kk});
+    if(up>0)push(i,at(gx,gy),{scale:sc,rev:1,alpha:up,k:kk});}
   for(const l of later)push(l[0],l[1],l[2]);
-  if(focus)push(focus[0],focus[1],{scale:sc,rev:1});}
+  if(focus)push(focus[0],focus[1],{scale:sc,rev:1,k:focus[2]});}
 
 /* Columns: every column a loop of all the media, each starting further along, running up or
    down on its own. Drifting, each goes round once a loop (Varied: two, three or four times
@@ -842,7 +897,7 @@ function framesScene(S,P,cam,list,ctx,fonts,W,H,push){
 /* Float: shapes scattered across the canvas at three depths. Each depth is a strip as long
    as it is near – twice the size, twice the length – and every strip goes round once a
    loop, so nearer shapes are bigger and faster and everything still joins up. Stepping, the
-   whole field moves together and can keep drifting while it rests (Steve's Milky Way). */
+   whole field moves together and can keep drifting while it rests (Steve's 4 Nov depth reference). */
 function floatScene(S,P,cam,list,W,H,push,ops){
   const F=floatSetup(S,list,W,H),N=list.length,tt=cam.tt,seed=Math.round(+S.seed||0);
   let q=0;if(P.kind==='fldrift')q=tt/P.L;else if(P.kind==='flstep')q=cycPos(tt,P.hold,P.dur,feel(S.feel),creepOf(S))/P.K;
@@ -875,16 +930,19 @@ function paint(ctx,SC,S,fonts,opt){
     if(o.alpha<=0)return;const r=o.rect,sc=o.scale,m=Math.min(mat*sc,r.w/3,r.h/3);
     const inn=m>0?{x:r.x+m,y:r.y+m,w:r.w-2*m,h:r.h-2*m}:r,iR=m>0?matR*sc:rad*sc;
     const mr=o.slide?{x:inn.x+o.slide[0]*inn.w,y:inn.y+o.slide[1]*inn.h,w:inn.w,h:inn.h}:inn;
+    ctx.save();if(o.clip){const c=o.clip;ctx.beginPath();if(c.out){ctx.rect(0,0,W,H);ctx.rect(c.x,c.y,c.w,c.h);ctx.clip('evenodd');}else{ctx.rect(c.x,c.y,c.w,c.h);ctx.clip();}}
     ctx.save();ctx.globalAlpha=clamp(o.alpha,0,1);
     if(m>0&&o.frame!==false){rr(ctx,r.x,r.y,r.w,r.h,rad*sc);ctx.fillStyle=S.matC||'#FFFFFF';ctx.fill();}
     rr(ctx,inn.x,inn.y,inn.w,inn.h,iR);ctx.save();ctx.clip();
+    if(o.inner){const cx=mr.x+mr.w/2,cy=mr.y+mr.h/2;ctx.translate(cx+o.inner.x*mr.w,cy+o.inner.y*mr.h);ctx.scale(o.inner.s,o.inner.s);ctx.translate(-cx,-cy);}
     ctx.fillStyle=o.item.placeholder?(lum(S.bg)>.5?'#d9d8d4':'#3a3940'):(S.shapeBg||'#e6e6e3');ctx.fillRect(mr.x,mr.y,mr.w,mr.h);
     if(o.item.placeholder){ctx.fillStyle=lum(S.bg)>.5?'#8f8d88':'#77757f';ctx.font=`400 ${Math.max(8,mr.h*.18)}px "Inter Tight", Helvetica, Arial, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(o.item.n),mr.x+mr.w/2,mr.y+mr.h/2);ctx.textAlign='left';ctx.textBaseline='alphabetic';}
     else if(opt.media)opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');
     ctx.restore();
     if(S.edge&&(+S.edgeW||0)>0&&o.frame!==false){const lw=(+S.edgeW)*sc;ctx.lineWidth=lw;ctx.strokeStyle=S.edgeC||'#000000';rr(ctx,r.x+lw/2,r.y+lw/2,r.w-lw,r.h-lw,Math.max(0,rad*sc-lw/2));ctx.stroke();}
     ctx.restore();
-    if(S.capOn&&capWhereOf(S)!=='fixed'&&!o.item.placeholder){const b=capBlock(ctx,S,o.item,fonts);if(b)drawCap(ctx,S,b,o,r,SC);}});
+    if(S.capOn&&capWhereOf(S)!=='fixed'&&!o.item.placeholder){const b=capBlock(ctx,S,o.item,fonts);if(b)drawCap(ctx,S,b,o,r,SC);}
+    ctx.restore();});
   if(SC.fixed&&SC.fixed.alpha>0){const it=SC.list[SC.fixed.i],b=capBlock(ctx,S,it,fonts);if(b)drawFixed(ctx,S,b,SC.fixed,SC);}
   if(!ovDone)drawOverlay(ctx,S,SC,fonts,opt);
   ctx.restore();}
@@ -931,7 +989,7 @@ function drawBlock(ctx,S,b,x0,y0,sc,alpha,rev,seed,tt){
       draw(c.glyphs,cx+c.padX*sc,by,st.colour);}});
   ctx.restore();}
 
-return{FEEL,feel,SIZES,RATIOS,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,plan,cameraAt,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
+return{FEEL,feel,SIZES,RATIOS,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
 })();
 </script>
 <script id="segue-mp4">
@@ -3119,6 +3177,7 @@ const D={
   cSize:'4:5',cW:1080,cH:1350,bg:'#F5F5F3',bgFit:'fill',bgImgA:100,fps:30,
   layout:'column',ratio:'16:10',rW:16,rH:10,size:86,cols:3,gap:64,radius:12,fit:'fill',shapeBg:'#E6E6E3',edge:false,edgeC:'#111111',edgeW:2,nudgeX:0,nudgeY:0,
   mat:0,matC:'#FFFFFF',matR:0,
+  oneFit:'shape',ownScale:'fit',kb:'none',kbAmt:6,
   oneMove:'slide',trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',
   colDir:'alt',colSpeed:'same',colLag:.4,colOff:50,
   fCols:3,fRows:1,fMove:'push',fLag:.15,
@@ -3129,10 +3188,10 @@ const D={
   LF:'plex',LS:17,LTr:0,LLd:1.4,LC:'#6B6A66',LCase:'as',
   GF:'plex',GS:13,GTr:20,GLd:1.2,GC:'#111111',GCase:'as',
   ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',
-  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20};
+  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false};
 /* the look: what a preset carries. Size, frame rate, the file name and what's over the top
    (it's content, like the captions) stay as they are. */
-const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','ovOn','ovKind','ovText'];
+const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','xDither','ovOn','ovKind','ovText'];
 const LOOK=Object.keys(D).filter(k=>!NOT_LOOK.includes(k));
 /* px values: presets keep them for a 1080 short side and scale them to the canvas they land on */
 const PX=['gap','radius','edgeW','nudgeX','nudgeY','gGap','capSpace','capX','capY','capMargin','capGapL','TS','LS','GS','mat','matR','OS','ovM','ovX','ovY'];
@@ -3172,7 +3231,7 @@ const DB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=i
   return{put:(st,k,v)=>tx(st,'readwrite',s=>s.put(v,k)),get:(st,k)=>tx(st,'readonly',s=>s.get(k)),del:(st,k)=>tx(st,'readwrite',s=>s.delete(k))};})();
 /* ---------------- media ---------------- */
 let items=[];
-const META=['id','name','kind','w','h','dur','start','title','line','tags','arrive','levels','fixed'];
+const META=['id','name','kind','w','h','dur','start','title','line','tags','arrive','levels','fixed','hold','moves'];
 function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));}
 const isVideo=f=>/^video\//.test(f.type)||/\.(mp4|m4v|mov|webm)$/i.test(f.name);
 const isImage=f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif|svg|avif)$/i.test(f.name);
@@ -3279,7 +3338,7 @@ function tick(now){const dt=lastT?Math.min(100,now-lastT):0;lastT=now;
 function setPlaying(v){playing=v;const b=$('#play');b.textContent=v?'Pause':'Play';b.setAttribute('aria-label',v?'Pause':'Play');dirty=true;}
 $('#play').onclick=()=>setPlaying(!playing);
 $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();clock=$('#scrub').value/1000*P.L;dirty=true;});
-function onSet(k){if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
+function onSet(k){if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
 function appRefresh(){const P=planNow();$('#loopChip').textContent=`${P.L.toFixed(1)} s loop`;$('#loopChip').title=`The loop lasts ${P.L.toFixed(2)} seconds, then starts again exactly where it began`;
   $('#countChip').textContent=items.length?(items.length===1?'1 shape':`${items.length} shapes`):'No media yet';
   const pn=$('#pcapName');pn.textContent=presetName();}
@@ -3294,6 +3353,10 @@ Object.assign(TIPS,{
   ratio:'The shape each piece of media sits in. It’s cropped to fill it, or fitted inside. The media’s own: in Columns and Float each shape takes its own media’s shape.',
   gap:'Space between shapes',radius:'Rounded corners on every shape',
   fit:'Fill crops the media to the shape; Fit shows all of it, on the shape’s colour',shapeBg:'Shows behind media that doesn’t fill its shape',
+  oneFit:'Full bleed fills the canvas with each slide, cropped to it. As it is keeps each slide’s own shape, on the background. In a shape puts every slide in the same shape – set it in Shapes.',
+  ownScale:'Fit each: every slide as big as the space allows. True to scale: one scale for them all, so a smaller piece shows smaller.',
+  kb:'A little movement in every slide while it’s on screen, running through the transitions so it never stops. As it is moves the whole slide; full bleed and In a shape move the picture inside its frame. Parallax moves the frame one way and the picture the other. Vary takes turns: in, across, out, back.',
+  kbAmt:'How far each slide moves while it’s on screen – the zoom, or the distance across',
   mat:'A border inside each shape, like the mount round a print',matR:'Rounded corners on the media inside the border',
   hold:'How long each shape rests before the next move',dur:'How long each move takes',spsh:'How long it takes to drift by one shape – sets the speed',
   feel:'Glide eases in and out. Soft is gentler – smoothest for zooms. Coast pushes, then glides in a long way. Inertia flicks and coasts to a stop. Spring goes a touch past and settles.',
@@ -3332,6 +3395,7 @@ const openRows=new Set();let mediaBox;
   const r=el('div','ctl btn-row'),add=el('button','pill','+ Add images or video');add.type='button';add.onclick=()=>$('#mediafile').click();r.append(add);
   const clr=el('button','pill small','Clear all');clr.type='button';clr.onclick=()=>{if(!items.length)return;for(const it of items.slice())removeItem(it.id);toast('Cleared');};r.append(clr);b.append(r);
   addHint(b,'Drag a row to change the order. Video plays from its start point as its shape arrives.',()=>items.length>1);
+  addHint(b,'Open a row to give that slide its own time on screen, transition or movement.',s=>s.layout==='one'&&items.length>0);
   SUMMARY.media=()=>!items.length?'No media yet':`${items.length} · `+(()=>{const v=items.filter(i=>i.kind==='video').length,i=items.length-v;return [v?`${v} video`:'',i?`${i} image${i>1?'s':''}`:''].filter(Boolean).join(', ');})();}
 function thumbOf(it){const c=el('canvas');c.width=88;c.height=64;const x=c.getContext('2d');x.fillStyle='#ddd';x.fillRect(0,0,88,64);
   try{if(it.src&&(it.kind!=='video'||it.src.readyState>=2)){const s=Math.max(88/it.w,64/it.h);x.drawImage(it.src,(88-it.w*s)/2,(64-it.h*s)/2,it.w*s,it.h*s);}}catch(e){}return c;}
@@ -3341,7 +3405,7 @@ function paintMedia(){
   if(!items.length){mediaBox.append(el('div','media-empty','Drop images or video here, or anywhere on the page'));return;}
   items.forEach((it,i)=>{
     const row=el('div','slot'),top=el('div','slot-top'),th=el('span','mthumb'),main=el('div','slot-main'),nm=el('div','slot-name',it.title?it.title.split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,''):it.name),meta=el('div','slot-meta');
-    th.append(thumbOf(it));meta.textContent=(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
+    th.append(thumbOf(it));meta.textContent=(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(S.layout==='one'&&+it.hold>0?` · on for ${+(+it.hold).toFixed(2)} s`:'')+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-expanded',openRows.has(it.id));main.setAttribute('aria-label',`${i+1}. ${it.name} – details`);
     const tog=()=>{openRows.has(it.id)?openRows.delete(it.id):openRows.add(it.id);paintMedia();};main.onclick=tog;main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
     const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+it.name);rm.onclick=()=>removeItem(it.id);
@@ -3352,19 +3416,30 @@ function paintMedia(){
     row.ondrop=e=>{if(!dragId)return;e.preventDefault();e.stopPropagation();row.classList.remove('over');moveItem(dragId,i);};
     if(openRows.has(it.id))row.append(itemDetail(it,i));
     mediaBox.append(row);});}
-function itemDetail(it,i){const det=el('div','slot-det');
-  const txt=(label,key,multi,ph)=>{const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,label),inp=el(multi?'textarea':'input');if(!multi)inp.type='text';else inp.rows=2;
-    inp.id=`i_${key}_${it.id}`;lb.htmlFor=inp.id;inp.value=it[key]||'';inp.placeholder=ph||'';inp.spellcheck=false;
-    inp.oninput=()=>{it[key]=inp.value;E.resetMeasure();dirty=true;saveItems();};inp.onchange=()=>{paintMediaKeepFocus();refreshAll();};hd.append(lb);w.append(hd,inp);det.append(w);};
-  txt('Title','title',true,'A title – Enter for a new line');txt('Line','line',true,'A line under it');txt('Tags','tags',false,'Tags, split with commas');
+function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one';
+  const sel=(label,key,opts,tip)=>{const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,label),s=el('select');s.id=`i_${key}_${it.id}`;lb.htmlFor=s.id;
+    for(const [v,t] of opts){const o=el('option',null,t);o.value=v;s.append(o);}s.value=it[key]||'default';if(!opts.some(o=>o[0]===s.value))s.value='default';
+    s.onchange=()=>{it[key]=s.value;saveItems();dirty=true;refreshAll();};hd.append(lb);if(tip){const q=el('button','q','?');q.type='button';q.dataset.tip=tip;q.setAttribute('aria-label',label+': '+tip);hd.append(q);}w.append(hd,s);det.append(w);};
+  /* Slides: this slide's own time, transition and movement – each says what it falls back to */
+  if(one){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,'On screen'),val=el('span','val'),inp=el('input');
+    inp.type='range';inp.min=0;inp.max=Math.max(12,Math.ceil(+it.dur||0));inp.step=.05;inp.value=+it.hold||0;inp.id='i_hold_'+it.id;lb.htmlFor=inp.id;
+    const say=()=>{val.textContent=+it.hold>0?`${+(+it.hold).toFixed(2)} s`:`As set · ${+(+S.hold).toFixed(2)} s`;};say();
+    inp.oninput=()=>{it.hold=+inp.value;say();saveItems();dirty=true;refreshAll();};lb.title='Double-click for the time set in Motion';lb.ondblclick=()=>{it.hold=0;inp.value=0;say();saveItems();dirty=true;refreshAll();};
+    hd.append(lb,val);w.append(hd,inp);det.append(w);
+    if(it.kind==='video'){const r=el('div','btn-row'),b=el('button','pill small','Whole clip');b.type='button';b.dataset.tip='Stays on screen long enough for the whole clip to play, transitions included';
+      b.onclick=()=>{const tr=S.oneMove==='cut'?0:+S.dur||0;it.hold=Math.max(.2,+((+it.dur||1)-2*tr).toFixed(2));inp.value=it.hold;say();saveItems();dirty=true;refreshAll();};r.append(b);det.append(r);}
+    sel('Arrives by','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.filter(o=>o[0]!=='still').map(o=>[o[0],o[1]])));
+    sel('Moves','moves',[['default',`As set · ${optLabel(KB,S.kb)}`]].concat(KB.filter(o=>o[0]!=='vary'&&!(S.oneFit==='bleed'&&o[0]==='parallax')).map(o=>[o[0],o[1]])));}
+  /* the caption, when there are captions */
+  if(S.capOn){const txt=(label,key,multi,ph)=>{const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,label),inp=el(multi?'textarea':'input');if(!multi)inp.type='text';else inp.rows=2;
+      inp.id=`i_${key}_${it.id}`;lb.htmlFor=inp.id;inp.value=it[key]||'';inp.placeholder=ph||'';inp.spellcheck=false;
+      inp.oninput=()=>{it[key]=inp.value;E.resetMeasure();dirty=true;saveItems();};inp.onchange=()=>{paintMediaKeepFocus();refreshAll();};hd.append(lb);w.append(hd,inp);det.append(w);};
+    txt('Title','title',true,'A title – Enter for a new line');txt('Line','line',true,'A line under it');txt('Tags','tags',false,'Tags, split with commas');}
   if(it.kind==='video'){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,'Start at'),val=el('span','val'),inp=el('input');inp.type='range';inp.min=0;inp.max=Math.max(.1,+it.dur||1);inp.step=.04;inp.value=+it.start||0;
     inp.id='i_start_'+it.id;lb.htmlFor=inp.id;val.textContent=(+it.start||0).toFixed(2)+' s';
     inp.oninput=()=>{it.start=+inp.value;val.textContent=it.start.toFixed(2)+' s';saveItems();if(!playing)dirty=true;};hd.append(lb,val);w.append(hd,inp);det.append(w);
     const tr=el('div','toggle-row'),tb=el('button','toggle');tb.type='button';tb.setAttribute('role','switch');tb.setAttribute('aria-checked',!!it.levels);tb.setAttribute('aria-label','Lift washed-out colours');tb.append(el('span','box'),el('span',null,'Lift washed-out colours'));
     tb.onclick=()=>{it.levels=!it.levels;tb.setAttribute('aria-checked',it.levels);saveItems();dirty=true;};tr.append(tb);const q=el('button','q','?');q.type='button';q.dataset.tip='For video whose greys look lifted and colours dull – it says it’s full range when it isn’t (Tempo’s promo MP4s up to 0.11.1). Reads it as video range.';q.setAttribute('aria-label','Lift washed-out colours: '+q.dataset.tip);tr.append(q);det.append(tr);}
-  if(S.layout==='one'){const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,'Arrives by'),s=el('select');s.id='i_arrive_'+it.id;lb.htmlFor=s.id;
-    for(const [v,t] of [['default','The move set in Motion'],['slide','Slide'],['stack','Stack'],['fade','Fade'],['zoom','Zoom'],['cut','Cut']]){const o=el('option',null,t);o.value=v;s.append(o);}
-    s.value=it.arrive||'default';s.onchange=()=>{it.arrive=s.value;saveItems();dirty=true;refreshAll();};hd.append(lb);w.append(hd,s);det.append(w);}
   const r=el('div','btn-row pairs'),up=el('button','pill small','Move up'),dn=el('button','pill small','Move down');up.type=dn.type='button';up.disabled=i===0;dn.disabled=i===items.length-1;
   up.onclick=()=>moveItem(it.id,i-1);dn.onclick=()=>moveItem(it.id,i+1);r.append(up,dn);det.append(r);
   return det;}
@@ -3380,7 +3455,7 @@ function paintMediaKeepFocus(){const a=document.activeElement,id=a&&a.id;paintMe
     {t:'seg',k:'fps',label:'Frame rate',opts:[[24,'24'],[25,'25'],[30,'30'],[60,'60']]}]);
   SUMMARY.canvas=s=>{const [W,H]=E.canvasSize(s);return `${W} × ${H} · ${s.fps} fps`+(PICS.bg?' · image':'');};}
 /* Motion: the kind first, then only what that kind uses */
-const KINDS=[['one','One','A shape at a time'],['line','Line','A row or a column of shapes, moving along'],['grid','Grid','Rows of shapes, moving together'],
+const KINDS=[['one','Slides','A slide at a time – full bleed, as it is or in a shape, with a transition and a little movement in each'],['line','Line','A row or a column of shapes, moving along'],['grid','Grid','Rows of shapes, moving together'],
   ['columns','Columns','Each column running up or down on its own'],['frames','Frames','The frames stay put and the media changes inside them'],['float','Float','Shapes drifting past at different depths']];
 const KIND_ICON={
   one:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="11" y="5" width="18" height="18" rx="2"/><rect x="33" y="8" width="7" height="12" rx="1.5" class="dim"/></svg>',
@@ -3393,22 +3468,33 @@ function pickKind(k){if(k==='line')k=['up','down'].includes(S.dir)?'column':'row
 function kindTiles(parent){const w=el('div','ctl kinds-ctl'),hd=el('div','ctl-head'),g=el('div','kinds');hd.append(el('span',null,'Kind'));g.setAttribute('role','group');g.setAttribute('aria-label','Kind');
   const bs=KINDS.map(([v,t,tip])=>{const b=el('button','kind');b.type='button';b.innerHTML=KIND_ICON[v];b.append(el('span',null,t));b.dataset.tip=tip;b.onclick=()=>pickKind(v);g.append(b);return[v,b];});
   w.append(hd,g);parent.append(w);controls.push({d:{},w,update(){const k=KIND(S);bs.forEach(([v,b])=>b.setAttribute('aria-pressed',v===k));}});}
-const MOVES_ONE=[['slide','Slide','The next one pushes this one out'],['stack','Stack','The next one slides in over this one'],['fade','Fade'],['zoom','Zoom','This one grows away as the next fades up'],['cut','Cut'],['still','Still','No moves – the video plays']];
+const MOVES_ONE=[['cut','Cut','Straight to the next'],['fade','Fade','One into the next'],['dip','Dip','Out to the background, then up into the next'],['wipe','Wipe','A straight edge crosses the canvas'],
+  ['slide','Push','The next pushes this one out'],['stack','Cover','The next slides in over this one'],['open','Open','A window opens from the middle onto the next'],['zoom','Zoom','This one grows away as the next fades up'],
+  ['through','Through','The next comes up from a small card in the middle as this one carries on past – it has its own curve, so there’s no Feel']];
+const KB=[['none','None'],['in','Zoom in'],['out','Zoom out'],['drift','Drift','Across, the way Direction says'],['parallax','Parallax','The frame one way, the picture the other'],['vary','Vary','Takes turns: in, across, out, back']];
+const FITS=[['bleed','Full bleed','Each slide fills the canvas, cropped to it'],['own','As it is','Each slide keeps its own shape, on the background'],['shape','In a shape','Every slide in the same shape – set it in Shapes']];
+const oneTravels=s=>['slide','stack','wipe'].includes(s.oneMove);
+const oneFeels=s=>['slide','stack','wipe','open','zoom'].includes(s.oneMove);
+const itemMoves=()=>items.some(it=>it.moves&&it.moves!=='default'&&it.moves!=='none');
+const kbOn=s=>s.kb!=='none'||itemMoves();
+const kbDrifts=s=>['drift','parallax','vary'].includes(s.kb)||items.some(it=>it.moves==='drift'||it.moves==='parallax');
 const MOVES_TRACK=[['step','Step','Move a shape at a time, then rest'],['drift','Drift','Keep moving, never stopping'],['still','Still','No moves – the video plays']];
 const MOVES_FRAME=[['push','Push','The next pushes this one out of the frame'],['cover','Cover','The next slides in over this one'],['fade','Fade'],['cut','Cut'],['still','Still','No changes – the video plays']];
 const FEELS=[['glide','Glide','Eases in and out'],['soft','Soft','A gentle ease in and out'],['coast','Coast','A quick push, then a long glide in'],['inertia','Inertia','A flick that coasts to a stop'],['spring','Spring','A touch past, then settles'],['linear','Linear','An even speed']];
 const DIR4=[['left','Left'],['right','Right'],['up','Up'],['down','Down']];
 const dirOpts=()=>KIND(S)==='grid'?[['up','Up'],['down','Down']]:DIR4;
 function pickDir(v){if(KIND(S)==='line'){S.dir=v;set('layout',v==='left'||v==='right'?'row':'column');return;}set('dir',v);}
-const showDir=s=>{const k=KIND(s);if(k==='one')return s.oneMove==='slide'||s.oneMove==='stack';if(k==='frames')return stepping(s)&&(s.fMove==='push'||s.fMove==='cover');if(k==='columns')return false;return mv(s)!=='still';};
+const showDir=s=>{const k=KIND(s);if(k==='one')return oneTravels(s)||kbDrifts(s);if(k==='frames')return stepping(s)&&(s.fMove==='push'||s.fMove==='cover');if(k==='columns')return false;return mv(s)!=='still';};
 const kindName=s=>optLabel(KINDS,KIND(s));
 {const b=card('motion','Motion');kindTiles(b);
   build(b,[
+    {t:'seg',k:'oneFit',label:'Each slide',opts:FITS,show:isK('one')},
+    {t:'seg',k:'ownScale',label:'Sizes',opts:[['fit','Fit each'],['true','True to scale']],show:s=>isK('one')(s)&&s.oneFit==='own'},
     {t:'range',k:'cols',label:'Columns',min:1,max:8,step:1,show:isK('grid')},
     {t:'range',k:'cols',id:'ccols',label:'Columns',min:2,max:8,step:1,show:isK('columns')},
     {t:'range',k:'fCols',label:'Across',min:1,max:6,step:1,show:isK('frames')},
     {t:'range',k:'fRows',label:'Down',min:1,max:4,step:1,show:isK('frames')},
-    {t:'seg',k:'oneMove',label:'Move',opts:MOVES_ONE,show:isK('one')},
+    {t:'seg',k:'oneMove',label:'Transition',opts:MOVES_ONE,show:isK('one')},
     {t:'seg',k:'trackMove',label:'Move',opts:MOVES_TRACK,show:isK('line','grid','columns','float')},
     {t:'seg',k:'fMove',label:'Change',opts:MOVES_FRAME,show:s=>isK('frames')(s)&&!framesStatic(s)},
     {t:'seg',k:'dir',label:'Direction',optsFn:dirOpts,pick:pickDir,show:showDir},
@@ -3418,12 +3504,16 @@ const kindName=s=>optLabel(KINDS,KIND(s));
   addHint(b,'As many frames as media: the frames stay as they are and video plays inside them. Add more media, or fewer frames, to have it change.',s=>isK('frames')(s)&&framesStatic(s));
   {const r=el('div','ctl btn-row'),sh=el('button','pill small','Shuffle');sh.type='button';sh.dataset.tip='Scatter the shapes another way';sh.onclick=()=>set('seed',(Math.round(+S.seed)||0)+1);r.append(sh);addCustom(b,isK('float'),r);}
   build(b,[
-    {t:'range',k:'hold',label:'Rest',min:0,max:6,step:.05,unit:' s',show:stepping},
-    {t:'range',k:'dur',label:'Move time',min:.1,max:4,step:.05,unit:' s',show:s=>stepping(s)&&!(isK('one')(s)&&s.oneMove==='cut')&&!(isK('frames')(s)&&s.fMove==='cut')},
+    {t:'range',k:'hold',id:'hold1',label:'On screen',min:0,max:8,step:.05,unit:' s',show:s=>isK('one')(s)&&stepping(s),tip:'How long each slide stays before the next transition. Give any slide its own time in Media.'},
+    {t:'range',k:'dur',id:'dur1',label:'Transition time',min:.1,max:3,step:.05,unit:' s',show:s=>isK('one')(s)&&stepping(s)&&s.oneMove!=='cut'},
+    {t:'range',k:'hold',label:'Rest',min:0,max:6,step:.05,unit:' s',show:s=>stepping(s)&&!isK('one')(s)},
+    {t:'range',k:'dur',label:'Move time',min:.1,max:4,step:.05,unit:' s',show:s=>stepping(s)&&!isK('one')(s)&&!(isK('frames')(s)&&s.fMove==='cut')},
     {t:'range',k:'spsh',label:'Each shape',min:.5,max:12,step:.05,unit:' s',show:s=>mv(s)==='drift'&&!isK('frames')(s)},
     {t:'seg',k:'colSpeed',label:'Speeds',opts:[['same','Same'],['varied','Varied']],show:s=>isK('columns')(s)&&mv(s)==='drift'},
     {t:'range',k:'still',label:'Length',min:1,max:60,step:.5,unit:' s',show:s=>mv(s)==='still'||(isK('frames')(s)&&framesStatic(s))},
-    {t:'seg',k:'feel',label:'Feel',opts:FEELS,show:s=>stepping(s)&&!(isK('one')(s)&&s.oneMove==='cut')&&!(isK('frames')(s)&&s.fMove==='cut')},
+    {t:'seg',k:'feel',label:'Feel',opts:FEELS,show:s=>stepping(s)&&(isK('one')(s)?oneFeels(s):!(isK('frames')(s)&&s.fMove==='cut'))},
+    {t:'seg',k:'kb',label:'Movement',optsFn:()=>S.oneFit==='bleed'?KB.filter(o=>o[0]!=='parallax'):KB,val:s=>s.oneFit==='bleed'&&s.kb==='parallax'?'drift':s.kb,show:isK('one')},
+    {t:'range',k:'kbAmt',label:'Amount',min:1,max:30,step:.5,unit:'%',show:s=>isK('one')(s)&&kbOn(s)},
     {t:'range',k:'lag',label:'Lag',min:0,max:.3,step:.005,unit:' s',show:s=>isK('line','grid')(s)&&stepping(s)},
     {t:'range',k:'colLag',label:'Out of step',min:0,max:3,step:.05,unit:' s',show:s=>isK('columns')(s)&&stepping(s)},
     {t:'range',k:'fLag',id:'flag',label:'Lag',min:0,max:2,step:.01,unit:' s',show:s=>isK('frames')(s)&&stepping(s)},
@@ -3434,31 +3524,32 @@ const kindName=s=>optLabel(KINDS,KIND(s));
   build(f,[{t:'range',k:'gCols',label:'Columns',min:1,max:8,step:1,group:'pullfold'},{t:'range',k:'gGap',label:'Gap',min:0,max:240,step:1,unit:' px'},{t:'range',k:'gSize',label:'Fills',min:30,max:100,step:1,unit:'%'},
     {t:'range',k:'zOut',label:'Out',min:.2,max:4,step:.05,unit:' s',tip:'How long the pull back takes'},{t:'range',k:'gHold',label:'All in view',min:0,max:8,step:.05,unit:' s'},{t:'range',k:'zIn',label:'In',min:.2,max:4,step:.05,unit:' s',tip:'How long it takes to come back in to the first'},
     {t:'seg',k:'zFeel',label:'Feel',opts:FEELS}]);
-  SUMMARY.motion=s=>{const P=planNow(),k=KIND(s),m=k==='one'?optLabel(MOVES_ONE,s.oneMove):k==='frames'?(framesStatic(s)?'Still':optLabel(MOVES_FRAME,s.fMove)):optLabel(MOVES_TRACK,s.trackMove);
-    return [kindName(s),m,stepping(s)?optLabel(FEELS,s.feel):'',`${P.L.toFixed(1)} s loop`].filter(Boolean).join(' · ');};}
+  SUMMARY.motion=s=>{const P=planNow(),k=KIND(s),m=k==='one'?[optLabel(FITS,s.oneFit),optLabel(MOVES_ONE,s.oneMove)].join(' · '):k==='frames'?(framesStatic(s)?'Still':optLabel(MOVES_FRAME,s.fMove)):optLabel(MOVES_TRACK,s.trackMove);
+    return [kindName(s),m,k==='one'?(s.kb!=='none'?optLabel(KB,s.kb):''):stepping(s)?optLabel(FEELS,s.feel):'',`${P.L.toFixed(1)} s loop`].filter(Boolean).join(' · ');};}
 /* Shapes: how they look – the kind decides where they go */
-{const b=card('shapes','Shapes');
-  build(b,[{t:'select',k:'ratio',label:'Shape',opts:[['media','The media’s own'],['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']]},
-    {t:'nums',keys:['rW','rH'],names:['W','H'],label:'Shape ratio',min:.1,max:100,step:.1,sep:':',show:s=>s.ratio==='custom'},
-    {t:'range',k:'size',label:'Size',min:10,max:100,step:.5,unit:'%',show:isK('one','line','frames'),tip:'How big the shapes are: 100% fills the canvas (One, Frames), its height (a row) or its width (a column)'},
+const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
+{const b=card('shapes','Shapes',s=>!(isK('one')(s)&&s.oneFit==='bleed'));
+  build(b,[{t:'select',k:'ratio',label:'Shape',show:s=>!ownFit(s),opts:[['media','The media’s own'],['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']]},
+    {t:'nums',keys:['rW','rH'],names:['W','H'],label:'Shape ratio',min:.1,max:100,step:.1,sep:':',show:s=>s.ratio==='custom'&&!ownFit(s)},
+    {t:'range',k:'size',label:'Size',min:10,max:100,step:.5,unit:'%',show:isK('one','line','frames'),tip:'How big the shapes are: 100% fills the canvas (Slides, Frames), its height (a row) or its width (a column)'},
     {t:'range',k:'size',id:'gsize',label:'Width',min:10,max:100,step:.5,unit:'%',show:isK('grid','columns'),tip:'How much of the canvas’s width they take'},
     {t:'range',k:'flSize',label:'Size',min:5,max:80,step:.5,unit:'%',show:isK('float'),tip:'How wide the nearest shapes are, against the canvas'},
     {t:'range',k:'gap',label:'Gap',min:0,max:240,step:1,unit:' px',show:isK('line','grid','columns','frames')},
     {t:'range',k:'radius',label:'Corners',min:0,max:120,step:1,unit:' px'},
-    {t:'seg',k:'fit',label:'Media',opts:[['fill','Fill the shape'],['fit','Fit inside']]},
-    {t:'colour',k:'shapeBg',label:'Behind the media'}]);
+    {t:'seg',k:'fit',label:'Media',opts:[['fill','Fill the shape'],['fit','Fit inside']],show:s=>!ownFit(s)},
+    {t:'colour',k:'shapeBg',label:'Behind the media',show:s=>!ownFit(s)}]);
   const f=fold(b,'border','Border and edge',null,true,s=>[s.mat>0?`${Math.round(s.mat)} px border`:'',s.edge?`${s.edgeW} px edge`:''].filter(Boolean).join(' · ')||'Off');
   build(f,[{t:'range',k:'mat',label:'Border',min:0,max:120,step:1,unit:' px'},{t:'colour',k:'matC',label:'Border colour',show:s=>s.mat>0},{t:'range',k:'matR',label:'Inner corners',min:0,max:120,step:1,unit:' px',show:s=>s.mat>0},
     {t:'toggle',k:'edge',label:'Edge'},{t:'colour',k:'edgeC',label:'Edge colour',show:s=>s.edge},{t:'range',k:'edgeW',label:'Edge width',min:.5,max:12,step:.5,unit:' px',show:s=>s.edge}]);
   const g=fold(b,'nudge','Position',s=>!isK('float')(s),true,s=>(+s.nudgeX||+s.nudgeY)?`${Math.round(s.nudgeX)}, ${Math.round(s.nudgeY)} px`:'Centred');
   build(g,[{t:'range',k:'nudgeX',label:'Across',min:-600,max:600,step:1,unit:' px',tip:'Move every shape left or right'},{t:'range',k:'nudgeY',label:'Up and down',min:-600,max:600,step:1,unit:' px',tip:'Move every shape up or down'}]);
-  SUMMARY.shapes=s=>[s.ratio==='custom'?`${s.rW}:${s.rH}`:s.ratio==='media'?'Media’s own':({a4p:'A4 portrait',a4l:'A4 landscape'}[s.ratio]||s.ratio),s.radius?`${s.radius} px corners`:'Square corners',s.mat>0?'Border':''].filter(Boolean).join(' · ');}
+  SUMMARY.shapes=s=>[ownFit(s)?'Their own':s.ratio==='custom'?`${s.rW}:${s.rH}`:s.ratio==='media'?'Media’s own':({a4p:'A4 portrait',a4l:'A4 landscape'}[s.ratio]||s.ratio),s.radius?`${s.radius} px corners`:'Square corners',s.mat>0?'Border':''].filter(Boolean).join(' · ');}
 /* Captions, with the fonts they're set in */
 const WHERE=[['under','Under'],['above','Above'],['over','On it'],['fixed','Fixed']];
 let fontBox;
 {const b=card('captions','Captions');
   build(b,[{t:'toggle',k:'capOn',label:'Captions'},
-    {t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','frames','float'].includes(S.layout)?WHERE.slice(0,3):WHERE,show:s=>s.capOn},
+    {t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','frames','float'].includes(S.layout)?WHERE.slice(0,3):S.layout==='one'&&S.oneFit==='bleed'?WHERE.slice(2):WHERE,show:s=>s.capOn},
     {t:'seg',k:'capAlign',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],show:s=>s.capOn},
     {t:'seg',k:'capV',label:'Sits',opts:[['top','Top'],['bottom','Bottom']],show:s=>s.capOn&&E.capWhereOf(s)==='fixed'},
     {t:'range',k:'capMargin',label:'Margin',min:0,max:300,step:1,unit:' px',show:s=>s.capOn&&E.capWhereOf(s)==='fixed'},
@@ -3516,28 +3607,39 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
     optLabel(PLACES,s.ovPos),s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):''].filter(Boolean).join(' · ');}
 
 /* ---------------- presets ---------------- */
-/* built in: one or two for each kind. Four of them come from Steve's references (4 Nov):
-   Phone swipe (lag and coast), Columns and Wall (columns on their own), Posters (frames that
-   stay put) and Milky Way (depth, with type over it in difference). */
+/* Built in, grouped by kind, named in Segue's own voice: musical terms, like the tools
+   themselves. The five showcase presets climb in tempo – Semplice (straight cuts, the classic
+   GIF), Adagio, Andante, Allegro, Presto (the extreme end – Steve's zoom-through reference,
+   5 Nov). Canon, Counterpoint, Polyrhythm, Fermata and Nocturne come from his 4 Nov references.
+   Showcase presets also set the export to GIF – they're made for it. */
 const BUILTIN=[
-  {name:'Card stack',tip:'A column of cards with captions, a flick at a time, pulling back to show them all',s:{layout:'column',ratio:'16:10',size:86,gap:64,radius:12,trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,capOn:true,capWhere:'under',capReveal:'scramble'}},
-  {name:'Phone swipe',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.25,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
-  {name:'Carousel',tip:'Tall cards drifting along in a row, without stopping',s:{layout:'row',ratio:'custom',rW:9,rH:20,size:59,gap:49,radius:14,trackMove:'drift',dir:'left',spsh:2.67,capOn:false,bg:'#1D1C23',shapeBg:'#2B2A31'}},
-  {name:'Columns',tip:'Columns stepping up and down in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
-  {name:'Wall',tip:'A wall of work in columns drifting up and down at their own speeds, each piece its own shape',s:{layout:'columns',cols:3,ratio:'media',size:100,gap:12,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'varied',spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
-  {name:'Posters',tip:'Three posters that stay put while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
-  {name:'Milky Way',tip:'Work floating up at three depths past a title – add the title in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.1,dur:1,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
-    ovBlend:'difference',ovZ:'mid',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'}},
-  {name:'Deck',tip:'Slides one at a time, flicked across',s:{layout:'one',ratio:'16:9',size:88,radius:8,oneMove:'slide',dir:'left',feel:'inertia',hold:1.4,dur:.8,after:'carry',capOn:false,bg:'#ECECE9'}},
-  {name:'Stack',tip:'Each one springs up over the last',s:{layout:'one',ratio:'4:5',size:82,radius:16,oneMove:'stack',dir:'up',feel:'spring',hold:1.2,dur:.75,after:'carry',capOn:false,bg:'#141414',shapeBg:'#222222'}},
-  {name:'Fade',tip:'One at a time, fading, with a caption fixed in the corner',s:{layout:'one',ratio:'4:5',size:78,radius:6,oneMove:'fade',hold:1.6,dur:.6,after:'carry',capOn:true,capWhere:'fixed',capV:'bottom',capAlign:'left',capMargin:64,capReveal:'rise',TF:'inter6',TS:40,TTr:-10,TCase:'as'}},
-  {name:'Grid',tip:'Rows of shapes stepping up a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1,dur:.9,capOn:false}}];
+  {name:'Semplice',tip:'Straight cuts, full bleed, nothing moving – the classic showcase GIF, and the smallest file',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'cut',hold:1.2,kb:'none',after:'carry',capOn:false}},
+  {name:'Adagio',tip:'Slow dissolves, full bleed, each slide drifting or zooming gently in turn',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'fade',hold:2.2,dur:.9,kb:'vary',kbAmt:7,dir:'left',after:'carry',capOn:false}},
+  {name:'Andante',tip:'Each piece at its own shape on the ground, pushed along and drifting the same way',x:{xFormat:'gif'},s:{layout:'one',oneFit:'own',ownScale:'fit',size:80,radius:4,oneMove:'slide',dir:'left',feel:'coast',hold:1.3,dur:1.1,kb:'drift',kbAmt:5,after:'carry',capOn:false,bg:'#EDEDEA'}},
+  {name:'Allegro',tip:'Full bleed, each slide opening from the middle of the last, zooming in a touch',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'open',feel:'glide',hold:.9,dur:.55,kb:'in',kbAmt:8,after:'carry',capOn:false}},
+  {name:'Presto',tip:'Full bleed and fast – each slide comes up from a small card as the last carries on past',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'through',hold:.15,dur:.38,kb:'in',kbAmt:22,after:'carry',capOn:false,bg:'#111111'}},
+  {name:'Staccato',tip:'Slides in a shape, flicked across one at a time',s:{layout:'one',oneFit:'shape',ratio:'16:9',size:88,radius:8,oneMove:'slide',dir:'left',feel:'inertia',hold:1.4,dur:.8,after:'carry',capOn:false,bg:'#ECECE9'}},
+  {name:'Pizzicato',tip:'Each one springs up over the last',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:82,radius:16,oneMove:'stack',dir:'up',feel:'spring',hold:1.2,dur:.75,after:'carry',capOn:false,bg:'#141414',shapeBg:'#222222'}},
+  {name:'Dolce',tip:'One into the next, with a caption fixed in the corner',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:78,radius:6,oneMove:'fade',hold:1.6,dur:.6,after:'carry',capOn:true,capWhere:'fixed',capV:'bottom',capAlign:'left',capMargin:64,capReveal:'rise',TF:'inter6',TS:40,TTr:-10,TCase:'as'}},
+  {name:'Coda',tip:'A column of cards with captions, a flick at a time, pulling back to show them all at the end',s:{layout:'column',ratio:'16:10',size:86,gap:64,radius:12,trackMove:'step',dir:'up',feel:'inertia',hold:1.2,dur:.7,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,capOn:true,capWhere:'under',capReveal:'scramble'}},
+  {name:'Canon',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.25,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
+  {name:'Ostinato',tip:'Tall cards drifting along in a row, never stopping',s:{layout:'row',ratio:'custom',rW:9,rH:20,size:59,gap:49,radius:14,trackMove:'drift',dir:'left',spsh:2.67,capOn:false,bg:'#1D1C23',shapeBg:'#2B2A31'}},
+  {name:'Chorale',tip:'Rows of shapes stepping up together, a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1,dur:.9,capOn:false}},
+  {name:'Counterpoint',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
+  {name:'Polyrhythm',tip:'A wall of work in columns drifting down and up at their own speeds, each piece its own shape',s:{layout:'columns',cols:3,ratio:'media',size:100,gap:12,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'varied',spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
+  {name:'Fermata',tip:'Three mounted posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
+  {name:'Nocturne',tip:'Work floating up at three depths past a line of type – add it in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.1,dur:1,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
+    ovBlend:'difference',ovZ:'mid',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'}}];
+/* 0.2's names, for anyone who had one in use */
+const RENAMED={'Card stack':'Coda','Phone swipe':'Canon',Carousel:'Ostinato',Columns:'Counterpoint',Wall:'Polyrhythm',Posters:'Fermata','Milky Way':'Nocturne',Deck:'Staccato',Stack:'Pizzicato',Fade:'Dolce',Grid:'Chorale'};
 let mine=LS.get('presets')||[],current=LS.get('preset')||'',edited=!!LS.get('presetEdited');
+if(RENAMED[current]&&!mine.some(p=>p.name===current)){current=RENAMED[current];LS.set('preset',current);}
 const presetName=()=>current?current+(edited?' – changed':''):'';
 const unit=()=>{const [W,H]=size();return E.unitOf(W,H);};
 function lookNow(){const u=unit(),o={};for(const k of LOOK)o[k]=PX.includes(k)?+(S[k]/u).toFixed(2):S[k];return o;}
 function applyPreset(p){const u=unit();for(const k of LOOK){const v=k in p.s?p.s[k]:D[k];S[k]=PX.includes(k)&&typeof v==='number'?+(v*u).toFixed(2):v;}
-  current=p.name;edited=false;LS.set('preset',current);LS.set('presetEdited',false);saveSettings();E.resetMeasure();clock=0;dirty=true;refreshAll();paintMedia();toast(`${p.name}`);}
+  if(p.x)for(const k in p.x)S[k]=p.x[k];
+  current=p.name;edited=false;LS.set('preset',current);LS.set('presetEdited',false);saveSettings();E.resetMeasure();clock=0;dirty=true;refreshAll();paintMedia();toast(p.x&&p.x.xFormat==='gif'?`${p.name} – export set to GIF`:`${p.name}`);}
 let presetBox,saveIn;
 {const b=card('presets','Presets');presetBox=el('div','preset-list');b.append(presetBox);
   addHint(b,'A preset sets the look and the motion. Your media, captions and canvas size stay.');
@@ -3548,13 +3650,13 @@ let presetBox,saveIn;
   dl.onclick=()=>saveFile('segue-presets.json',new Blob([JSON.stringify({segue:1,presets:mine},null,1)],{type:'application/json'}));ld.onclick=()=>$('#presetfile').click();r2.append(dl,ld);b.append(r2);
   cardToSheet(b,'presets');}
 function paintPresets(){presetBox.textContent='';
-  const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),meta=el('div','slot-meta',optLabel(KINDS,E.kindOf(p.s))+' · '+(own?'Yours':p.tip||'Built in'));
+  const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),meta=el('div','slot-meta',own?optLabel(KINDS,E.kindOf(p.s))+' · Yours':p.tip||'');
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
     top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);}
     if(own){const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Delete';rm.setAttribute('aria-label','Delete '+p.name);
       rm.onclick=e=>{e.stopPropagation();mine=mine.filter(x=>x!==p);LS.set('presets',mine);paintPresets();};top.append(rm);}
     r.append(top);presetBox.append(r);};
-  presetBox.append(el('div','sub-head','Built in'));for(const p of BUILTIN)row(p,false);
+  for(const [k,label] of KINDS){const ps=BUILTIN.filter(p=>E.kindOf(p.s)===k);if(!ps.length)continue;presetBox.append(el('div','sub-head',label));for(const p of ps)row(p,false);}
   if(mine.length){presetBox.append(el('div','sub-head','Yours'));for(const p of mine)row(p,true);}}
 $('#presetfile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const j=JSON.parse(await f.text()),list=(j.presets||[]).filter(p=>p&&p.name&&p.s);let n=0;for(const p of list){p.s=sanitise(p.s);mine=mine.filter(x=>x.name!==p.name);mine.push({name:String(p.name).slice(0,60),s:p.s});n++;}
@@ -3641,20 +3743,69 @@ async function makeMP4(progress){
     const f=new VideoFrame(buf,{format:'I420',codedWidth:W,codedHeight:H,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});enc.encode(f,{keyFrame:i%fps===0});f.close();
     while(enc.encodeQueueSize>4)await new Promise(r=>setTimeout(r,2));},progress,P.L*(+S.xLoops||1));
   await enc.flush();enc.close();if(err)throw err;muxer.finalize();return new Blob([muxer.target.buffer],{type:'video/mp4'});}
-/* ---------------- GIF: each frame gets its own 256 colours, so photographs and video hold up ---------------- */
+/* ---------------- GIF ---------------- */
+/* Made for showcase GIFs, which are usually Photoshop's job. A frame that doesn't change isn't
+   written again – the one before it is simply held for longer, as Photoshop's frame delays do –
+   so slides that sit still cost almost nothing. A frame that changes in part writes just the
+   rectangle that changed, with the pixels inside it that haven't changed left see-through, so
+   the frame before shows through exactly. Each frame (or part) gets its own colours, taken from
+   the true colours of its pixels, so flat colours – a background, a brand colour – come out
+   exact rather than rounded. Dither is there for photographs and gradients. */
+const GQ=c=>((c[0]>>3)<<10)|((c[1]>>3)<<5)|(c[2]>>3);
+function gifPalette(cnt,sr,sg,sb,max){
+  const cols=[];for(let i=0;i<32768;i++)if(cnt[i])cols.push(i);
+  const ch=(c,j)=>j===0?(c>>10)&31:j===1?(c>>5)&31:c&31;
+  let boxes=[cols];
+  const info=bx=>{let mn=[31,31,31],mx=[0,0,0],n=0;for(const c of bx){n+=cnt[c];for(let j=0;j<3;j++){const v=ch(c,j);if(v<mn[j])mn[j]=v;if(v>mx[j])mx[j]=v;}}const r=[mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2]];const j=r[0]>=r[1]&&r[0]>=r[2]?0:r[1]>=r[2]?1:2;return{n,range:r[j],j};};
+  if(cols.length>max){
+    while(boxes.length<max){let best=-1,bs=-1,bi=null;
+      boxes.forEach((bx,i)=>{if(bx.length<2)return;const f=info(bx),sc=f.range*Math.sqrt(f.n);if(sc>bs){bs=sc;best=i;bi=f;}});
+      if(best<0||bs<=0)break;
+      const bx=boxes[best].slice().sort((a,b)=>ch(a,bi.j)-ch(b,bi.j));
+      let acc=0,cut=1;for(let i=0;i<bx.length;i++){acc+=cnt[bx[i]];if(acc>=bi.n/2){cut=Math.min(Math.max(i+1,1),bx.length-1);break;}}
+      boxes.splice(best,1,bx.slice(0,cut),bx.slice(cut));}}
+  else boxes=cols.map(c=>[c]);
+  const pal=new Uint8Array(768);
+  /* each colour is the true average of the pixels it stands for */
+  boxes.forEach((bx,i)=>{let n=0,r=0,g=0,b=0;for(const c of bx){n+=cnt[c];r+=sr[c];g+=sg[c];b+=sb[c];}if(n){pal[i*3]=Math.round(r/n);pal[i*3+1]=Math.round(g/n);pal[i*3+2]=Math.round(b/n);}});
+  const count=Math.max(1,boxes.length),lut=new Int16Array(32768).fill(-1);
+  const near=(r,g,b)=>{let v=0,bd=1e12;for(let i=0;i<count;i++){const dr=pal[i*3]-r,dg=pal[i*3+1]-g,db=pal[i*3+2]-b,d=dr*dr*2+dg*dg*3+db*db;if(d<bd){bd=d;v=i;}}return v;};
+  /* a colour in the picture: its bin's own entry (exact for flat colour); anything else, the nearest */
+  const index=q=>{let v=lut[q];if(v!==-1)return v;v=cnt[q]?near(sr[q]/cnt[q],sg[q]/cnt[q],sb[q]/cnt[q]):near(((q>>10)&31)<<3|4,((q>>5)&31)<<3|4,(q&31)<<3|4);lut[q]=v;return v;};
+  return{pal,count,index,near};}
+const GIF_TOL=2;   /* a pixel within this of what's showing is left as it is (video noise) */
 async function makeGIF(progress){
-  const [W0,H0]=size(),k=+S.xGifScale||.5,W=Math.max(2,Math.round(W0*k)),H=Math.max(2,Math.round(H0*k)),fps=+S.xGifFps||20,P=planNow(),n=Math.max(1,Math.round(P.L*(+S.xLoops||1)*fps));
+  const [W0,H0]=size(),k=+S.xGifScale||.5,W=Math.max(2,Math.round(W0*k)),H=Math.max(2,Math.round(H0*k)),fps=+S.xGifFps||20,P=planNow();
+  const len=P.L,n=Math.max(1,Math.round(len*fps)),dither=!!S.xDither;   /* a GIF loops for ever: one loop is enough */
   const out=document.createElement('canvas');out.width=W;out.height=H;const ox=out.getContext('2d',{willReadFrequently:true});ox.imageSmoothingQuality='high';
   const buf=new ByteBuf();buf.s('GIF89a');buf.w(W);buf.w(H);buf.b(0x70);buf.b(0);buf.b(0);
   buf.b(0x21);buf.b(0xFF);buf.b(11);buf.s('NETSCAPE2.0');buf.b(3);buf.b(1);buf.w(0);buf.b(0);
-  const idx=new Uint8Array(W*H);
-  await eachFrame(W0,H0,fps,n,async(c,x,i)=>{ox.drawImage(c,0,0,W,H);const d=ox.getImageData(0,0,W,H).data,hist=new Uint32Array(32768);
-    for(let j=0;j<d.length;j+=4)hist[((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3)]++;
-    const q=medianCut(hist,256),near=makeLut(q.pal,q.count);for(let a=0,j=0;a<idx.length;a++,j+=4)idx[a]=near(((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3));
-    const delay=Math.round((i+1)*100/fps)-Math.round(i*100/fps);
-    buf.b(0x21);buf.b(0xF9);buf.b(4);buf.b(0x04);buf.w(delay);buf.b(0);buf.b(0);
-    buf.b(0x2C);buf.w(0);buf.w(0);buf.w(W);buf.w(H);buf.b(0x87);buf.arr(q.pal);lzwEncode(buf,idx,8);},progress,P.L*(+S.xLoops||1));
-  buf.b(0x3B);return new Blob([buf.out()],{type:'image/gif'});}
+  const shown=new Uint8ClampedArray(W*H*3),cnt=new Uint32Array(32768),sr=new Float64Array(32768),sg=new Float64Array(32768),sb=new Float64Array(32768);
+  let pend=null,frames=0;
+  const cs=i=>Math.round(i*len/n*100);
+  const flush=end=>{if(!pend)return;buf.b(0x21);buf.b(0xF9);buf.b(4);buf.b(pend.see?0x05:0x04);buf.w(Math.max(2,end-pend.cs));buf.b(pend.see?255:0);buf.b(0);buf.arr(pend.bytes);frames++;pend=null;};
+  await eachFrame(W0,H0,fps,n,async(c,x,i)=>{ox.drawImage(c,0,0,W,H);const d=ox.getImageData(0,0,W,H).data;
+    /* what changed since what's showing */
+    let x0=W,y0=H,x1=-1,y1=-1;const first=i===0,chg=new Uint8Array(W*H);
+    for(let y=0,p=0;y<H;y++)for(let xx=0;xx<W;xx++,p++){const j=p*4,q=p*3;
+      if(first||Math.abs(d[j]-shown[q])>GIF_TOL||Math.abs(d[j+1]-shown[q+1])>GIF_TOL||Math.abs(d[j+2]-shown[q+2])>GIF_TOL){chg[p]=1;if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(y<y0)y0=y;if(y>y1)y1=y;}}
+    if(x1<0)return;   /* nothing changed: the frame before is held a little longer */
+    const rw=x1-x0+1,rh=y1-y0+1,see=!first;
+    cnt.fill(0);sr.fill(0);sg.fill(0);sb.fill(0);
+    for(let y=y0;y<=y1;y++)for(let xx=x0;xx<=x1;xx++){const p=y*W+xx;if(!chg[p])continue;const j=p*4,q=((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3);cnt[q]++;sr[q]+=d[j];sg[q]+=d[j+1];sb[q]+=d[j+2];}
+    const Q=gifPalette(cnt,sr,sg,sb,see?255:256),idx=new Uint8Array(rw*rh);
+    if(dither){const er=new Float32Array((rw+2)*2*3);   /* Floyd–Steinberg, two rows of error */
+      for(let y=0;y<rh;y++){const cur=(y%2)*(rw+2)*3,nxt=((y+1)%2)*(rw+2)*3;er.fill(0,nxt,nxt+(rw+2)*3);
+        for(let xx=0;xx<rw;xx++){const p=(y0+y)*W+x0+xx,o=y*rw+xx;if(!chg[p]){idx[o]=255;continue;}const j=p*4,e=cur+(xx+1)*3;
+          const r=clamp(d[j]+er[e],0,255),g=clamp(d[j+1]+er[e+1],0,255),b=clamp(d[j+2]+er[e+2],0,255),v=Q.index(((r>>3)<<10)|((g>>3)<<5)|(b>>3));idx[o]=v;
+          const dr=r-Q.pal[v*3],dg=g-Q.pal[v*3+1],db=b-Q.pal[v*3+2],sp=(k,w)=>{er[k]+=dr*w;er[k+1]+=dg*w;er[k+2]+=db*w;};
+          sp(e+3,7/16);sp(nxt+xx*3,3/16);sp(nxt+(xx+1)*3,5/16);sp(nxt+(xx+2)*3,1/16);}}}
+    else for(let y=0;y<rh;y++)for(let xx=0;xx<rw;xx++){const p=(y0+y)*W+x0+xx,o=y*rw+xx;if(!chg[p]){idx[o]=255;continue;}const j=p*4;idx[o]=Q.index(((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3));}
+    for(let p=0;p<W*H;p++)if(chg[p]){shown[p*3]=d[p*4];shown[p*3+1]=d[p*4+1];shown[p*3+2]=d[p*4+2];}
+    const fb=new ByteBuf();fb.b(0x2C);fb.w(x0);fb.w(y0);fb.w(rw);fb.w(rh);fb.b(0x87);fb.arr(Q.pal);lzwEncode(fb,idx,8);
+    flush(cs(i));pend={cs:cs(i),bytes:fb.out(),see};},progress,len);
+  flush(Math.round(len*100));
+  buf.b(0x3B);const blob=new Blob([buf.out()],{type:'image/gif'});blob.gifFrames=frames;return blob;}
 async function makePNG(){const [W,H]=size(),P=planNow(),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
   await frameAt(c,x,W,H,((clock%P.L)+P.L)%P.L);return await new Promise(r=>c.toBlob(r,'image/png'));}
 /* ---------------- the Export sheet ---------------- */
@@ -3662,10 +3813,12 @@ const fileName=ext=>{const [W,H]=size();const base=(S.name||'Segue').trim().repl
 let xBar,xInfo,xGo,xStop;
 {const b=card('export','Export');
   build(b,[{t:'seg',k:'xFormat',label:'Format',opts:[['mp4','MP4'],['gif','GIF'],['png','PNG','The frame on the stage now, at full size']]},
-    {t:'seg',k:'xLoops',label:'Loops in the file',opts:[[1,'1'],[2,'2'],[3,'3']],show:s=>s.xFormat!=='png'},
+    {t:'seg',k:'xLoops',label:'Loops in the file',opts:[[1,'1'],[2,'2'],[3,'3']],show:s=>s.xFormat==='mp4'},
     {t:'seg',k:'xGifScale',label:'GIF size',opts:[[1,'Full'],[.5,'Half'],[.25,'Quarter']],show:s=>s.xFormat==='gif'},
     {t:'seg',k:'xGifFps',label:'GIF frame rate',opts:[[12,'12'],[15,'15'],[20,'20'],[25,'25']],show:s=>s.xFormat==='gif'},
+    {t:'toggle',k:'xDither',label:'Dither',show:s=>s.xFormat==='gif',tip:'Smooths gradients and photographs with a fine grain of dots. The file comes out bigger.'},
     {t:'text',k:'name',label:'File name'}]);
+  addHint(b,'Still slides cost almost nothing in a GIF – each is written once and held. Anything that moves is written frame by frame, so the file grows with every second of it: half size at 15 fps keeps it manageable.',s=>s.xFormat==='gif'&&gifMoves(s));
   xInfo=el('p','hint');addCustom(b,null,xInfo);
   const pr=el('div','progress');xBar=el('i');pr.append(xBar);addCustom(b,null,pr);
   const r=el('div','ctl btn-row');xGo=el('button','pill primary','Download');xGo.type='button';xStop=el('button','pill small','Stop');xStop.type='button';xStop.hidden=true;r.append(xGo,xStop);addCustom(b,null,r);
@@ -3673,13 +3826,16 @@ let xBar,xInfo,xGo,xStop;
   xGo.onclick=async()=>{if(busy)return;const f=S.xFormat;busy=true;stopFlag=false;xGo.disabled=true;xStop.hidden=f==='png';xBar.style.width='0%';const t0=performance.now();
     try{await fontsReady();const prog=p=>{xBar.style.width=Math.round(p*100)+'%';toast(`Making the ${f.toUpperCase()} – ${Math.round(p*100)}%`,true);};
       const blob=f==='gif'?await makeGIF(prog):f==='png'?await makePNG():await makeMP4(prog);
-      await saveFile(fileName(f),blob);console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
+      await saveFile(fileName(f),blob);lastSize[f]=blob.size;toast(`Saved ${fileName(f)} – ${mb(blob.size)}`);exportInfo();console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
     catch(e){toast(e.message==='stopped'?'Stopped':`Couldn’t make it – ${e.message||e}`);console.error(e);}
     finally{busy=false;stopFlag=false;xGo.disabled=false;xStop.hidden=true;dirty=true;}};
   cardToSheet(b,'export');}
-function exportInfo(){if(!xInfo)return;const [W,H]=size(),P=planNow(),f=S.xFormat,l=+S.xLoops||1;
+const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
+/* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
+function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
+function exportInfo(){if(!xInfo)return;const [W,H]=size(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
-  xInfo.textContent=f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${(P.L*l).toFixed(1)} s at ${S.xGifFps} fps`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, colours as on screen`;}
+  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, colours as on screen`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
 /* ---------------- start ---------------- */
 {const _r=appRefresh;appRefresh=function(){_r();exportInfo();};}
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};

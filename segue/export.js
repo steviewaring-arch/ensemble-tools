@@ -80,20 +80,69 @@ async function makeMP4(progress){
     const f=new VideoFrame(buf,{format:'I420',codedWidth:W,codedHeight:H,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});enc.encode(f,{keyFrame:i%fps===0});f.close();
     while(enc.encodeQueueSize>4)await new Promise(r=>setTimeout(r,2));},progress,P.L*(+S.xLoops||1));
   await enc.flush();enc.close();if(err)throw err;muxer.finalize();return new Blob([muxer.target.buffer],{type:'video/mp4'});}
-/* ---------------- GIF: each frame gets its own 256 colours, so photographs and video hold up ---------------- */
+/* ---------------- GIF ---------------- */
+/* Made for showcase GIFs, which are usually Photoshop's job. A frame that doesn't change isn't
+   written again – the one before it is simply held for longer, as Photoshop's frame delays do –
+   so slides that sit still cost almost nothing. A frame that changes in part writes just the
+   rectangle that changed, with the pixels inside it that haven't changed left see-through, so
+   the frame before shows through exactly. Each frame (or part) gets its own colours, taken from
+   the true colours of its pixels, so flat colours – a background, a brand colour – come out
+   exact rather than rounded. Dither is there for photographs and gradients. */
+const GQ=c=>((c[0]>>3)<<10)|((c[1]>>3)<<5)|(c[2]>>3);
+function gifPalette(cnt,sr,sg,sb,max){
+  const cols=[];for(let i=0;i<32768;i++)if(cnt[i])cols.push(i);
+  const ch=(c,j)=>j===0?(c>>10)&31:j===1?(c>>5)&31:c&31;
+  let boxes=[cols];
+  const info=bx=>{let mn=[31,31,31],mx=[0,0,0],n=0;for(const c of bx){n+=cnt[c];for(let j=0;j<3;j++){const v=ch(c,j);if(v<mn[j])mn[j]=v;if(v>mx[j])mx[j]=v;}}const r=[mx[0]-mn[0],mx[1]-mn[1],mx[2]-mn[2]];const j=r[0]>=r[1]&&r[0]>=r[2]?0:r[1]>=r[2]?1:2;return{n,range:r[j],j};};
+  if(cols.length>max){
+    while(boxes.length<max){let best=-1,bs=-1,bi=null;
+      boxes.forEach((bx,i)=>{if(bx.length<2)return;const f=info(bx),sc=f.range*Math.sqrt(f.n);if(sc>bs){bs=sc;best=i;bi=f;}});
+      if(best<0||bs<=0)break;
+      const bx=boxes[best].slice().sort((a,b)=>ch(a,bi.j)-ch(b,bi.j));
+      let acc=0,cut=1;for(let i=0;i<bx.length;i++){acc+=cnt[bx[i]];if(acc>=bi.n/2){cut=Math.min(Math.max(i+1,1),bx.length-1);break;}}
+      boxes.splice(best,1,bx.slice(0,cut),bx.slice(cut));}}
+  else boxes=cols.map(c=>[c]);
+  const pal=new Uint8Array(768);
+  /* each colour is the true average of the pixels it stands for */
+  boxes.forEach((bx,i)=>{let n=0,r=0,g=0,b=0;for(const c of bx){n+=cnt[c];r+=sr[c];g+=sg[c];b+=sb[c];}if(n){pal[i*3]=Math.round(r/n);pal[i*3+1]=Math.round(g/n);pal[i*3+2]=Math.round(b/n);}});
+  const count=Math.max(1,boxes.length),lut=new Int16Array(32768).fill(-1);
+  const near=(r,g,b)=>{let v=0,bd=1e12;for(let i=0;i<count;i++){const dr=pal[i*3]-r,dg=pal[i*3+1]-g,db=pal[i*3+2]-b,d=dr*dr*2+dg*dg*3+db*db;if(d<bd){bd=d;v=i;}}return v;};
+  /* a colour in the picture: its bin's own entry (exact for flat colour); anything else, the nearest */
+  const index=q=>{let v=lut[q];if(v!==-1)return v;v=cnt[q]?near(sr[q]/cnt[q],sg[q]/cnt[q],sb[q]/cnt[q]):near(((q>>10)&31)<<3|4,((q>>5)&31)<<3|4,(q&31)<<3|4);lut[q]=v;return v;};
+  return{pal,count,index,near};}
+const GIF_TOL=2;   /* a pixel within this of what's showing is left as it is (video noise) */
 async function makeGIF(progress){
-  const [W0,H0]=size(),k=+S.xGifScale||.5,W=Math.max(2,Math.round(W0*k)),H=Math.max(2,Math.round(H0*k)),fps=+S.xGifFps||20,P=planNow(),n=Math.max(1,Math.round(P.L*(+S.xLoops||1)*fps));
+  const [W0,H0]=size(),k=+S.xGifScale||.5,W=Math.max(2,Math.round(W0*k)),H=Math.max(2,Math.round(H0*k)),fps=+S.xGifFps||20,P=planNow();
+  const len=P.L,n=Math.max(1,Math.round(len*fps)),dither=!!S.xDither;   /* a GIF loops for ever: one loop is enough */
   const out=document.createElement('canvas');out.width=W;out.height=H;const ox=out.getContext('2d',{willReadFrequently:true});ox.imageSmoothingQuality='high';
   const buf=new ByteBuf();buf.s('GIF89a');buf.w(W);buf.w(H);buf.b(0x70);buf.b(0);buf.b(0);
   buf.b(0x21);buf.b(0xFF);buf.b(11);buf.s('NETSCAPE2.0');buf.b(3);buf.b(1);buf.w(0);buf.b(0);
-  const idx=new Uint8Array(W*H);
-  await eachFrame(W0,H0,fps,n,async(c,x,i)=>{ox.drawImage(c,0,0,W,H);const d=ox.getImageData(0,0,W,H).data,hist=new Uint32Array(32768);
-    for(let j=0;j<d.length;j+=4)hist[((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3)]++;
-    const q=medianCut(hist,256),near=makeLut(q.pal,q.count);for(let a=0,j=0;a<idx.length;a++,j+=4)idx[a]=near(((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3));
-    const delay=Math.round((i+1)*100/fps)-Math.round(i*100/fps);
-    buf.b(0x21);buf.b(0xF9);buf.b(4);buf.b(0x04);buf.w(delay);buf.b(0);buf.b(0);
-    buf.b(0x2C);buf.w(0);buf.w(0);buf.w(W);buf.w(H);buf.b(0x87);buf.arr(q.pal);lzwEncode(buf,idx,8);},progress,P.L*(+S.xLoops||1));
-  buf.b(0x3B);return new Blob([buf.out()],{type:'image/gif'});}
+  const shown=new Uint8ClampedArray(W*H*3),cnt=new Uint32Array(32768),sr=new Float64Array(32768),sg=new Float64Array(32768),sb=new Float64Array(32768);
+  let pend=null,frames=0;
+  const cs=i=>Math.round(i*len/n*100);
+  const flush=end=>{if(!pend)return;buf.b(0x21);buf.b(0xF9);buf.b(4);buf.b(pend.see?0x05:0x04);buf.w(Math.max(2,end-pend.cs));buf.b(pend.see?255:0);buf.b(0);buf.arr(pend.bytes);frames++;pend=null;};
+  await eachFrame(W0,H0,fps,n,async(c,x,i)=>{ox.drawImage(c,0,0,W,H);const d=ox.getImageData(0,0,W,H).data;
+    /* what changed since what's showing */
+    let x0=W,y0=H,x1=-1,y1=-1;const first=i===0,chg=new Uint8Array(W*H);
+    for(let y=0,p=0;y<H;y++)for(let xx=0;xx<W;xx++,p++){const j=p*4,q=p*3;
+      if(first||Math.abs(d[j]-shown[q])>GIF_TOL||Math.abs(d[j+1]-shown[q+1])>GIF_TOL||Math.abs(d[j+2]-shown[q+2])>GIF_TOL){chg[p]=1;if(xx<x0)x0=xx;if(xx>x1)x1=xx;if(y<y0)y0=y;if(y>y1)y1=y;}}
+    if(x1<0)return;   /* nothing changed: the frame before is held a little longer */
+    const rw=x1-x0+1,rh=y1-y0+1,see=!first;
+    cnt.fill(0);sr.fill(0);sg.fill(0);sb.fill(0);
+    for(let y=y0;y<=y1;y++)for(let xx=x0;xx<=x1;xx++){const p=y*W+xx;if(!chg[p])continue;const j=p*4,q=((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3);cnt[q]++;sr[q]+=d[j];sg[q]+=d[j+1];sb[q]+=d[j+2];}
+    const Q=gifPalette(cnt,sr,sg,sb,see?255:256),idx=new Uint8Array(rw*rh);
+    if(dither){const er=new Float32Array((rw+2)*2*3);   /* Floyd–Steinberg, two rows of error */
+      for(let y=0;y<rh;y++){const cur=(y%2)*(rw+2)*3,nxt=((y+1)%2)*(rw+2)*3;er.fill(0,nxt,nxt+(rw+2)*3);
+        for(let xx=0;xx<rw;xx++){const p=(y0+y)*W+x0+xx,o=y*rw+xx;if(!chg[p]){idx[o]=255;continue;}const j=p*4,e=cur+(xx+1)*3;
+          const r=clamp(d[j]+er[e],0,255),g=clamp(d[j+1]+er[e+1],0,255),b=clamp(d[j+2]+er[e+2],0,255),v=Q.index(((r>>3)<<10)|((g>>3)<<5)|(b>>3));idx[o]=v;
+          const dr=r-Q.pal[v*3],dg=g-Q.pal[v*3+1],db=b-Q.pal[v*3+2],sp=(k,w)=>{er[k]+=dr*w;er[k+1]+=dg*w;er[k+2]+=db*w;};
+          sp(e+3,7/16);sp(nxt+xx*3,3/16);sp(nxt+(xx+1)*3,5/16);sp(nxt+(xx+2)*3,1/16);}}}
+    else for(let y=0;y<rh;y++)for(let xx=0;xx<rw;xx++){const p=(y0+y)*W+x0+xx,o=y*rw+xx;if(!chg[p]){idx[o]=255;continue;}const j=p*4;idx[o]=Q.index(((d[j]>>3)<<10)|((d[j+1]>>3)<<5)|(d[j+2]>>3));}
+    for(let p=0;p<W*H;p++)if(chg[p]){shown[p*3]=d[p*4];shown[p*3+1]=d[p*4+1];shown[p*3+2]=d[p*4+2];}
+    const fb=new ByteBuf();fb.b(0x2C);fb.w(x0);fb.w(y0);fb.w(rw);fb.w(rh);fb.b(0x87);fb.arr(Q.pal);lzwEncode(fb,idx,8);
+    flush(cs(i));pend={cs:cs(i),bytes:fb.out(),see};},progress,len);
+  flush(Math.round(len*100));
+  buf.b(0x3B);const blob=new Blob([buf.out()],{type:'image/gif'});blob.gifFrames=frames;return blob;}
 async function makePNG(){const [W,H]=size(),P=planNow(),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
   await frameAt(c,x,W,H,((clock%P.L)+P.L)%P.L);return await new Promise(r=>c.toBlob(r,'image/png'));}
 /* ---------------- the Export sheet ---------------- */
@@ -101,10 +150,12 @@ const fileName=ext=>{const [W,H]=size();const base=(S.name||'Segue').trim().repl
 let xBar,xInfo,xGo,xStop;
 {const b=card('export','Export');
   build(b,[{t:'seg',k:'xFormat',label:'Format',opts:[['mp4','MP4'],['gif','GIF'],['png','PNG','The frame on the stage now, at full size']]},
-    {t:'seg',k:'xLoops',label:'Loops in the file',opts:[[1,'1'],[2,'2'],[3,'3']],show:s=>s.xFormat!=='png'},
+    {t:'seg',k:'xLoops',label:'Loops in the file',opts:[[1,'1'],[2,'2'],[3,'3']],show:s=>s.xFormat==='mp4'},
     {t:'seg',k:'xGifScale',label:'GIF size',opts:[[1,'Full'],[.5,'Half'],[.25,'Quarter']],show:s=>s.xFormat==='gif'},
     {t:'seg',k:'xGifFps',label:'GIF frame rate',opts:[[12,'12'],[15,'15'],[20,'20'],[25,'25']],show:s=>s.xFormat==='gif'},
+    {t:'toggle',k:'xDither',label:'Dither',show:s=>s.xFormat==='gif',tip:'Smooths gradients and photographs with a fine grain of dots. The file comes out bigger.'},
     {t:'text',k:'name',label:'File name'}]);
+  addHint(b,'Still slides cost almost nothing in a GIF – each is written once and held. Anything that moves is written frame by frame, so the file grows with every second of it: half size at 15 fps keeps it manageable.',s=>s.xFormat==='gif'&&gifMoves(s));
   xInfo=el('p','hint');addCustom(b,null,xInfo);
   const pr=el('div','progress');xBar=el('i');pr.append(xBar);addCustom(b,null,pr);
   const r=el('div','ctl btn-row');xGo=el('button','pill primary','Download');xGo.type='button';xStop=el('button','pill small','Stop');xStop.type='button';xStop.hidden=true;r.append(xGo,xStop);addCustom(b,null,r);
@@ -112,13 +163,16 @@ let xBar,xInfo,xGo,xStop;
   xGo.onclick=async()=>{if(busy)return;const f=S.xFormat;busy=true;stopFlag=false;xGo.disabled=true;xStop.hidden=f==='png';xBar.style.width='0%';const t0=performance.now();
     try{await fontsReady();const prog=p=>{xBar.style.width=Math.round(p*100)+'%';toast(`Making the ${f.toUpperCase()} – ${Math.round(p*100)}%`,true);};
       const blob=f==='gif'?await makeGIF(prog):f==='png'?await makePNG():await makeMP4(prog);
-      await saveFile(fileName(f),blob);console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
+      await saveFile(fileName(f),blob);lastSize[f]=blob.size;toast(`Saved ${fileName(f)} – ${mb(blob.size)}`);exportInfo();console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
     catch(e){toast(e.message==='stopped'?'Stopped':`Couldn’t make it – ${e.message||e}`);console.error(e);}
     finally{busy=false;stopFlag=false;xGo.disabled=false;xStop.hidden=true;dirty=true;}};
   cardToSheet(b,'export');}
-function exportInfo(){if(!xInfo)return;const [W,H]=size(),P=planNow(),f=S.xFormat,l=+S.xLoops||1;
+const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
+/* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
+function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
+function exportInfo(){if(!xInfo)return;const [W,H]=size(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
-  xInfo.textContent=f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${(P.L*l).toFixed(1)} s at ${S.xGifFps} fps`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, colours as on screen`;}
+  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, colours as on screen`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
 /* ---------------- start ---------------- */
 {const _r=appRefresh;appRefresh=function(){_r();exportInfo();};}
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};

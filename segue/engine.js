@@ -31,6 +31,8 @@ const spring=t=>t<=0?0:t>=1?1:springRaw(t)+t*(1-springRaw(1));
 /* Soft: a gentle ease in and out – the least abrupt, for zooms. Coast: a short push, then a
    long glide that only just settles – fitted to Steve's phone-swipe reference (4 Nov). */
 const FEEL={glide:bezier(.65,0,.35,1),soft:bezier(.42,0,.58,1),coast:bezier(.18,0,.02,1),inertia:bezier(.35,.85,.2,1),spring,linear:t=>clamp(t,0,1)};
+/* Through's own curve, in scale: off at once, slowing as it fills the frame – fitted to the card's growth in Steve's reference (5 Nov) */
+const THROUGH=bezier(.04,.35,.76,1);
 const feel=name=>FEEL[name]||FEEL.glide;
 
 /* ---------------- sizes ---------------- */
@@ -62,7 +64,8 @@ const colsOf=S=>Math.max(1,Math.round(+S.cols)||3);
 const framesOf=S=>Math.max(1,Math.round(+S.fCols)||1)*Math.max(1,Math.round(+S.fRows)||1);
 const creepOf=S=>clamp((+S.creep||0)/100,0,.9);
 /* captions fixed on the canvas belong to a shape at a time – not to the kinds with many at once */
-const capWhereOf=S=>OWN.has(S.layout)&&S.capWhere==='fixed'?'under':(S.capWhere||'under');
+const bleedOf=S=>S.layout==='one'&&S.oneFit==='bleed';
+const capWhereOf=S=>{const w=S.capWhere||'under';if(OWN.has(S.layout)&&w==='fixed')return'under';if(bleedOf(S)&&(w==='under'||w==='above'))return'over';return w;};
 
 /* ---------------- captions: rich text, tracking, kerning ---------------- */
 const ROLES=['T','L','G'];
@@ -150,12 +153,15 @@ function plan(S,items){
     return{kind:'flstep',L:cyc>0?K*cyc:1,K,N,hold,dur};}
   const stops=stopsOf(S,N);
   if(mv==='still')return{kind:'still',L:still(),stops,N};
+  /* a single slide has nothing to change to: it just stays, its movement going in and back out */
+  if(lay==='one'&&items.length===1&&!items[0].placeholder){const it=items[0],h=+it.hold>0?+it.hold:hold;return{kind:'still',L:Math.max(.5,h+dur),stops,N};}
   if(mv==='drift')return{kind:'drift',L:Math.max(.2,stops*(+S.spsh||2.5)),stops,N};
   const pull=S.after==='pull'&&S.layout!=='grid'&&N>1;
   const segs=[];let t=0;
   const moveLen=s=>arrivalOf(S,items,s)==='cut'?0:dur;
+  const one=S.layout==='one',holdOf=s=>{const it=one?items[mod(s,N)]:null;return it&&+it.hold>0?+it.hold:hold;};
   for(let s=0;s<stops;s++){
-    const h={k:'hold',s,t0:t,t1:t+hold};segs.push(h);t+=hold;
+    const hs=holdOf(s),h={k:'hold',s,t0:t,t1:t+hs};segs.push(h);t+=hs;
     if(s<stops-1||!pull){const d=moveLen(s+1);h.next=true;segs.push({k:'move',s,to:s+1,how:arrivalOf(S,items,s+1),t0:t,t1:t+d,i0:h.t0});t+=d;}
     else{const zo=Math.max(.05,+S.zOut||1),gh=Math.max(0,+S.gHold||0),zi=Math.max(.05,+S.zIn||1);
       segs.push({k:'out',s,t0:t,t1:t+zo});t+=zo;segs.push({k:'grid',s,t0:t,t1:t+gh});t+=gh;segs.push({k:'in',s:stops,t0:t,t1:t+zi});t+=zi;}}
@@ -163,7 +169,9 @@ function plan(S,items){
   /* when each stop starts arriving: video in that shape plays from its start point then */
   const arrive=new Array(stops).fill(0);
   for(const g of segs){if(g.k==='move')arrive[mod(g.to,stops)]=g.to>=stops?g.t0-t:g.t0;if(g.k==='in')arrive[0]=g.t0-t;}
-  return{kind:'step',L:t,segs,stops,N,pull,arrive,hold,dur};}
+  /* …and when it's finished leaving: a slide's movement runs from one to the other */
+  const gone=new Array(stops).fill(t);for(const g of segs)if(g.k==='move'||g.k==='out')gone[g.s]=g.t1;
+  return{kind:'step',L:t,segs,stops,N,pull,arrive,gone,hold,dur};}
 /* a segment-based plan: the segment at loop time tt */
 function segAt(P,tt){let g=P.segs[P.segs.length-1];for(const x of P.segs)if(tt>=x.t0&&tt<x.t1){g=x;break;}return g;}
 const glides=S=>S.layout==='row'||S.layout==='column'||S.layout==='grid';
@@ -184,7 +192,7 @@ function cameraAt(P,S,t){
   const k=g.t1>g.t0?clamp((tt-g.t0)/(g.t1-g.t0),0,1):1;
   const cr=glides(S)?creepOf(S):0;
   if(g.k==='hold'){const p=cr?(1-cr)*g.s+cr*linAt(P,g,tt):g.s;return{tt,p,z:0,k:0,seg:g};}
-  if(g.k==='move'){const how=g.how,e=feel(S.feel)(k);let p=(S.layout==='one'&&how!=='slide')?g.s:g.s+e;if(cr)p=(1-cr)*p+cr*linAt(P,g,tt);return{tt,p,z:0,k,e,seg:g,how};}
+  if(g.k==='move'){const how=g.how,e=(how==='fade'||how==='dip'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(k);let p=(S.layout==='one'&&how!=='slide')?g.s:g.s+e;if(cr)p=(1-cr)*p+cr*linAt(P,g,tt);return{tt,p,z:0,k,e,seg:g,how};}
   const ez=feel(S.zFeel||'soft');
   if(g.k==='out')return{tt,p:g.s,z:ez(k),k,seg:g};
   if(g.k==='grid')return{tt,p:g.s,z:1,k,seg:g};
@@ -215,13 +223,19 @@ function geometry(S,items,ctx,fonts,W,H){
   /* room for captions under or above each shape: the tallest block among the items */
   const {capH,reserve}=capReserve(S,items,ctx,fonts);
   const size=clamp(+S.size||80,1,300)/100,gap=Math.max(0,+S.gap||0);let sw,sh;
-  if(lay==='one'){const bw=W,bh=Math.max(1,H-reserve);if(bw/bh>r){sh=bh*size;sw=sh*r;}else{sw=bw*size;sh=sw/r;}}
+  if(lay==='one'){if(S.oneFit==='bleed'){sw=W;sh=H;}
+    else{const bw=W,bh=Math.max(1,H-reserve),q=S.oneFit==='own'?bw/bh:r;if(bw/bh>q){sh=bh*size;sw=sh*q;}else{sw=bw*size;sh=sw/q;}}}
   else if(lay==='row'){sh=Math.max(1,H-reserve)*size;sw=sh*r;}
   else if(lay==='column'){sw=W*size;sh=sw/r;}
   else{const C=colsOf(S);sw=Math.max(1,(W*size-(C-1)*gap)/C);sh=sw/r;}
   const slotW=sw,slotH=sh+reserve,d=dirOf(S),hz=lay==='row'||(lay==='one'&&horiz(d));
   const pitch=lay==='one'?(hz?W:H):lay==='grid'?slotH+gap:(hz?slotW+gap:slotH+gap);
-  return{W,H,u,r,sw,sh,slotW,slotH,reserve,capH,pitch,gap,dir:d,sgn:sgnOf(d),hz,lay,cx:W/2+(+S.nudgeX||0),cy:H/2+(+S.nudgeY||0)};}
+  /* True to scale: one scale for every slide, set by the one that fits least – so a smaller
+     piece shows smaller. Fit each: every slide as big as the space allows. */
+  let rel=null;
+  if(lay==='one'&&S.oneFit==='own'&&S.ownScale==='true'){let k=Infinity;for(const it of items)if(it&&it.w&&it.h)k=Math.min(k,Math.min(sw/it.w,sh/it.h));
+    if(isFinite(k))rel=it=>it&&it.w&&it.h?k/Math.min(sw/it.w,sh/it.h):1;}
+  return{W,H,u,r,sw,sh,slotW,slotH,reserve,capH,pitch,gap,dir:d,sgn:sgnOf(d),hz,lay,rel,cx:W/2+(+S.nudgeX||0),cy:H/2+(+S.nudgeY||0)};}
 /* a shape's rectangle inside its slot (the slot holds the caption too) */
 function shapeIn(G,S,cx,cy,sc){const w=G.sw*sc,h=G.sh*sc,top=cy-G.slotH*sc/2;
   const y=S.capOn&&capWhereOf(S)==='above'&&G.reserve?top+G.reserve*sc:top;return{x:cx-w/2,y,w,h};}
@@ -230,6 +244,8 @@ function shapeIn(G,S,cx,cy,sc){const w=G.sw*sc,h=G.sh*sc,top=cy-G.slotH*sc/2;
 function scene(S,items,ctx,fonts,W,H,t){
   const real=items.length>0,list=real?items:placeholders(6,S);
   if(OWN.has(S.layout)&&S.capWhere==='fixed')S=Object.assign({},S,{capWhere:capWhereOf(S)});
+  if(bleedOf(S))S=Object.assign({},S,{radius:0,mat:0,edge:false,fit:'fill',nudgeX:0,nudgeY:0,shapeBg:S.bg});
+  else if(S.layout==='one'&&S.oneFit==='own')S=Object.assign({},S,{fit:'fill',shapeBg:'rgba(0,0,0,0)'});
   const G=geometry(S,list,ctx,fonts,W,H),P=plan(S,list),cam=cameraAt(P,S,t),N=list.length,ops=[];
   const vt=i=>{const it=list[i];if(!it||it.kind!=='video')return null;const st=+it.start||0;
     if(P.kind!=='step'||S.layout==='grid')return st+cam.tt;
@@ -246,6 +262,7 @@ function scene(S,items,ctx,fonts,W,H,t){
   else if(S.layout==='grid')gridScene(S,G,P,cam,N,push);
   else if(S.layout==='one'&&cam.seg&&cam.seg.k==='move'&&cam.how!=='slide')oneMove(S,G,cam,N,push);
   else trackScene(S,G,P,cam,N,push);
+  if(S.layout==='one')oneFinish(S,G,P,cam,ops);
   /* a caption fixed on the canvas: the current shape's, handing over during a move */
   let fixed=null;
   if(S.capOn&&capWhereOf(S)==='fixed'&&real&&!OWN.has(S.layout)){const cur=mod(Math.round(cam.p),N);
@@ -258,7 +275,7 @@ function trackScene(S,G,P,cam,N,push){
   const vis=Math.ceil((ext/2+slot/2)/G.pitch),lg=lagger(S,P,cam,vis,vis+1);
   for(let k=Math.floor(p)-span;k<=Math.ceil(p)+span;k++){
     const pk=lg?lg.at(k):p,off=(k-pk)*G.pitch*G.sgn,cx=G.hz?G.cx+off:G.cx,cy=G.hz?G.cy:G.cy+off;
-    const r=shapeIn(G,S,cx,cy,1);if(r.x>G.W||r.x+r.w<0||r.y-G.reserve>G.H||r.y+r.h+G.reserve<0)continue;push(mod(k,N),r,{key:'t'+k});}}
+    const r=shapeIn(G,S,cx,cy,1);if(r.x>=G.W||r.x+r.w<=0||r.y-G.reserve>=G.H||r.y+r.h+G.reserve<=0)continue;push(mod(k,N),r,{key:'t'+k,k});}}
 function gridScene(S,G,P,cam,N,push){
   const C=colsOf(S),span=Math.ceil((G.H/2+G.slotH)/G.pitch)+1,p=cam.p;
   const vis=Math.ceil((G.H/2+G.slotH/2)/G.pitch),lg=lagger(S,P,cam,vis,vis+1);
@@ -266,12 +283,48 @@ function gridScene(S,G,P,cam,N,push){
     for(let c=0;c<C;c++){const cx=G.cx+(c-(C-1)/2)*(G.slotW+G.gap);push(mod(r*C+c,N),shapeIn(G,S,cx,cy,1),{key:'g'+r+'.'+c});}}}
 /* One: the moves that aren't a slide */
 function oneMove(S,G,cam,N,push){
-  const a=mod(cam.seg.s,N),b=mod(cam.seg.to,N),e=cam.e,how=cam.how,at=(sc,dx,dy)=>shapeIn(G,S,G.cx+(dx||0),G.cy+(dy||0),sc);
-  if(how==='fade'){push(a,at(1),{capAlpha:1-e});push(b,at(1),{alpha:e});return;}
-  if(how==='cut'){push(e<1?a:b,at(1));return;}
-  if(how==='zoom'){push(a,at(1+.06*e),{scale:1+.06*e,capAlpha:1-e});push(b,at(.9+.1*e),{alpha:smooth(e*1.15),scale:.9+.1*e});return;}
+  const ka=cam.seg.s,kb=cam.seg.to,a=mod(ka,N),b=mod(kb,N),e=cam.e,how=cam.how,at=(sc,dx,dy)=>shapeIn(G,S,G.cx+(dx||0),G.cy+(dy||0),sc);
+  /* when the next one won't cover this one exactly (slides of their own shapes, or this one
+     grown bigger), this one fades as it goes, so nothing is left showing round the edge */
+  const own=S.oneFit==='own',bleed=bleedOf(S);
+  if(how==='fade'){push(a,at(1),{capAlpha:1-e,alpha:own?1-e:1,k:ka});push(b,at(1),{alpha:e,k:kb});return;}
+  /* dip: out to the background, then the next up from it */
+  if(how==='dip'){if(e<.5)push(a,at(1),{alpha:1-smooth(e*2),k:ka});else push(b,at(1),{alpha:smooth(e*2-1),k:kb});return;}
+  /* wipe: a straight edge crosses the canvas, the next on one side of it, this one on the other */
+  if(how==='wipe'){const W=G.W,H=G.H,d=G.dir,x=d==='left'?W*(1-e):W*e,y=d==='up'?H*(1-e):H*e;
+    const [ca,cb]=d==='left'?[{x:0,y:0,w:x,h:H},{x,y:0,w:W-x,h:H}]:d==='right'?[{x,y:0,w:W-x,h:H},{x:0,y:0,w:x,h:H}]:d==='up'?[{x:0,y:0,w:W,h:y},{x:0,y,w:W,h:H-y}]:[{x:0,y,w:W,h:H-y},{x:0,y:0,w:W,h:y}];
+    push(a,at(1),{clip:ca,k:ka});push(b,at(1),{clip:cb,k:kb});return;}
+  /* open: a window opens from the middle, the next one behind it at its full size */
+  if(how==='open'){const W=G.W,H=G.H,w=W*e,h=H*e,c={x:(W-w)/2,y:(H-h)/2,w,h};push(a,at(1),{clip:Object.assign({out:true},c),k:ka});if(e>0)push(b,at(1),{clip:c,k:kb});return;}
+  /* through: the next one comes up from a small card in the middle – growing in scale, so it
+     reads as distance, on its own curve – while this one is carried on past (Steve's reference, 5 Nov) */
+  if(how==='through'){const s0=.12,sb=Math.pow(s0,1-e),sa=1+.18*e;push(a,at(sa),{scale:sa,alpha:bleed?1:1-smooth(e),k:ka});push(b,at(sb),{scale:sb,k:kb});return;}
+  if(how==='cut'){push(e<1?a:b,at(1),{k:e<1?ka:kb});return;}
+  if(how==='zoom'){push(a,at(1+.06*e),{scale:1+.06*e,capAlpha:1-e,alpha:bleed?1:1-smooth(e),k:ka});push(b,at(.9+.1*e),{alpha:smooth(e*1.15),scale:.9+.1*e,k:kb});return;}
   /* stack: the next one slides in over this one */
-  const off=(1-e)*G.pitch*G.sgn;push(a,at(1-.04*e),{scale:1-.04*e,capAlpha:1-e});push(b,at(1,G.hz?off:0,G.hz?0:off));}
+  const off=(1-e)*G.pitch*G.sgn;push(a,at(1-.04*e),{scale:1-.04*e,capAlpha:1-e,alpha:own?1-smooth(e):1,k:ka});push(b,at(1,G.hz?off:0,G.hz?0:off),{k:kb});}
+/* One, last of all: slides that keep their own shape are fitted into their space, and each
+   slide gets its movement – a zoom, a drift or parallax that runs evenly from the moment it
+   starts arriving to the moment it's gone, so it never stops on screen. As it is moves the
+   whole slide (nothing of the work is cropped); full bleed and In a shape move the picture
+   inside its frame; parallax moves the frame one way and the picture the other. */
+const KB_VARY=['in','drift','out','back'];
+function moveKind(S,it,i){let m=it&&it.moves&&it.moves!=='default'?it.moves:(S.kb||'none');if(m==='vary')m=KB_VARY[mod(i,4)];if(m==='parallax'&&bleedOf(S))m='drift';return m;}
+function uOf(P,cam,k){
+  if(P.kind==='still')return(1-Math.cos(2*Math.PI*cam.tt/P.L))/2;   /* in and back out, so it joins up */
+  if(P.kind!=='step'||!P.gone)return 0;const s=mod(k,P.stops),A=P.arrive[s]+P.L*Math.floor(k/P.stops);
+  return clamp((cam.tt-A)/Math.max(1e-6,P.gone[s]-P.arrive[s]),0,1);}
+function oneFinish(S,G,P,cam,ops){
+  const own=S.oneFit==='own',amt=clamp((+S.kbAmt||0)/100,0,.5),where=capWhereOf(S),d=G.dir,hz=horiz(d),sg=sgnOf(d)*-1;
+  for(const o of ops){if(o.k==null||!o.item)continue;let r=o.rect;o.key='s'+o.k;
+    if(own&&o.item.w&&o.item.h){const q=o.item.w/o.item.h,f=G.rel?G.rel(o.item):1;let w=r.w,h=r.h;if(w/h>q)w=h*q;else h=w/q;w*=f;h*=f;
+      const y=where==='under'&&S.capOn?r.y+r.h-h:where==='above'&&S.capOn?r.y:r.y+(r.h-h)/2;r={x:r.x+(r.w-w)/2,y,w,h};}
+    const m=moveKind(S,o.item,o.i);
+    if(m!=='none'&&amt>0){const u=uOf(P,cam,o.k),off=(m==='back'?-sg:sg)*(u-.5)*amt;
+      if(m==='in'||m==='out'){const z=1+amt*(m==='in'?u:1-u);if(own){const w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2,y:r.y-(h-r.h)/2,w,h};}else o.inner={s:z,x:0,y:0};}
+      else if(m==='drift'||m==='back'){if(own)r=Object.assign({},r,hz?{x:r.x+off*r.w}:{y:r.y+off*r.h});else o.inner={s:1+amt,x:hz?off:0,y:hz?0:off};}
+      else if(m==='parallax'){r=Object.assign({},r,hz?{x:r.x+off*r.w}:{y:r.y+off*r.h});o.inner={s:1+amt,x:hz?-off:0,y:hz?0:-off};}}
+    o.rect=r;}}
 /* pull back: the camera zooms out until every shape shows in a grid, then back in. Shapes that
    are neighbours both on the track and in the grid stay put and the camera simply moves; the
    rest fade out where they were on the track and fade up in their place in the grid, so
@@ -287,12 +340,13 @@ function pullScene(S,G,P,cam,N,push){
   const out=smooth(cam.z/.3),up=smooth((cam.z-.08)/.5),later=[];let focus=null;
   for(let i=0;i<N;i++){const k=((i-c)%N+N+Math.floor(N/2))%N-Math.floor(N/2),tw=k*G.pitch*G.sgn,ci=cell(i),gx=ci[0]-c0[0],gy=ci[1]-c0[1];
     const [a0,b0]=cr(c),[a1,b1]=cr(i),along=G.hz?(b1===b0&&a1-a0===k):(a1===a0&&b1-b0===k);
-    if(i===c){focus=[i,at(0,0)];continue;}
-    if(along){later.push([i,at(lerp(G.hz?tw:0,gx,m),lerp(G.hz?0:tw,gy,m)),{scale:sc,rev:1}]);continue;}
-    if(out<1)push(i,at(G.hz?tw:0,G.hz?0:tw),{scale:sc,rev:1,alpha:1-out});
-    if(up>0)push(i,at(gx,gy),{scale:sc,rev:1,alpha:up});}
+    const kk=i===0?P.stops:i;
+    if(i===c){focus=[i,at(0,0),kk];continue;}
+    if(along){later.push([i,at(lerp(G.hz?tw:0,gx,m),lerp(G.hz?0:tw,gy,m)),{scale:sc,rev:1,k:kk}]);continue;}
+    if(out<1)push(i,at(G.hz?tw:0,G.hz?0:tw),{scale:sc,rev:1,alpha:1-out,k:kk});
+    if(up>0)push(i,at(gx,gy),{scale:sc,rev:1,alpha:up,k:kk});}
   for(const l of later)push(l[0],l[1],l[2]);
-  if(focus)push(focus[0],focus[1],{scale:sc,rev:1});}
+  if(focus)push(focus[0],focus[1],{scale:sc,rev:1,k:focus[2]});}
 
 /* Columns: every column a loop of all the media, each starting further along, running up or
    down on its own. Drifting, each goes round once a loop (Varied: two, three or four times
@@ -345,7 +399,7 @@ function framesScene(S,P,cam,list,ctx,fonts,W,H,push){
 /* Float: shapes scattered across the canvas at three depths. Each depth is a strip as long
    as it is near – twice the size, twice the length – and every strip goes round once a
    loop, so nearer shapes are bigger and faster and everything still joins up. Stepping, the
-   whole field moves together and can keep drifting while it rests (Steve's Milky Way). */
+   whole field moves together and can keep drifting while it rests (Steve's 4 Nov depth reference). */
 function floatScene(S,P,cam,list,W,H,push,ops){
   const F=floatSetup(S,list,W,H),N=list.length,tt=cam.tt,seed=Math.round(+S.seed||0);
   let q=0;if(P.kind==='fldrift')q=tt/P.L;else if(P.kind==='flstep')q=cycPos(tt,P.hold,P.dur,feel(S.feel),creepOf(S))/P.K;
@@ -378,16 +432,19 @@ function paint(ctx,SC,S,fonts,opt){
     if(o.alpha<=0)return;const r=o.rect,sc=o.scale,m=Math.min(mat*sc,r.w/3,r.h/3);
     const inn=m>0?{x:r.x+m,y:r.y+m,w:r.w-2*m,h:r.h-2*m}:r,iR=m>0?matR*sc:rad*sc;
     const mr=o.slide?{x:inn.x+o.slide[0]*inn.w,y:inn.y+o.slide[1]*inn.h,w:inn.w,h:inn.h}:inn;
+    ctx.save();if(o.clip){const c=o.clip;ctx.beginPath();if(c.out){ctx.rect(0,0,W,H);ctx.rect(c.x,c.y,c.w,c.h);ctx.clip('evenodd');}else{ctx.rect(c.x,c.y,c.w,c.h);ctx.clip();}}
     ctx.save();ctx.globalAlpha=clamp(o.alpha,0,1);
     if(m>0&&o.frame!==false){rr(ctx,r.x,r.y,r.w,r.h,rad*sc);ctx.fillStyle=S.matC||'#FFFFFF';ctx.fill();}
     rr(ctx,inn.x,inn.y,inn.w,inn.h,iR);ctx.save();ctx.clip();
+    if(o.inner){const cx=mr.x+mr.w/2,cy=mr.y+mr.h/2;ctx.translate(cx+o.inner.x*mr.w,cy+o.inner.y*mr.h);ctx.scale(o.inner.s,o.inner.s);ctx.translate(-cx,-cy);}
     ctx.fillStyle=o.item.placeholder?(lum(S.bg)>.5?'#d9d8d4':'#3a3940'):(S.shapeBg||'#e6e6e3');ctx.fillRect(mr.x,mr.y,mr.w,mr.h);
     if(o.item.placeholder){ctx.fillStyle=lum(S.bg)>.5?'#8f8d88':'#77757f';ctx.font=`400 ${Math.max(8,mr.h*.18)}px "Inter Tight", Helvetica, Arial, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(o.item.n),mr.x+mr.w/2,mr.y+mr.h/2);ctx.textAlign='left';ctx.textBaseline='alphabetic';}
     else if(opt.media)opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');
     ctx.restore();
     if(S.edge&&(+S.edgeW||0)>0&&o.frame!==false){const lw=(+S.edgeW)*sc;ctx.lineWidth=lw;ctx.strokeStyle=S.edgeC||'#000000';rr(ctx,r.x+lw/2,r.y+lw/2,r.w-lw,r.h-lw,Math.max(0,rad*sc-lw/2));ctx.stroke();}
     ctx.restore();
-    if(S.capOn&&capWhereOf(S)!=='fixed'&&!o.item.placeholder){const b=capBlock(ctx,S,o.item,fonts);if(b)drawCap(ctx,S,b,o,r,SC);}});
+    if(S.capOn&&capWhereOf(S)!=='fixed'&&!o.item.placeholder){const b=capBlock(ctx,S,o.item,fonts);if(b)drawCap(ctx,S,b,o,r,SC);}
+    ctx.restore();});
   if(SC.fixed&&SC.fixed.alpha>0){const it=SC.list[SC.fixed.i],b=capBlock(ctx,S,it,fonts);if(b)drawFixed(ctx,S,b,SC.fixed,SC);}
   if(!ovDone)drawOverlay(ctx,S,SC,fonts,opt);
   ctx.restore();}
@@ -434,5 +491,5 @@ function drawBlock(ctx,S,b,x0,y0,sc,alpha,rev,seed,tt){
       draw(c.glyphs,cx+c.padX*sc,by,st.colour);}});
   ctx.restore();}
 
-return{FEEL,feel,SIZES,RATIOS,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,plan,cameraAt,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
+return{FEEL,feel,SIZES,RATIOS,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
 })();

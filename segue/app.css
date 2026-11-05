@@ -45,3 +45,4 @@
   .spot[aria-pressed="true"] i{background:var(--on-ink);opacity:1;width:7px;height:7px}
   .img-row .mthumb[hidden]{display:none}
   .img-row .slot-name.muted{color:var(--muted);font-size:var(--fs-small)}
+  .slot-det{padding-top:8px}

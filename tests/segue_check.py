@@ -1,4 +1,4 @@
-"""Checks for Segue 0.2: framed loops of images and video for case studies, reels and decks.
+"""Checks for Segue 0.3: framed loops of images and video for case studies, reels and decks.
 
     python3 tests/segue_check.py
 
@@ -28,6 +28,26 @@ def ff(*a):
 def probe(path, entries='stream=width,height,nb_frames,duration,codec_name,color_range,pix_fmt'):
     r = subprocess.run(['ffprobe', '-v', 'error', '-show_entries', entries, '-of', 'json', path], capture_output=True, text=True).stdout
     return (json.loads(r).get('streams') or [{}])[0]
+def gif_rects(path):
+    """The rectangle each frame of a GIF writes (left, top, width, height), read from its image descriptors."""
+    b = open(path, 'rb').read(); i = 13; out = []
+    if b[10] & 0x80: i += 3 * (2 << (b[10] & 7))
+    while i < len(b):
+        t = b[i]
+        if t == 0x3B: break
+        if t == 0x21:
+            i += 2
+            while b[i]: i += b[i] + 1
+            i += 1
+        elif t == 0x2C:
+            x, y, w, h, f = int.from_bytes(b[i+1:i+3], 'little'), int.from_bytes(b[i+3:i+5], 'little'), int.from_bytes(b[i+5:i+7], 'little'), int.from_bytes(b[i+7:i+9], 'little'), b[i+9]
+            out.append((x, y, w, h)); i += 10
+            if f & 0x80: i += 3 * (2 << (f & 7))
+            i += 1
+            while b[i]: i += b[i] + 1
+            i += 1
+        else: break
+    return out
 def pixel(path, x, y):
     d = subprocess.run(['ffmpeg', '-v', 'error', '-i', path, '-frames:v', '1', '-vf', f'crop=2:2:{x}:{y},format=rgb24', '-f', 'rawvideo', '-'], capture_output=True).stdout
     return tuple(d[:3])
@@ -127,23 +147,24 @@ with sync_playwright() as p:
     check('case', cap['up'] == 'ABC')
 
     # ---- presets adapt to the canvas ----
-    pg.evaluate("segue.set('cSize','4:5');segue.applyPreset('Carousel')")
+    pg.evaluate("segue.set('cSize','4:5');segue.applyPreset('Ostinato')")
     g1 = pg.evaluate("[segue.S.gap,segue.S.layout,segue.S.trackMove,segue.S.bg,segue.S.cSize]")
-    pg.evaluate("segue.set('cSize','custom');segue.set('cW',2160);segue.set('cH',2700);segue.applyPreset('Carousel')")
+    pg.evaluate("segue.set('cSize','custom');segue.set('cW',2160);segue.set('cH',2700);segue.applyPreset('Ostinato')")
     g2 = pg.evaluate("[segue.S.gap,segue.S.cW,segue.S.cH]")
     check('a preset sets the look and motion, not the canvas size', g1[1:] == ['row', 'drift', '#1D1C23', '4:5'], str(g1))
     check('…and scales its px to the canvas (gap 49 at 1080 is 98 at 2160)', g1[0] == 49 and g2[0] == 98 and g2[1:] == [2160, 2700], f'{g1[0]} / {g2}')
-    pg.evaluate("segue.set('cSize','4:5');segue.applyPreset('Card stack')")
+    pg.evaluate("segue.set('cSize','4:5');segue.applyPreset('Coda')")
     pg.evaluate("segue.set('xFormat','mp4')"); sheet(pg, 'presets')
     pg.get_by_label('Preset name').fill('Mine'); pg.locator('.save-row .pill').click(); time.sleep(.2)
     check('Save adds your own preset, named', pg.evaluate("JSON.parse(localStorage.getItem('segue:presets')).map(p=>p.name)") == ['Mine'])
 
     # ---- every layout and move draws, across the loop ----
     bad = pg.evaluate("""(()=>{const E=segue.E,c=document.createElement('canvas');c.width=540;c.height=675;const x=c.getContext('2d');const bad=[];
-      const L=[['one',['slide','stack','fade','zoom','cut','still']],['row',['step','drift','still']],['column',['step','drift','still']],['grid',['step','drift','still']],
+      const L=[['one',['slide','stack','fade','dip','wipe','open','zoom','through','cut','still']],['row',['step','drift','still']],['column',['step','drift','still']],['grid',['step','drift','still']],
         ['columns',['step','drift','still']],['frames',['push','cover','fade','cut','still']],['float',['step','drift','still']]];
       for(const [lay,ms] of L)for(const m of ms)for(const after of ['carry','pull'])for(const dir of ['left','right','up','down'])for(const cw of ['under','over','above','fixed']){
-        const S=Object.assign({},segue.S,{layout:lay,oneMove:m,trackMove:m,fMove:m,after,dir,capWhere:cw,cSize:'custom',cW:540,cH:676,lag:after==='pull'?.08:0,creep:after==='pull'?20:0,colSpeed:dir==='up'?'varied':'same'});
+        const S=Object.assign({},segue.S,{layout:lay,oneMove:m,trackMove:m,fMove:m,after,dir,capWhere:cw,cSize:'custom',cW:540,cH:676,lag:after==='pull'?.08:0,creep:after==='pull'?20:0,colSpeed:dir==='up'?'varied':'same',
+          oneFit:['bleed','own','shape'][(dir.length+cw.length)%3],ownScale:cw==='over'?'true':'fit',kb:['none','in','out','drift','parallax','vary'][(m.length+dir.length)%6],kbAmt:8});
         try{const P=E.plan(S,segue.items);for(let t=0;t<P.L;t+=P.L/7){const sc=E.scene(S,segue.items,x,segue.fonts,540,676,t);E.paint(x,sc,S,segue.fonts,{});
           if(!sc.ops.length&&m!=='cut')bad.push([lay,m,after,dir,cw,t,'empty']);}}catch(e){bad.push([lay,m,after,dir,cw,String(e)]);}}
       return bad.slice(0,5);})()""")
@@ -165,10 +186,10 @@ with sync_playwright() as p:
           .map(e=>{const h=e.querySelector(':scope>.ctl-head>span,:scope>.ctl-head>label,:scope .rng-box>.ctl-head>label');return h?h.textContent:(e.querySelector('button.pill')?e.querySelector('button.pill').textContent:null);}).filter(Boolean)""")
     pg.evaluate("document.querySelectorAll('#panel section.card').forEach(c=>{if(c.dataset.id==='motion'&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();})")
     kinds = pg.evaluate("[...document.querySelectorAll('.kinds .kind')].map(b=>b.textContent)")
-    check('Motion opens on six kinds', kinds == ['One', 'Line', 'Grid', 'Columns', 'Frames', 'Float'], str(kinds))
+    check('Motion opens on six kinds', kinds == ['Slides', 'Line', 'Grid', 'Columns', 'Frames', 'Float'], str(kinds))
     want = {
         'Line': (['Kind', 'Move', 'Direction', 'Rest', 'Move time', 'Feel', 'Lag', 'Keep drifting', 'After the last'], {'trackMove': 'step'}),
-        'One': (['Kind', 'Move', 'Direction', 'Rest', 'Move time', 'Feel', 'After the last'], {'oneMove': 'slide'}),
+        'Slides': (['Kind', 'Each slide', 'Transition', 'Direction', 'On screen', 'Transition time', 'Feel', 'Movement', 'After the last'], {'oneMove': 'slide', 'oneFit': 'shape', 'kb': 'none'}),
         'Grid': (['Kind', 'Columns', 'Move', 'Direction', 'Rest', 'Move time', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
         'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Rest', 'Move time', 'Feel', 'Out of step', 'Keep drifting', 'Offset'], {'trackMove': 'step'}),
         'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', 'Rest', 'Move time', 'Feel', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
@@ -261,9 +282,103 @@ with sync_playwright() as p:
       for(let y=0;y<676;y++)for(let i=0;i<540;i++){const j=(y*540+i)*4;if(d[j]>250&&d[j+1]>250&&d[j+2]>250){top=Math.min(top,y);bot=Math.max(bot,y);l=Math.min(l,i);r=Math.max(r,i);}}
       return [top,bot,l,r];}""")
     check('text over the top: placed bottom centre, its baseline on the margin', abs(txt[1] - (676 - 40)) <= 2 and abs((txt[2] + txt[3]) / 2 - 270) <= 4, str(txt))
-    mw = pg.evaluate("segue.applyPreset('Milky Way');[segue.S.ovOn,segue.S.ovKind,segue.S.ovText,segue.S.ovBlend,segue.S.layout]")
+    mw = pg.evaluate("segue.applyPreset('Nocturne');[segue.S.ovOn,segue.S.ovKind,segue.S.ovText,segue.S.ovBlend,segue.S.layout]")
     check('a preset sets the overlay’s look but keeps what you put over the top', mw == [True, 'text', 'HELLO', 'difference', 'float'], str(mw))
-    pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false)")
+    pg.evaluate("segue.applyPreset('Coda');segue.set('ovOn',false)")
+
+    # ---- 0.3: Slides – the showcase kind ----
+    names = pg.evaluate("[...document.querySelectorAll('#pcapSheets .preset-row .slot-name')].map(e=>e.textContent)")
+    heads = pg.evaluate("[...document.querySelectorAll('#pcapSheets .preset-list .sub-head')].map(e=>e.textContent)")
+    check('presets in our own names, grouped by kind – the showcase five climbing in tempo',
+          names[:5] == ['Semplice', 'Adagio', 'Andante', 'Allegro', 'Presto'] and 'Milky Way' not in names and 'Card stack' not in names and heads[:2] == ['Slides', 'Line'], f'{names} {heads}')
+    pg.evaluate("segue.set('xFormat','mp4');segue.applyPreset('Presto')")
+    check('a showcase preset sets the export to GIF', pg.evaluate("segue.S.xFormat") == 'gif')
+    def slide_labels(setup):
+        pg.evaluate("o=>{for(const k in o)segue.set(k,o[k])}", setup); time.sleep(.15)
+        return motion_labels()
+    lb = {
+        'bleed, cut, still': slide_labels({'oneFit': 'bleed', 'oneMove': 'cut', 'kb': 'none'}),
+        'own, push, drift': slide_labels({'oneFit': 'own', 'oneMove': 'slide', 'kb': 'drift'}),
+        'bleed, fade, zoom in': slide_labels({'oneFit': 'bleed', 'oneMove': 'fade', 'kb': 'in'})}
+    want3 = {'bleed, cut, still': ['Kind', 'Each slide', 'Transition', 'On screen', 'Movement', 'After the last'],
+             'own, push, drift': ['Kind', 'Each slide', 'Sizes', 'Transition', 'Direction', 'On screen', 'Transition time', 'Feel', 'Movement', 'Amount', 'After the last'],
+             'bleed, fade, zoom in': ['Kind', 'Each slide', 'Transition', 'On screen', 'Transition time', 'Movement', 'Amount', 'After the last']}
+    check('Slides shows only what each choice needs – no Feel for a cut or fade, no Direction unless something travels, Sizes only for As it is',
+          all(lb[k] == want3[k] for k in want3), '; '.join(f'{k}: {lb[k]}' for k in want3 if lb[k] != want3[k]))
+    vis = pg.evaluate("""(()=>{const shapes=()=>!document.querySelector('#panel section[data-id=shapes]').hidden,where=()=>[...document.querySelectorAll('#panel section[data-id=captions] .seg[aria-label=Where] .pill')].map(b=>b.textContent);
+      segue.set('capOn',true);segue.set('oneFit','bleed');const a=[shapes(),where()];segue.set('oneFit','own');const b=[shapes(),[...document.querySelectorAll('#c_ratio')].map(e=>!!e.closest('.ctl').offsetParent)[0]];segue.set('oneFit','shape');const c=shapes();segue.set('capOn',false);return [a,b,c];})()""")
+    check('Full bleed has no Shapes card and no room under or above; As it is has no shape to pick', vis[0][0] is False and vis[0][1] == ['On it', 'Fixed'] and vis[1][0] is True and vis[1][1] is False and vis[2] is True, str(vis))
+    fit = pg.evaluate("""(()=>{const E=segue.E,its=[{kind:'image',w:1080,h:1350},{kind:'image',w:1080,h:1000},{kind:'image',w:2000,h:1000}];
+      const S={layout:'one',oneMove:'cut',hold:1,dur:.5,kb:'none',size:80,capOn:false,cSize:'4:5',after:'carry'};
+      const r=(o,t)=>E.scene(Object.assign({},S,o),its,null,{},1080,1350,t).ops[0].rect;
+      return {bleed:r({oneFit:'bleed'},.1),fit0:r({oneFit:'own',ownScale:'fit'},.1),fit2:r({oneFit:'own',ownScale:'fit'},2.1),true0:r({oneFit:'own',ownScale:'true'},.1),true1:r({oneFit:'own',ownScale:'true'},1.1),true2:r({oneFit:'own',ownScale:'true'},2.1)};})()""")
+    ar = lambda r: r['w'] / r['h']
+    check('Full bleed: each slide fills the canvas', fit['bleed'] == {'x': 0, 'y': 0, 'w': 1080, 'h': 1350}, str(fit['bleed']))
+    check('As it is: each slide keeps its own shape; Fit each fills the space, True to scale keeps one scale',
+          abs(ar(fit['fit0']) - .8) < 1e-6 and abs(ar(fit['fit2']) - 2) < 1e-6 and abs(fit['fit2']['w'] - 864) < .5
+          and abs(fit['true0']['w'] - fit['true1']['w']) < .01 and abs(fit['true2']['w'] / fit['true0']['w'] - 2000 / 1080) < 1e-6,
+          ' '.join(f"{k} {round(v['w'])}×{round(v['h'])}" for k, v in fit.items()))
+    kb = pg.evaluate("""(()=>{const E=segue.E,its=Array.from({length:4},(_,i)=>({kind:'image',w:1080,h:1350,moves:i===2?'none':'default'}));
+      const S={layout:'one',oneFit:'bleed',oneMove:'fade',hold:1,dur:.5,kb:'in',kbAmt:10,capOn:false,cSize:'4:5',after:'carry'};
+      const P=E.plan(S,its),ins=t=>E.scene(S,its,null,{},1080,1350,t).ops.map(o=>[o.i,o.inner?+o.inner.s.toFixed(4):1]);
+      const own=Object.assign({},S,{oneFit:'own',size:70,kb:'drift',dir:'left'}),xs=t=>E.scene(own,its,null,{},1080,1350,t).ops.map(o=>[o.i,+o.rect.x.toFixed(1),!!o.inner]);
+      return {a:ins(.1),b:ins(.9),fade:ins(1.25),still:ins(3.2),drift:[xs(.1),xs(.9)]};})()""")
+    check('Movement: a slide zooms in steadily while it’s on screen and keeps going through the transition',
+          kb['a'][0][1] < kb['b'][0][1] and len(kb['fade']) == 2 and kb['fade'][0][1] > kb['b'][0][1] and 1 < kb['fade'][1][1] < kb['fade'][0][1], str(kb))
+    check('Movement: a slide set to None in Media stays still', kb['still'] == [[2, 1]], str(kb['still']))
+    check('Movement: As it is drifts the whole slide (nothing cropped), the way Direction says',
+          kb['drift'][0][0][1] > kb['drift'][1][0][1] and not kb['drift'][0][0][2], str(kb['drift']))
+    hold = pg.evaluate("""(()=>{const E=segue.E,its=[{kind:'image',w:10,h:10},{kind:'image',w:10,h:10,hold:3},{kind:'image',w:10,h:10}];
+      return [E.plan({layout:'one',oneMove:'fade',hold:1,dur:.5,after:'carry'},its).L,E.plan({layout:'one',oneMove:'cut',hold:1,dur:.5,after:'carry'},[{kind:'image',w:10,h:10,hold:4}]).kind];})()""")
+    check('A slide can have its own time on screen; a single slide just stays, moving in and back out', abs(hold[0] - (1 + 3 + 1 + 3 * .5)) < 1e-9 and hold[1] == 'still', str(hold))
+    thr = pg.evaluate("""(()=>{const E=segue.E,its=Array.from({length:3},()=>({kind:'image',w:1080,h:1350}));
+      const S={layout:'one',oneFit:'bleed',oneMove:'through',feel:'linear',hold:1,dur:1,kb:'none',capOn:false,cSize:'4:5',after:'carry'};
+      const at=t=>E.scene(S,its,null,{},1080,1350,t).ops.map(o=>[o.i,+(o.rect.w/1080).toFixed(3)]);
+      const O=Object.assign({},S,{oneMove:'open'}),op=t=>E.scene(O,its,null,{},1080,1350,t).ops.map(o=>[o.i,o.clip?+(o.clip.w/1080).toFixed(3):null,o.clip&&o.clip.out?'out':'in']);
+      return {start:at(1.001),mid:at(1.5),end:at(1.999),open:op(1.5)};})()""")
+    check('Through: the next comes up from a small card in the middle (12%), off at once and slowing as it fills the frame, as this one carries on past',
+          thr['start'][1][1] < .13 and thr['mid'][1][1] > .12 ** .5 + .1 and thr['end'][1][1] > .99 and thr['mid'][0][1] > 1, str(thr))
+    check('Open: a window opens from the middle onto the next; this one shows only outside it', thr['open'] == [[0, .5, 'out'], [1, .5, 'in']], str(thr['open']))
+    seam3 = pg.evaluate("""async()=>{const its=segue.items.filter(i=>i.kind==='image');const E=segue.E;const out={};
+      for(const [k,o] of Object.entries({presto:{oneFit:'bleed',oneMove:'through',kb:'in',kbAmt:22},andante:{oneFit:'own',oneMove:'slide',kb:'drift'},shape:{oneFit:'shape',oneMove:'wipe',kb:'parallax'},adagio:{oneFit:'bleed',oneMove:'fade',kb:'vary'}})){
+        const S=Object.assign({},segue.S,{layout:'one',cSize:'custom',cW:540,cH:676,capOn:false,hold:.6,dur:.5,after:'carry'},o);
+        const draw=t=>{const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d');E.paint(x,E.scene(S,its,x,segue.fonts,540,676,t),S,segue.fonts,{media:(cx,q,r)=>cx.drawImage(q.item.src,r.x,r.y,r.w,r.h)});return x.getImageData(0,0,540,676).data;};
+        const P=E.plan(S,its),a=draw(0.0001),b=draw(P.L+0.0001);let d=0;for(let i=0;i<a.length;i++)d=Math.max(d,Math.abs(a[i]-b[i]));out[k]=d;}return out;}""")
+    check('Slides loop exactly with movement, in every framing', all(v <= 1 for v in seam3.values()), str(seam3))
+
+    # ---- 0.3: GIFs made for showcasing ----
+    pg.evaluate("for(const [k,v] of [['cSize','custom'],['cW',540],['cH',676],['xGifScale',.5],['xGifFps',20],['xFormat','gif'],['bg','#F5F5F3'],['bgImgA',0],['ovOn',false]])segue.set(k,v)")
+    def gif_of(js):
+        pg.evaluate(js); sheet(pg, 'export')
+        with pg.expect_download(timeout=240000) as d:
+            pg.get_by_role('button', name='Download GIF').click()
+        path = os.path.join(OUT, 'show_' + str(len(results)) + '.gif'); d.value.save_as(path)
+        im = Image.open(path); n = 0; total = 0; first = None
+        try:
+            while True:
+                total += im.info.get('duration', 0); n += 1
+                if first is None: first = im.convert('RGB').copy()
+                im.seek(im.tell() + 1)
+        except EOFError: pass
+        return path, n, total, first
+    L1 = pg.evaluate("segue.applyPreset('Semplice');for(const [k,v] of [['xGifScale',.5],['xGifFps',20],['bg','#F5F5F3'],['bgImgA',0]])segue.set(k,v);segue.plan().L")
+    imgs = pg.evaluate("segue.items.filter(i=>i.kind==='image').length")
+    pg.evaluate("window._keep=segue.items.slice();segue.items.splice(0,segue.items.length,...segue.items.filter(i=>i.kind==='image'));segue.refresh()")
+    L1 = pg.evaluate("segue.plan().L")
+    p1, n1, t1, f1 = gif_of("segue.set('xFormat','gif')")
+    check('GIF: straight cuts of still slides – one frame per slide, each held, the loop’s length exactly',
+          n1 == imgs and abs(t1 - L1 * 1000) <= 10 and os.path.getsize(p1) < 200000, f'{n1} frames for {imgs} slides, {t1} ms (loop {L1:.2f} s), {os.path.getsize(p1)//1000} KB')
+    pg.evaluate("segue.set('oneFit','own');segue.set('bg','#F5F5F3');segue.set('size',70)")
+    p2, n2, t2, f2 = gif_of("segue.set('xFormat','gif')")
+    bgpx = f2.getpixel((2, 2)) if f2 else None
+    check('GIF: flat colours come out exact (#F5F5F3, not rounded)', bgpx == (245, 245, 243), str(bgpx))
+    pg.evaluate("segue.set('oneMove','fade');segue.set('dur',.5);segue.set('kb','in')")
+    L3 = pg.evaluate("segue.plan().L")
+    p3, n3, t3, f3 = gif_of("segue.set('xFormat','gif')")
+    rects = gif_rects(p3); part = sum(1 for r in rects[1:] if r[2] * r[3] < 270 * 338)
+    check('GIF: with movement, the frames are written – but only the part of each that changed',
+          n3 > 3 * imgs and abs(t3 - L3 * 1000) <= 10 and rects[0] == (0, 0, 270, 338) and part >= len(rects) // 2, f'{n3} frames (loop {L3:.2f} s), {os.path.getsize(p3)//1000} KB, {part} of {len(rects)} partial')
+    pg.evaluate("segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Coda');segue.set('ovOn',false)")
 
     # ---- exports ----
     pg.evaluate("for(const [k,v] of [['hold',.3],['dur',.3],['zOut',.3],['gHold',.3],['zIn',.3],['cSize','custom'],['cW',540],['cH',676],['bg','#F5F5F3'],['bgImgA',0],['name','Test reel']])segue.set(k,v)")
@@ -279,9 +394,11 @@ with sync_playwright() as p:
           f"{m.get('width')}×{m.get('height')} {m.get('nb_frames')} frames (loop {L:.2f} s) {m.get('codec_name')} {m.get('color_range')}")
     check('MP4: the background comes back as #F5F5F3', max(abs(x - y) for x, y in zip(pixel(got['mp4'], 3, 3), (245, 245, 243))) <= 2, str(pixel(got['mp4'], 3, 3)))
     check('MP4: named from File name and size', os.path.basename(got['mp4']) == 'Test_reel_540x676.mp4', os.path.basename(got['mp4']))
-    gf = subprocess.run(['ffprobe', '-v', 'error', '-count_frames', '-show_entries', 'stream=width,height,nb_read_frames', '-of', 'json', got['gif']], capture_output=True, text=True).stdout
-    gf = json.loads(gf)['streams'][0]
-    check('GIF: half size, 20 frames a second', gf['width'] == 270 and gf['height'] == 338 and int(gf['nb_read_frames']) == round(L * 20), str(gf))
+    gim = Image.open(got['gif']); gn = 0; gt = 0
+    try:
+        while True: gt += gim.info.get('duration', 0); gn += 1; gim.seek(gim.tell() + 1)
+    except EOFError: pass
+    check('GIF: half size, 20 frames a second at most, the loop’s length exactly', gim.size == (270, 338) and gn <= round(L * 20) and abs(gt - L * 1000) <= 10, f'{gim.size} {gn} frames {gt} ms')
     im = Image.open(got['png'])
     check('PNG: full size, the background exact', im.size == (540, 676) and im.convert('RGB').getpixel((2, 2)) == (245, 245, 243), f'{im.size} {im.convert("RGB").getpixel((2,2))}')
 
