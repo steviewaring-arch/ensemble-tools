@@ -1,0 +1,515 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UI Round Four</title>
+<meta name="description" content="An audit of Tutti, Rubato, Tempo and Segue, and two ways forward for the house UI: an evolution and a bigger push.">
+<link rel="stylesheet" href="https://use.typekit.net/rhx3hsl.css">
+<style>
+:root{
+  --face:"aktiv-grotesk","Aktiv Grotesk","Helvetica Neue",Helvetica,Arial,sans-serif;
+  --ground:#f3f2ef;--app:#ffffff;--paper:#f6f6f4;--seg:#f0efec;
+  --ink:#2b2b2b;--ink-strong:#111111;--muted:#67656b;
+  --rule:rgba(43,43,43,.10);--hair:rgba(43,43,43,.20);--track:rgba(43,43,43,.14);
+  --fill:#1d1d1f;--on-fill:#ffffff;--focus:#4a7dff;--live:#e5372b;
+  color-scheme:light}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#141416;--app:#1c1c1e;--paper:#252529;--seg:#2c2c31;
+  --ink:#f2f1ee;--ink-strong:#ffffff;--muted:#a3a1a8;
+  --rule:rgba(255,255,255,.10);--hair:rgba(255,255,255,.22);--track:rgba(255,255,255,.18);
+  --fill:#f2f1ee;--on-fill:#1c1c1e;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --ground:#141416;--app:#1c1c1e;--paper:#252529;--seg:#2c2c31;
+  --ink:#f2f1ee;--ink-strong:#ffffff;--muted:#a3a1a8;
+  --rule:rgba(255,255,255,.10);--hair:rgba(255,255,255,.22);--track:rgba(255,255,255,.18);
+  --fill:#f2f1ee;--on-fill:#1c1c1e;color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--face);font-size:15px;line-height:1.5;letter-spacing:-.006em;-webkit-font-smoothing:antialiased}
+a{color:inherit}
+img{max-width:100%;display:block}
+b,strong{font-weight:500;color:var(--ink-strong)}
+.wrap{max-width:1360px;margin:0 auto;padding:0 32px}
+header.top{padding:40px 0 28px;border-bottom:1px solid var(--rule)}
+.kick{font-size:13px;color:var(--muted);display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
+h1{font-size:clamp(40px,6vw,76px);font-weight:700;letter-spacing:-.05em;line-height:.95;margin:22px 0 18px;color:var(--ink-strong)}
+.lede{font-size:clamp(18px,2vw,22px);line-height:1.35;letter-spacing:-.018em;max-width:40em;margin:0}
+.themes-t{margin-left:auto;display:inline-flex;background:var(--seg);border-radius:999px;padding:2px}
+.themes-t button{all:unset;cursor:pointer;font-size:12.5px;padding:4px 12px;border-radius:999px;color:var(--muted)}
+.themes-t button[aria-pressed="true"]{background:var(--app);color:var(--ink-strong);box-shadow:0 0 0 1px var(--hair)}
+nav.jump{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--ground) 88%,transparent);-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px);border-bottom:1px solid var(--rule)}
+nav.jump .wrap{display:flex;gap:4px 18px;overflow-x:auto;scrollbar-width:none;height:44px;align-items:center;font-size:13px}
+nav.jump a{text-decoration:none;color:var(--muted);white-space:nowrap}
+nav.jump a:hover{color:var(--ink-strong)}
+section.part{display:grid;grid-template-columns:220px minmax(0,1fr);gap:24px 40px;padding:56px 0;border-bottom:1px solid var(--rule)}
+section.part>h2{margin:0;font-size:13px;font-weight:500;color:var(--muted);letter-spacing:0;position:sticky;top:64px;align-self:start;line-height:1.3}
+section.part>h2 span{display:block;font-size:30px;font-weight:700;color:var(--ink-strong);letter-spacing:-.04em;line-height:1;margin-bottom:6px}
+.body>*:first-child{margin-top:0}
+h3{font-size:22px;font-weight:700;letter-spacing:-.03em;line-height:1.1;margin:44px 0 12px;color:var(--ink-strong)}
+h4{font-size:15px;font-weight:500;margin:0 0 6px;color:var(--ink-strong);letter-spacing:-.01em}
+p{margin:0 0 14px;max-width:46em}
+.small{font-size:13px;color:var(--muted)}
+ul.plain{margin:0 0 14px;padding:0;list-style:none;max-width:48em}
+ul.plain li{padding:7px 0 7px 20px;position:relative;border-top:1px solid var(--rule)}
+ul.plain li:first-child{border-top:0}
+ul.plain li::before{content:"";position:absolute;left:2px;top:15px;width:7px;height:7px;border-radius:50%;background:var(--ink-strong)}
+.short{background:var(--app);border-radius:14px;box-shadow:0 0 0 1px var(--rule);padding:22px 26px}
+.short ul.plain{margin:0}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+.grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.card{background:var(--app);border-radius:14px;box-shadow:0 0 0 1px var(--rule);padding:18px 20px}
+.card .tag{font-size:12px;color:var(--muted);margin-bottom:6px;display:flex;gap:8px;align-items:center}
+.card .tag i{font-style:normal;font-weight:700;color:var(--ink-strong);font-size:12px}
+.finding{display:grid;grid-template-columns:44px minmax(0,1fr) minmax(0,300px);gap:6px 18px;padding:18px 0;border-top:1px solid var(--rule)}
+.finding:first-of-type{border-top:0}
+.finding .no{font-size:13px;font-weight:700;color:var(--ink-strong)}
+.finding p{margin:0;font-size:14.5px}
+.finding figure{margin:0}
+.finding figure img{border-radius:8px;box-shadow:0 0 0 1px var(--rule)}
+figure{margin:0}
+figcaption{font-size:12.5px;color:var(--muted);margin-top:8px}
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,280px));gap:20px;align-items:start}
+.pair img{border-radius:12px;box-shadow:0 0 0 1px var(--rule)}
+.dir{border-radius:16px;padding:24px 26px;background:var(--app);box-shadow:0 0 0 1px var(--rule)}
+.dir .big{font-size:56px;font-weight:700;letter-spacing:-.05em;line-height:.9;color:var(--ink-strong)}
+.dir h4{font-size:22px;font-weight:700;letter-spacing:-.03em;margin:10px 0 4px}
+.dir .sub{color:var(--muted);margin-bottom:12px}
+table.cmp{width:100%;border-collapse:collapse;font-size:13.5px;background:var(--app);border-radius:14px;overflow:hidden;box-shadow:0 0 0 1px var(--rule)}
+table.cmp th,table.cmp td{text-align:left;vertical-align:top;padding:11px 14px;border-top:1px solid var(--rule)}
+table.cmp thead th{border-top:0;font-weight:500;color:var(--ink-strong);font-size:12.5px;background:var(--paper)}
+table.cmp tbody th{font-weight:500;color:var(--ink-strong);width:18%}
+table.cmp td.n{color:var(--muted)}
+table.cmp .num{font-variant-numeric:tabular-nums}
+.tabs{display:inline-flex;background:var(--seg);border-radius:999px;padding:2px;margin-bottom:14px;position:relative}
+.tabs button{all:unset;position:relative;z-index:1;cursor:pointer;font-size:13.5px;padding:6px 16px;border-radius:999px;color:var(--muted);transition:color .14s}
+.tabs button[aria-selected="true"]{color:var(--ink-strong);font-weight:500}
+.tabs .hl{position:absolute;top:2px;bottom:2px;border-radius:999px;background:var(--app);box-shadow:0 0 0 1px var(--hair);transition:left .42s cubic-bezier(.34,1.22,.64,1),width .42s cubic-bezier(.34,1.22,.64,1)}
+.fit{position:relative;width:100%}
+.fit>.inner{position:absolute;left:0;top:0;transform-origin:0 0}
+.pane[hidden]{display:none}
+.shotframe{width:1280px;height:780px;border-radius:18px;overflow:hidden;box-shadow:0 0 0 1px var(--rule);background:#fff}
+.shotframe img{width:100%;height:100%;object-fit:cover;object-position:left top}
+.try{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted);margin-top:12px}
+.try b{font-weight:500;color:var(--ink)}
+.trio{display:grid;grid-template-columns:minmax(0,314px) minmax(0,300px) minmax(0,416px);gap:18px;align-items:start;justify-content:start}
+.trio .lbl{font-size:12.5px;color:var(--muted);margin-bottom:8px;display:flex;gap:8px}
+.trio .lbl b{color:var(--ink-strong)}
+.trio .nowimg{height:640px;border-radius:16px;box-shadow:0 0 0 1px var(--rule);overflow:hidden;background:var(--app)}
+.trio .nowimg img{width:100%}
+.spec{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.spec .card{display:flex;flex-direction:column;gap:12px}
+.spec .host{padding:4px 0}
+.spec .verdict{font-size:12.5px;color:var(--muted);margin-top:auto}
+.spec .verdict b{color:var(--ink-strong)}
+.pick{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:999px;background:var(--fill);color:var(--on-fill);margin-left:6px;vertical-align:2px}
+.scale td:nth-child(n+2){font-variant-numeric:tabular-nums}
+.sw-type{display:flex;flex-direction:column;gap:3px}
+.motion-ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:0 0 14px;font-size:13px}
+.steps{counter-reset:s;list-style:none;padding:0;margin:0 0 14px;max-width:52em}
+.steps li{counter-increment:s;padding:12px 0 12px 44px;position:relative;border-top:1px solid var(--rule)}
+.steps li::before{content:counter(s);position:absolute;left:0;top:10px;font-size:22px;font-weight:700;letter-spacing:-.04em;color:var(--ink-strong)}
+.q{background:var(--app);border-radius:14px;box-shadow:0 0 0 1px var(--rule);padding:18px 22px;margin-top:14px}
+.q ol{margin:6px 0 0;padding-left:20px}
+.q li{margin:6px 0}
+footer{padding:40px 0 60px;font-size:13px;color:var(--muted)}
+@media (max-width:1100px){section.part{grid-template-columns:1fr}section.part>h2{position:static}.trio{grid-template-columns:1fr;justify-content:stretch}.trio>div{max-width:420px}.finding{grid-template-columns:36px 1fr}.finding figure{grid-column:2}}
+@media (max-width:760px){.wrap{padding:0 16px}.grid2,.grid3,.grid4,.pair{grid-template-columns:1fr}table.cmp{font-size:12.5px}table.cmp th,table.cmp td{padding:9px 10px}.cmpwrap{overflow-x:auto}}
+</style>
+<link rel="stylesheet" href="mock.css">
+</head>
+<body>
+<style>
+.trio3{display:grid;grid-template-columns:repeat(3,300px);gap:24px;align-items:start}
+.trio3 .lbl{font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.trio3 .lbl b{color:var(--ink-strong)}
+.bar2{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin-bottom:14px}
+.principles{counter-reset:p;list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 32px}
+.principles li{counter-increment:p;padding:14px 0 14px 40px;position:relative;border-top:1px solid var(--rule)}
+.principles li::before{content:counter(p,decimal-leading-zero);position:absolute;left:0;top:14px;font-size:13px;font-weight:700;color:var(--ink-strong);font-variant-numeric:tabular-nums}
+.principles li b{display:block;margin-bottom:2px}
+.principles li span{font-size:14px;color:var(--muted)}
+.take{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:18px}
+.take .card h4{margin-bottom:8px}
+.take .card ul{margin:0;padding-left:18px;font-size:14px}
+.take .card li{margin:4px 0}
+.anat{display:grid;grid-template-columns:120px 1fr 140px;grid-template-rows:28px 150px 28px;gap:6px;max-width:560px;margin:8px 0 6px;font-size:11.5px;color:var(--muted)}
+.anat div{border-radius:6px;box-shadow:inset 0 0 0 1px var(--hair);display:flex;align-items:center;justify-content:center;text-align:center;padding:4px;background:var(--app)}
+.anat .t{grid-column:1/-1}.anat .l{grid-row:2/4}.anat .r{grid-row:2/4;grid-column:3}.anat .c{background-color:var(--paper);background-image:radial-gradient(var(--hair) 1px,transparent 1.2px);background-size:10px 10px}
+@media (max-width:1100px){.trio3{grid-template-columns:repeat(auto-fill,300px)}.principles,.take{grid-template-columns:1fr}}
+</style>
+<header class="top"><div class="wrap">
+  <div class="kick"><span>Ensemble Tools · UI round 4</span><span>5 November 2026</span><span>Tutti 6.1.1 · Rubato 1.1 · Tempo 0.11.1 · Segue 0.4</span>
+    <span class="themes-t" role="group" aria-label="Page theme"><button type="button" data-t="light">Light</button><button type="button" data-t="dark">Dark</button></span></div>
+  <h1>Clearer,<br>not busier</h1>
+  <p class="lede">An audit of the four tools as they are today, what SOH Motion does well, the house principles revised, and two ways forward: <b>A</b>, an evolution of what's there, and <b>B</b>, a bigger push towards a studio. The panels are working mock-ups – drag the sliders, click a value and type, open and shut sections. Nothing here touches the tools.</p>
+</div></header>
+<nav class="jump" aria-label="On this page"><div class="wrap">
+  <a href="#short">In short</a><a href="#audit">Audit</a><a href="#soh">SOH Motion</a><a href="#principles">Principles</a><a href="#dirs">Two directions</a><a href="#type">Type</a><a href="#sliders">Sliders</a><a href="#choices">Choices</a><a href="#side">Side by side</a><a href="#motion">Motion</a><a href="#function">Function</a><a href="#next">Recommendation</a>
+</div></nav>
+
+<main class="wrap">
+
+<section class="part" id="short"><h2><span>0</span>In short</h2><div class="body">
+  <div class="short"><ul class="plain">
+    <li><b>The problem.</b> In October the tools got smaller and flatter at the same time: one weight, six type sizes doing the work of two weights, four near-identical greys, and a slider that's too faint to hold. That's why Tutti feels less usable than 6.0 – nothing tells the eye where to land.</li>
+    <li><b>What SOH Motion shows.</b> Small type works when it has weight. Settings about the canvas belong on the canvas. One black button. A lozenge slider is fine when it has contrast and a handle that never disappears.</li>
+    <li><b>A – Evolution.</b> Our frame, made legible. Aktiv Medium for section titles and the chosen option, smaller secondary text, fewer boxes, black kept for actions, a dot slider with a value you can type, visible changes, undo, and fluid motion.</li>
+    <li><b>B – Studio.</b> The bigger push, after SOH. What goes in on the left, settings on the right, the canvas in the middle on a dotted pasteboard with its own toolbar, Export top right, a transport bar along the bottom. A crisper inspector with bold section titles, the lozenge done properly, Find a setting (⌘K) and a column that shows every change.</li>
+    <li><b>Recommendation.</b> A's foundations first, in all four tools – B needs every one of them. Then try B on Segue: it's internal, it's the newest, and its media list is exactly what a left panel is for.</li>
+  </ul></div>
+</div></section>
+
+<section class="part" id="audit"><h2><span>1</span>Audit</h2><div class="body">
+  <h3 style="margin-top:0">What's working – keep it</h3>
+  <ul class="plain">
+    <li><b>The frame.</b> The work fitted in the clear space, Preview to fill the window, one place for Export, Presets kept separate. People find things where they expect them.</li>
+    <li><b>Summaries on shut sections</b> ("Original · Grid 72"). The panel can stay short without hiding what's set.</li>
+    <li><b>Light by default, no shadows.</b> Calm, and the work stays the brightest thing on screen.</li>
+    <li><b>Segue's details:</b> values you can type (0.4), the Kind tiles, literal names. These should spread, not stay in one tool.</li>
+    <li><b>Tutti's band rows</b> – number, swatch, name, SVG. A good list pattern for anything with rows.</li>
+  </ul>
+  <h3>Why Tutti feels less usable than 6.0</h3>
+  <div class="pair">
+    <figure><img src="img/a-tutti60.jpg" alt="Tutti 6.0's panel: dark cards, larger type, sliders with a dot under a label" loading="lazy"><figcaption>Tutti 6.0 (September)</figcaption></figure>
+    <figure><img src="img/a-tutti61.jpg" alt="Tutti 6.1.1's panel: light grey cards, smaller type, lozenge sliders" loading="lazy"><figcaption>Tutti 6.1.1 (now)</figcaption></figure>
+  </div>
+  <ul class="plain" style="margin-top:18px">
+    <li><b>Type went from 17 to 14 px, titles from 20 to 16.</b> Smaller, and the step between levels shrank too.</li>
+    <li><b>Sliders lost their handle.</b> 6.0 had a label and value above a track with a dot. 6.1 put the label inside a pale lozenge with a 1 px tick that hides near the words – at Zoom's default there's no handle at all.</li>
+    <li><b>Sections lost their edges.</b> Dark cards on a darker panel became grey cards on white, at 1.08 : 1 – edges you can barely see.</li>
+    <li><b>The panel narrowed from 340 to 300 px.</b></li>
+  </ul>
+  <p>Each change was reasonable on its own. Together they took away size, weight and contrast at once, and nothing replaced them. The fix isn't to go back to 6.0 – it's to put hierarchy back with weight and contrast, so the panel can stay compact.</p>
+  <h3>What's not working – how it looks</h3>
+  <div class="finding"><span class="no">V1</span><p><b>Hierarchy is flat.</b> One weight and six sizes (22, 16, 14, 13.5, 13, 12) – section title 16 against body 14. Titles, labels, options and values all look alike, so the eye has nowhere to land. This is the root of "weirdly less usable".</p></div>
+  <div class="finding"><span class="no">V2</span><p><b>Grey on grey on grey.</b> White panel, cards at #f6f6f4 (1.08 : 1 against the panel), segmented tracks at #ebeae7 (1.11 : 1 against the card), slider fills at 12% ink. Four nested surfaces that barely differ read as noise, not structure.</p></div>
+  <div class="finding"><span class="no">V3</span><p><b>Black pills everywhere.</b> Every segmented control marks its choice with a filled black pill – Tempo's Clock section shows four at once. They compete with the real actions (Choose image, Export) and with the work.</p><figure><img src="img/a-tempo-wrap.jpg" alt="Tempo's Numerals section with black pills and a lozenge slider whose label wraps" loading="lazy"><figcaption>Tempo – black pills, and a slider whose label wraps inside it</figcaption></figure></div>
+  <div class="finding"><span class="no">V4</span><p><b>The lozenge is too faint.</b> A white track, a 12% fill and a 1 px tick that steps aside near the words. Long labels collide – Tempo's "Space around the separator" wraps onto two lines inside the control.</p></div>
+  <div class="finding"><span class="no">V5</span><p><b>Segmented controls that wrap.</b> Five or six options break into two or three rows of floating words (Colour by, Feel, Order, Alternates). It stops reading as one control.</p><figure><img src="img/a-tempo-colourby.jpg" alt="Tempo's Colour by control wrapping over three rows" loading="lazy"><figcaption>Tempo – Colour by over three rows</figcaption></figure></div>
+  <div class="finding"><span class="no">V6</span><p><b>Quiet actions look like labels.</b> Randomise, Random, Reset shapes and Even are grey text with no edge, fill or icon. They read as captions, not buttons.</p><figure><img src="img/a-tutti-quiet.jpg" alt="Tutti's Mapping section with Random and Reset shapes as plain grey text" loading="lazy"><figcaption>Tutti – Random and Reset shapes</figcaption></figure></div>
+  <div class="finding"><span class="no">V7</span><p><b>Hints at reading length.</b> Tempo's Fonts section opens with two paragraphs at nearly control size. Help pushes the controls down the panel.</p><figure><img src="img/a-tempo-hints.jpg" alt="Tempo's Fonts section with two paragraphs of help text" loading="lazy"><figcaption>Tempo – two paragraphs before the first control</figcaption></figure></div>
+  <h3>What's not working – how it works</h3>
+  <div class="finding"><span class="no">F1</span><p><b>Precision.</b> A faint handle, no typing (bar Segue), and fine steps that exist only for the keyboard and aren't shown. You and the Segue stream have both flagged it.</p></div>
+  <div class="finding"><span class="no">F2</span><p><b>Long panels.</b> With every section open: Tutti 1,858 px (two screens), Rubato 2,891, Segue 2,946, Tempo 3,382 (nearly four). Finding a control means scrolling, opening sections and remembering where it lives.</p></div>
+  <div class="finding"><span class="no">F3</span><p><b>You can't see what you've changed.</b> A default looks the same as a change, and there's no reset for a section. Double-click to reset exists, but nothing says so.</p></div>
+  <div class="finding"><span class="no">F4</span><p><b>No undo,</b> except for Rubato's Randomise.</p></div>
+  <div class="finding"><span class="no">F5</span><p><b>Motion is on or off.</b> Pills jump, numbers snap, and the timings are one-offs (0.14 s here, 0.42 s there). The "fluid" you asked for needs a few named curves used everywhere.</p></div>
+  <div class="finding"><span class="no">F6</span><p><b>A crowded island.</b> Tempo's eight views plus Export run to 780 px – wider than most laptop work areas leave.</p><figure><img src="img/a-tempo-island.jpg" alt="Tempo's island with eight view options and Export" loading="lazy"><figcaption>Tempo – eight views and Export</figcaption></figure></div>
+  <div class="finding"><span class="no">F7</span><p><b>Four tools, three frames.</b> Rubato and Tempo share the core; Tutti and Segue have frames of their own, so their sliders already behave differently. Whatever we pick has to land in the shared components, or it'll drift again.</p></div>
+</div></section>
+
+<section class="part" id="soh"><h2><span>2</span>What SOH Motion gets right</h2><div class="body">
+  <p>Looked at closely on 5 November (motion.soh.studio/app) – sizes, weights and colours read from the page, not guessed.</p>
+  <div class="anat" aria-hidden="true"><div class="t">Name · file · Export</div><div class="l">What goes in<br>library, media</div><div class="c">Canvas<br>toolbar of pills on top,<br>dotted pasteboard</div><div class="r">How it looks<br>and moves<br>– the inspector</div><div class="c" style="grid-column:2;background-image:none">Timeline · transport</div></div>
+  <ul class="plain">
+    <li><b>An editor in three parts.</b> What goes in on the left (library, media slots), how it looks and moves on the right (Background, Text, Image/Object, Motion, Arrange, Audio), the canvas in the middle with its own toolbar and a timeline underneath. You always know which side to look at.</li>
+    <li><b>Small type with real weight.</b> Geist at 11–14 px: section titles 13 px semibold, labels 12 px grey, values 12 px in tabular figures – three weights. It's the "smaller, in Medium" you asked for, done consistently.</li>
+    <li><b>Canvas settings live on the canvas.</b> The toolbar holds Frame 4:5, Cards Match frame and the loop length as label-and-value pills – out of the inspector, next to the thing they change.</li>
+    <li><b>One black button.</b> Export, top right. Everything else is a quiet grey fill.</li>
+    <li><b>Its sliders are lozenges, like ours</b> – but with a solid track, a darker fill, a black handle that never hides, and a value you can click. So the lozenge isn't the problem; ours is too faint.</li>
+    <li><b>A slot beside every control.</b> Each one has a ◇ to pin its value at the playhead, and the empty timeline teaches it: "No keyframes yet. Click the ◇ beside any control to pin its value at the playhead." Help in the empty state, not in a paragraph.</li>
+    <li><b>A dotted pasteboard,</b> so the work and the chrome never blur. Undo and redo sit by the canvas. ⌘K opens the library. Interface transitions are short – 150 ms on one ease.</li>
+  </ul>
+  <div class="take">
+    <div class="card"><h4>A takes</h4><ul><li>Hierarchy by weight at small sizes</li><li>12 px labels, values in tabular figures</li><li>One black button per view</li><li>Help that teaches in the empty state</li></ul></div>
+    <div class="card"><h4>B takes</h4><ul><li>The three-part anatomy and Export top right</li><li>Canvas settings as pills on a canvas toolbar</li><li>The lozenge with contrast and a handle</li><li>The slot beside each control – ours shows changes and resets them</li><li>The pasteboard and a transport bar</li></ul></div>
+    <div class="card"><h4>We leave</h4><ul><li>Geist – Aktiv Grotesk is ours</li><li>Projects and log-in</li><li>Keyframes, for now – though they'd suit Segue and Rubato later, in the same slot</li></ul></div>
+  </div>
+</div></section>
+
+<section class="part" id="principles"><h2><span>3</span>House principles, revised</h2><div class="body">
+  <p>Shared by both directions. Where these and the October rules disagree, these win.</p>
+  <ol class="principles">
+    <li><b>The work is the brightest thing on screen.</b><span>Chrome is quiet, light and edged with hairlines; no shadows.</span></li>
+    <li><b>One black thing per view.</b><span>Black is for the main action – Export, Choose image. Choices are marked with ink and weight, not black fills.</span></li>
+    <li><b>Hierarchy by weight, not size.</b><span>Two sizes do the reading (13 and 12); Medium marks titles and what's chosen; Bold appears once per view at most.</span></li>
+    <li><b>Every value can be typed.</b><span>Click the number, type, Enter. Arrows nudge, Shift nudges ten times as far.</span></li>
+    <li><b>Every change shows, and every change undoes.</b><span>Changed values look different from defaults; a reset is one click away; ⌘Z takes back the last change.</span></li>
+    <li><b>Settings sit next to what they change.</b><span>Canvas settings by the canvas, view controls by the view, sources apart from styling.</span></li>
+    <li><b>Show only what applies.</b><span>Controls appear when they matter and step away when they don't; shut sections say what's set.</span></li>
+    <li><b>Find anything in two keystrokes.</b><span>⌘K and a word gets you to any setting in any tool.</span></li>
+    <li><b>Motion explains cause and effect.</b><span>Three named curves, used everywhere; fades instead of movement for anyone who asks for less.</span></li>
+    <li><b>One kit for four tools.</b><span>Same parts, same behaviour, same names – fixes land once, in the shared components.</span></li>
+  </ol>
+</div></section>
+
+<section class="part" id="dirs"><h2><span>4</span>Two directions</h2><div class="body">
+  <div class="grid2">
+    <div class="dir"><div class="big">A</div><h4>Evolution – sharpen it</h4><div class="sub">Our frame and structure, one scroll, made legible.</div>
+      <ul class="plain">
+        <li><b>Two weights.</b> Aktiv Medium for section titles, the chosen option and buttons; Regular for the rest. Sizes come down to 20, 14, 13 and 12.</li>
+        <li><b>Fewer boxes.</b> Sections are divided by hairlines, not grey cards. The only grey left is the track behind a choice.</li>
+        <li><b>Black is for actions.</b> The chosen option is a white pill that slides along its track.</li>
+        <li><b>A dot slider.</b> Title on the left, value in a small lozenge on the right – click it and type – and a dot on a line underneath. It catches at the default.</li>
+        <li><b>More than fits a row becomes a menu.</b> No more wrapped pills – Tempo's eight views become one menu in the island.</li>
+        <li><b>Changes show.</b> Changed values turn ink, a red dot marks the section, and Reset appears beside it. ⌘Z undoes, with a line in the island.</li>
+      </ul></div>
+    <div class="dir"><div class="big">B</div><h4>Studio – the bigger push</h4><div class="sub">After SOH Motion: an editor in three parts.</div>
+      <ul class="plain">
+        <li><b>Inputs left, settings right.</b> Sources and presets in a left panel; styling in an inspector on the right; the canvas between them on a dotted pasteboard.</li>
+        <li><b>A toolbar on the canvas.</b> Undo and redo, and canvas settings as pills – Ratio, Resolution, Show, Frame rate. Export moves top right; time-based tools get a transport bar along the bottom.</li>
+        <li><b>A crisper inspector.</b> Bold 13 px section titles, 12 px labels, values in tabular figures, quiet grey fills.</li>
+        <li><b>The lozenge done properly.</b> A solid track, a darker fill, a 3 px handle that never hides, the value clickable to type.</li>
+        <li><b>A change column.</b> A slot at the right of every row – our ◇ – shows a red dot when that control has moved. Click the dot to reset it.</li>
+        <li><b>Find a setting</b> (⌘K) and <b>Changed</b>, to see only what you've moved. Choices as words, with a line under the chosen one.</li>
+      </ul></div>
+  </div>
+</div></section>
+
+<section class="part" id="type"><h2><span>5</span>Type</h2><div class="body">
+  <p>Hierarchy comes back through weight, not size – so the panel stays compact. A uses Medium only; B adds Bold for section titles, which is where "some bold" earns its keep. Your Adobe Fonts kit already has Aktiv Grotesk at 400, 500 and 700.</p>
+  <div class="cmpwrap"><table class="cmp scale">
+    <thead><tr><th>Role</th><th>Now</th><th>A – Evolution</th><th>B – Studio</th></tr></thead>
+    <tbody>
+      <tr><th>Name and version</th><td class="n">22 Regular, stacked</td><td>20 Medium, stacked, version in grey</td><td>16 Bold, one line in the top bar</td></tr>
+      <tr><th>By ENSEMBLE</th><td class="n">22 Regular, grey</td><td>20 Regular, grey</td><td>16 Regular, grey</td></tr>
+      <tr><th>Section title</th><td class="n">16 Regular</td><td><b>14 Medium</b></td><td><b style="font-weight:700">13 Bold</b></td></tr>
+      <tr><th>Control label</th><td class="n">14 Regular</td><td>13 Regular, ink</td><td>12 Regular, grey</td></tr>
+      <tr><th>Options</th><td class="n">13.5 Regular, white on black</td><td>12.5 Regular grey; chosen 12.5 Medium ink on a white pill</td><td>12.5 Regular grey; chosen 12.5 Medium ink, underlined</td></tr>
+      <tr><th>Values</th><td class="n">13 Regular, grey</td><td>12.5 Regular, tabular – grey at default, ink once changed</td><td>12 Regular, tabular – Medium once changed</td></tr>
+      <tr><th>Group heading</th><td class="n">12 Regular, grey</td><td colspan="2">11.5 Medium, grey</td></tr>
+      <tr><th>Buttons</th><td class="n">14 Regular</td><td>13 – Medium for the main one</td><td>12.5 Medium</td></tr>
+      <tr><th>Hints</th><td class="n">12–14 Regular, any length</td><td colspan="2">12 Regular, grey, one or two lines – the rest behind More</td></tr>
+      <tr><th>Weights in use</th><td class="n">1</td><td>2</td><td>3</td></tr>
+    </tbody></table></div>
+  <h3>The same two sections, three ways</h3>
+  <p class="small">Canvas and Shape from Tutti. Try them – sliders, values and options all work.</p>
+  <div class="trio3">
+    <div><div class="lbl"><b>Now</b> as built</div><div id="t-vn"></div></div>
+    <div><div class="lbl"><b>A</b> Evolution</div><div id="t-va"></div></div>
+    <div><div class="lbl"><b>B</b> Studio – the inspector</div><div id="t-vb"></div></div>
+  </div>
+</div></section>
+
+<section class="part" id="sliders"><h2><span>6</span>Sliders</h2><div class="body">
+  <p>You asked for a dot on a line with the title on the left, and your voice note had the value lozenge on the other side of the title, then "to the left of it" – so both readings are here, next to the stacked version. SOH Motion makes the case for keeping a lozenge if it's done properly, so that's here too. All of them work the same way: click the value and type, arrows nudge, Shift nudges ten times as far, double-click resets, and the handle catches for a moment at the default (the small notch).</p>
+  <div class="spec" id="sliderSpec"></div>
+  <p class="small" style="margin-top:14px">For A, the stacked dot: the line runs the full width of the panel, which is what makes small moves possible, and long labels never get cut short. For B, the lozenge done properly: one row per slider, the whole width to drag, and a handle you can always see. The inline readings save a line but leave a short track and cut long labels.</p>
+</div></section>
+
+<section class="part" id="choices"><h2><span>7</span>Choices, actions and help</h2><div class="body">
+  <h3 style="margin-top:0">Picking one of several</h3>
+  <div class="spec" id="choiceSpec"></div>
+  <h3>Quiet actions, changes and help</h3>
+  <div class="spec" id="miscSpec"></div>
+</div></section>
+
+<section class="part" id="side"><h2><span>8</span>Side by side</h2><div class="body">
+  <p>Each tool now, as A and as B. Switch tools and versions above the frame, or press 1, 2 or 3 for Now, A and B.</p>
+  <div class="bar2">
+    <div class="tabs" role="tablist" id="appTabs" style="margin:0"><i class="hl"></i><button role="tab" aria-selected="true" data-a="tutti">Tutti</button><button role="tab" aria-selected="false" data-a="tempo">Tempo</button><button role="tab" aria-selected="false" data-a="segue">Segue</button><button role="tab" aria-selected="false" data-a="rubato">Rubato</button></div>
+    <div class="tabs" role="tablist" id="verTabs" style="margin:0"><i class="hl"></i><button role="tab" aria-selected="true" data-v="now">Now</button><button role="tab" aria-selected="false" data-v="a">A – Evolution</button><button role="tab" aria-selected="false" data-v="b">B – Studio</button></div>
+  </div>
+  <div class="fit" data-w="1280" data-h="780" id="sideFit"><div class="inner" id="sideInner"></div></div>
+  <div class="try" id="sideTry"></div>
+</div></section>
+
+<section class="part" id="motion"><h2><span>9</span>Motion</h2><div class="body">
+  <p>Three curves, named for what they do, used everywhere – so a pill, a section and a number all move like the same tool. Anyone who's asked their computer for less motion gets fades instead of movement.</p>
+  <div class="cmpwrap"><table class="cmp">
+    <thead><tr><th>Name</th><th>Used for</th><th>Time</th><th>Curve</th></tr></thead>
+    <tbody>
+      <tr><th>Snappy</th><td>Presses, ticks, hovers – anything under your finger</td><td class="num">140 ms</td><td class="num">cubic-bezier(.2, .8, .2, 1)</td></tr>
+      <tr><th>Smooth</th><td>Sections opening, sheets, panels, a slider jumping to a typed value</td><td class="num">360 ms</td><td class="num">cubic-bezier(.32, .72, 0, 1)</td></tr>
+      <tr><th>Morph</th><td>Highlights moving between options – the white pill, the underline – with a hint of overshoot</td><td class="num">420 ms</td><td class="num">cubic-bezier(.34, 1.22, .64, 1)</td></tr>
+      <tr><th>Roll</th><td>Numbers: the old value slides out, the new one in, up or down with the change</td><td class="num">260 ms</td><td class="num">Smooth</td></tr>
+    </tbody></table></div>
+  <h3>Feel it</h3>
+  <div class="motion-ctl"><span class="tabs" role="group" aria-label="Motion" id="motionTabs" style="margin:0"><i class="hl"></i><button type="button" aria-selected="false" data-m="now">Now – instant</button><button type="button" aria-selected="true" data-m="new">New</button></span>
+    <label style="display:inline-flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="slow"> Four times slower, to see the curves</label></div>
+  <div class="trio3" style="grid-template-columns:repeat(2,300px)"><div><div class="lbl"><b>A</b></div><div id="m-a"></div></div><div><div class="lbl"><b>B</b></div><div id="m-b"></div></div></div>
+  <p class="small" style="margin-top:12px">Pick options, open and shut sections, press the arrow keys on a slider, type a value and watch it roll.</p>
+</div></section>
+
+<section class="part" id="function"><h2><span>10</span>Function, side by side</h2><div class="body">
+  <div class="cmpwrap"><table class="cmp">
+    <thead><tr><th></th><th>Now</th><th>A – Evolution</th><th>B – Studio</th></tr></thead>
+    <tbody>
+      <tr><th>Set an exact value</th><td class="n">Drag only (type in Segue)</td><td colspan="2">Click the value and type; arrows nudge, Shift × 10</td></tr>
+      <tr><th>Grab the control</th><td class="n">A 1 px tick that hides near the words</td><td>A dot on a full-width line</td><td>A 3 px handle that never hides, on a full-width lozenge</td></tr>
+      <tr><th>Back to the default</th><td class="n">Double-click, unannounced</td><td>A notch where the handle catches; Reset per section</td><td>A notch; click a row's red dot to reset it; Reset all</td></tr>
+      <tr><th>See what's changed</th><td class="n">You can't</td><td>Changed values in ink; a red dot on the section</td><td>A red dot in each row's change column; Changed shows only those</td></tr>
+      <tr><th>Find a control</th><td class="n">Scroll, open sections, remember</td><td>One scroll; shut sections say what's set</td><td>Find (⌘K) by name; canvas settings on the toolbar</td></tr>
+      <tr><th>Undo</th><td class="n">Rubato's Randomise only</td><td>⌘Z, with "Grid 96 · Undo" in the island</td><td>Undo and redo by the canvas; ⌘Z and ⇧⌘Z</td></tr>
+      <tr><th>Five or more options</th><td class="n">Pills wrapped into rows</td><td>A menu</td><td>Words that wrap</td></tr>
+      <tr><th>Export</th><td class="n">In the island</td><td>In the island</td><td>Top right, always in the same place</td></tr>
+      <tr><th>Help</th><td class="n">Paragraphs in the panel</td><td colspan="2">One or two lines, then More; empty states that say what to do</td></tr>
+      <tr><th>Motion</th><td class="n">Mostly instant, one-off timings</td><td colspan="2">Snappy, Smooth, Morph and Roll everywhere</td></tr>
+      <tr><th>Tutti, every section open</th><td class="n num">1,858 px of panel</td><td class="num" id="lenA">–</td><td class="num" id="lenB">–</td></tr>
+      <tr><th>Room for the work (1280 px window)</th><td class="n num">944 px wide</td><td class="num">944 px wide</td><td class="num">724 px – Preview hides both panels</td></tr>
+      <tr><th>Cost to build</th><td class="n">–</td><td>Shared tokens and components; Tutti's and Segue's frames move onto them</td><td>Everything in A, plus a new frame (two panels, toolbar, transport), Find and an undo stack in the shared core</td></tr>
+    </tbody></table></div>
+</div></section>
+
+<section class="part" id="next"><h2><span>11</span>Recommendation</h2><div class="body">
+  <p>A first, everywhere, then a trial of B. Everything in A is something B needs anyway – the type, typing values, changes and undo, the motion curves – so none of the work is wasted whichever way we go.</p>
+  <ol class="steps">
+    <li><b>Tokens and type.</b> Two weights, the new sizes, the three motion curves – in <code>shared/tokens.css</code>, so all four tools change together.</li>
+    <li><b>The slider.</b> Whichever you pick, with a typeable value, a catch at the default and keyboard steps – in the shared components, replacing the lozenge in Rubato and Tempo, then Tutti's and Segue's frames.</li>
+    <li><b>Choices and actions.</b> The chosen option marked with ink and weight, not black; menus where options don't fit a row; quiet actions with a fill and an icon.</li>
+    <li><b>Changes, reset and undo.</b> Changed values that look changed, reset in one click, ⌘Z everywhere.</li>
+    <li><b>Check it against the tests</b> – labels and accessible names stay the same, so the suites keep passing – and Tutti's exports, byte for byte.</li>
+    <li><b>Trial B on Segue.</b> It's internal and the newest, and its media list maps straight onto a left panel. Its controls are already the most numerous, so it's where Find and the change column will prove themselves. If it earns its place, it goes to all four, so the tools stay one family.</li>
+  </ol>
+  <div class="q"><h4>Three decisions for you</h4><ol>
+    <li><b>A, B, or A now and a trial of B on Segue?</b> I'd go A now, then B on Segue.</li>
+    <li><b>Which slider?</b> The stacked dot (your ask) or the lozenge done properly (SOH's case) – or one of the inline readings.</li>
+    <li><b>Choices:</b> A's sliding white pill, or B's words with a line under them? Either works in either direction.</li>
+  </ol></div>
+</div></section>
+
+</main>
+<footer><div class="wrap">Ensemble Tools · UI round 4 · mock-ups only. Earlier rounds: <a href="../">the October review</a>. SOH Motion is SOH Studio's; it's described here, not copied.</div></footer>
+
+<script src="mock.js"></script>
+<script>
+(function(){
+'use strict';
+const root=document.documentElement;
+function setT(t){root.dataset.theme=t;document.querySelectorAll('.themes-t button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===t));try{localStorage.setItem('r4theme',t);}catch(e){}requestAnimationFrame(()=>UIMOCK.placeAll());}
+let t0='light';try{t0=localStorage.getItem('r4theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');}catch(e){}
+setT(t0);document.querySelectorAll('.themes-t button').forEach(b=>b.onclick=()=>setT(b.dataset.t));
+
+/* ---------- the tools ---------- */
+const R=(l,v,min,max,o)=>Object.assign({t:'range',l,v,min,max},o||{});
+const CH=(l,o,v,x)=>Object.assign({t:'choice',l,o,v:v||0},x||{});
+const T=(l,v)=>({t:'toggle',l,v});
+const cp=o=>JSON.parse(JSON.stringify(o));
+const S={
+ source:{title:'Source',sum:'sample.jpg',items:[{t:'btns',items:[{l:'Choose image / video',primary:1},{l:'Camera'},{l:'Type'}]},{t:'note',l:'sample.jpg'}]},
+ canvas:{title:'Canvas',sum:'Original · Grid 72 · Standard',items:[{t:'colour',l:'Canvas colour',v:'#ffffff'},{t:'select',l:'Ratio',o:['Original','1:1','4:5','3:2','16:9','9:16'],v:0},R('Grid',72,8,200),{t:'select',l:'Resolution',o:['Standard','High','Print'],v:0},R('Zoom',1,1,4,{step:.01,u:'×'}),R('Source blur',0,0,20)]},
+ canvasB:{title:'Canvas',sum:'Grid 72',items:[{t:'colour',l:'Canvas colour',v:'#ffffff'},R('Grid',72,8,200),R('Zoom',1,1,4,{step:.01,u:'×'}),R('Source blur',0,0,20)]},
+ shape:{title:'Shape',sum:'Solid · Scale with midtones',acts:['Randomise'],items:[T('Fill shapes solid',1),T('Invert mapping',0),T('Scale with midtones',1),R('Min size',8,0,100,{u:'%'}),R('Shape size / overlap',1,.2,3,{step:.01,u:'×'})]},
+ mapping:{title:'Mapping',sum:'6 bands',acts:['Random','Reset shapes'],items:[T('Keep SVG colours',0),{t:'bands'},{t:'stepper',l:'Bands',v:6,min:2,max:8}]},
+ advanced:{title:'Advanced',sum:'Opacity 100% · Even thresholds',items:[{t:'head',l:'Opacity'},R('Mark opacity',100,0,100,{u:'%'}),{t:'head',l:'Thresholds',act:'Even'},R('Master',0,-50,50),R('Edge 1',17,0,100),R('Edge 2',33,0,100),R('Edge 3',50,0,100),R('Edge 4',67,0,100),R('Edge 5',83,0,100),{t:'head',l:'Rotation and jitter'},R('Rotation',0,0,360,{u:'°'}),R('Rotation jitter',0,0,100,{u:'%'}),R('Position jitter',0,0,100,{u:'%'})]},
+ tPresets:{title:'Presets',sum:'Default',items:[{t:'presets',o:[['Default','<span style="position:absolute;inset:0;background:radial-gradient(#111 32%,transparent 35%) 0 0/9px 9px #fff"></span>'],['Coarse','<span style="position:absolute;inset:0;background:radial-gradient(#111 30%,transparent 33%) 0 0/16px 16px #fff"></span>'],['Lines','<span style="position:absolute;inset:0;background:repeating-linear-gradient(0deg,#111 0 3px,#fff 3px 8px)"></span>'],['Fine','<span style="position:absolute;inset:0;background:radial-gradient(#111 30%,transparent 34%) 0 0/5px 5px #fff"></span>']]},{t:'btns',items:[{l:'Save preset'},{l:'Load preset'}]}]},
+};
+const tuttiA=()=>({app:'Tutti',ver:'6.1',secs:['source','canvas','shape','mapping','advanced'].map(k=>Object.assign(cp(S[k]),{shut:k==='mapping'||k==='advanced'}))});
+const TEMPO={app:'Tempo',ver:'0.11',secs:[
+ {title:'Fonts',sum:'Demo face',items:[{t:'btns',items:[{l:'+ Add font'}]},{t:'hint',l:'Showing a demo face. Add weights, families or a .zip – they stay in this browser.',more:1,long:'Showing a demo face. Add as many weights or families as you like, including variable fonts. They stay in this browser. A .zip of fonts works too – any already in the list are skipped. Switch a font off to keep it for later; click its name for its tracking and more.'},{t:'select',l:'Mixing',o:['Each numeral','One font','By line'],v:0}]},
+ {title:'Clock',sum:'24-hour · Comma · Leading zero',items:[CH('Format',['24-hour','12-hour']),CH('Separator',['Comma','Colon','Full stop','Space']),T('Seconds',0),T('Leading zero',1),T('Pulse the separator',0),CH('Second line',['None','Weekday','Date']),R('Tracking',0,-100,200)]},
+ {title:'Numerals',sum:'Alternates off · Fixed width · Optical spacing',items:[CH('Alternates',['Off','New one each change','Keep cycling']),T('Fixed-width numerals',1),T('Optical spacing',1),R('Separator space',40,0,100,{u:'%',ends:['Its own','As between figures']}),CH('A leading 1',['In its cell','On the edge'])]},
+ {title:'Change',sum:'Roll · Snappy · 0.70 s',items:[CH('When a figure changes',['Roll','Stretch','Fade','Cut']),CH('Feel',['Snappy','Smooth','Elastic']),R('Length',.7,.1,2,{step:.05,dp:2,u:' s'})]},
+ {title:'Position',sum:'Left · Top',shut:1,items:[CH('Align',['Left','Centre','Right']),CH('Vertical',['Top','Middle','Bottom']),T('Next corner each minute',0),R('Size',62,10,100,{u:'%',pre:'up to '}),R('Margin',8,0,30,{u:'%'}),T('Each side its own',0),R('Drift',40,0,100,{u:'%'})]},
+ {title:'Colour',sum:'Noon',shut:1,items:[CH('Colour by',['Character type','Each letter','Line','Random','One colour']),CH('Colours',['One theme','Every hour']),{t:'themes',o:[['Noon','#d3d5d5','#f4fd5f','#1e1e1e'],['Night','#000','#fff','#fff'],['Paper','#f3f2ee','#1e1e1e','#e5372b'],['Signal','#ff4a1c','#1e1e1e','#fff']]},{t:'colour',l:'Background',v:'#D3D5D5',hex:1},{t:'colour',l:'Numerals',v:'#F4FD5F',hex:1},{t:'colour',l:'Punctuation',v:'#1E1E1E',hex:1}]}]};
+const SEGUE={app:'Segue',ver:'0.4',secs:[
+ {title:'Media',sum:'No media yet',shut:1,items:[{t:'drop',l:'Drop images or video here, or anywhere on the page'},{t:'btns',items:[{l:'+ Add images or video',basis:'60%'},{l:'Clear all'}]}]},
+ {title:'Canvas',sum:'1080 × 1350 · 30 fps',shut:1,items:[CH('Size',['4:5','9:16','1:1','16:9','4:3','Custom']),{t:'colour',l:'Background',v:'#F5F5F3',hex:1},CH('Frame rate',['24','25','30','60'],2)]},
+ {title:'Motion',sum:'Line · Step · Inertia',items:[{t:'tiles',l:'Kind',o:['Slides','Line','Grid','Columns','Frames','Float'],v:1},CH('Move',['Step','Drift','Still']),CH('Direction',['Left','Right','Up','Down'],2),R('Rest',1.2,0,5,{step:.1,u:' s'}),R('Move time',.7,.1,3,{step:.1,u:' s'}),CH('Feel',['Glide','Soft','Coast','Inertia','Spring','Linear'],3),R('Lag',0,0,1,{step:.05,dp:2,u:' s'}),R('Keep drifting',0,0,100,{u:'%'}),CH('After the last',['Carry on round','Pull back to them all'],1)]},
+ {title:'Shapes',sum:'16:10 · 12 px corners',shut:1,items:[{t:'select',l:'Shape',o:['16:10 – laptop','16:9','4:3','Square','9:19.5 – phone'],v:0},R('Size',86,20,100,{u:'%'}),R('Gap',64,0,200,{u:' px'}),R('Corners',12,0,80,{u:' px'}),CH('Media',['Fill the shape','Fit inside'])]},
+ {title:'Captions',sum:'Under · Inter Tight ExtraBold',shut:1,items:[T('Captions',1),CH('Where',['Under','Above','On it','Fixed'])]},
+ {title:'Overlay',sum:'Off',shut:1,items:[T('Overlay',0)]}]};
+const RUBATO={app:'Rubato',ver:'1.1',secs:[
+ {title:'Fonts',sum:'Poppins · 3 styles',items:[{t:'fonts',items:[['Poppins Light Italic','Alternates for 28 characters',1],['Poppins Regular','Alternates for 28 characters',0],['Poppins Bold','Alternates for 28 characters',0]]},{t:'btns',items:[{l:'+ Add font'}]},{t:'hint',l:'Drop more fonts here. A variable font can be added again at other settings.',more:1}]},
+ {title:'Text',sum:'Lazaar',items:[T('Sequence of texts',0),{t:'text',v:'Lazaar'},R('Tracking',0,-200,400),R('Line spacing',1.05,.6,2,{step:.01})]},
+ {title:'Layout',sum:'1:1 · Fit · Centre',shut:1,items:[CH('Shape',['1:1','4:5','9:16','16:9','3:2','2:3','Custom']),CH('Size',['Fit','Fill width','Manual']),CH('Align',['Left','Centre','Right'],1),R('Margin',10,0,40,{u:'%'})]},
+ {title:'Motion',sum:'Fluid · Left to right',shut:1,items:[R('Loop length',3,.5,12,{step:.1,u:' s'}),CH('Movement',['Still','Fluid','Snappy','Transitional','Jitter','Assemble'],1),{t:'stepper',l:'Cycles per loop',v:1,min:1,max:8},R('Phase spread',.5,0,1,{step:.01,dp:2}),CH('Order',['Left to right','Right to left','Centre out','Edges in','Random'])]},
+ {title:'Variants',sum:'Swap off',shut:1,items:[CH('Swap',['Off','Alternates','Styles','Both','Scramble'])]},
+ {title:'Physics',sum:'Off',shut:1,items:[T('Pull apart',0)]},
+ {title:'Colour',sum:'Black on white',shut:1,items:[{t:'colour',l:'Type',v:'#000000',hex:1},{t:'colour',l:'Background',v:'#FFFFFF',hex:1}]}]};
+const sec=(o,t,ch)=>Object.assign(cp(o.secs.find(s=>s.title===t)),ch||{});
+const themeTile=(bg,fg,p)=>`<span style="position:absolute;inset:0;background:${bg};display:flex;align-items:center;justify-content:center;font-family:var(--face);font-size:20px;letter-spacing:-.02em;color:${fg}">12<span style="color:${p}">,</span>47</span>`;
+const kindTile=k=>`<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink)"><svg viewBox="0 0 30 20" width="54" height="36">${k}</svg></span>`;
+const APPS={
+ tutti:{now:'img/now-tutti61.jpg',
+  A:{panel:tuttiA(),work:{kind:'img',src:'img/work-tutti.png',ratio:[3,2]},chips:['1200 × 800 px','Still']},
+  B:{name:'Tutti',ver:'6.1',file:'<span>Untitled</span> / <b>sample.jpg</b>',left:[cp(S.source),cp(S.tPresets)],right:[cp(S.canvasB),cp(S.shape),cp(S.mapping),Object.assign(cp(S.advanced),{shut:1})],
+     pills:[['Ratio','Original',['Original','1:1','4:5','3:2','16:9','9:16']],['Resolution','Standard',['Standard','High','Print']],['Output','Still',['Still','Motion']]],work:{kind:'img',src:'img/work-tutti.png',ratio:[3,2]}},
+  try:'<span><b>A:</b> move Grid, then look for the red dot and Reset on Canvas; ⌘Z undoes, and the island says what changed</span><span><b>B:</b> ⌘K and type “edge”, move a few sliders, then press Changed; click a red dot to reset that row</span>'},
+ tempo:{now:'img/now-tempo.jpg',
+  A:{panel:cp(TEMPO),work:{kind:'tempo',ratio:[16,10]},chips:['1440 × 900','Your local time'],show:['The time','In words','Columns','Rings','Orbit','Tuner','Stack','As a dial'],presets:1},
+  B:{name:'Tempo',ver:'0.11',left:[sec(TEMPO,'Fonts'),{title:'Presets',sum:'Noon',items:[{t:'presets',o:[['Noon',themeTile('#d3d5d5','#f4fd5f','#1e1e1e')],['Night',themeTile('#000','#fff','#fff')],['Paper',themeTile('#f3f2ee','#1e1e1e','#e5372b')],['Signal',themeTile('#ff4a1c','#1e1e1e','#fff')]]},{t:'btns',items:[{l:'Save as new'}]}]}],
+     right:['Clock','Numerals','Change','Position','Colour'].map(t=>sec(TEMPO,t)),
+     pills:[['Show','The time',['The time','In words','Columns','Rings','Orbit','Tuner','Stack','As a dial']],['Screen','1440 × 900',['1440 × 900','1920 × 1080','2560 × 1440']],['Time','Your local time']],work:{kind:'tempo',ratio:[16,10]}},
+  try:'<span><b>A:</b> the eight views are one menu in the island – Show ▾</span><span><b>B:</b> Show moves to the canvas toolbar; presets sit on the left with the fonts</span>'},
+ segue:{now:'img/now-segue.jpg',
+  A:{panel:cp(SEGUE),work:{kind:'segue',ratio:[4,5]},chips:['1080 × 1350','14.5 s loop'],transport:'3.0 / 14.5 s',presets:1},
+  B:{name:'Segue',ver:'0.4',file:'<span>Case studies</span> / <b>Untitled loop</b>',left:[{title:'Media',sum:'3 slots',items:[{t:'slots',n:3},{t:'btns',items:[{l:'+ Add images or video'}]}]},{title:'Presets',sum:'Phone swipe',items:[{t:'presets',o:[['Straight cuts',kindTile('<rect x="3" y="3" width="24" height="14" rx="1.5" fill="currentColor"/>')],['Phone swipe',kindTile('<rect x="1" y="5" width="7" height="10" rx="1" fill="currentColor" opacity=".35"/><rect x="11" y="5" width="7" height="10" rx="1" fill="currentColor"/><rect x="21" y="5" width="7" height="10" rx="1" fill="currentColor" opacity=".35"/>')],['Masonry drift',kindTile('<g fill="currentColor"><rect x="4" y="1" width="6" height="8" rx="1"/><rect x="4" y="11" width="6" height="8" rx="1" opacity=".35"/><rect x="12" y="4" width="6" height="8" rx="1" opacity=".35"/><rect x="20" y="2" width="6" height="7" rx="1"/></g>')],['Posters',kindTile('<g fill="none" stroke="currentColor" stroke-width="1.2"><rect x="2" y="4" width="8" height="12" rx="1"/><rect x="11.5" y="4" width="8" height="12" rx="1"/><rect x="21" y="4" width="8" height="12" rx="1"/></g>')]]}]}],
+     right:['Motion','Shapes','Captions','Overlay'].map(t=>sec(SEGUE,t)),
+     pills:[['Canvas','4:5',['4:5','9:16','1:1','16:9','4:3','Custom']],['Frame rate','30',['24','25','30','60']],['Loop','14.5 s']],transport:'3.0 s / 14.5 s',work:{kind:'segue',ratio:[4,5]}},
+  try:'<span><b>A:</b> the transport and Export stay in the island; Presets keeps its capsule</span><span><b>B:</b> media slots on the left, canvas size and frame rate on the toolbar, the transport along the bottom</span>'},
+ rubato:{now:'img/now-rubato.jpg',
+  A:{panel:cp(RUBATO),work:{kind:'rubato',ratio:[1,1]},chips:['1080 × 1080 px'],transport:'1.38 / 3.00 s',extra:['Randomise'],presets:1},
+  B:{name:'Rubato',ver:'1.1',left:[sec(RUBATO,'Fonts'),sec(RUBATO,'Text')],right:['Layout','Motion','Variants','Physics','Colour'].map(t=>sec(RUBATO,t,t==='Layout'||t==='Motion'?{shut:0}:{})),
+     pills:[['Shape','1:1',['1:1','4:5','9:16','16:9','3:2','2:3','Custom']],['Loop','3.0 s'],['Randomise','Within limits',['Within limits','Everything']]],transport:'1.38 s / 3.00 s',work:{kind:'rubato',ratio:[1,1]}},
+  try:'<span><b>A:</b> Randomise stays in the island beside the transport</span><span><b>B:</b> fonts and text on the left – what you’re setting – and how it moves on the right</span>'}};
+
+const M=UIMOCK.mount;
+/* type trio */
+const two=()=>({app:'Tutti',ver:'6.1',secs:[cp(S.canvas),cp(S.shape)]});
+M(document.getElementById('t-vn'),two(),'vn');M(document.getElementById('t-va'),two(),'va');M(document.getElementById('t-vb'),two(),'vb');
+
+/* specimens */
+const spec=(host,title,note,schema,variant,opts,pick)=>{const c=document.createElement('div');c.className='card';c.innerHTML=`<h4>${title}${pick?'<span class="pick">'+pick+'</span>':''}</h4>`;const h=document.createElement('div');h.className='host';c.append(h);
+  const v=document.createElement('div');v.className='verdict';v.innerHTML=note;c.append(v);host.append(c);
+  const m=M(h,schema,variant,opts);const so=h.querySelector('.solo');so.style.cssText='height:auto;width:auto;box-shadow:none;background:transparent;overflow:visible';const p=h.querySelector('.pnl');p.style.cssText='position:static;box-shadow:none;background:transparent;width:auto;display:block;border:0';
+  h.querySelectorAll('.brand,.bar0,.resetall').forEach(x=>x.remove());h.querySelectorAll('.sh').forEach(x=>x.style.display='none');
+  h.querySelectorAll('.sbi').forEach(x=>x.style.padding='0 2px');h.querySelectorAll('.sb>div').forEach(x=>x.style.overflow='visible');h.querySelectorAll('.sec').forEach(x=>{x.style.borderTop='0';x.style.borderBottom='0';x.style.background='transparent';});return m;};
+const one=items=>({app:'',ver:'',secs:[{title:'',items}]});
+const sl=()=>[R('Grid',72,8,200),R('Shape size / overlap',1,.2,3,{step:.01,u:'×'}),R('Master',0,-50,50)];
+const SS=document.getElementById('sliderSpec');
+spec(SS,'Now – the lozenge','A white track, a pale fill, a 1 px tick that hides near the words. <b>Faint; no typing.</b>',one(sl()),'vn');
+spec(SS,'Stacked dot – title left, value right','Title and value on one line; a dot on a full-width line underneath. <b>Most precise; long labels fit.</b> One line taller.',one(sl()),'va',{},'A');
+spec(SS,'Lozenge, done properly','A solid track, a darker fill, a 3 px handle that never hides, and a value you can click. <b>One row, the full width to drag.</b> What SOH Motion does.',one(sl()),'vb',{},'B');
+spec(SS,'Inline – value before the line','One reading of your note: title, the value lozenge, then the line. <b>Compact, but the line is short</b> and long labels get cut.',one(sl()),'va',{slider:'inl1'});
+spec(SS,'Inline – value after the line','The other reading: title, line, value. <b>The usual order elsewhere</b> (Figma, macOS); the same short line.',one(sl()),'va',{slider:'inl2'});
+const CS=document.getElementById('choiceSpec');
+const ch=()=>[CH('Separator',['Comma','Colon','Full stop','Space']),CH('Colour by',['Character type','Each letter','Line','Random','One colour'])];
+spec(CS,'Now – black pills','Four options sit in a row; five wrap into rows of floating words. <b>Every choice is a black blob.</b>',one(ch()),'vn');
+spec(CS,'A – white pill, menus when it won’t fit','The chosen option is a white pill that slides along its track; more than fits a row becomes a menu. <b>Black is left for actions.</b>',one(ch()),'va',{},'A');
+spec(CS,'B – words','Options as words; the chosen one in ink with a line under it that slides. <b>Five or six just wrap, and still read as one control.</b>',one(ch()),'vb',{},'B');
+const MS=document.getElementById('miscSpec');
+spec(MS,'Now – quiet actions and help','Actions as grey text; help at full length.',one([{t:'acts',items:['Random','Reset shapes']},{t:'hint',l:'',long:'Showing a demo face. Add as many weights or families as you like, including variable fonts. They stay in this browser. A .zip of fonts works too – any already in the list are skipped.'}]),'vn');
+spec(MS,'A – an edge and an icon','Quiet actions get a hairline and an icon, so they read as buttons. Help is one or two lines, then More.',one([{t:'acts',items:['Random','Reset shapes']},{t:'hint',l:'Showing a demo face. Add weights, families or a .zip – they stay in this browser.',more:1}]),'va');
+spec(MS,'B – a fill and an icon','The same, as quiet grey fills – SOH’s way. Help is one line, then More.',one([{t:'acts',items:['Random','Reset shapes']},{t:'hint',l:'Showing a demo face. Add weights, families or a .zip.',more:1}]),'vb');
+spec(MS,'A – changes show','Move this slider: the value turns ink. In the full mock-ups the section gets a red dot and Reset; ⌘Z undoes.',one([R('Grid',72,8,200),T('Invert mapping',0)]),'va');
+spec(MS,'B – the change column','Move the slider or tick the box: a red dot appears at the end of the row. Click the dot to put that one control back.',one([R('Grid',72,8,200),T('Invert mapping',0)]),'vb');
+
+/* side by side */
+const inner=document.getElementById('sideInner');const built={};let curA='tutti',curV='now';
+function pane(a,v){const k=a+v;if(built[k])return built[k];const d=document.createElement('div');d.className='pane';d.hidden=true;inner.append(d);
+  if(v==='now'){d.innerHTML=`<div class="shotframe"><img src="${APPS[a].now}" alt="${a} as it is now"></div>`;}
+  else{const h=document.createElement('div');d.append(h);(v==='a'?UIMOCK.frameA:UIMOCK.frameB)(h,v==='a'?APPS[a].A:APPS[a].B);}
+  built[k]=d;return d;}
+function showSide(){for(const k in built)built[k].hidden=true;pane(curA,curV).hidden=false;
+  document.querySelectorAll('#appTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.a===curA));document.querySelectorAll('#verTabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.v===curV));
+  document.getElementById('sideTry').innerHTML=curV==='now'?'<span>Screenshot of the tool as it is today, at 1440 × 900.</span>':APPS[curA].try;
+  document.querySelectorAll('.tabs').forEach(tabHL);requestAnimationFrame(()=>UIMOCK.placeAll());}
+document.querySelectorAll('#appTabs button').forEach(b=>b.onclick=()=>{curA=b.dataset.a;showSide();});
+document.querySelectorAll('#verTabs button').forEach(b=>b.onclick=()=>{curV=b.dataset.v;showSide();});
+addEventListener('keydown',e=>{const tg=e.target;if(tg&&(tg.tagName==='INPUT'||tg.tagName==='TEXTAREA'||tg.tagName==='SELECT'))return;if(e.metaKey||e.ctrlKey||e.altKey)return;
+  const r=document.getElementById('side').getBoundingClientRect();if(r.top>innerHeight*.6||r.bottom<innerHeight*.3)return;const m={'1':'now','2':'a','3':'b'}[e.key];if(m){curV=m;showSide();}});
+
+/* motion demo */
+const mini={app:'Tempo',ver:'0.11',secs:[sec(TEMPO,'Clock'),sec(TEMPO,'Change',{shut:1}),sec(TEMPO,'Position',{shut:1})]};
+const ma=document.getElementById('m-a'),mb=document.getElementById('m-b');M(ma,cp(mini),'va');M(mb,cp(mini),'vb');
+[ma,mb].forEach(h=>h.querySelector('.solo').style.height='560px');
+const mt=document.getElementById('motionTabs');
+function motion(m){mt.querySelectorAll('button').forEach(b=>b.setAttribute('aria-selected',b.dataset.m===m));[ma,mb].forEach(h=>h.classList.toggle('still',m==='now'));tabHL(mt);}
+mt.querySelectorAll('button').forEach(b=>b.onclick=()=>motion(b.dataset.m));
+document.getElementById('slow').onchange=e=>{const k=e.target.checked?4:1;[ma,mb].forEach(h=>{h.style.setProperty('--t-snap',140*k+'ms');h.style.setProperty('--t-smooth',360*k+'ms');h.style.setProperty('--t-morph',420*k+'ms');h.style.setProperty('--t-roll',260*k+'ms');});};
+
+/* tabs and fitting */
+function tabHL(g){const hl=g.querySelector('.hl'),b=g.querySelector('[aria-selected="true"]');if(!hl||!b)return;hl.style.left=b.offsetLeft+'px';hl.style.width=b.offsetWidth+'px';}
+function fit(){document.querySelectorAll('.fit').forEach(f=>{const w=+f.dataset.w,h=+f.dataset.h,s=Math.min(1,f.clientWidth/w);const i=f.querySelector('.inner');i.style.transform=`scale(${s})`;i.style.width=w+'px';f.style.height=(h*s)+'px';});document.querySelectorAll('.tabs').forEach(tabHL);}
+addEventListener('resize',fit);
+showSide();fit();if(document.fonts)document.fonts.ready.then(fit);
+
+/* Tutti's panel with every section open: A's one scroll, B's inspector */
+function measure(){
+  const pa=pane('tutti','a'),pb=pane('tutti','b');const wa=pa.hidden,wb=pb.hidden;pa.hidden=false;pb.hidden=false;
+  const len=sel=>{const scr=document.querySelector(sel);const shut=[...scr.querySelectorAll('.sec.shut')];const sbs=[...scr.querySelectorAll('.sb,.sbi')];sbs.forEach(x=>x.style.transition='none');shut.forEach(s=>s.classList.remove('shut'));
+    const h=scr.scrollHeight;shut.forEach(s=>s.classList.add('shut'));requestAnimationFrame(()=>sbs.forEach(x=>x.style.transition=''));return h;};
+  const a=len('#sideInner .frame:not(.studio) .scr')+document.querySelector('#sideInner .frame:not(.studio) .brand').offsetHeight;
+  const b=len('#sideInner .studio .insp .scr');
+  pa.hidden=wa;pb.hidden=wb;
+  const f=n=>(Math.round(n/10)*10).toLocaleString('en-GB');
+  document.getElementById('lenA').textContent=f(a)+' px – one scroll';
+  document.getElementById('lenB').textContent=f(b)+' px – Source and Presets on the left, canvas settings on the toolbar';}
+setTimeout(measure,700);
+})();
+</script>
+</body>
+</html>

@@ -304,6 +304,15 @@ For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the
   - A component page at /ui/ with every part in every state, if wanted beyond the review page.
   - Tempo's Fonts card hints are long; trim them with the Tempo chat.
   - Tempo 0.9 (13 Oct) added cards and parts the UI stream may want to refine: the Colour card's theme tiles and 24-hour strip (`.theme-grid`, `.theme-tile`, `.hour-strip` in `tempo/app.css`), the Words and Change cards for Columns and Rings, the dial's Fill and Shape folds, Download everything in Export, and the internal Promo card (out before launch). Columns and Rings make Show five options.
+- **Steve's notes, 13 Oct:** doesn't like the sliders; try Aktiv Medium, smaller, for hierarchy; motion needs to be fluid; hierarchy needs work, Tutti especially ("weirdly less usable"). Also in the Project doc `claude/ui-todo.md`.
+- **Round 4 (5 Nov): audit and two directions – waiting for Steve's review.** At `ui/review/round4/` (built to `docs/ui/review/round4/`, unlisted; live at /ui/review/round4/). Working mock-ups from one description of each tool (`mock.js`, `mock.css`) drawn as now, A and B; nothing in the tools has changed.
+  - Audit: flat hierarchy (one weight, six sizes), four near-identical greys, black pills everywhere, a lozenge too faint to hold, wrapping segmented controls, quiet actions that read as labels, long hints; no typing (bar Segue), long panels, no visible changes, no undo, one-off motion timings, three frames for four tools.
+  - Reference: SOH Motion (motion.soh.studio/app), which Steve likes – an editor in three parts, small type with weight, canvas settings as toolbar pills, one black button, a lozenge with contrast and a handle, a slot beside each control.
+  - House principles revised (ten), shared by both directions.
+  - **A – Evolution:** our frame; Aktiv Medium for titles and the chosen option, 20/14/13/12; hairlines instead of grey cards; the chosen option a white pill that slides; stacked dot slider (title left, typeable value right, dot on a full-width line); menus over what fits a row; changed values in ink, a section dot and Reset; ⌘Z with a line in the island.
+  - **B – Studio:** sources left, inspector right, the canvas between on a dotted pasteboard with a toolbar of pills (Ratio, Show, Frame rate…), Export top right, a transport bar; bold 13 px section titles; the lozenge done properly (solid track, darker fill, 3 px handle that splits into two ticks over the words, typeable value); a change column (red dot per changed row, click to reset); Find a setting (⌘K); Changed filter; undo and redo by the canvas.
+  - Motion: Snappy 140 ms, Smooth 360 ms, Morph 420 ms with overshoot, Roll 260 ms for numbers.
+  - Recommendation: A's foundations everywhere first, then trial B on Segue. Three decisions for Steve: A / B / A then B; which slider; white pill or words.
 
 ## Dial ideas not built yet (0.5)
 - Hand shapes: tapered ends, a ring at the centre instead of a dot. (Round ends, tips, a counterweight and weights per hand went in in 0.9.)
