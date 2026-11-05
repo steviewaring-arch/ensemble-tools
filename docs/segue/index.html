@@ -398,17 +398,296 @@
     html.embed .app{border-radius:calc(var(--r-frame) + var(--gap));box-shadow:0 0 0 1px var(--keyline)}
   }
   @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+  /* Ensemble tool system – the kit, round 4 (UI stream, November 2026). On Segue first;
+     Tempo, Rubato and Tutti move onto it once it's signed off. It sits on top of tokens.css
+     and components.css and changes how things look, not where they are: the panel on the left,
+     the island at the bottom, Presets bottom right and the chips top right all stay put.
+
+     One corner logic. A rectangle's corner is the corner around it, less the space between:
+       surfaces – panel, island, Presets, sheets, tooltips – 12 px
+       controls – buttons, sliders, menus, fields, segmented tracks, rows – 8 px
+       anything set 2 px inside a control – the chosen option, the value you type – 6 px
+       chips (24 px high) – 6 px; thumbnails and swatches – 4 to 6 px
+     Only true dots are round: the tick, the change dot, the scrubber, the place pad's dots.
+
+     Two weights of Aktiv Grotesk: Medium (500) for section titles, the chosen option and
+     buttons; Regular for everything else. No drop shadows: hairlines and fills only.
+     Black is for the main action (Export, Download); a choice is shown white on grey. */
+  @property --p{syntax:'<number>';inherits:true;initial-value:0}
+  :root{
+    --fs-mark:20px; --fs-by:20px; --fs-title:14px; --fs-body:13px; --fs-small:12px;
+    --h-ctl:30px; --h-sm:24px; --h-chip:28px;
+    --r-frame:12px; --r-card:8px; --r-inner:6px;
+    --r-surface:12px; --r-ctl:8px; --r-in:6px; --r-chip:6px; --r-sw:4px;
+    --k-fill:#efeeeb; --k-fill-2:#dcdad5; --k-fill-hover:#e7e5e1; --k-raise:#ffffff; --k-raise-line:rgba(43,43,43,.15);
+    --k-num:#a5a3a9; --k-handle:#1d1d1f;
+    /* motion: three curves, named for what they do */
+    --e-snap:cubic-bezier(.2,.8,.2,1); --e-smooth:cubic-bezier(.32,.72,0,1); --e-morph:cubic-bezier(.34,1.22,.64,1);
+    --t-snap:140ms; --t-smooth:360ms; --t-morph:420ms; --t-roll:260ms;
+    --gutter:14px; /* the change column on the right of every row */
+  }
+  body[data-theme="dark"]{
+    --k-fill:#2b2b30; --k-fill-2:#3d3d44; --k-fill-hover:#34343a; --k-raise:#4a4a52; --k-raise-line:rgba(255,255,255,.12);
+    --k-num:#77757c; --k-handle:#ffffff;
+  }
+  body{letter-spacing:-0.012em}
+  button,input,textarea,select{letter-spacing:-0.012em}
+
+  /* ---------------- the panel ---------------- */
+  .brand{padding:16px 16px 14px;gap:1px}
+  .brand .bline{font-size:var(--fs-mark);letter-spacing:-0.035em;line-height:1.08;gap:6px}
+  .brand .mark{font-weight:500}
+  .brand .ver{font-size:var(--fs-mark);letter-spacing:-0.03em}
+  .brand .bline.caps{font-size:var(--fs-by);letter-spacing:-0.035em}
+  .scroll{padding:0;gap:0}
+  .panel,.island,.pcap{border-radius:var(--r-surface)}
+
+  /* sections (level 1): hairlines, not boxes */
+  .card{background:transparent;border-radius:0;border-top:1px solid var(--keyline)}
+  .card-toggle{min-height:44px;padding:0 16px;gap:8px;font-size:var(--fs-title);font-weight:500;letter-spacing:-0.012em;border-bottom:0}
+  .card-toggle:focus-visible{border-radius:0;outline-offset:-3px}
+  .card>h2{position:relative}
+  .card-toggle .num{order:-1;flex:none;width:14px;font-size:12px;font-weight:400;color:var(--k-num);font-variant-numeric:tabular-nums;letter-spacing:0}
+  .card-toggle .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+  .card.collapsed.chg .card-toggle .cdot{transform:scale(1)}
+  .card-toggle .sum{font-weight:400;font-size:12px;margin-left:auto}
+  h2>.pill.reset{position:absolute;right:38px;top:50%;margin-top:-12px;display:none}
+  .card.chg:not(.collapsed)>h2>.reset{display:inline-flex;animation:kitFade var(--t-smooth) var(--e-smooth)}
+  .card-toggle .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
+  .card:not(.collapsed)>h2 .chev{transform:none}
+  .card.collapsed>h2 .chev{transform:rotate(-90deg)}
+  /* open and shut with the Smooth curve */
+  .card-anim{display:grid;grid-template-rows:1fr;transition:grid-template-rows var(--t-smooth) var(--e-smooth)}
+  .card-anim>div{min-height:0;overflow:hidden}
+  .card.collapsed .card-anim{grid-template-rows:0fr}
+  .card.collapsed .card-body{display:block}
+  .card-anim[hidden]{display:none!important}
+  .card-body{padding:2px calc(16px + var(--gutter)) 18px 16px;transition:opacity var(--t-smooth)}
+  .card.collapsed .card-body{opacity:0}
+
+  /* groups (level 2) */
+  .fold-head,.more-toggle{min-height:36px;margin:6px 0 8px;font-size:12.5px;font-weight:500;color:var(--ink);letter-spacing:-0.008em}
+  .fold-head:hover{color:var(--ink-strong)}
+  .fold-head .sum,.more-toggle .sum{color:var(--muted);font-weight:400;font-size:12px}
+  .fold-head .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
+  .fold-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph);margin-right:auto}
+  .fold-head.chg[aria-expanded="false"] .cdot{transform:scale(1)}
+  .fold-head>span:first-child{margin-right:0}
+  .fold-head[aria-expanded="true"] .chev{transform:none}
+  .fold-head[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+  .sub-head{font-size:11.5px;font-weight:500;color:var(--muted);margin:10px 0 8px;letter-spacing:0}
+  body.kit-live .fold-body:not([hidden]),body.kit-live .card-body>.ctl:not([hidden]),body.kit-live .fold-body>.ctl:not([hidden]),
+  body.kit-live .card-body>.toggle-row:not([hidden]),body.kit-live .card-body>.colour-row:not([hidden]){animation:kitIn var(--t-smooth) var(--e-smooth)}
+  @keyframes kitIn{from{opacity:0;transform:translateY(-3px)}}
+  @keyframes kitFade{from{opacity:0}}
+
+  /* ---------------- rows and the change column ---------------- */
+  .ctl{margin:0 0 10px;position:relative}
+  .ctl-head{margin-bottom:6px;min-height:16px;gap:6px}
+  .ctl-head label,.ctl-head>span:first-child{font-size:var(--fs-body);color:var(--ink)}
+  .toggle-row,.colour-row{position:relative}
+  /* a red dot at the end of a row once it's moved from where it started; click it to put it back */
+  .cx{position:absolute;right:calc(-1 * var(--gutter) - 2px);top:0;width:var(--gutter);height:16px;border:0;padding:0;background:none;cursor:default;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .cx::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+  .chg>.cx,.chg>.ctl-head>.cx{pointer-events:auto;cursor:pointer}
+  .chg>.cx::before,.chg>.ctl-head>.cx::before{transform:scale(1)}
+  .chg>.cx:hover::before,.chg>.ctl-head>.cx:hover::before{transform:scale(1.5)}
+  .cx:focus-visible{outline:2px solid var(--focus);outline-offset:0;border-radius:50%}
+  .ctl-head>.cx{position:absolute;top:0}
+  .ctl.rng>.cx,.ctl.stp>.cx{top:50%;margin-top:-8px}
+  .toggle-row>.cx,.colour-row>.cx{top:50%;margin-top:-8px}
+  .sheet .cx{display:none}
+
+  /* ---------------- the slider: label and value inside, a handle that never hides ---------------- */
+  .rng-box{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;--z:0;cursor:ew-resize;touch-action:none}
+  .rng-box:hover{background:var(--k-fill-hover)}
+  .rng-box:hover .rng-fill{background:var(--k-fill-2)}
+  .rng-box.ease{transition:--p var(--t-smooth) var(--e-smooth)}
+  .rng-fill{left:calc(5px + (100% - 10px) * min(var(--p),var(--z)));width:calc((100% - 10px) * max(var(--p) - var(--z),var(--z) - var(--p)));border-radius:0;background:var(--k-fill-2)}
+  .rng-box.from-start .rng-fill{left:0;width:calc(5px + (100% - 10px) * var(--p))}
+  .rng-tick{top:7px;bottom:7px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--k-handle);left:calc(5px + (100% - 10px) * var(--p));transition:transform var(--t-snap) var(--e-snap),background var(--t-snap)}
+  .rng-tick.away{opacity:1;transform:none}
+  /* where it would cross the words it becomes two short ticks, so it never cuts a letter */
+  .rng-tick.split{background:linear-gradient(var(--k-handle) 0 3px,transparent 3px calc(100% - 3px),var(--k-handle) calc(100% - 3px));top:3px;bottom:3px}
+  .rng-box:hover .rng-tick,.rng-box.drag .rng-tick{transform:scaleY(1.18)}
+  .rng-notch{position:absolute;bottom:0;width:1px;height:5px;margin-left:-.5px;background:var(--ink);opacity:.32;left:calc(5px + (100% - 10px) * var(--b,0));pointer-events:none}
+  .rng-box .ctl-head{padding:0 3px 0 10px}
+  .rng-box .ctl-head label{font-size:var(--fs-body)}
+  .rng-box input[type=range]{pointer-events:none}
+  .rng-box:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+  .ctl .ctl-head .val{font-size:12.5px;color:var(--muted);min-width:0}
+  .ctl.chg .ctl-head .val{color:var(--ink-strong);font-weight:500}
+  .rng-box .val.typable{pointer-events:auto;padding:0 7px;margin:0 0 0 auto;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center}
+  .rng-box .val.typable:hover{background:var(--k-raise);color:var(--ink)}
+  .val.roll{animation:kitRoll var(--t-roll) var(--e-smooth)}
+  .val.roll.down{animation-name:kitRollDown}
+  @keyframes kitRoll{from{transform:translateY(55%);opacity:0}}
+  @keyframes kitRollDown{from{transform:translateY(-55%);opacity:0}}
+  .ctl .ctl-head .val .val-in,.val-in{pointer-events:auto;height:24px;border-radius:var(--r-in);background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line);font-size:12.5px}
+
+  /* a stepper, for small counts – Columns, Across, Down */
+  .ctl.stp .ctl-head{margin:0;min-height:var(--h-ctl)}
+  .stp-g{margin-left:auto;display:inline-flex;align-items:center;height:var(--h-ctl);padding:2px;border-radius:var(--r-ctl);background:var(--k-fill)}
+  .stp-g button{width:26px;height:26px;border:0;border-radius:var(--r-in);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap),color var(--t-snap)}
+  .stp-g button:hover:not(:disabled){background:var(--k-raise);color:var(--ink)}
+  .stp-g button:disabled{opacity:.35;cursor:default}
+  .stp-g button:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+  .stp-g button svg{width:10px;height:10px}
+  .stp-g .val{min-width:28px!important;text-align:center!important;margin:0!important}
+  .stp-g .val.typable{padding:0 4px;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
+  .stp-g .val.typable:hover{background:var(--k-raise)}
+
+  /* ---------------- choosing one: white on grey, the white sliding to what you pick ---------------- */
+  .seg{position:relative;display:flex;gap:2px;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px}
+  .seg>.pill,.seg>.pill.small{flex:1 1 0;position:relative;z-index:1;height:calc(var(--h-ctl) - 4px);border-radius:var(--r-in);font-size:12.5px;font-weight:400;color:var(--muted);padding:0 6px;background:transparent;box-shadow:none;transition:color var(--t-snap)}
+  .seg>.pill:hover,.seg>.pill.small:hover{color:var(--ink);background:transparent}
+  .seg>.pill[aria-pressed="true"],.seg>.pill[aria-pressed="true"]:hover{background:transparent;color:var(--ink-strong);font-weight:500;box-shadow:none}
+  .seg>.hl{position:absolute;top:2px;bottom:2px;left:0;width:0;border-radius:var(--r-in);background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line);opacity:0;pointer-events:none;
+    transition:left var(--t-morph) var(--e-morph),width var(--t-morph) var(--e-morph),opacity var(--t-snap)}
+  .seg.hl-ready>.hl{opacity:1}
+  .seg:not(.hl-ready)>.pill[aria-pressed="true"]{background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line)}
+  .seg.wrap,.seg.loose{display:flex;flex-wrap:nowrap}
+  /* more than fits a row: a menu instead, the same height and corners */
+  .seg-menu{display:none}
+  .ctl.as-menu>.seg{display:none}
+  .ctl.as-menu>.seg-menu{display:block}
+  .tabs,.lanes{border-radius:var(--r-ctl);padding:2px;background:var(--k-fill)}
+  .tab,.lane{border-radius:var(--r-in);height:calc(var(--h-ctl) - 4px)}
+  .tab[aria-pressed="true"],.lane[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:0 0 0 1px var(--k-raise-line);font-weight:500}
+
+  /* ---------------- buttons ---------------- */
+  .pill{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:var(--fs-body);font-weight:500;color:var(--ink);padding:0 12px;transition:background var(--t-snap),color var(--t-snap),transform var(--t-snap) var(--e-snap)}
+  .pill:hover{background:var(--k-fill-hover)}
+  .pill:active:not(:disabled){transform:scale(.97)}
+  .pill.primary,.pill[aria-pressed="true"]{background:var(--fill-ink);color:var(--on-ink)}
+  .pill.primary:hover{background:var(--fill-ink);opacity:.9}
+  /* quiet actions: keyline chips with an icon */
+  .pill.small{height:var(--h-sm);border-radius:var(--r-chip);background:transparent;box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 9px 0 8px;gap:5px}
+  .pill.small:hover{background:var(--k-fill);color:var(--ink-strong)}
+  .pill.small svg{width:11px;height:11px;flex:none}
+  .pill svg{width:12px;height:12px;flex:none}
+  .pill.small.icon{width:var(--h-sm);padding:0;color:var(--muted);box-shadow:none}
+  .pill.small.icon:hover{color:var(--ink);background:var(--k-fill-hover)}
+  .slot.open .pill.small.icon:hover{background:var(--k-fill)}
+  .pill.small.icon svg{width:10px;height:10px}
+  .btn-row{gap:6px}
+  /* a pair of plain actions (Move up, Move down; Download, Load) as even fills */
+  .btn-row.pairs{gap:6px}
+  .btn-row.pairs>.pill,.btn-row.pairs>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:12.5px;color:var(--ink);padding:0 10px}
+  .btn-row.pairs>.pill:hover,.save-row>.pill:hover{background:var(--k-fill-hover)}
+  .save-row>.pill,.save-row>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:12.5px;padding:0 14px}
+  .pill:focus-visible,.toggle:focus-visible,.tab:focus-visible,.lane:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+  /* toggle – the round tick */
+  .toggle{font-size:var(--fs-body);min-height:26px;gap:9px}
+  .toggle .box{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair);transition:background var(--t-snap) var(--e-snap),box-shadow var(--t-snap)}
+  .toggle:hover .box{box-shadow:inset 0 0 0 1px var(--muted)}
+  .toggle[aria-checked="true"] .box{background:var(--fill-ink);box-shadow:none}
+  .toggle[aria-checked="true"] .box::after{width:3.5px;height:7px;border-width:0 1.5px 1.5px 0}
+  body.kit-live .toggle[aria-checked="true"] .box::after{animation:kitTick var(--t-morph) var(--e-morph)}
+  @keyframes kitTick{from{transform:translateY(-1px) rotate(45deg) scale(.3);opacity:0}}
+  .toggle-row{margin:0 0 6px}
+
+  /* colour, fields, menus */
+  .colour-row{min-height:30px;margin:0 0 8px}
+  .colour-row label{font-size:var(--fs-body)}
+  .colour-row .cw{gap:6px}
+  .colour-row input.hexin{height:24px;width:76px;padding:0 8px;border-radius:var(--r-chip);background:var(--k-fill);box-shadow:none;font-size:12px;letter-spacing:0}
+  .cswatch{width:24px;height:24px;border-radius:var(--r-chip);box-shadow:none}
+  .cswatch::after{box-shadow:inset 0 0 0 1px var(--hair)}
+  input[type=text],input[type=number]{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;padding:0 10px;font-size:var(--fs-body)}
+  input[type=text]:hover,input[type=number]:hover{background:var(--k-fill-hover)}
+  input[type=text]:focus,input[type=number]:focus,textarea:focus{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
+  textarea{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;padding:7px 10px;font-size:var(--fs-body);min-height:44px}
+  textarea:hover{background:var(--k-fill-hover)}
+  select{height:var(--h-ctl);border-radius:var(--r-ctl);background-color:var(--k-fill);box-shadow:none;padding:0 28px 0 10px;font-size:var(--fs-body);background-position:right 9px center;background-size:12px}
+  select:hover{background-color:var(--k-fill-hover)}
+  .num-row label.num span{font-size:12px}
+
+  /* help */
+  .hint{font-size:12px;line-height:1.45;margin:2px 0 10px}
+  .q{width:15px;height:15px;font-size:9.5px}
+  .tip{border-radius:var(--r-ctl);font-size:12px}
+
+  /* lists: media, fonts, presets – rows as soft fills; the open one raised white */
+  .slot{padding:0;margin:0;border-bottom:0}
+  .media-list{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
+  .media-list .slot,.font-list .slot,.preset-list .slot{background:var(--k-fill);border-radius:var(--r-ctl);padding:6px;transition:background var(--t-snap)}
+  .media-list .slot:hover,.font-list .slot:hover,.preset-list .slot:hover{background:var(--k-fill-hover)}
+  .media-list .slot.open,.preset-list .slot.on{background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line)}
+  .media-list .slot.over{box-shadow:inset 0 2px 0 var(--fill-ink)}
+  .slot-top{gap:8px}
+  .slot-name{font-size:var(--fs-body)}
+  .slot-meta{font-size:11.5px;margin-top:2px}
+  .grip{flex:none;width:10px;height:18px;color:var(--k-num);cursor:grab;display:flex;align-items:center;justify-content:center;margin:0 -2px 0 0}
+  .grip svg{width:6px;height:12px}
+  .mthumb{width:44px;height:32px;border-radius:var(--r-sw)}
+  .slot-top .mthumb{margin-right:0}
+  .media-list .slot-det{padding:10px 18px 2px 4px}
+  .font-list{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
+  .font-list .slot{padding:7px 8px}
+  .font-row .sample{font-size:14px}
+  .preset-list{gap:4px;margin:2px 0 12px}
+  .preset-list .slot{padding:7px 8px 7px 10px}
+  .preset-list .slot-name{font-weight:500}
+  .preset-list .sub-head{margin:12px 0 4px}
+  .preset-list .sub-head:first-child{margin-top:0}
+  .preset-row .tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--r-chip);box-shadow:inset 0 0 0 1px var(--hair);font-size:11px;font-weight:500;color:var(--ink);margin:0}
+  .media-empty{border-radius:var(--r-ctl);padding:18px 12px}
+  .img-row{gap:8px;margin-bottom:10px}
+  .progress{height:4px;border-radius:2px;background:var(--k-fill)}
+  .progress>i{border-radius:2px;transition:width var(--t-snap) linear}
+
+  /* ---------------- sheets ---------------- */
+  .sheet{padding:16px 16px 14px}
+  .sheet .card-toggle{font-size:var(--fs-title);font-weight:500;min-height:0;padding:0;margin-bottom:12px}
+  .sheet .card-toggle .num,.sheet .card-toggle .cdot,.sheet .card-toggle .reset{display:none!important}
+  .sheet .card-anim{display:block}
+  .sheet .card-body{padding:0;opacity:1}
+  .sheet .sub-head{margin:14px 0 6px;padding-top:12px}
+  .sheet .btn-row>.pill.primary{height:36px}
+  .sheets{transition:grid-template-rows var(--t-smooth) var(--e-smooth)}
+
+  /* ---------------- the island, Presets and the top bar ---------------- */
+  .island,.pcap{transition:left var(--t-smooth) var(--e-smooth),min-width var(--t-smooth) var(--e-smooth),opacity .3s}
+  .ebtn{height:var(--h-isl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:var(--fs-body);font-weight:500;padding:0 14px;transition:background var(--t-snap),transform var(--t-snap) var(--e-snap)}
+  .ebtn:hover{background:var(--k-fill-hover)}
+  .ebtn:active{transform:scale(.97)}
+  .ebtn.primary{background:var(--fill-ink);color:var(--on-ink)}
+  .ebtn.primary[aria-expanded="true"]{opacity:1}
+  #play{min-width:64px;justify-content:center}
+  #scrub::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--k-fill-2)}
+  #scrub::-webkit-slider-thumb{width:12px;height:12px;margin-top:-4.5px;background:var(--k-handle)}
+  #scrub::-moz-range-track{height:3px;border-radius:2px;background:var(--k-fill-2)}
+  .act-main{font-size:12px}
+  .status{font-size:var(--fs-body)}
+  .status.on{display:flex;align-items:center;gap:10px;line-height:normal;height:var(--h-isl)}
+  .status .undo{all:unset;cursor:pointer;font-weight:500;color:var(--ink-strong);box-shadow:inset 0 -1px 0 var(--hair);line-height:1.2}
+  .status .undo:hover{box-shadow:inset 0 -1px 0 var(--ink)}
+  .status .undo:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
+  .pc-row{padding:0 14px 0 4px}
+  .pc-row:focus-visible{border-radius:var(--r-surface)}
+  .pc-row .pc-ic{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none}
+  .pc-row .pc-t{font-weight:500}
+  .stage-foot span{border-radius:var(--r-ctl);padding:0 10px}
+  .tools{border-radius:var(--r-ctl)}
+  .tools button{border-radius:var(--r-in)}
+  .panel-btn{border-radius:var(--r-ctl)}
+  .drop{font-weight:500}
+
+  @media (max-width:860px){
+    #islandMain{border-radius:var(--r-ctl)}
+    .card-body{padding-right:calc(16px + var(--gutter))}
+  }
+  @media (prefers-reduced-motion: reduce){.rng-box.ease{transition:none}}
   /* Segue – its own parts, on the shared tokens and components */
-  .media-list{margin:0 0 8px}
-  .media-list .slot{padding:6px 0}
   .media-list .slot.dragging{opacity:.4}
   .media-list .slot.over{box-shadow:inset 0 2px 0 var(--fill-ink)}
-  .mthumb{flex:none;width:44px;height:32px;border-radius:var(--r-inner);background:var(--well);box-shadow:inset 0 0 0 1px var(--keyline);overflow:hidden;display:block}
+  .mthumb{flex:none;width:44px;height:32px;border-radius:var(--r-sw,4px);background:var(--well);box-shadow:inset 0 0 0 1px var(--keyline);overflow:hidden;display:block}
   .mthumb canvas{display:block;width:100%;height:100%}
-  .slot-top .mthumb{margin-right:10px}
   .slot-main{min-width:0}
   .slot-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .media-empty{font-size:var(--fs-small);color:var(--muted);border:1px dashed var(--hair);border-radius:var(--r-card);padding:18px 12px;text-align:center;margin:0 0 10px}
+  .media-empty{font-size:var(--fs-small);color:var(--muted);border:1px dashed var(--hair);border-radius:var(--r-ctl,8px);padding:18px 12px;text-align:center;margin:0 0 10px}
   .slot-det .ctl:last-child{margin-bottom:6px}
   .num-row{display:flex;align-items:center;gap:6px}
   .num-row label.num{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
@@ -416,7 +695,7 @@
   .num-row input{width:100%;min-width:0}
   .num-row .x{color:var(--muted);font-size:var(--fs-small)}
   .colour-row .cw{display:flex;align-items:center;gap:6px}
-  .colour-row input.hexin{width:84px;height:26px;padding:0 8px;font-size:var(--fs-small);text-transform:uppercase;font-variant-numeric:tabular-nums}
+  .colour-row input.hexin{text-transform:uppercase;font-variant-numeric:tabular-nums}
   .ctl.txt textarea{width:100%;resize:vertical;min-height:32px}
   .ctl.sel select{width:100%}
   .preset-row .slot-main{cursor:pointer}
@@ -426,32 +705,34 @@
   .save-row input{flex:1;min-width:0}
   .font-row .sample{font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #cv{background:transparent}
-  /* 0.2: the kind of motion, as tiles */
-  .kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-  .kind{border:0;box-shadow:inset 0 0 0 1px var(--keyline);background:var(--btn);color:var(--ink);border-radius:var(--r-card);padding:8px 4px 7px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12.5px;line-height:1;min-width:0}
-  .kind:hover{background:var(--btn-hover)}
+  /* 0.2: the kind of motion, as tiles – 0.5: in the kit's terms, the chosen one white on grey */
+  .kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+  .kind{border:0;background:var(--k-fill);box-shadow:none;color:var(--muted);border-radius:var(--r-ctl);padding:9px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;line-height:1;min-width:0;
+    transition:background var(--t-snap),color var(--t-snap),box-shadow var(--t-snap),transform var(--t-snap) var(--e-snap)}
+  .kind:hover{background:var(--k-fill-hover);color:var(--ink)}
+  .kind:active{transform:scale(.97)}
   .kind svg{width:40px;height:28px;display:block;overflow:hidden}
   .kind svg rect{fill:currentColor}
   .kind svg rect.dim{opacity:.38}
   .kind svg rect.line{fill:none;stroke:currentColor;stroke-width:1.2;opacity:.55}
-  .kind[aria-pressed="true"]{background:var(--fill-ink);color:var(--on-ink);box-shadow:none}
+  .kind[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:0 0 0 1px var(--k-raise-line);font-weight:500}
   .kind:focus-visible,.spot:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   /* the overlay's place: a 3 × 3 pad */
-  .place{display:grid;grid-template-columns:repeat(3,28px);grid-template-rows:repeat(3,22px);gap:3px;background:var(--seg);border-radius:var(--r-card);padding:4px;width:max-content}
-  .spot{border:0;background:transparent;border-radius:var(--r-inner);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+  .place{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,22px);gap:2px;background:var(--k-fill);border-radius:var(--r-ctl);padding:3px;width:max-content}
+  .spot{border:0;background:transparent;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap)}
+  .spot:hover{background:var(--k-fill-hover)}
   .spot i{width:5px;height:5px;border-radius:50%;background:var(--muted);opacity:.55}
   .spot:hover i{opacity:1}
-  .spot[aria-pressed="true"]{background:var(--fill-ink)}
-  .spot[aria-pressed="true"] i{background:var(--on-ink);opacity:1;width:7px;height:7px}
+  .spot[aria-pressed="true"]{background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line)}
+  .spot[aria-pressed="true"] i{background:var(--ink-strong);opacity:1;width:6px;height:6px}
   .img-row .mthumb[hidden]{display:none}
   .img-row .slot-name.muted{color:var(--muted);font-size:var(--fs-small)}
-  .slot-det{padding-top:8px}
-  /* 0.4: type a slider's value */
-  .rng-box .val.typable{pointer-events:auto;cursor:text;border-radius:4px;padding:1px 3px;margin-right:-3px}
-  .rng-box .val.typable:hover{color:var(--ink);background:var(--well)}
-  .rng-box .val.typable:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
-  .rng-box .val.editing{padding:0;background:none}
-  .ctl .ctl-head .val .val-in,.val-in{width:72px;min-width:0;max-width:72px;flex:none;height:22px;padding:0 6px;font:inherit;font-size:13px;text-align:right;color:var(--ink);background:var(--btn);border:0;border-radius:4px;box-shadow:inset 0 0 0 1px var(--hair);font-variant-numeric:tabular-nums}
+  /* 0.4: type a slider's value (0.5: drawn by the kit) */
+  .val.typable{cursor:text}
+  .val.typable:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+  .val.editing{padding:0;background:none}
+  .ctl .ctl-head .val .val-in,.val-in{width:64px;min-width:0;max-width:64px;flex:none;padding:0 6px;font:inherit;font-size:12.5px;text-align:right;color:var(--ink);border:0;font-variant-numeric:tabular-nums}
+  .stp-g .val-in{width:40px;max-width:40px;text-align:center}
   .val-in:focus{outline:2px solid var(--focus);outline-offset:0}
   #cv.grab{cursor:grab}
   #cv.grabbing{cursor:grabbing}
@@ -467,7 +748,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.4.4</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.5</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -2996,30 +3277,80 @@ const $=s=>document.querySelector(s);
    from the island and the Presets capsule, Preview, tooltips, light and dark, the panel's
    width, status. Written to match shared/core.js and core-end.js part for part; Segue keeps
    its own copy because the shared core is still tied to Rubato's settings and type engine
-   (as Tutti does with tutti/frame.js). Move onto the core when that's split. */
+   (as Tutti does with tutti/frame.js). Move onto the core when that's split.
+   0.5: the round 4 kit (shared/kit.css, shared/UI.md) – Segue first. Sliders drag from where you
+   press (Shift for fine), click to jump, type the number; small counts are steppers; a choice that
+   won't fit a row becomes a menu; the white highlight slides to what you pick; a red dot marks
+   any row that's moved from where it started (click it to put it back) and a section can be put
+   back at once; every change to a setting undoes (⌘Z) and redoes (⇧⌘Z). */
 const LS={get(k){try{return JSON.parse(localStorage.getItem('segue:'+k))}catch(e){return null}},
   set(k,v){try{localStorage.setItem('segue:'+k,JSON.stringify(v))}catch(e){}}};
 const clamp=(v,a,b)=>v<a?a:v>b?b:v;
 const panel=$('#panel'),controls=[];
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
 let dirty=true,saveT=0;
-function set(k,v,silent){S[k]=v;dirty=true;onSet(k);clearTimeout(saveT);saveT=setTimeout(saveSettings,300);if(!silent)refreshAll();}
+const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)');
+const ICON={
+  plus:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  minus:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
+  reset:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 6a3.4 3.4 0 1 0 1-2.4M2.4 1.8v2h2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  shuffle:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M1.5 3.5h2c2.5 0 3 5 5.5 5h1.5M1.5 8.5h2c1 0 1.6-.8 2.1-1.8M7 4.3c.5-.5 1.1-.8 2-.8h1.5M9.2 2l1.5 1.5-1.5 1.5M9.2 7l1.5 1.5L9.2 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  clear:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 3.5h7M5 3.5V2.4h2v1.1M3.5 3.5l.5 6.1h4l.5-6.1" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  clip:'<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M6 3.6V6l1.6 1" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  swap:'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4.2h7.2M7.4 2.4l1.8 1.8-1.8 1.8M10 7.8H2.8M4.6 6l-1.8 1.8 1.8 1.8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  stop:'<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="3" y="3" width="6" height="6" rx="1.2" fill="currentColor"/></svg>',
+  grip:'<svg viewBox="0 0 6 12" aria-hidden="true"><g fill="currentColor"><circle cx="1.5" cy="2" r="1"/><circle cx="4.5" cy="2" r="1"/><circle cx="1.5" cy="6" r="1"/><circle cx="4.5" cy="6" r="1"/><circle cx="1.5" cy="10" r="1"/><circle cx="4.5" cy="10" r="1"/></g></svg>'};
+/* ---------------- undo: every change to a setting, a step at a time ----------------
+   A drag, a run of arrow presses or typing in a field counts as one step. Presets, a row or a
+   section put back, and media removed are a step each too (see pushUndo in app.js). */
+const UNDO=[],REDO=[];let replaying=false,groupOpen=null,gestureN=0,gesture=0;
+const same=(a,b)=>a===b||(typeof a==='number'&&typeof b==='number'&&Math.abs(a-b)<=1e-6*Math.max(1,Math.abs(a),Math.abs(b)));
+function labelOf(k){const c=controls.find(c=>c.d&&c.d.label&&(c.d.k===k||(c.d.keys&&c.d.keys.includes(k))));return c?c.d.label:k;}
+function record(k,prev,next){
+  if(replaying||same(prev,next))return;REDO.length=0;
+  if(groupOpen){if(k in groupOpen.ch)groupOpen.ch[k][1]=next;else groupOpen.ch[k]=[prev,next];return;}
+  const now=performance.now(),top=UNDO[UNDO.length-1];
+  if(top&&!top.fn&&!top.closed&&Object.keys(top.ch).length===1&&k in top.ch&&((gesture&&top.g===gesture)||now-top.t<800)){
+    top.ch[k][1]=next;top.t=now;if(same(top.ch[k][0],next))UNDO.pop();return;}
+  UNDO.push({ch:{[k]:[prev,next]},label:labelOf(k),t:now,g:gesture});if(UNDO.length>300)UNDO.shift();}
+function group(label,fn){const g={ch:{},label,t:performance.now(),closed:true};groupOpen=g;try{fn();}finally{groupOpen=null;}
+  if(Object.keys(g.ch).length){REDO.length=0;UNDO.push(g);}return g;}
+function pushUndo(e){e.ch=e.ch||{};e.t=performance.now();e.closed=true;REDO.length=0;UNDO.push(e);if(UNDO.length>300)UNDO.shift();}
+function applyStep(e,w){replaying=true;try{for(const k in e.ch){S[k]=e.ch[k][w];onSet(k);}if(e.extra)e.extra(w);}finally{replaying=false;}
+  dirty=true;clearTimeout(saveT);saveT=setTimeout(saveSettings,300);easeAll();refreshAll();}
+async function undo(){const e=UNDO.pop();if(!e){toast('Nothing to undo');return;}if(e.fn)await e.fn(0);else applyStep(e,0);REDO.push(e);toast(`Undone – ${e.label}`);}
+async function redo(){const e=REDO.pop();if(!e){toast('Nothing to redo');return;}if(e.fn)await e.fn(1);else applyStep(e,1);UNDO.push(e);toast(`Redone – ${e.label}`);}
+function set(k,v,silent){record(k,S[k],v);S[k]=v;dirty=true;onSet(k);clearTimeout(saveT);saveT=setTimeout(saveSettings,300);if(!silent)refreshAll();}
+/* where each setting started: the preset in use, else the defaults (baseOf in app.js) */
+const base=k=>{try{return typeof baseOf==='function'?baseOf(k):D[k];}catch(e){return D[k];}};
+const moved=k=>k in D&&!same(S[k],base(k));
+/* motion: numbers roll to their new value; sliders glide to a typed or undone one */
+function roll(v,text,dir){if(v.textContent===text)return;v.textContent=text;if(!document.body.classList.contains('kit-live')||reduceMotion.matches)return;
+  v.classList.remove('roll','down');void v.offsetWidth;v.classList.add('roll');if(dir<0)v.classList.add('down');}
+document.addEventListener('animationend',e=>{if(e.target.classList&&e.target.classList.contains('roll'))e.target.classList.remove('roll','down');});
+function ease(box){box.classList.add('ease');clearTimeout(box._et);box._et=setTimeout(()=>box.classList.remove('ease'),reduceMotion.matches?0:420);}
+function easeAll(root){(root||document).querySelectorAll('.rng-box').forEach(ease);}
 /* ---------------- cards and folds ---------------- */
 const collapsed=LS.get('collapsed')||{canvas:true,motion:false,shapes:true,captions:true,overlay:true};
 let curGroup='';
 const CHEV='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function card(id,title,show){curGroup=id;
   const c=el('section','card'+(collapsed[id]?' collapsed':''));c.dataset.id=id;const h=el('h2'),b=el('button','card-toggle');
-  const t=el('span',null,title),sm=el('span','sum'),ch=el('span','chev');ch.innerHTML=CHEV;b.append(t,sm,ch);b.setAttribute('aria-expanded',!collapsed[id]);
-  b.onclick=()=>{const on=!c.classList.toggle('collapsed');collapsed[id]=!on;b.setAttribute('aria-expanded',on);LS.set('collapsed',collapsed);if(on)requestAnimationFrame(()=>syncRanges(c));};
-  h.append(b);const body=el('div','card-body');c.append(h,body);panel.append(c);
+  const t=el('span',null,title),num=el('span','num'),dot=el('span','cdot'),sm=el('span','sum'),ch=el('span','chev');ch.innerHTML=CHEV;b.append(t,num,dot,sm,ch);b.setAttribute('aria-expanded',!collapsed[id]);
+  const rs=el('button','pill small reset');rs.type='button';rs.innerHTML=ICON.reset+'<span>Reset</span>';rs.setAttribute('aria-label','Put '+title+' back');rs.dataset.tip='Put everything here back to where it started';
+  rs.onclick=e=>{e.stopPropagation();resetCard(c,title);};
+  const anim=el('div','card-anim'),inner=el('div'),body=el('div','card-body');inner.append(body);anim.append(inner);if(collapsed[id])anim.hidden=true;
+  b.onclick=()=>{const opening=c.classList.contains('collapsed');collapsed[id]=!opening;b.setAttribute('aria-expanded',opening);LS.set('collapsed',collapsed);clearTimeout(anim._t);
+    if(opening){anim.hidden=false;void anim.offsetHeight;c.classList.remove('collapsed');requestAnimationFrame(()=>{syncRanges(c);c.querySelectorAll('.seg').forEach(fitSeg);});}
+    else{c.classList.add('collapsed');anim._t=setTimeout(()=>{if(c.classList.contains('collapsed'))anim.hidden=true;},reduceMotion.matches?0:380);}};
+  h.append(b,rs);c.append(h,anim);panel.append(c);
   controls.push({d:{show:show||null},w:c,update(){},card:id});return body;}
 const FOLDS=LS.get('folds')||{};
 function fold(parent,id,title,show,shut,sum){
   const box=el('div'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');head.type='button';chev.innerHTML=CHEV;
   const open=FOLDS[id]!=null?FOLDS[id]:!shut,paint=o=>{body.hidden=!o;head.setAttribute('aria-expanded',o);if(o)requestAnimationFrame(()=>syncRanges(body));};paint(open);
   head.onclick=()=>{const o=body.hidden;FOLDS[id]=o;LS.set('folds',FOLDS);paint(o);};
-  head.append(label,chev);head._sum=sum||null;box.append(head,body);addCustom(parent,show||null,box);return body;}
+  head.append(label,el('span','cdot'),chev);head._sum=sum||null;box.append(head,body);addCustom(parent,show||null,box);return body;}
 const SUMMARY={};
 function optLabel(opts,v){const o=(opts||[]).find(o=>o[0]===v);return o?o[1]:null;}
 function autoSummary(id,inside){
@@ -3035,7 +3366,8 @@ function autoSummary(id,inside){
 function refreshSummaries(){document.querySelectorAll('section.card[data-id]').forEach(sec=>{const sm=sec.querySelector(':scope>h2 .sum');if(!sm)return;
   let t='';try{t=SUMMARY[sec.dataset.id]?SUMMARY[sec.dataset.id](S):autoSummary(sec.dataset.id);}catch(e){}if(sm.textContent!==(t||''))sm.textContent=t||'';});
   document.querySelectorAll('.fold-head').forEach(hd=>{const body=hd.nextElementSibling;if(!body)return;let sm=hd.querySelector('.sum');
-    if(!sm){sm=el('span','sum');hd.insertBefore(sm,hd.querySelector('.chev'));}let t='';try{t=hd._sum?hd._sum(S):autoSummary(null,body);}catch(e){}if(sm.textContent!==t)sm.textContent=t;});}
+    if(!sm){sm=el('span','sum');hd.insertBefore(sm,hd.querySelector('.chev'));}let t='';try{t=hd._sum?hd._sum(S):autoSummary(null,body);}catch(e){}if(sm.textContent!==t)sm.textContent=t;});
+  let n=0;panel.querySelectorAll(':scope>section.card').forEach(sec=>{const nm=sec.querySelector(':scope>h2 .num');if(nm&&!sec.hidden){const v=String(++n);if(nm.textContent!==v)nm.textContent=v;}});}
 /* ---------------- sheets, island, Presets, Preview ---------------- */
 const SHEETS={};
 const sheetObs=new MutationObserver(ms=>{for(const m of ms){const n=m.target;if(!n.hidden)for(const k in SHEETS)if(SHEETS[k].el!==n)SHEETS[k].el.hidden=true;}syncSheets();});
@@ -3044,7 +3376,7 @@ function addSheet(name,node,opener){
   $(name==='presets'?'#pcapSheets':'#islandSheets').append(node);SHEETS[name]={el:node,opener:opener||(name==='presets'?$('#pcapOpen'):name==='export'?$('#exportOpen'):null)};
   if(name==='presets')$('#pcap').hidden=false;if(name==='export')$('#exportOpen').hidden=false;
   sheetObs.observe(node,{attributes:true,attributeFilter:['hidden']});return node;}
-function cardToSheet(body,name){const sec=body.parentElement;sec.classList.remove('card','collapsed');const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=null;return addSheet(name,sec);}
+function cardToSheet(body,name){const sec=body.closest('section');sec.classList.remove('card','collapsed');const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=null;return addSheet(name,sec);}
 function openSheet(name){if(!SHEETS[name])return;for(const k in SHEETS)SHEETS[k].el.hidden=k!==name;syncSheets();}
 function closeSheets(){for(const k in SHEETS)SHEETS[k].el.hidden=true;syncSheets();}
 const anySheet=()=>Object.values(SHEETS).some(s=>!s.el.hidden);
@@ -3070,25 +3402,86 @@ window.ensembleUI={open:openSheet,close:closeSheets,preview:setPreview,
   reveal(n){const s=n&&n.closest&&n.closest('.sheet');if(s&&s.hidden)openSheet(s.dataset.sheet);return true;}};
 /* ---------------- controls ---------------- */
 function syncRange(box){const inp=box.querySelector('input[type=range]');if(!inp)return;
-  const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,p=mx>mn?clamp((+inp.value-mn)/(mx-mn),0,1):0;box.style.setProperty('--p',p);
-  const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const hh=box.offsetHeight,x=hh/2+(w-hh/2)*p,head=box.querySelector('.ctl-head');let over=false;
-  if(head)for(const e of head.children){if(!e.offsetWidth)continue;const l=head.offsetLeft+e.offsetLeft,r=l+e.offsetWidth;if(x>l-6&&x<r+6){over=true;break;}}
-  tick.classList.toggle('away',over||p<.03||p>.97);}
+  const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,sp=mx>mn?mx-mn:1,p=clamp((+inp.value-mn)/sp,0,1);box.style.setProperty('--p',p);
+  const z=mn<0&&mx>0?-mn/sp:0;box.style.setProperty('--z',z);box.classList.toggle('from-start',z===0);
+  const ctl=box.parentElement,bv=ctl&&ctl.dataset.def!=null?+ctl.dataset.def:ctl&&ctl.dataset.k?+base(ctl.dataset.k):NaN;
+  if(Number.isFinite(bv))box.style.setProperty('--b',clamp((bv-mn)/sp,0,1));
+  const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const x=5+(w-10)*p,head=box.querySelector('.ctl-head');let over=false;
+  /* split only over the words themselves – the label's text and the value, not the hidden ? or empty space */
+  if(head){const bl=box.getBoundingClientRect().left;for(const e of head.children){if(!e.offsetWidth||e.classList.contains('cx')||e.classList.contains('q'))continue;
+    let l,r;if(e.tagName==='LABEL'&&e.firstChild){const rg=document.createRange();rg.selectNodeContents(e);const rr=rg.getBoundingClientRect();l=rr.left-bl;r=rr.right-bl;}
+    else{l=head.offsetLeft+e.offsetLeft;r=l+e.offsetWidth;}
+    if(x>l-4&&x<r+4){over=true;break;}}}
+  tick.classList.toggle('split',over);}
 function syncRanges(root){(root||document).querySelectorAll('.rng-box').forEach(syncRange);}
 function upgradeRange(inp){const ctl=inp.parentElement;if(!ctl||!ctl.classList.contains('ctl')||inp.closest('.rng-box'))return;
   const head=ctl.querySelector(':scope>.ctl-head'),box=el('div','rng-box');ctl.classList.add('rng');ctl.insertBefore(box,head||inp);
-  box.append(el('span','rng-fill'),el('span','rng-tick'));if(head)box.append(head);box.append(inp);
-  inp.addEventListener('input',()=>syncRange(box));inp.addEventListener('dblclick',()=>{const l=box.querySelector('label');if(l&&l.ondblclick)l.ondblclick();});
+  box.append(el('span','rng-fill'),el('span','rng-notch'),el('span','rng-tick'));if(head)box.append(head);box.append(inp);
+  inp.addEventListener('input',()=>syncRange(box));
+  box.addEventListener('dblclick',e=>{if(e.target.closest('.val,.q'))return;const l=box.querySelector('label');if(l&&l.ondblclick){l.ondblclick();ease(box);}});
+  const lim=()=>[inp.min===''?0:+inp.min,inp.max===''?100:+inp.max,+inp.step||1];
+  const put=v=>{const [mn,mx,st]=lim();v=clamp(v,mn,mx);v=+(Math.round((v-mn)/st)*st+mn).toFixed(6);v=clamp(v,mn,mx);
+    if(v!==+inp.value){inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}));}};
+  /* drag from wherever you press – it moves by how far you go, not to where you are; Shift is ten times finer.
+     A press that doesn't move jumps there. It catches for a moment where it started (the notch). */
+  /* The ? sits inside the bar: a press on it that moves drags like anywhere else; one that doesn't shows its tip. */
+  box.addEventListener('pointerdown',e=>{if(e.button||e.target.closest('.val,.val-in,.cx'))return;const onQ=!!e.target.closest('.q');
+    if(!onQ){e.preventDefault();inp.focus({preventScroll:true});try{box.setPointerCapture(e.pointerId);}catch(_){}}
+    const r=box.getBoundingClientRect(),[mn,mx]=lim(),span=mx-mn,bv=+(box.style.getPropertyValue('--b')||0)*span+mn;let lastX=e.clientX,acc=+inp.value,movedAny=false;gesture=++gestureN;
+    const mv=ev=>{const dx=ev.clientX-lastX;if(!movedAny&&Math.abs(ev.clientX-e.clientX)<3)return;
+      if(!movedAny){movedAny=true;box.classList.add('drag');if(onQ){hideTip();inp.focus({preventScroll:true});try{box.setPointerCapture(e.pointerId);}catch(_){}}}
+      acc=clamp(acc+dx/Math.max(40,r.width-10)*span*(ev.shiftKey?.1:1),mn,mx);lastX=ev.clientX;
+      put(!ev.shiftKey&&Math.abs(acc-bv)<span*.012?bv:acc);};
+    const up=ev=>{box.removeEventListener('pointermove',mv);box.removeEventListener('pointerup',up);box.removeEventListener('pointercancel',up);box.classList.remove('drag');
+      if(!movedAny&&ev.type==='pointerup'&&!onQ){ease(box);put(mn+clamp((ev.clientX-r.left-5)/Math.max(1,r.width-10),0,1)*span);}
+      inp.dispatchEvent(new Event('change',{bubbles:true}));gesture=0;};
+    box.addEventListener('pointermove',mv);box.addEventListener('pointerup',up);box.addEventListener('pointercancel',up);});
+  inp.addEventListener('keydown',e=>{if(!e.shiftKey||!/^Arrow/.test(e.key))return;e.preventDefault();const [,, st]=lim();put(+inp.value+(/Right|Up/.test(e.key)?10:-10)*st);});
   requestAnimationFrame(()=>syncRange(box));}
-function fitSeg(g){const bs=[...g.children].filter(b=>b.tagName==='BUTTON'&&!b.hidden),n=bs.length;if(!n)return;
-  const longest=Math.max(...bs.map(b=>(b.textContent||'').trim().length)),fits=c=>longest<=Math.floor((254/c-16)/6.6);
-  let cols=1;if(g.closest('.isl-main'))cols=n;else for(let c=Math.min(n,4);c>=1;c--)if(fits(c)&&(n%c===0||n%c>=c-1)){cols=c;break;}
-  g.classList.toggle('loose',cols===1&&n>1);
-  if(cols>=n){g.classList.remove('wrap');g.style.removeProperty('--cols');}else{g.classList.add('wrap');g.style.setProperty('--cols',cols);}}
+/* A choice shows as a row while every option fits its share of the width, set in Medium;
+   otherwise as a menu – same place, same height, same corners. */
+const measureCtx=document.createElement('canvas').getContext('2d');
+function textW(t){measureCtx.font='500 12.5px "aktiv-grotesk","Aktiv Grotesk","Helvetica Neue",Arial,sans-serif';return measureCtx.measureText(t).width;}
+function segRoom(g){const ctl=g.closest('.ctl');const w=ctl&&ctl.offsetWidth;if(w)return w;return g.closest('.sheet')?308:Math.max(180,($('#panelBox').offsetWidth||300)-46);}
+function fitSeg(g){const bs=[...g.children].filter(b=>b.tagName==='BUTTON'&&!b.hidden),n=bs.length;if(!n)return;g.classList.remove('wrap','loose');
+  const ctl=g.closest('.ctl');if(g.closest('.isl-main')||!ctl||!ctl.querySelector(':scope>.seg-menu')){placeHL(g,true);return;}
+  const each=(segRoom(g)-4-(n-1)*2)/n,need=Math.max(...bs.map(b=>textW((b.textContent||'').trim())))+16;   /* at least 8 px either side of the words */
+  ctl.classList.toggle('as-menu',need>each);placeHL(g,true);}
+/* the white highlight slides to the chosen option (Morph) */
+function placeHL(g,snap){let hl=g.querySelector(':scope>.hl');if(!hl){hl=el('i','hl');g.prepend(hl);}
+  const b=[...g.children].find(x=>x.tagName==='BUTTON'&&!x.hidden&&x.getAttribute('aria-pressed')==='true');
+  if(!b){g.classList.remove('hl-ready');delete hl.dataset.on;return;}if(!g.offsetWidth||!b.offsetWidth)return;
+  const L=b.offsetLeft+'px',W=b.offsetWidth+'px';if(hl.style.left===L&&hl.style.width===W){hl.dataset.on=b.textContent;return;}
+  /* it slides only when the choice changes; when the row itself resizes (a sheet growing, the panel dragged) it keeps up at once */
+  const slide=!snap&&g.classList.contains('hl-ready')&&hl.dataset.on!=null&&hl.dataset.on!==b.textContent;
+  if(!slide)hl.style.transition='none';
+  hl.style.left=L;hl.style.width=W;hl.dataset.on=b.textContent;
+  if(!slide){void hl.offsetWidth;hl.style.transition='';}g.classList.add('hl-ready');}
+const segRO=new ResizeObserver(es=>{for(const e of es)placeHL(e.target,true);});
+/* quiet actions are keyline chips with an icon */
+const CHIP_ICON={'Shuffle':'shuffle','Clear all':'clear','Whole clip':'clip','Reset':'reset','Replace':'swap','Stop':'stop'};
+function chipIcon(b){if(b.querySelector('svg'))return;const t=(b.textContent||'').trim();let k=CHIP_ICON[t];
+  if(!k&&/^\+ /.test(t)){k='plus';b.textContent=t.slice(2);}if(k)b.insertAdjacentHTML('afterbegin',ICON[k]);}
 function enhance(root){if(!root||root.nodeType!==1)return;
   if(root.matches('.ctl>input[type=range]'))upgradeRange(root);root.querySelectorAll('.ctl>input[type=range]').forEach(upgradeRange);
-  if(root.matches('.seg,.choice'))fitSeg(root);root.querySelectorAll('.seg,.choice').forEach(fitSeg);}
-new MutationObserver(ms=>{for(const m of ms){if(m.target.classList&&(m.target.classList.contains('seg')||m.target.classList.contains('choice')))fitSeg(m.target);m.addedNodes.forEach(enhance);}}).observe(document.body,{childList:true,subtree:true});
+  if(root.matches('.seg,.choice'))fitSeg(root);root.querySelectorAll('.seg,.choice').forEach(fitSeg);
+  if(root.matches('.pill')&&!root.closest('.seg'))chipIcon(root);root.querySelectorAll('.pill.small:not(.icon),.media-list~.btn-row>.pill,.card-body>.btn-row>.pill').forEach(chipIcon);}
+new MutationObserver(ms=>{for(const m of ms){const t=m.target;if(t.classList&&(t.classList.contains('seg')||t.classList.contains('choice')))fitSeg(t);
+  if(t.classList&&t.classList.contains('pill')&&t.classList.contains('small')&&!t.classList.contains('icon'))chipIcon(t);m.addedNodes.forEach(enhance);}}).observe(document.body,{childList:true,subtree:true});
+/* the change column: a dot on any row that's moved from where it started */
+function addCx(c,where){if(!c.d||(!c.d.k&&!c.d.keys))return;const b=el('button','cx');b.type='button';const lb=c.d.label||'';
+  b.setAttribute('aria-label',`${lb} – changed; put it back`);b.dataset.tip='Changed – click to put it back';b.onclick=e=>{e.stopPropagation();resetCtl(c);};c.cx=b;where.append(b);}
+const ctlKeys=c=>c.d.keys||[c.d.k];
+const ctlMoved=c=>ctlKeys(c).some(moved);
+function resetKeys(c){for(const k of ctlKeys(c)){if(!moved(k))continue;if(c.d.pick&&k===c.d.k)c.d.pick(base(k));else set(k,base(k),true);}}
+function resetCtl(c){const lb=c.d.label||labelOf(ctlKeys(c)[0]);group(`${lb} put back`,()=>resetKeys(c));easeAll(c.w);refreshAll();toastUndo(`${lb} put back`);}
+function shownIn(c,root){let n=c.w;while(n&&n!==root){if(n.hidden&&!n.classList.contains('fold-body')&&!n.classList.contains('card-anim'))return false;n=n.parentElement;}return !!n;}
+function resetCard(sec,title){const list=controls.filter(c=>c.cx&&sec.contains(c.w)&&shownIn(c,sec)&&ctlMoved(c));if(!list.length)return;
+  group(`${title} put back`,()=>list.forEach(resetKeys));easeAll(sec);refreshAll();toastUndo(`${title} put back`);}
+function paintChanges(){
+  for(const c of controls){if(!c.cx)continue;const ch=!c.w.closest('.sheet')&&ctlMoved(c);if(c.w.classList.contains('chg')!==ch)c.w.classList.toggle('chg',ch);}
+  panel.querySelectorAll(':scope>section.card').forEach(sec=>{const ch=controls.some(c=>c.cx&&sec.contains(c.w)&&c.w.classList.contains('chg')&&shownIn(c,sec));sec.classList.toggle('chg',ch);});
+  panel.querySelectorAll('.fold-head').forEach(hd=>{const body=hd.nextElementSibling;const ch=!!body&&controls.some(c=>c.cx&&body.contains(c.w)&&c.w.classList.contains('chg')&&shownIn(c,body));hd.classList.toggle('chg',ch);});}
 const roundTo=(v,st)=>{const d=(String(st).split('.')[1]||'').length;return +(Math.round(v/st)*st).toFixed(d);};
 /* Type a value: click (or Tab to and press Enter on) the number on any slider, type it, Enter.
    Units are optional ("2.5 s", "80%"); the value is kept to the slider's range but not
@@ -3105,59 +3498,76 @@ function typable(val,o){
   val.addEventListener('pointerdown',e=>{e.stopPropagation();});val.addEventListener('click',open);
   val.addEventListener('keydown',e=>{if(e.target===val&&(e.key==='Enter'||e.key===' ')){open(e);}});
   return val;}
+function addStepper(parent,d){
+  const w=el('div','ctl stp'),hd=el('div','ctl-head'),lb=el('label',null,d.label),g=el('div','stp-g'),mi=el('button'),val=el('span','val'),pl=el('button');
+  mi.type=pl.type='button';mi.innerHTML=ICON.minus;pl.innerHTML=ICON.plus;mi.setAttribute('aria-label','Fewer – '+d.label);pl.setAttribute('aria-label','More – '+d.label);
+  d.group=d.group||curGroup;w.dataset.k=d.k;lb.title='Double-click to reset';lb.ondblclick=()=>set(d.k,base(d.k));
+  const go=n=>set(d.k,clamp(Math.round(+S[d.k])+n,+d.min,+d.max));mi.onclick=()=>go(-1);pl.onclick=()=>go(1);
+  typable(val,{label:d.label,get:()=>S[d.k],put:v=>set(d.k,Math.round(v)),min:+d.min,max:+d.max,show:()=>String(Math.round(+S[d.k]))});
+  g.append(mi,val,pl);hd.append(lb);const q=qMark(d);if(q)hd.append(q);hd.append(g);w.append(hd);parent.append(w);
+  const c={d,w,update(){const v=Math.round(+S[d.k]);if(!val.classList.contains('editing'))roll(val,String(v),v-(c._v==null?v:c._v));c._v=v;mi.disabled=v<=+d.min;pl.disabled=v>=+d.max;}};
+  controls.push(c);addCx(c,w);return c;}
 function addRange(parent,d){
-  const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,d.label),val=el('span','val');
+  if(+d.step===1&&+d.max-+d.min<=10&&!d.unit&&!d.fmt)return addStepper(parent,d);
+  const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,d.label),val=el('span','val');w.dataset.k=d.k;
   const id='c_'+(d.id||d.k);lb.htmlFor=id;lb.title='Double-click to reset';
   const inp=el('input');inp.type='range';inp.id=id;inp.min=d.min;inp.max=d.max;inp.step=d.step;
   const fmt=v=>d.fmt?d.fmt(v):(roundTo(v,d.step)+(d.unit||''));d.group=d.group||curGroup;
-  inp.oninput=()=>{set(d.k,parseFloat(inp.value),true);val.textContent=fmt(+inp.value);refreshVis();refreshSummaries();};
-  lb.ondblclick=()=>set(d.k,D[d.k]);
+  inp.oninput=()=>{const was=+S[d.k];set(d.k,parseFloat(inp.value),true);const box=inp.closest('.rng-box');
+    if(box&&!box.classList.contains('drag'))roll(val,fmt(+inp.value),+inp.value-was);else val.textContent=fmt(+inp.value);refreshVis();refreshSummaries();paintChanges();};
+  lb.ondblclick=()=>set(d.k,base(d.k));
   /* a typed value isn't rounded to the step, so show it as typed */
   const show=()=>{const v=+S[d.k];return d.fmt?d.fmt(v):(roundTo(v,d.step)===v?fmt(v):+v.toFixed(4)+(d.unit||''));};
-  typable(val,{label:d.label,get:()=>S[d.k],put:v=>set(d.k,v),min:+d.min,max:+d.max,show});
+  typable(val,{label:d.label,get:()=>S[d.k],put:v=>{const b=w.querySelector('.rng-box');if(b)ease(b);set(d.k,v);},min:+d.min,max:+d.max,show});
   hd.append(lb);const q=qMark(d);if(q)hd.append(q);hd.append(val);w.append(hd,inp);parent.append(w);
-  const c={d,w,update(){if(document.activeElement!==inp)inp.value=S[d.k];if(!val.classList.contains('editing'))val.textContent=show();}};controls.push(c);return c;}
+  const c={d,w,update(){const v=+S[d.k];if(document.activeElement!==inp||!inp.closest('.drag'))inp.value=v;if(!val.classList.contains('editing'))roll(val,show(),v-(c._v==null?v:c._v));c._v=v;}};controls.push(c);addCx(c,w);return c;}
 function addSeg(parent,d){
-  const w=el('div','ctl');d.group=d.group||curGroup;if(d.label){const hd=el('div','ctl-head');hd.append(el('span',null,d.label));const q=qMark(d);if(q)hd.append(q);w.append(hd);}
-  const g=el('div','seg');g.setAttribute('role','group');if(d.label)g.setAttribute('aria-label',d.label);w.append(g);parent.append(w);let sig='',bs=[];
-  const paint=opts=>{g.textContent='';bs=opts.map(([v,t,tip])=>{const b=el('button','pill small',t);b.type='button';if(tip)b.dataset.tip=tip;b.onclick=()=>d.pick?d.pick(v):set(d.k,v);g.append(b);return[v,b];});};
-  if(d.opts)paint(d.opts);
-  const c={d,w,update(){if(d.optsFn){const o=d.optsFn(),ns=JSON.stringify(o);if(ns!==sig){sig=ns;paint(o);}}const cur=d.val?d.val(S):S[d.k];bs.forEach(([v,b])=>b.setAttribute('aria-pressed',cur===v));}};controls.push(c);return c;}
+  const w=el('div','ctl');d.group=d.group||curGroup;let hd=null;if(d.label){hd=el('div','ctl-head');hd.append(el('span',null,d.label));const q=qMark(d);if(q)hd.append(q);w.append(hd);}
+  const g=el('div','seg');g.setAttribute('role','group');if(d.label)g.setAttribute('aria-label',d.label);w.append(g);
+  const m=el('select','seg-menu');if(d.label)m.setAttribute('aria-label',d.label);w.append(m);parent.append(w);let sig='',bs=[],opts=[];
+  const pick=v=>d.pick?d.pick(v):set(d.k,v);
+  const paint=o=>{opts=o;g.textContent='';m.textContent='';bs=o.map(([v,t,tip])=>{const b=el('button','pill small',t);b.type='button';if(tip)b.dataset.tip=tip;b.onclick=()=>pick(v);g.append(b);
+    const op=el('option',null,t);op.value=String(v);m.append(op);return[v,b];});fitSeg(g);};
+  m.onchange=()=>{const o=opts[m.selectedIndex];if(o)pick(o[0]);};
+  if(d.opts)paint(d.opts);segRO.observe(g);
+  const c={d,w,update(){if(d.optsFn){const o=d.optsFn(),ns=JSON.stringify(o);if(ns!==sig){sig=ns;paint(o);}}const cur=d.val?d.val(S):S[d.k];
+    bs.forEach(([v,b])=>b.setAttribute('aria-pressed',cur===v));const i=opts.findIndex(o=>o[0]===cur);if(document.activeElement!==m)m.selectedIndex=i;placeHL(g);}};
+  controls.push(c);if(hd)addCx(c,hd);return c;}
 function addToggle(parent,d){
   const w=el('div','toggle-row'),b=el('button','toggle');b.type='button';b.setAttribute('role','switch');b.setAttribute('aria-label',d.label);d.group=d.group||curGroup;
   b.append(el('span','box'),el('span',null,d.label));w.append(b);const q=qMark(d);if(q)w.append(q);
   b.onclick=()=>set(d.k,!S[d.k]);parent.append(w);
-  const c={d,w,update(){b.setAttribute('aria-checked',!!S[d.k]);}};controls.push(c);return c;}
+  const c={d,w,update(){b.setAttribute('aria-checked',!!S[d.k]);}};controls.push(c);addCx(c,w);return c;}
 function addColour(parent,d){
   const w=el('div','colour-row'),lb=el('label',null,d.label),cw=el('div','cw'),hex=el('input'),sw=el('span','cswatch'),inp=el('input');
   hex.type='text';hex.className='hexin';hex.spellcheck=false;hex.setAttribute('aria-label',d.label+' – hex');
   inp.type='color';inp.id='c_'+d.k;lb.htmlFor=inp.id;inp.oninput=()=>{set(d.k,inp.value.toUpperCase(),true);hex.value=inp.value.toUpperCase();};
   hex.onchange=()=>{let v=hex.value.trim();if(!v.startsWith('#'))v='#'+v;if(/^#[0-9a-f]{3}$/i.test(v))v='#'+v.slice(1).split('').map(c=>c+c).join('');if(/^#[0-9a-f]{6}$/i.test(v))set(d.k,v.toUpperCase());else hex.value=S[d.k];};
   sw.append(inp);cw.append(hex,sw);w.append(lb);const q=qMark(d);if(q)w.append(q);w.append(cw);parent.append(w);d.group=d.group||curGroup;
-  const c={d,w,update(){inp.value=/^#[0-9a-f]{6}$/i.test(S[d.k])?S[d.k]:'#000000';if(document.activeElement!==hex)hex.value=String(S[d.k]).toUpperCase();}};controls.push(c);return c;}
+  const c={d,w,update(){inp.value=/^#[0-9a-f]{6}$/i.test(S[d.k])?S[d.k]:'#000000';if(document.activeElement!==hex)hex.value=String(S[d.k]).toUpperCase();}};controls.push(c);addCx(c,w);return c;}
 function addSelect(parent,d){
   const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,d.label),s=el('select');s.id='c_'+d.k;lb.htmlFor=s.id;d.group=d.group||curGroup;
   hd.append(lb);const q=qMark(d);if(q)hd.append(q);w.append(hd,s);parent.append(w);let sig='';
   s.onchange=()=>set(d.k,d.num?+s.value:s.value);
   const c={d,w,update(){const o=d.optsFn?d.optsFn():d.opts,ns=JSON.stringify(o);if(ns!==sig){sig=ns;s.textContent='';for(const [v,t] of o){const op=el('option',null,t);op.value=v;s.append(op);}}
-    if(document.activeElement!==s)s.value=S[d.k];}};controls.push(c);return c;}
+    if(document.activeElement!==s)s.value=S[d.k];}};controls.push(c);addCx(c,hd);return c;}
 function addNums(parent,d){/* a pair of number fields on one row – Width × Height */
   const w=el('div','ctl nums'),hd=el('div','ctl-head');hd.append(el('span',null,d.label));const q=qMark(d);if(q)hd.append(q);
   const row=el('div','num-row'),ins=d.keys.map((k,i)=>{const lab=el('label','num');const sp=el('span',null,d.names[i]);const inp=el('input');inp.type='number';inp.min=d.min;inp.max=d.max;inp.step=d.step||1;inp.setAttribute('aria-label',d.names[i]);
     inp.onchange=()=>{const v=clamp(+inp.value||0,d.min,d.max);set(k,v);};lab.append(sp,inp);row.append(lab);if(i<d.keys.length-1)row.append(el('span','x',d.sep||'×'));return[k,inp];});
   w.append(hd,row);parent.append(w);d.group=d.group||curGroup;
-  const c={d,w,update(){for(const [k,inp] of ins)if(document.activeElement!==inp)inp.value=S[k];}};controls.push(c);return c;}
+  const c={d,w,update(){for(const [k,inp] of ins)if(document.activeElement!==inp)inp.value=S[k];}};controls.push(c);addCx(c,hd);return c;}
 function addText(parent,d){
   const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,d.label),inp=el(d.multi?'textarea':'input');if(!d.multi)inp.type='text';else inp.rows=d.rows||2;
   inp.id='c_'+d.k;lb.htmlFor=inp.id;inp.spellcheck=false;if(d.placeholder)inp.placeholder=d.placeholder;d.group=d.group||curGroup;
   hd.append(lb);const q=qMark(d);if(q)hd.append(q);w.append(hd,inp);parent.append(w);
   inp.oninput=()=>set(d.k,inp.value,true);inp.onchange=()=>refreshAll();
-  const c={d,w,update(){if(document.activeElement!==inp)inp.value=S[d.k]||'';}};controls.push(c);return c;}
+  const c={d,w,update(){if(document.activeElement!==inp)inp.value=S[d.k]||'';}};controls.push(c);addCx(c,hd);return c;}
 function addCustom(parent,show,node){const c={d:{show},w:node,update(){}};parent.append(node);controls.push(c);return c;}
 function addHint(parent,text,show){const p=el('p','hint',text);return addCustom(parent,show,p);}
 function build(parent,list){for(const d of list){({range:addRange,seg:addSeg,toggle:addToggle,colour:addColour,select:addSelect,nums:addNums,text:addText}[d.t]||(()=>{}))(parent,d);}}
 function refreshVis(){for(const c of controls){if(!c.d.show)continue;const v=!c.d.show(S);if(c.w.hidden!==v)c.w.hidden=v;}}
-function refreshAll(){for(const c of controls)c.update();refreshVis();refreshSummaries();syncRanges(panel);if(typeof appRefresh==='function')appRefresh();}
+function refreshAll(){for(const c of controls)c.update();refreshVis();refreshSummaries();syncRanges(panel);if(typeof appRefresh==='function')appRefresh();paintChanges();}
 /* ---------------- tooltips ---------------- */
 const TIPS={};
 function qMark(d){const t=d.tip||TIPS[d.k];if(!t)return null;const q=el('button','q','?');q.type='button';q.dataset.tip=t;q.setAttribute('aria-label',(d.label?d.label+': ':'')+t);return q;}
@@ -3181,6 +3591,9 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&tipFor)hideTip();})
 panel.addEventListener('scroll',()=>{if(tipFor)hideTip();},{passive:true});
 /* ---------------- status and downloads ---------------- */
 let toastT=0;function toast(m,hold){const t=$('#toast');t.textContent=m;t.title=m;t.classList.add('on');clearTimeout(toastT);if(!hold)toastT=setTimeout(()=>t.classList.remove('on'),2800);}
+/* a bigger change says what it did, with Undo beside it – not while an export is running */
+function toastUndo(m){if(busy)return;const t=$('#toast');t.textContent='';t.append(el('span',null,m));const u=el('button','undo','Undo');u.type='button';
+  u.onclick=e=>{e.stopPropagation();undo();};t.append(u);t.title=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),5000);}
 let dlNs=null;const dlReady=(window.claude&&typeof claude.use==='function')?claude.use('downloads').then(n=>dlNs=n).catch(()=>null):Promise.resolve(null);
 async function saveFile(name,blob){
   if(window.claude&&typeof claude.use==='function'){await dlReady;
@@ -3198,11 +3611,15 @@ function frameStart(){
   window.addEventListener('keydown',e=>{
     const tg=e.target,typing=tg&&(tg.tagName==='TEXTAREA'||tg.tagName==='SELECT'||tg.isContentEditable||(tg.tagName==='INPUT'&&/text|number|search/.test(tg.type)));
     if(e.key==='Escape'){if(anySheet()){closeSheets();return;}if($('.app').classList.contains('preview'))setPreview(false);return;}
+    if((e.metaKey||e.ctrlKey)&&!e.altKey&&!typing&&(e.key==='z'||e.key==='Z'||e.key==='y')){e.preventDefault();if(e.shiftKey||e.key==='y')redo();else undo();return;}
     if(typing||e.metaKey||e.ctrlKey||e.altKey)return;
     if(e.key==='f'||e.key==='F'){e.preventDefault();setPreview(!$('.app').classList.contains('preview'));}
     if(e.key===' '&&!(tg&&tg.tagName==='BUTTON')){e.preventDefault();setPlaying(!playing);}},true);
   $('#islandMain').addEventListener('scroll',islMore,{passive:true});
-  const ro=new ResizeObserver(()=>{layoutUI();fitCanvas();});ro.observe($('.island-in'));ro.observe($('#panelBox'));ro.observe($('#view'));ro.observe($('#pcap .pc-row'));
+  let refitT=0;const refit=()=>{cancelAnimationFrame(refitT);refitT=requestAnimationFrame(()=>document.querySelectorAll('.seg').forEach(fitSeg));};
+  const ro=new ResizeObserver(()=>{layoutUI();fitCanvas();refit();});ro.observe($('.island-in'));ro.observe($('#panelBox'));ro.observe($('#view'));ro.observe($('#pcap .pc-row'));
+  if(document.fonts)document.fonts.ready.then(refit);
+  requestAnimationFrame(()=>setTimeout(()=>document.body.classList.add('kit-live'),600));
   window.addEventListener('resize',layoutUI);
   const rz=$('#resizer'),app=$('.app'),pw=LS.get('panelW'),put=w=>{app.style.setProperty('--pw',w+'px');document.documentElement.style.setProperty('--pw',w+'px');};
   if(pw)put(clamp(pw,280,440));
@@ -3320,6 +3737,15 @@ async function restoreMedia(){
   saveItems();mediaChanged();}
 async function restoreFonts(){for(const id of (LS.get('fonts')||[])){try{const r=await DB.get('fonts',id);if(r)await addFont(new File([r.data],r.name,{type:r.type||''}),id,false);}catch(e){}}refreshAll();}
 function removeItem(id){for(const k of [...crCache.keys()])if(k.startsWith(id+'|'))crCache.delete(k);const i=items.findIndex(x=>x.id===id);if(i<0)return;const it=items[i];if(it.el){it.el.pause();URL.revokeObjectURL(it.el.src);}items.splice(i,1);DB.del('media',id).catch(()=>{});openRows.delete(id);saveItems();mediaChanged();}
+async function removeItems(ids,label){
+  const saved=[];for(const id of ids){const i=items.findIndex(x=>x.id===id);if(i<0)continue;let blob=null;try{blob=await DB.get('media',id);}catch(e){}
+    saved.push({i,meta:Object.fromEntries(META.map(k=>[k,items[i][k]])),blob});}
+  for(const id of ids)removeItem(id);if(!saved.length)return;
+  const back=saved.filter(x=>x.blob);if(!back.length){toast(label);return;}
+  pushUndo({label,fn:async w=>{if(w){for(const x of back)removeItem(x.meta.id);return;}
+    for(const x of back.slice().sort((a,b)=>a.i-b.i)){try{const it=await mediaFrom(x.blob,Object.assign({},x.meta));items.splice(Math.min(x.i,items.length),0,it);await DB.put('media',x.meta.id,x.blob);}catch(e){}}
+    saveItems();mediaChanged();}});
+  toastUndo(label);}
 function moveItem(id,to){const i=items.findIndex(x=>x.id===id);if(i<0)return;to=clamp(to,0,items.length-1);if(to===i)return;const [it]=items.splice(i,1);items.splice(to,0,it);saveItems();mediaChanged();}
 function mediaChanged(){E.resetMeasure();dirty=true;paintMedia();refreshAll();}
 /* ---------------- the background and overlay images: one of each, kept like the media ---------------- */
@@ -3330,6 +3756,9 @@ async function setPic(which,file){
   try{PICS[which]=picOf(await loadImage(file),file.name);try{await DB.put('media','pic:'+which,file);}catch(e){}LS.set('pic:'+which,{name:file.name});
     if(which==='ov'){S.ovOn=true;S.ovKind='image';saveSettings();}dirty=true;refreshAll();toast(which==='bg'?'Background image added':'Overlay image added');}
   catch(e){toast(`Couldn’t open ${file.name}`);}}
+async function removePic(which){let blob=null;try{blob=await DB.get('media','pic:'+which);}catch(e){}const was=PICS[which],ovOn=S.ovOn,ovKind=S.ovKind;clearPic(which);
+  const label=which==='bg'?'Background image removed':'Overlay image removed';if(!blob||!was){toast(label);return;}
+  pushUndo({label,fn:async w=>{if(w){clearPic(which);return;}await setPic(which,blob);S.ovOn=ovOn;S.ovKind=ovKind;saveSettings();refreshAll();}});toastUndo(label);}
 function clearPic(which){PICS[which]=null;DB.del('media','pic:'+which).catch(()=>{});LS.set('pic:'+which,null);dirty=true;refreshAll();}
 async function restorePics(){for(const w of ['bg','ov']){const m=LS.get('pic:'+w);if(!m)continue;
     try{const b=await DB.get('media','pic:'+w);if(b)PICS[w]=picOf(await loadImage(b),m.name);}catch(e){}}dirty=true;refreshAll();}
@@ -3470,6 +3899,7 @@ $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();cl
 function onSet(k){if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
 function appRefresh(){const P=planNow();$('#loopChip').textContent=`${P.L.toFixed(1)} s loop`;$('#loopChip').title=`The loop lasts ${P.L.toFixed(2)} seconds, then starts again exactly where it began`;
   $('#countChip').textContent=items.length?(items.length===1?'1 shape':`${items.length} shapes`):'No media yet';
+  if(current&&BUILTIN.concat(mine).some(x=>x.name===current)){const e=LOOK.some(moved);if(e!==edited){edited=e;LS.set('presetEdited',e);}}
   const pn=$('#pcapName');pn.textContent=presetName();}
 
 /* ---------------- cards ---------------- */
@@ -3512,7 +3942,7 @@ function picRow(parent,which,show){
   const row=el('div','img-row'),th=el('span','mthumb'),nm=el('div','slot-name'),add=el('button','pill small'),rm=el('button','pill small icon');
   add.type=rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
   const what=which==='bg'?'background image':'overlay image';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove the '+what);
-  add.onclick=()=>$(which==='bg'?'#bgfile':'#ovfile').click();rm.onclick=()=>clearPic(which);row.append(th,nm,add,rm);
+  add.onclick=()=>$(which==='bg'?'#bgfile':'#ovfile').click();rm.onclick=()=>removePic(which);row.append(th,nm,add,rm);
   let had;const c=addCustom(parent,show,row);
   c.update=()=>{const p=PICS[which];if(p===had)return;had=p;th.textContent='';th.hidden=!p;if(p)th.append(thumbOf(Object.assign({kind:'image'},p)));
     nm.textContent=p?p.name:(which==='bg'?'No image – the colour shows':'No image yet');nm.classList.toggle('muted',!p);
@@ -3522,7 +3952,7 @@ function picRow(parent,which,show){
 const openRows=new Set();let mediaBox;
 {const b=card('media','Media');mediaBox=el('div','media-list');b.append(mediaBox);
   const r=el('div','ctl btn-row'),add=el('button','pill','+ Add images or video');add.type='button';add.onclick=()=>$('#mediafile').click();r.append(add);
-  const clr=el('button','pill small','Clear all');clr.type='button';clr.onclick=()=>{if(!items.length)return;for(const it of items.slice())removeItem(it.id);toast('Cleared');};r.append(clr);b.append(r);
+  const clr=el('button','pill small','Clear all');clr.type='button';clr.onclick=()=>{if(!items.length)return;removeItems(items.map(it=>it.id),items.length===1?'Cleared 1 file':`Cleared ${items.length} files`);};r.append(clr);b.append(r);
   addHint(b,'Drag a row to change the order. Video plays from its start point as its shape arrives.',()=>items.length>1);
   addHint(b,'Open a row to give that slide its own time on screen, transition or movement.',s=>s.layout==='one'&&items.length>0);
   SUMMARY.media=()=>!items.length?'No media yet':`${items.length} · `+(()=>{const v=items.filter(i=>i.kind==='video').length,i=items.length-v;return [v?`${v} video`:'',i?`${i} image${i>1?'s':''}`:''].filter(Boolean).join(', ');})();}
@@ -3537,8 +3967,8 @@ function paintMedia(){
     th.append(thumbOf(it));meta.textContent=(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(S.layout==='one'&&+it.hold>0?` · on for ${+(+it.hold).toFixed(2)} s`:'')+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-expanded',openRows.has(it.id));main.setAttribute('aria-label',`${i+1}. ${it.name} – details`);
     const tog=()=>{openRows.has(it.id)?openRows.delete(it.id):openRows.add(it.id);paintMedia();};main.onclick=tog;main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
-    const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+it.name);rm.onclick=()=>removeItem(it.id);
-    top.append(th,main,rm);row.append(top);
+    const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+it.name);rm.onclick=e=>{e.stopPropagation();removeItems([it.id],`Removed ${it.name}`);};
+    const grip=el('span','grip');grip.innerHTML=ICON.grip;grip.setAttribute('aria-hidden','true');top.append(grip,th,main,rm);row.append(top);if(openRows.has(it.id))row.classList.add('open');
     row.draggable=true;row.ondragstart=e=>{dragId=it.id;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',it.id);};
     row.ondragend=()=>{dragId=null;row.classList.remove('dragging');};
     row.ondragover=e=>{if(!dragId)return;e.preventDefault();e.stopPropagation();row.classList.add('over');};row.ondragleave=()=>row.classList.remove('over');
@@ -3549,11 +3979,14 @@ function paintMedia(){
 function itemRange(det,it,o){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,o.label),val=el('span','val'),inp=el('input');
   inp.type='range';inp.min=o.min;inp.max=o.max;inp.step=o.step;inp.id=`i_${o.key}_${it.id}`;lb.htmlFor=inp.id;
   const get=()=>it[o.key]==null||it[o.key]===''?o.def:+it[o.key],show=()=>o.fmt?o.fmt(get()):`${+get().toFixed(2)}${o.unit||''}`;
-  const put=v=>{it[o.key]=v;inp.value=v;if(!val.classList.contains('editing'))val.textContent=show();saveItems();dirty=true;if(o.after)o.after();};
+  const put=v=>{it[o.key]=v;inp.value=v;if(!val.classList.contains('editing'))val.textContent=show();saveItems();dirty=true;w.classList.toggle('chg',Math.abs(get()-o.def)>1e-9);if(o.after)o.after();};
   inp.value=get();val.textContent=show();inp.oninput=()=>put(+inp.value);if(o.change)inp.onchange=o.change;
   lb.title='Double-click to reset';lb.ondblclick=()=>{put(o.def);if(o.change)o.change();};
   typable(val,{label:o.label,get,put:v=>{put(v);if(o.change)o.change();},min:+o.min,max:+o.max,show});
-  hd.append(lb);if(o.tip){const q=el('button','q','?');q.type='button';q.dataset.tip=o.tip;q.setAttribute('aria-label',o.label+': '+o.tip);hd.append(q);}hd.append(val);w.append(hd,inp);det.append(w);return{inp,val,put};}
+  hd.append(lb);if(o.tip){const q=el('button','q','?');q.type='button';q.dataset.tip=o.tip;q.setAttribute('aria-label',o.label+': '+o.tip);hd.append(q);}hd.append(val);w.append(hd,inp);det.append(w);
+  w.dataset.def=o.def;const cx=el('button','cx');cx.type='button';cx.dataset.tip='Changed – click to put it back';cx.setAttribute('aria-label',`${o.label} – changed; put it back`);
+  cx.onclick=e=>{e.stopPropagation();put(o.def);if(o.change)o.change();};w.append(cx);const mark=()=>w.classList.toggle('chg',Math.abs(get()-o.def)>1e-9);mark();
+  inp.addEventListener('input',mark);const put0=put;return{inp,val,put:v=>{put0(v);mark();}};}
 /* the shape of the frame a piece sits in now – to know which way it can be moved inside it */
 function frameAspect(it){const o=cur&&cur.ops.find(q=>q.item===it&&q.rect&&q.rect.w>1);if(o)return o.rect.w/o.rect.h;
   const [W,H]=size();return S.layout==='one'&&S.oneFit==='bleed'?W/H:E.ratioOf(S,items);}
@@ -3787,10 +4220,17 @@ let mine=LS.get('presets')||[],current=LS.get('preset')||'',edited=!!LS.get('pre
 if(RENAMED[current]&&!mine.some(p=>p.name===current)){current=RENAMED[current];LS.set('preset',current);}
 const presetName=()=>current?current+(edited?' – changed':''):'';
 const unit=()=>{const [W,H]=size();return E.unitOf(W,H);};
+/* where a setting started: the preset in use (scaled to this canvas), else the default */
+function baseOf(k){const p=current&&BUILTIN.concat(mine).find(x=>x.name===current);if(!p)return D[k];
+  if(LOOK.includes(k)){const v=k in p.s?p.s[k]:D[k];return PX.includes(k)&&typeof v==='number'?+(v*unit()).toFixed(2):v;}
+  return p.x&&k in p.x?p.x[k]:D[k];}
 function lookNow(){const u=unit(),o={};for(const k of LOOK)o[k]=PX.includes(k)?+(S[k]/u).toFixed(2):S[k];return o;}
-function applyPreset(p){const u=unit();for(const k of LOOK){const v=k in p.s?p.s[k]:D[k];S[k]=PX.includes(k)&&typeof v==='number'?+(v*u).toFixed(2):v;}
+function applyPreset(p){const before=Object.assign({},S),pc=current,pe=edited;const u=unit();for(const k of LOOK){const v=k in p.s?p.s[k]:D[k];S[k]=PX.includes(k)&&typeof v==='number'?+(v*u).toFixed(2):v;}
   if(p.x)for(const k in p.x)S[k]=p.x[k];
-  current=p.name;edited=false;LS.set('preset',current);LS.set('presetEdited',false);saveSettings();E.resetMeasure();clock=0;dirty=true;refreshAll();paintMedia();toast(p.x&&p.x.xFormat==='gif'?`${p.name} – export set to GIF`:`${p.name}`);}
+  current=p.name;edited=false;LS.set('preset',current);LS.set('presetEdited',false);saveSettings();E.resetMeasure();clock=0;dirty=true;refreshAll();paintMedia();
+  const ch={};for(const k in S)if(!same(before[k],S[k]))ch[k]=[before[k],S[k]];
+  pushUndo({ch,label:p.name,extra:w=>{current=w?p.name:pc;edited=w?false:pe;LS.set('preset',current);LS.set('presetEdited',edited);E.resetMeasure();paintMedia();paintPresets();}});
+  toastUndo(p.x&&p.x.xFormat==='gif'?`${p.name} – export set to GIF`:`${p.name}`);}
 let presetBox,saveIn;
 {const b=card('presets','Presets');presetBox=el('div','preset-list');b.append(presetBox);
   addHint(b,'A preset sets the look and the motion. Your media, captions and canvas size stay.');
@@ -3803,7 +4243,7 @@ let presetBox,saveIn;
 function paintPresets(){presetBox.textContent='';
   const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),meta=el('div','slot-meta',own?optLabel(KINDS,E.kindOf(p.s))+' · Yours':p.tip||'');
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
-    top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);}
+    top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);r.classList.add('on');}
     if(own){const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Delete';rm.setAttribute('aria-label','Delete '+p.name);
       rm.onclick=e=>{e.stopPropagation();mine=mine.filter(x=>x!==p);LS.set('presets',mine);paintPresets();};top.append(rm);}
     r.append(top);presetBox.append(r);};
@@ -3831,7 +4271,10 @@ let stopFlag=false;
 async function eachFrame(W,H,fps,n,fn,progress,len,k){
   k=k||1;const c=document.createElement('canvas');c.width=W*k;c.height=H*k;const x=c.getContext('2d',{willReadFrequently:true}),step=len?len/n:1/fps;
   for(const it of items)if(it.el)it.el.pause();
-  for(let i=0;i<n;i++){if(stopFlag)throw new Error('stopped');await frameAt(c,x,W,H,i*step,k);await fn(c,x,i);if(progress)progress((i+1)/n);if(i%6===5)await new Promise(r=>setTimeout(r,0));}}
+  /* hand the page back at least every 50 ms, so the progress shows and Stop is heard (a full-size GIF frame takes most of a second) */
+  let breath=performance.now();
+  for(let i=0;i<n;i++){if(stopFlag)throw new Error('stopped');await frameAt(c,x,W,H,i*step,k);await fn(c,x,i);if(progress)progress((i+1)/n);
+    if(performance.now()-breath>50){await new Promise(r=>setTimeout(r,0));breath=performance.now();}}}
 /* ---------------- MP4 ---------------- */
 /* Colour (as Tempo 0.9.2): Segue turns each frame into video colours itself – BT.709, video
    range – and labels the file to match, with the sRGB tone curve, so #F5F5F3 plays back as
@@ -4121,7 +4564,9 @@ $('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs
   window.addEventListener('dragover',e=>e.preventDefault());
   window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(fs.length)addFiles(fs).then(paintFonts);});}
 window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
-  setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;}};
+  setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;},get clock(){return clock;},get playing(){return playing;},
+  /* the interface, for the checks: every control, the undo history, where each setting started */
+  ui:{controls,undo,redo,get undoSteps(){return UNDO.length;},get redoSteps(){return REDO.length;},base,moved,get preset(){return current;},get edited(){return edited;}}};
 frameStart();paintMedia();paintFonts();paintPresets();refreshAll();fitCanvas();layoutUI();
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
 loadBuiltinFonts();restoreFonts().then(paintFonts);restoreMedia();restorePics();

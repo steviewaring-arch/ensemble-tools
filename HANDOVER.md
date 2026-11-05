@@ -1,4 +1,4 @@
-# Ensemble Tools – handover (8 October 2026, updated for Rubato 1.0 and Tempo 0.9 on 13 October, Segue 0.4.4 on 5 November)
+# Ensemble Tools – handover (8 October 2026, updated for Rubato 1.0 and Tempo 0.9 on 13 October, Segue 0.5 on 5 November)
 
 Read this and `README.md` before changing anything. Tutti's own notes are in `tutti/HANDOVER.md`; Segue's are in `segue/HANDOVER.md`.
 
@@ -71,7 +71,8 @@ What's linked:
 | `tempo/` (incl. `saver.js`, `mac/`, `win/`) | Tempo only |
 | `tutti/` | Tutti only – it shares nothing yet |
 | `decentish/` | Decentish only – it shares nothing with the tools |
-| `segue/` | Segue only – it takes `shared/tokens.css`, `components.css`, `page.html` and `gif.js`, and Tempo's copy of mp4-muxer (`tempo/vendor/`), but not the core |
+| `segue/` | Segue only – it takes `shared/tokens.css`, `components.css`, `kit.css` (0.5), `page.html` and `gif.js`, and Tempo's copy of mp4-muxer (`tempo/vendor/`), but not the core |
+| `shared/kit.css` | Segue only (0.5) – the round 4 kit, until Steve signs it off and it goes into Tempo, Rubato and Tutti |
 | `rubato/engine.js` | Rubato only (from 1.0) |
 | `tempo/engine.js` | Tempo only – and every screen saver Tempo exports from then on |
 | `shared/core.js`, `core-end.js`, `tokens.css`, `components.css`, `page.html` | Rubato **and** Tempo (controls, font loading, look and feel) |
@@ -229,6 +230,7 @@ Rules:
 - **Windows** stays unsigned for now (Artifact Signing needs a UK organisation; see the plan doc).
 
 ## Tests
+- `tests/segue_ui_check.py` – Segue 0.5: the interface element by element – 100 controls across 11 set-ups, undo, presets, media, the frame, the Export bar (every format, Stop) and a phone (last run 5 Nov: 80 of 80; `QUICK=1` for one set-up).
 - `tests/segue_check.py` – Segue 0.4.4: 82 checks – adds MP4 colour edges, the centre chroma label and 2× export (last run 5 Nov: 82 of 82). 0.4.3 added fine type at a fractional position landing crisp on the pixel grid. 0.4.2 added the MP4 encoder picked being one whose file grows with the bitrate. 0.4.1 added crisp scaling (nearer Lanczos than a plain draw) and the MP4 bitrates. 0.4 added typing a value, the pull back's stagger and float, and dragging artwork on the canvas (last run 5 Nov: 75 of 75). 0.3 added Slides (framings, per-slide time and movement, transitions, presets) and the showcase GIF writer (held frames, exact colour, partial frames) (last run 5 Nov: 70 of 70). 0.2 added each kind's own controls, lag, keep drifting, Columns, Frames and Float measured on the engine, the new kinds looping exactly, background, overlay, border and both images after a reload (last run 4 Nov: 54 of 54). From 0.1: the panel and sheets, placeholders, loop lengths for every way of moving, the feels, canvas sizes, adding, opening and reordering media, the range put right in a mislabelled MP4 (and the colour it then plays back), the range flag in an x264 header, tracking, kerning pairs, rich text and case in captions, presets keeping to the canvas and scaling to it, saving one, every layout × move × direction × caption place drawing all the way round, the loop joining up, the pull back showing every shape centred, MP4, GIF and PNG (sizes, frame counts, colours, name), and everything back after a reload. Last run (4 Nov): 35 of 35.
 - `tests/tempo011_check.py` – Tempo 0.11: Orbit says what Rings says (5 moments × 6 option sets), Tuner's words and figures, Orbit's mark, dot, column and settings, Tuner's needle, glide vs step, settings, the hour label under the needle, the panel (Show, cards, the accent row), export, Open a file and the exported page. Last run (29 Oct, 0.11.1): 18 of 18 – adds the Mac export's engine, page path and ad hoc signature (page hashes, Info.plist and CodeResources slots). 20 Oct: 17 of 17.
 - `tests/licence_check.py` – keeps licensed fonts out of the public repo (see `LICENCES.md`). Last run (15 Oct): 4 of 4, 35 probes – Univers included.
@@ -313,6 +315,8 @@ For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the
   - **B – Studio:** sources left, inspector right, the canvas between on a dotted pasteboard with a toolbar of pills (Ratio, Show, Frame rate…), Export top right, a transport bar; bold 13 px section titles; the lozenge done properly (solid track, darker fill, 3 px handle that splits into two ticks over the words, typeable value); a change column (red dot per changed row, click to reset); Find a setting (⌘K); Changed filter; undo and redo by the canvas.
   - Motion: Snappy 140 ms, Smooth 360 ms, Morph 420 ms with overshoot, Roll 260 ms for numbers.
   - Recommendation: A's foundations everywhere first, then trial B on Segue. Three decisions for Steve: A / B / A then B; which slider; white pill or words.
+
+- **Round 4, Steve's review (5 Nov): A's look, our frame – on Segue 0.5 first.** Keep the panel left, island, Presets and chips where they are (no right-hand inspector); keyline chips for quiet actions; rounded rectangles, not lozenges, with one corner logic (12 surfaces, 8 controls, 6 inside a control and chips, round only for dots); the white choice tied to how things are picked (menu when it won't fit). Built as `shared/kit.css` plus frame changes in Segue (undo, change column and section Reset, relative-drag slider with a typeable value, steppers, menus that swap in). Rules in the last section of `shared/UI.md`; tests in `tests/segue_ui_check.py`. **Next:** Steve tries Segue 0.5; once signed off, the same kit and frame changes go into `shared/core.js` for Tempo and Rubato, then Tutti's `frame.js`.
 
 ## Dial ideas not built yet (0.5)
 - Hand shapes: tapered ends, a ring at the centre instead of a dot. (Round ends, tips, a counterweight and weights per hand went in in 0.9.)

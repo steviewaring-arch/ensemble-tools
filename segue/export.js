@@ -17,7 +17,10 @@ let stopFlag=false;
 async function eachFrame(W,H,fps,n,fn,progress,len,k){
   k=k||1;const c=document.createElement('canvas');c.width=W*k;c.height=H*k;const x=c.getContext('2d',{willReadFrequently:true}),step=len?len/n:1/fps;
   for(const it of items)if(it.el)it.el.pause();
-  for(let i=0;i<n;i++){if(stopFlag)throw new Error('stopped');await frameAt(c,x,W,H,i*step,k);await fn(c,x,i);if(progress)progress((i+1)/n);if(i%6===5)await new Promise(r=>setTimeout(r,0));}}
+  /* hand the page back at least every 50 ms, so the progress shows and Stop is heard (a full-size GIF frame takes most of a second) */
+  let breath=performance.now();
+  for(let i=0;i<n;i++){if(stopFlag)throw new Error('stopped');await frameAt(c,x,W,H,i*step,k);await fn(c,x,i);if(progress)progress((i+1)/n);
+    if(performance.now()-breath>50){await new Promise(r=>setTimeout(r,0));breath=performance.now();}}}
 /* ---------------- MP4 ---------------- */
 /* Colour (as Tempo 0.9.2): Segue turns each frame into video colours itself – BT.709, video
    range – and labels the file to match, with the sRGB tone curve, so #F5F5F3 plays back as
@@ -307,7 +310,9 @@ $('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs
   window.addEventListener('dragover',e=>e.preventDefault());
   window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(fs.length)addFiles(fs).then(paintFonts);});}
 window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
-  setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;}};
+  setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;},get clock(){return clock;},get playing(){return playing;},
+  /* the interface, for the checks: every control, the undo history, where each setting started */
+  ui:{controls,undo,redo,get undoSteps(){return UNDO.length;},get redoSteps(){return REDO.length;},base,moved,get preset(){return current;},get edited(){return edited;}}};
 frameStart();paintMedia();paintFonts();paintPresets();refreshAll();fitCanvas();layoutUI();
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
 loadBuiltinFonts();restoreFonts().then(paintFonts);restoreMedia();restorePics();

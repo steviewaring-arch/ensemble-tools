@@ -109,6 +109,15 @@ async function restoreMedia(){
   saveItems();mediaChanged();}
 async function restoreFonts(){for(const id of (LS.get('fonts')||[])){try{const r=await DB.get('fonts',id);if(r)await addFont(new File([r.data],r.name,{type:r.type||''}),id,false);}catch(e){}}refreshAll();}
 function removeItem(id){for(const k of [...crCache.keys()])if(k.startsWith(id+'|'))crCache.delete(k);const i=items.findIndex(x=>x.id===id);if(i<0)return;const it=items[i];if(it.el){it.el.pause();URL.revokeObjectURL(it.el.src);}items.splice(i,1);DB.del('media',id).catch(()=>{});openRows.delete(id);saveItems();mediaChanged();}
+async function removeItems(ids,label){
+  const saved=[];for(const id of ids){const i=items.findIndex(x=>x.id===id);if(i<0)continue;let blob=null;try{blob=await DB.get('media',id);}catch(e){}
+    saved.push({i,meta:Object.fromEntries(META.map(k=>[k,items[i][k]])),blob});}
+  for(const id of ids)removeItem(id);if(!saved.length)return;
+  const back=saved.filter(x=>x.blob);if(!back.length){toast(label);return;}
+  pushUndo({label,fn:async w=>{if(w){for(const x of back)removeItem(x.meta.id);return;}
+    for(const x of back.slice().sort((a,b)=>a.i-b.i)){try{const it=await mediaFrom(x.blob,Object.assign({},x.meta));items.splice(Math.min(x.i,items.length),0,it);await DB.put('media',x.meta.id,x.blob);}catch(e){}}
+    saveItems();mediaChanged();}});
+  toastUndo(label);}
 function moveItem(id,to){const i=items.findIndex(x=>x.id===id);if(i<0)return;to=clamp(to,0,items.length-1);if(to===i)return;const [it]=items.splice(i,1);items.splice(to,0,it);saveItems();mediaChanged();}
 function mediaChanged(){E.resetMeasure();dirty=true;paintMedia();refreshAll();}
 /* ---------------- the background and overlay images: one of each, kept like the media ---------------- */
@@ -119,6 +128,9 @@ async function setPic(which,file){
   try{PICS[which]=picOf(await loadImage(file),file.name);try{await DB.put('media','pic:'+which,file);}catch(e){}LS.set('pic:'+which,{name:file.name});
     if(which==='ov'){S.ovOn=true;S.ovKind='image';saveSettings();}dirty=true;refreshAll();toast(which==='bg'?'Background image added':'Overlay image added');}
   catch(e){toast(`Couldn’t open ${file.name}`);}}
+async function removePic(which){let blob=null;try{blob=await DB.get('media','pic:'+which);}catch(e){}const was=PICS[which],ovOn=S.ovOn,ovKind=S.ovKind;clearPic(which);
+  const label=which==='bg'?'Background image removed':'Overlay image removed';if(!blob||!was){toast(label);return;}
+  pushUndo({label,fn:async w=>{if(w){clearPic(which);return;}await setPic(which,blob);S.ovOn=ovOn;S.ovKind=ovKind;saveSettings();refreshAll();}});toastUndo(label);}
 function clearPic(which){PICS[which]=null;DB.del('media','pic:'+which).catch(()=>{});LS.set('pic:'+which,null);dirty=true;refreshAll();}
 async function restorePics(){for(const w of ['bg','ov']){const m=LS.get('pic:'+w);if(!m)continue;
     try{const b=await DB.get('media','pic:'+w);if(b)PICS[w]=picOf(await loadImage(b),m.name);}catch(e){}}dirty=true;refreshAll();}
@@ -259,6 +271,7 @@ $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();cl
 function onSet(k){if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
 function appRefresh(){const P=planNow();$('#loopChip').textContent=`${P.L.toFixed(1)} s loop`;$('#loopChip').title=`The loop lasts ${P.L.toFixed(2)} seconds, then starts again exactly where it began`;
   $('#countChip').textContent=items.length?(items.length===1?'1 shape':`${items.length} shapes`):'No media yet';
+  if(current&&BUILTIN.concat(mine).some(x=>x.name===current)){const e=LOOK.some(moved);if(e!==edited){edited=e;LS.set('presetEdited',e);}}
   const pn=$('#pcapName');pn.textContent=presetName();}
 
 /* ---------------- cards ---------------- */
@@ -301,7 +314,7 @@ function picRow(parent,which,show){
   const row=el('div','img-row'),th=el('span','mthumb'),nm=el('div','slot-name'),add=el('button','pill small'),rm=el('button','pill small icon');
   add.type=rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
   const what=which==='bg'?'background image':'overlay image';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove the '+what);
-  add.onclick=()=>$(which==='bg'?'#bgfile':'#ovfile').click();rm.onclick=()=>clearPic(which);row.append(th,nm,add,rm);
+  add.onclick=()=>$(which==='bg'?'#bgfile':'#ovfile').click();rm.onclick=()=>removePic(which);row.append(th,nm,add,rm);
   let had;const c=addCustom(parent,show,row);
   c.update=()=>{const p=PICS[which];if(p===had)return;had=p;th.textContent='';th.hidden=!p;if(p)th.append(thumbOf(Object.assign({kind:'image'},p)));
     nm.textContent=p?p.name:(which==='bg'?'No image – the colour shows':'No image yet');nm.classList.toggle('muted',!p);
@@ -311,7 +324,7 @@ function picRow(parent,which,show){
 const openRows=new Set();let mediaBox;
 {const b=card('media','Media');mediaBox=el('div','media-list');b.append(mediaBox);
   const r=el('div','ctl btn-row'),add=el('button','pill','+ Add images or video');add.type='button';add.onclick=()=>$('#mediafile').click();r.append(add);
-  const clr=el('button','pill small','Clear all');clr.type='button';clr.onclick=()=>{if(!items.length)return;for(const it of items.slice())removeItem(it.id);toast('Cleared');};r.append(clr);b.append(r);
+  const clr=el('button','pill small','Clear all');clr.type='button';clr.onclick=()=>{if(!items.length)return;removeItems(items.map(it=>it.id),items.length===1?'Cleared 1 file':`Cleared ${items.length} files`);};r.append(clr);b.append(r);
   addHint(b,'Drag a row to change the order. Video plays from its start point as its shape arrives.',()=>items.length>1);
   addHint(b,'Open a row to give that slide its own time on screen, transition or movement.',s=>s.layout==='one'&&items.length>0);
   SUMMARY.media=()=>!items.length?'No media yet':`${items.length} · `+(()=>{const v=items.filter(i=>i.kind==='video').length,i=items.length-v;return [v?`${v} video`:'',i?`${i} image${i>1?'s':''}`:''].filter(Boolean).join(', ');})();}
@@ -326,8 +339,8 @@ function paintMedia(){
     th.append(thumbOf(it));meta.textContent=(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(S.layout==='one'&&+it.hold>0?` · on for ${+(+it.hold).toFixed(2)} s`:'')+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-expanded',openRows.has(it.id));main.setAttribute('aria-label',`${i+1}. ${it.name} – details`);
     const tog=()=>{openRows.has(it.id)?openRows.delete(it.id):openRows.add(it.id);paintMedia();};main.onclick=tog;main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
-    const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+it.name);rm.onclick=()=>removeItem(it.id);
-    top.append(th,main,rm);row.append(top);
+    const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+it.name);rm.onclick=e=>{e.stopPropagation();removeItems([it.id],`Removed ${it.name}`);};
+    const grip=el('span','grip');grip.innerHTML=ICON.grip;grip.setAttribute('aria-hidden','true');top.append(grip,th,main,rm);row.append(top);if(openRows.has(it.id))row.classList.add('open');
     row.draggable=true;row.ondragstart=e=>{dragId=it.id;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',it.id);};
     row.ondragend=()=>{dragId=null;row.classList.remove('dragging');};
     row.ondragover=e=>{if(!dragId)return;e.preventDefault();e.stopPropagation();row.classList.add('over');};row.ondragleave=()=>row.classList.remove('over');
@@ -338,11 +351,14 @@ function paintMedia(){
 function itemRange(det,it,o){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=el('label',null,o.label),val=el('span','val'),inp=el('input');
   inp.type='range';inp.min=o.min;inp.max=o.max;inp.step=o.step;inp.id=`i_${o.key}_${it.id}`;lb.htmlFor=inp.id;
   const get=()=>it[o.key]==null||it[o.key]===''?o.def:+it[o.key],show=()=>o.fmt?o.fmt(get()):`${+get().toFixed(2)}${o.unit||''}`;
-  const put=v=>{it[o.key]=v;inp.value=v;if(!val.classList.contains('editing'))val.textContent=show();saveItems();dirty=true;if(o.after)o.after();};
+  const put=v=>{it[o.key]=v;inp.value=v;if(!val.classList.contains('editing'))val.textContent=show();saveItems();dirty=true;w.classList.toggle('chg',Math.abs(get()-o.def)>1e-9);if(o.after)o.after();};
   inp.value=get();val.textContent=show();inp.oninput=()=>put(+inp.value);if(o.change)inp.onchange=o.change;
   lb.title='Double-click to reset';lb.ondblclick=()=>{put(o.def);if(o.change)o.change();};
   typable(val,{label:o.label,get,put:v=>{put(v);if(o.change)o.change();},min:+o.min,max:+o.max,show});
-  hd.append(lb);if(o.tip){const q=el('button','q','?');q.type='button';q.dataset.tip=o.tip;q.setAttribute('aria-label',o.label+': '+o.tip);hd.append(q);}hd.append(val);w.append(hd,inp);det.append(w);return{inp,val,put};}
+  hd.append(lb);if(o.tip){const q=el('button','q','?');q.type='button';q.dataset.tip=o.tip;q.setAttribute('aria-label',o.label+': '+o.tip);hd.append(q);}hd.append(val);w.append(hd,inp);det.append(w);
+  w.dataset.def=o.def;const cx=el('button','cx');cx.type='button';cx.dataset.tip='Changed – click to put it back';cx.setAttribute('aria-label',`${o.label} – changed; put it back`);
+  cx.onclick=e=>{e.stopPropagation();put(o.def);if(o.change)o.change();};w.append(cx);const mark=()=>w.classList.toggle('chg',Math.abs(get()-o.def)>1e-9);mark();
+  inp.addEventListener('input',mark);const put0=put;return{inp,val,put:v=>{put0(v);mark();}};}
 /* the shape of the frame a piece sits in now – to know which way it can be moved inside it */
 function frameAspect(it){const o=cur&&cur.ops.find(q=>q.item===it&&q.rect&&q.rect.w>1);if(o)return o.rect.w/o.rect.h;
   const [W,H]=size();return S.layout==='one'&&S.oneFit==='bleed'?W/H:E.ratioOf(S,items);}
@@ -576,10 +592,17 @@ let mine=LS.get('presets')||[],current=LS.get('preset')||'',edited=!!LS.get('pre
 if(RENAMED[current]&&!mine.some(p=>p.name===current)){current=RENAMED[current];LS.set('preset',current);}
 const presetName=()=>current?current+(edited?' – changed':''):'';
 const unit=()=>{const [W,H]=size();return E.unitOf(W,H);};
+/* where a setting started: the preset in use (scaled to this canvas), else the default */
+function baseOf(k){const p=current&&BUILTIN.concat(mine).find(x=>x.name===current);if(!p)return D[k];
+  if(LOOK.includes(k)){const v=k in p.s?p.s[k]:D[k];return PX.includes(k)&&typeof v==='number'?+(v*unit()).toFixed(2):v;}
+  return p.x&&k in p.x?p.x[k]:D[k];}
 function lookNow(){const u=unit(),o={};for(const k of LOOK)o[k]=PX.includes(k)?+(S[k]/u).toFixed(2):S[k];return o;}
-function applyPreset(p){const u=unit();for(const k of LOOK){const v=k in p.s?p.s[k]:D[k];S[k]=PX.includes(k)&&typeof v==='number'?+(v*u).toFixed(2):v;}
+function applyPreset(p){const before=Object.assign({},S),pc=current,pe=edited;const u=unit();for(const k of LOOK){const v=k in p.s?p.s[k]:D[k];S[k]=PX.includes(k)&&typeof v==='number'?+(v*u).toFixed(2):v;}
   if(p.x)for(const k in p.x)S[k]=p.x[k];
-  current=p.name;edited=false;LS.set('preset',current);LS.set('presetEdited',false);saveSettings();E.resetMeasure();clock=0;dirty=true;refreshAll();paintMedia();toast(p.x&&p.x.xFormat==='gif'?`${p.name} – export set to GIF`:`${p.name}`);}
+  current=p.name;edited=false;LS.set('preset',current);LS.set('presetEdited',false);saveSettings();E.resetMeasure();clock=0;dirty=true;refreshAll();paintMedia();
+  const ch={};for(const k in S)if(!same(before[k],S[k]))ch[k]=[before[k],S[k]];
+  pushUndo({ch,label:p.name,extra:w=>{current=w?p.name:pc;edited=w?false:pe;LS.set('preset',current);LS.set('presetEdited',edited);E.resetMeasure();paintMedia();paintPresets();}});
+  toastUndo(p.x&&p.x.xFormat==='gif'?`${p.name} – export set to GIF`:`${p.name}`);}
 let presetBox,saveIn;
 {const b=card('presets','Presets');presetBox=el('div','preset-list');b.append(presetBox);
   addHint(b,'A preset sets the look and the motion. Your media, captions and canvas size stay.');
@@ -592,7 +615,7 @@ let presetBox,saveIn;
 function paintPresets(){presetBox.textContent='';
   const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),meta=el('div','slot-meta',own?optLabel(KINDS,E.kindOf(p.s))+' · Yours':p.tip||'');
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
-    top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);}
+    top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);r.classList.add('on');}
     if(own){const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Delete';rm.setAttribute('aria-label','Delete '+p.name);
       rm.onclick=e=>{e.stopPropagation();mine=mine.filter(x=>x!==p);LS.set('presets',mine);paintPresets();};top.append(rm);}
     r.append(top);presetBox.append(r);};
