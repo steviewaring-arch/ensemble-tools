@@ -383,6 +383,33 @@ with sync_playwright() as p:
     check('drag a slide shown as it is: it moves the slide itself, nothing cropped', own[0] < 0 and own[1] < 0 and own[2]['x'] < r0['x'] and abs(own[2]['w'] - r0['w']) < .01, f"{own[0]} {own[1]} {round(r0['x'])}→{round(own[2]['x'])}")
     pg.evaluate("segue.items.forEach(i=>{i.px=0;i.py=0;i.zm=100;i.ox=0;i.oy=0;});segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack')")
 
+    # ---- 0.4.1: crisp exports ----
+    SCREEN = os.path.join(OUT, 'screen.png')
+    if not os.path.exists(SCREEN):
+        sim = Image.new('RGB', (1920, 1200), '#F5F5F3'); sd = ImageDraw.Draw(sim)
+        for yy in range(30, 1200, 23): sd.line([(40, yy), (1880, yy)], fill='#1E1D23', width=2)
+        for xx in range(40, 1880, 9): sd.line([(xx, 0), (xx, 24)], fill='#1E1D23')
+        sim.save(SCREEN)
+    pg.evaluate("window._keep=segue.items.slice()")
+    pg.set_input_files('#mediafile', [SCREEN]); time.sleep(1.5)
+    crisp = pg.evaluate("""async()=>{const it=segue.items[segue.items.length-1];segue.items.splice(0,segue.items.length,it);segue.refresh();
+      for(const [k,v] of [['layout','one'],['oneFit','shape'],['ratio','16:10'],['size',40],['oneMove','cut'],['kb','none'],['radius',0],['mat',0],['capOn',false],['cSize','custom'],['cW',1080],['cH',1350],['bgImgA',0],['ovOn',false]])segue.set(k,v);
+      const c=document.createElement('canvas');c.width=1080;c.height=1350;const x=c.getContext('2d',{willReadFrequently:true});
+      const sc=segue.E.scene(segue.S,segue.items,x,segue.fonts,1080,1350,.1).ops[0].rect,R=[Math.ceil(sc.x)+2,Math.ceil(sc.y)+2,Math.floor(sc.w)-4,Math.floor(sc.h)-4];
+      const grab=async on=>{segue.set('xCrisp',on);await segue.frameAt(c,x,1080,1350,.1);const o=document.createElement('canvas');o.width=Math.round(sc.w);o.height=Math.round(sc.h);
+        o.getContext('2d').drawImage(c,Math.round(sc.x),Math.round(sc.y),o.width,o.height,0,0,o.width,o.height);return o.toDataURL('image/png');};
+      const t0=performance.now(),a=await grab(true),t1=performance.now(),b=await grab(false);segue.set('xCrisp',true);
+      return {crisp:a,plain:b,ms:Math.round(t1-t0),rate:[(segue.set('xQ','std'),segue.mp4Bitrate()),(segue.set('xQ','best'),segue.mp4Bitrate()),(segue.set('xQ','high'),segue.mp4Bitrate())]};}""")
+    import base64, io
+    import numpy as np
+    def img_of(u): return Image.open(io.BytesIO(base64.b64decode(u.split(',')[1]))).convert('RGB')
+    ci, pi = img_of(crisp['crisp']), img_of(crisp['plain'])
+    lz = Image.open(SCREEN).convert('RGB').resize(ci.size, Image.LANCZOS)
+    rms = lambda a: float(np.sqrt(((np.asarray(a, float)[3:-3, 3:-3] - np.asarray(lz, float)[3:-3, 3:-3]) ** 2).mean()))
+    check('Crisp scaling: media scaled down comes out nearer a Lanczos resample (stepped down, then sharpened)', rms(ci) < rms(pi) * .9, f"difference from Lanczos {rms(pi):.2f} → {rms(ci):.2f} ({crisp['ms']} ms for the frame)")
+    check('MP4 Quality: Standard 16, High 32, Best 50 Mbps at 1080 × 1350, 30 fps', crisp['rate'] == [16e6, 50e6, 32e6], str(crisp['rate']))
+    pg.evaluate("segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack')")
+
     # ---- 0.3: GIFs made for showcasing ----
     pg.evaluate("for(const [k,v] of [['cSize','custom'],['cW',540],['cH',676],['xGifScale',.5],['xGifFps',20],['xFormat','gif'],['bg','#F5F5F3'],['bgImgA',0],['ovOn',false]])segue.set(k,v)")
     def gif_of(js):

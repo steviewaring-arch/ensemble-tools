@@ -18,10 +18,10 @@ const D={
   LF:'plex',LS:17,LTr:0,LLd:1.4,LC:'#6B6A66',LCase:'as',
   GF:'plex',GS:13,GTr:20,GLd:1.2,GC:'#111111',GCase:'as',
   ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',
-  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false};
+  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false,xCrisp:true,xQ:'high'};
 /* the look: what a preset carries. Size, frame rate, the file name and what's over the top
    (it's content, like the captions) stay as they are. */
-const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','xDither','ovOn','ovKind','ovText'];
+const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','xDither','xCrisp','xQ','ovOn','ovKind','ovText'];
 const LOOK=Object.keys(D).filter(k=>!NOT_LOOK.includes(k));
 /* px values: presets keep them for a 1080 short side and scale them to the canvas they land on */
 const PX=['gap','radius','edgeW','nudgeX','nudgeY','gGap','capSpace','capX','capY','capMargin','capGapL','TS','LS','GS','mat','matR','OS','ovM','ovX','ovY'];
@@ -108,7 +108,7 @@ async function restoreMedia(){
   if(lost)toast(lost===1?'One file couldn’t be found again – add it back':`${lost} files couldn’t be found again – add them back`);
   saveItems();mediaChanged();}
 async function restoreFonts(){for(const id of (LS.get('fonts')||[])){try{const r=await DB.get('fonts',id);if(r)await addFont(new File([r.data],r.name,{type:r.type||''}),id,false);}catch(e){}}refreshAll();}
-function removeItem(id){const i=items.findIndex(x=>x.id===id);if(i<0)return;const it=items[i];if(it.el){it.el.pause();URL.revokeObjectURL(it.el.src);}items.splice(i,1);DB.del('media',id).catch(()=>{});openRows.delete(id);saveItems();mediaChanged();}
+function removeItem(id){for(const k of [...crCache.keys()])if(k.startsWith(id+'|'))crCache.delete(k);const i=items.findIndex(x=>x.id===id);if(i<0)return;const it=items[i];if(it.el){it.el.pause();URL.revokeObjectURL(it.el.src);}items.splice(i,1);DB.del('media',id).catch(()=>{});openRows.delete(id);saveItems();mediaChanged();}
 function moveItem(id,to){const i=items.findIndex(x=>x.id===id);if(i<0)return;to=clamp(to,0,items.length-1);if(to===i)return;const [it]=items.splice(i,1);items.splice(to,0,it);saveItems();mediaChanged();}
 function mediaChanged(){E.resetMeasure();dirty=true;paintMedia();refreshAll();}
 /* ---------------- the background and overlay images: one of each, kept like the media ---------------- */
@@ -130,12 +130,37 @@ function drawMedia(ctx,o,r,mode){const it=o.item,src=it.src;if(!src||!it.w||!it.
   const crop=mode==='cover'&&!o.whole,z=crop?Math.max(1,(+it.zm||100)/100):1;
   const s=(mode==='cover'?Math.max(r.w/it.w,r.h/it.h):Math.min(r.w/it.w,r.h/it.h))*z,dw=it.w*s,dh=it.h*s,sx=(dw-r.w)/2,sy=(dh-r.h)/2;
   const dx=r.x-sx+(crop?clamp(+it.px||0,-100,100)/100*sx:0),dy=r.y-sy+(crop?clamp(+it.py||0,-100,100)/100*sy:0);
+  /* crisp: scaling down by more than a touch, export (and the paused preview) resample properly */
+  if(crispNow){const T=ctx.getTransform(),kx=Math.hypot(T.a,T.b),ky=Math.hypot(T.c,T.d),tw=Math.round(dw*kx),th=Math.round(dh*ky);
+    if(tw>1&&th>1&&tw<it.w*.95&&th<it.h*.95&&tw*th<=16e6){const c=crispOf(src,it.w,it.h,tw,th,!!it.levels,it.kind==='video'?null:`${it.id}|${tw}|${th}|${+!!it.levels}`);ctx.drawImage(c,0,0,tw,th,dx,dy,dw,dh);return;}}
   if(!it.levels){ctx.drawImage(src,dx,dy,dw,dh);return;}
   /* lift washed-out colours: video that says it's full range but is video range, read as video range */
   const k=ctx.getTransform().a||1,pw=Math.max(1,Math.ceil(dw*k)),ph=Math.max(1,Math.ceil(dh*k));
   if(lvCanvas.width!==pw||lvCanvas.height!==ph){lvCanvas.width=pw;lvCanvas.height=ph;}
   lvCtx.drawImage(src,0,0,pw,ph);const id=lvCtx.getImageData(0,0,pw,ph),d=id.data;for(let j=0;j<d.length;j+=4){d[j]=LV[d[j]];d[j+1]=LV[d[j+1]];d[j+2]=LV[d[j+2]];}
   lvCtx.putImageData(id,0,0);ctx.drawImage(lvCanvas,dx,dy,dw,dh);}
+/* Crisp scaling. A browser shrinking a picture in one go (2–3× for a screen recording in a
+   card) softens fine type and lines – measured 5 Nov at 77% of the edge detail a Lanczos
+   resample keeps. So for export (and a paused preview): halve it step by step until it's
+   within 2× of its size, the last step to size, then a light sharpen (a centre-weighted 3×3,
+   half strength) – 98% of Lanczos, much as Photoshop's Bicubic Sharper does it. Stills are
+   kept once made; video is done afresh each frame. */
+let crispNow=false;
+const CR=[document.createElement('canvas'),document.createElement('canvas'),document.createElement('canvas')],crCache=new Map();
+function crispOf(src,sw,sh,tw,th,levels,key){
+  if(key&&crCache.has(key))return crCache.get(key);
+  let cur=src,w=sw,h=sh,flip=0;
+  while(w/2>=tw&&h/2>=th){const t=CR[flip];flip^=1;const nw=Math.max(1,Math.round(w/2)),nh=Math.max(1,Math.round(h/2));if(t.width!==nw||t.height!==nh){t.width=nw;t.height=nh;}
+    const tx=t.getContext('2d');tx.imageSmoothingEnabled=true;tx.imageSmoothingQuality='high';tx.clearRect(0,0,nw,nh);tx.drawImage(cur,0,0,nw,nh);cur=t;w=nw;h=nh;}
+  const out=key?document.createElement('canvas'):CR[2];if(out.width!==tw||out.height!==th){out.width=tw;out.height=th;}
+  const ox=out.getContext('2d',{willReadFrequently:true});ox.imageSmoothingEnabled=true;ox.imageSmoothingQuality='high';ox.clearRect(0,0,tw,th);ox.drawImage(cur,0,0,tw,th);
+  const id=ox.getImageData(0,0,tw,th),d=id.data,o=new Uint8ClampedArray(d),W4=tw*4;
+  for(let y=1;y<th-1;y++)for(let x=1,i=(y*tw+1)*4;x<tw-1;x++,i+=4)for(let k=i;k<i+3;k++){
+    const b=(4*d[k]+2*(d[k-4]+d[k+4]+d[k-W4]+d[k+W4])+d[k-W4-4]+d[k-W4+4]+d[k+W4-4]+d[k+W4+4])/16;o[k]=d[k]+.5*(d[k]-b);}
+  if(levels)for(let j=0;j<o.length;j+=4){o[j]=LV[o[j]];o[j+1]=LV[o[j+1]];o[j+2]=LV[o[j+2]];}
+  id.data.set(o);ox.putImageData(id,0,0);
+  if(key){crCache.set(key,out);if(crCache.size>48)crCache.delete(crCache.keys().next().value);}
+  return out;}
 /* ---------------- the preview ---------------- */
 const cv=$('#cv'),ctx=cv.getContext('2d');
 let playing=true,clock=0,lastT=0,busy=false,cur=null;
@@ -153,7 +178,7 @@ function render(){
   const [W,H]=size(),P=planNow(),t=((clock%P.L)+P.L)%P.L;
   const sc=E.scene(S,items,ctx,FONTS,W,H,t);cur=sc;
   syncVideos(sc);
-  E.paint(ctx,sc,S,FONTS,{scale:cv.width/W,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});
+  crispNow=!playing&&S.xCrisp!==false;try{E.paint(ctx,sc,S,FONTS,{scale:cv.width/W,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});}finally{crispNow=false;}
   if(document.activeElement!==$('#scrub'))$('#scrub').value=Math.round(t/P.L*1000);
   $('#time').textContent=`${t.toFixed(1)} / ${P.L.toFixed(1)} s`;}
 /* the preview plays each video near where the loop wants it, and corrects it when it drifts */

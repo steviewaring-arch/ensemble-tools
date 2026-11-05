@@ -1,5 +1,14 @@
 # Changelog
 
+## 5 November 2026 – Segue 0.4.1: crisp exports
+
+Steve's MP4 of Tempo promo clips wasn't as crisp as it should be. Two causes, both fixed. Segue only.
+
+- **Crisp scaling** (Export, on by default): media scaled down – a 16:10 screen recording into a card is 2–5× smaller – was drawn in one go on the export canvas, which softens fine type at 2× and aliases it beyond (measured: 38 levels RMS from a Lanczos resample at 4.4×). Now it's halved step by step to within 2× of its size, drawn to size, then sharpened lightly (centre-weighted 3×3, half strength) – 16 from Lanczos at 4.4×, and 98% of Lanczos's edge detail at 2.3×, much as Photoshop's Bicubic Sharper. Stills are kept once made; video is done afresh each frame (~20 ms a frame). The paused preview shows it too.
+- **MP4 Quality:** Standard, High (default), Best – 16, 32, 50 Mbps at 1080 × 1350 and 30 fps, scaled to the size and frame rate (0.4 held everything to 24 Mbps, where Apple's encoder behind Chrome on a Mac softens detail). The Export sheet gives the file's size before you make it. The encoder is also told the content is detail.
+- What's left is H.264 itself: colour is kept at half resolution (4:2:0), so fine coloured type on a coloured ground is a touch softer than black on white – every MP4 player and Instagram expect it.
+- `tests/segue_check.py`: 77 checks (2 new) – crisp scaling nearer a Lanczos resample than a plain draw, and the three bitrates.
+
 ## 5 November 2026 – Segue 0.4: literal names, a looser pull back, artwork you can drag, values you can type
 
 Segue only.

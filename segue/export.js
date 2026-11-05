@@ -8,7 +8,7 @@ async function frameAt(c,x,W,H,t){
   const sc=E.scene(S,items,x,FONTS,W,H,t),want=new Map();
   for(const o of sc.ops)if(o.item.kind==='video'&&o.time!=null&&!want.has(o.item))want.set(o.item,o.time);
   for(const [it,tm] of want){const v=it.el,d=Math.max(.01,it.dur||v.duration||1),tt=Math.min(d-1e-3,((tm%d)+d)%d);if(Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
-  E.paint(x,sc,S,FONTS,{scale:1,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});}
+  crispNow=S.xCrisp!==false;try{E.paint(x,sc,S,FONTS,{scale:1,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});}finally{crispNow=false;}}
 async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>S[r+'F']));if(S.ovOn&&S.ovKind==='text')used.add(S.OF);
   await Promise.all([...used].map(id=>FONTS[id]?document.fonts.load(fontStr(FONTS[id])).catch(()=>null):null));await document.fonts.ready;E.resetMeasure();}
 let stopFlag=false;
@@ -63,6 +63,11 @@ function chunkVideoRange(data){/* length-prefixed NALs: fix any SPS carried in t
   let p=0,changed=false;const parts=[];while(p+4<=data.length){const l=((data[p]<<24)|(data[p+1]<<16)|(data[p+2]<<8)|data[p+3])>>>0;const nal=data.subarray(p+4,p+4+l);
     let f=null;if((nal[0]&31)===7)f=spsVideoRange(nal);if(f)changed=true;const x=f||nal;parts.push(Uint8Array.of(x.length>>>24,(x.length>>16)&255,(x.length>>8)&255,x.length&255),x);p+=4+l;}
   if(!changed)return null;const out=new Uint8Array(parts.reduce((a,x)=>a+x.length,0));let o=0;for(const x of parts){out.set(x,o);o+=x.length;}return out;}
+/* Quality: the bitrate the encoder is held to, for 1080 × 1350 at 30 fps and scaled to the
+   size and frame rate. 0.3 held everything to 24 Mbps; Apple's encoder (behind Chrome and
+   Safari on a Mac) softens fine detail at that – High gives it room, Best more. */
+const MP4_Q={std:16,high:32,best:50};
+function mp4Bitrate(){const [W,H]=size(),fps=+S.fps||30;return Math.round((MP4_Q[S.xQ]||32)*1e6*(W*H)/(1080*1350)*fps/30);}
 async function makeMP4(progress){
   if(!window.VideoEncoder||!window.Mp4Muxer)throw new Error('This browser can’t write MP4 – try Chrome, Edge or Safari');
   const [W,H]=size(),fps=+S.fps||30,P=planNow(),n=Math.max(1,Math.round(P.L*(+S.xLoops||1)*fps));
@@ -74,7 +79,7 @@ async function makeMP4(progress){
       if(meta&&meta.decoderConfig){meta.decoderConfig.colorSpace=Object.assign({},MP4_COLOUR);if(kind==='avc'&&meta.decoderConfig.description){const f=avcCVideoRange(meta.decoderConfig.description);if(f)meta.decoderConfig.description=f;}}
       if(kind==='avc'){const d=new Uint8Array(chunk.byteLength);chunk.copyTo(d);const f=chunkVideoRange(d);if(f){muxer.addVideoChunkRaw(f,chunk.type,chunk.timestamp,chunk.duration,meta);return;}}
       muxer.addVideoChunk(chunk,meta);}catch(e){err=e;}},error:e=>{err=e;}});
-  enc.configure(Object.assign({codec,width:W,height:H,bitrate:Math.round(24e6*(W*H)/(1080*1350)),framerate:fps,latencyMode:'quality'},kind==='avc'?{avc:{format:'avc'}}:{}));
+  enc.configure(Object.assign({codec,width:W,height:H,bitrate:mp4Bitrate(),framerate:fps,latencyMode:'quality',contentHint:'detail'},kind==='avc'?{avc:{format:'avc'}}:{}));
   const Y=new Uint8Array(W*H),U=new Uint8Array((W>>1)*(H>>1)),V=new Uint8Array((W>>1)*(H>>1)),buf=new Uint8Array(W*H*3/2);
   await eachFrame(W,H,fps,n,async(c,x,i)=>{if(err)throw err;const d=x.getImageData(0,0,W,H).data;toI420(d,W,H,Y,U,V);buf.set(Y,0);buf.set(U,W*H);buf.set(V,W*H+U.length);
     const f=new VideoFrame(buf,{format:'I420',codedWidth:W,codedHeight:H,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});enc.encode(f,{keyFrame:i%fps===0});f.close();
@@ -150,10 +155,12 @@ const fileName=ext=>{const [W,H]=size();const base=(S.name||'Segue').trim().repl
 let xBar,xInfo,xGo,xStop;
 {const b=card('export','Export');
   build(b,[{t:'seg',k:'xFormat',label:'Format',opts:[['mp4','MP4'],['gif','GIF'],['png','PNG','The frame on the stage now, at full size']]},
+    {t:'seg',k:'xQ',label:'Quality',opts:[['std','Standard'],['high','High'],['best','Best']],show:s=>s.xFormat==='mp4',tip:'How much detail the video keeps: Standard 16, High 32, Best 50 Mbps at 1080 × 1350 – more is crisper and a bigger file'},
     {t:'seg',k:'xLoops',label:'Loops in the file',opts:[[1,'1'],[2,'2'],[3,'3']],show:s=>s.xFormat==='mp4'},
     {t:'seg',k:'xGifScale',label:'GIF size',opts:[[1,'Full'],[.5,'Half'],[.25,'Quarter']],show:s=>s.xFormat==='gif'},
     {t:'seg',k:'xGifFps',label:'GIF frame rate',opts:[[12,'12'],[15,'15'],[20,'20'],[25,'25']],show:s=>s.xFormat==='gif'},
     {t:'toggle',k:'xDither',label:'Dither',show:s=>s.xFormat==='gif',tip:'Smooths gradients and photographs with a fine grain of dots. The file comes out bigger.'},
+    {t:'toggle',k:'xCrisp',label:'Crisp scaling',tip:'Media scaled down is resampled in steps and sharpened a touch – as Photoshop’s Bicubic Sharper does – so type and fine lines stay crisp. The paused preview shows it too. Exports take a little longer.'},
     {t:'text',k:'name',label:'File name'}]);
   addHint(b,'Still slides cost almost nothing in a GIF – each is written once and held. Anything that moves is written frame by frame, so the file grows with every second of it: half size at 15 fps keeps it manageable.',s=>s.xFormat==='gif'&&gifMoves(s));
   xInfo=el('p','hint');addCustom(b,null,xInfo);
@@ -172,7 +179,7 @@ const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.rou
 function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
 function exportInfo(){if(!xInfo)return;const [W,H]=size(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
-  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, colours as on screen`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
+  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, about ${mb(mp4Bitrate()*P.L*l/8)}`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
 /* ---------------- start ---------------- */
 {const _r=appRefresh;appRefresh=function(){_r();exportInfo();};}
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};
@@ -184,7 +191,7 @@ $('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs
   window.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)drop.classList.remove('on');});
   window.addEventListener('dragover',e=>e.preventDefault());
   window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(fs.length)addFiles(fs).then(paintFonts);});}
-window.segue={E,S,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
+window.segue={E,S,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
   setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;}};
 frameStart();paintMedia();paintFonts();paintPresets();refreshAll();fitCanvas();layoutUI();
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
