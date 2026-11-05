@@ -1,0 +1,26 @@
+# Temporary: Segue's sheets, and every tool's start-up, in WebKit (Safari's engine). Removed after the check.
+name: WebKit probe
+on:
+  push:
+    branches: [ci/webkit-probe]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: pip install playwright pillow && python -m playwright install --with-deps chromium webkit
+      - run: mkdir -p docs/segue-live && git show origin/main:docs/segue/index.html > docs/segue-live/index.html
+      - timeout-minutes: 20
+        run: APPS="segue-live segue tempo rubato tutti" python3 -u tests/webkit_probe.py webkit 2>&1 | tee wk-results.txt
+      - if: always()
+        run: |
+          git config user.name ci; git config user.email ci@users.noreply.github.com
+          git add -f wk-results.txt; git commit -m "webkit results [skip ci]"; git push
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: { name: shots, path: tests/out/*.png }
