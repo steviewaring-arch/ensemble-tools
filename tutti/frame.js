@@ -18,26 +18,44 @@
     advanced:()=>''};
   function summaries(){$$('.card[data-id]').forEach(c=>{const sm=c.querySelector('.sum');if(!sm)return;let t='';try{t=(SUM[c.dataset.id]||(()=>''))();}catch(e){}if(sm.textContent!==t)sm.textContent=t;});}
 
-  /* the system slider: label and value inside the track, the fill carries the value,
-     the tick steps aside where it would cross the words */
+  /* the house slider (UI round 4, Nov 2026 – as Segue and Tempo): a bar with its value inside and its label
+     beside it. Drag moves it by how far you go (Shift ten times finer); a press that doesn't move jumps there;
+     a press on the label drags too. It only ever sets the range's value and fires its own input event. */
+  const kc=(v,a,b)=>Math.max(a,Math.min(b,v));
   function syncRange(box){const inp=box.querySelector('input[type=range]');if(!inp)return;
-    const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,p=mx>mn?Math.max(0,Math.min(1,(+inp.value-mn)/(mx-mn))):0;box.style.setProperty('--p',p);
-    const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const hh=box.offsetHeight,x=hh/2+(w-hh/2)*p,head=box.querySelector('.row');let over=false;
-    if(head)for(const e of head.querySelectorAll('.lbl,.val')){if(!e.offsetWidth)continue;const l=head.offsetLeft+e.offsetLeft,r=l+e.offsetWidth;if(x>l-6&&x<r+6){over=true;break;}}
-    tick.classList.toggle('away',over||p<.03||p>.97);}
+    const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,sp=mx>mn?mx-mn:1,p=kc((+inp.value-mn)/sp,0,1);box.style.setProperty('--p',p);
+    const z=mn<0&&mx>0?-mn/sp:0;box.style.setProperty('--z',z);box.classList.toggle('from-start',z===0);
+    if(inp.dataset.def==null)inp.dataset.def=inp.defaultValue;const bv=+inp.dataset.def;if(Number.isFinite(bv))box.style.setProperty('--b',kc((bv-mn)/sp,0,1));
+    const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const x=5+(w-10)*p,head=box.querySelector('.row');let over=false;
+    if(head)for(const e of head.querySelectorAll(box.classList.contains('inner')?'.lbl,.val':'.val')){if(!e.offsetWidth)continue;const l=head.offsetLeft+e.offsetLeft,r=l+e.offsetWidth;if(x>l-4&&x<r+4){over=true;break;}}
+    tick.classList.toggle('split',over);tick.classList.remove('away');}
   function syncRanges(root){$$('.rng-box',root).forEach(syncRange);}
+  function dragBox(box){const inp=box.querySelector('input[type=range]');if(!inp||box._drag)return;box._drag=1;
+    const lim=()=>[inp.min===''?0:+inp.min,inp.max===''?100:+inp.max,+inp.step||1];
+    const put=v=>{const [mn,mx,st]=lim();v=kc(v,mn,mx);v=+(Math.round((v-mn)/st)*st+mn).toFixed(6);v=kc(v,mn,mx);if(v!==+inp.value){inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}));}};
+    box.addEventListener('pointerdown',e=>{if(e.button)return;const soft=!!e.target.closest('.q,label');
+      if(!soft){e.preventDefault();inp.focus({preventScroll:true});try{box.setPointerCapture(e.pointerId);}catch(_){}}
+      const r=box.getBoundingClientRect(),[mn,mx]=lim(),span=mx-mn;let lastX=e.clientX,acc=+inp.value,moved=false;
+      const mv=ev=>{const dx=ev.clientX-lastX;if(!moved&&Math.abs(ev.clientX-e.clientX)<3)return;
+        if(!moved){moved=true;box.classList.add('drag');if(soft){inp.focus({preventScroll:true});try{box.setPointerCapture(e.pointerId);}catch(_){}}}
+        acc=kc(acc+dx/Math.max(40,r.width-10)*span*(ev.shiftKey?.1:1),mn,mx);lastX=ev.clientX;put(acc);};
+      const up=ev=>{box.removeEventListener('pointermove',mv);box.removeEventListener('pointerup',up);box.removeEventListener('pointercancel',up);box.classList.remove('drag');
+        if(!moved&&ev.type==='pointerup'&&!soft)put(mn+kc((ev.clientX-r.left-5)/Math.max(1,r.width-10),0,1)*span);
+        inp.dispatchEvent(new Event('change',{bubbles:true}));};
+      box.addEventListener('pointermove',mv);box.addEventListener('pointerup',up);box.addEventListener('pointercancel',up);});
+    inp.addEventListener('keydown',e=>{if(!e.shiftKey||!/^Arrow/.test(e.key))return;e.preventDefault();const [,, st]=lim();put(+inp.value+(/Right|Up/.test(e.key)?10:-10)*st);});}
   $$('input[type=range]').forEach(inp=>{const row=inp.previousElementSibling;if(!row||!row.classList.contains('row')||!row.querySelector('.val')||inp.closest('.edges'))return;
     const ctl=document.createElement('div'),box=document.createElement('div');ctl.className='ctl rng';box.className='rng-box';
     inp.parentNode.insertBefore(ctl,row);ctl.append(box);
-    const f=document.createElement('span'),t=document.createElement('span');f.className='rng-fill';t.className='rng-tick';
-    row.classList.add('ctl-head');row.style.removeProperty('margin-top');box.append(f,t,row,inp);
-    inp.addEventListener('input',()=>syncRange(box));});
+    const f=document.createElement('span'),n=document.createElement('span'),t=document.createElement('span');f.className='rng-fill';n.className='rng-notch';t.className='rng-tick';
+    row.classList.add('ctl-head');row.style.removeProperty('margin-top');box.append(f,n,t,row,inp);
+    inp.addEventListener('input',()=>syncRange(box));dragBox(box);});
   /* the threshold Edges are rebuilt whenever the bands change: give each the system slider too */
   function upgradeEdge(d){if(d.querySelector('.rng-box'))return;const lab=d.querySelector('label'),inp=d.querySelector('input'),v=lab&&lab.querySelector('span');if(!lab||!inp||!v)return;
     const t=document.createElement('span');t.className='lbl';t.textContent=(lab.firstChild&&lab.firstChild.nodeType===3?lab.firstChild.textContent:'').trim();v.classList.add('val');
     const head=document.createElement('div');head.className='row ctl-head';head.append(t,v);
     const box=document.createElement('div'),f=document.createElement('span'),k=document.createElement('span');box.className='rng-box';f.className='rng-fill';k.className='rng-tick';
-    box.append(f,k,head,inp);d.replaceChildren(box);inp.addEventListener('input',()=>syncRange(box));syncRange(box);}
+    box.classList.add('inner');box.append(f,k,head,inp);d.replaceChildren(box);inp.addEventListener('input',()=>syncRange(box));dragBox(box);syncRange(box);}
   const edges=$('edges');if(edges){const up=()=>edges.querySelectorAll('.edge').forEach(upgradeEdge);new MutationObserver(up).observe(edges,{childList:true});up();}
   setInterval(()=>{syncRanges();summaries();},400);
 
@@ -73,6 +91,10 @@
   setTheme(saved==='dark'?'dark':'light');
   tb.title='Light or dark';tb.addEventListener('click',()=>setTheme(document.body.getAttribute('data-theme')==='dark'?'light':'dark',true));
 
+  /* focus rings only when working from the keyboard */
+  document.addEventListener('keydown',e=>{if(e.key==='Tab'||/^Arrow/.test(e.key))document.body.classList.add('kbd');},true);
+  document.addEventListener('pointerdown',()=>document.body.classList.remove('kbd'),true);
+
   /* keys: F for Preview, Esc closes Export or leaves Preview */
   window.addEventListener('keydown',e=>{const tg=e.target,typing=tg&&(tg.tagName==='TEXTAREA'||tg.tagName==='SELECT'||tg.isContentEditable||(tg.tagName==='INPUT'&&/text|number|search/.test(tg.type)));
     if(e.key==='Escape'){if(!sheet.hidden){setSheet(false);return;}if(app.classList.contains('preview'))setPreview(false);return;}
@@ -80,9 +102,9 @@
 
   /* the panel's width: drag its right edge */
   const rz=$('resizer'),put=w=>document.documentElement.style.setProperty('--pw',w+'px');
-  try{const w=+localStorage.getItem('tutti:panelW');if(w)put(Math.max(280,Math.min(440,w)));}catch(e){}
+  try{const w=+localStorage.getItem('tutti:panelW');if(w)put(Math.max(280,Math.min(480,w)));}catch(e){}
   rz.addEventListener('pointerdown',e=>{e.preventDefault();rz.setPointerCapture(e.pointerId);const x0=e.clientX,w0=document.querySelector('.panel').offsetWidth;
-    const mv=ev=>{put(Math.max(280,Math.min(440,w0+ev.clientX-x0)));syncRanges();};
+    const mv=ev=>{put(Math.max(280,Math.min(480,w0+ev.clientX-x0)));syncRanges();};
     rz.addEventListener('pointermove',mv);rz.addEventListener('pointerup',()=>{rz.removeEventListener('pointermove',mv);try{localStorage.setItem('tutti:panelW',document.querySelector('.panel').offsetWidth);}catch(e){}},{once:true});});
 
   /* tooltips: hovering a row shows its ? after a beat, as hovering the ? does at once */

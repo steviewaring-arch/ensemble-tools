@@ -1,4 +1,4 @@
-# Ensemble Tools – handover (8 October 2026, updated for Rubato 1.0 and Tempo 0.9 on 13 October, Segue 0.5.2 on 5 November)
+# Ensemble Tools – handover (8 October 2026, updated for Rubato 1.0 and Tempo 0.9 on 13 October, Segue 0.5.3, Tempo 0.12, Rubato 1.2 and Tutti 6.2 on 6 November)
 
 Read this and `README.md` before changing anything. Tutti's own notes are in `tutti/HANDOVER.md`; Segue's are in `segue/HANDOVER.md`.
 
@@ -6,7 +6,7 @@ Read this and `README.md` before changing anything. Tutti's own notes are in `tu
 - **Repo:** `ensemble-tools` – source of truth for Rubato, Tempo and Tutti.
 - **Live:** https://steviewaring-arch.github.io/ensemble-tools/ – GitHub Pages from `docs/` on `main`. Each push to `main` redeploys in a minute or two. Moving to a GitHub Actions deploy of `site/` (docs/ plus Tempo's built-in fonts from a private repo) once Steve has set it up – see `LICENCES.md`.
 - **Last combined app:** `reference/rubato-0.8.1.html` – byte-identical to the v0.8.1 Claude artifact (rechecked 6 October against the live artifact). Kept so the parity tests have something to compare against. Don't edit it.
-- **Versions:** Rubato 1.1, Tempo 0.8, Tutti 6.1 (all three on the UI system, 9 Oct). Rubato 0.9 is still live at /rubato/0.9/ (`archive/rubato-0.9.html`).
+- **Versions:** Rubato 1.2, Tempo 0.12, Tutti 6.2, Segue 0.5.3 (all four on the house kit, 6 Nov). Rubato 0.9 is still live at /rubato/0.9/ (`archive/rubato-0.9.html`).
 
 ## What changed in the split
 Rubato 0.8.1 was one app with two tabs. It's now two apps on one shared core:
@@ -317,6 +317,8 @@ For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the
   - Recommendation: A's foundations everywhere first, then trial B on Segue. Three decisions for Steve: A / B / A then B; which slider; white pill or words.
 
 - **Round 4, Steve's review (5 Nov): A's look, our frame – on Segue 0.5 first.** Keep the panel left, island, Presets and chips where they are (no right-hand inspector); keyline chips for quiet actions; rounded rectangles, not lozenges, with one corner logic (12 surfaces, 8 controls, 6 inside a control and chips, round only for dots); the white choice tied to how things are picked (menu when it won't fit). Built as `shared/kit.css` plus frame changes in Segue (undo, change column and section Reset, relative-drag slider with a typeable value, steppers, menus that swap in). Rules in the last section of `shared/UI.md`; tests in `tests/segue_ui_check.py`. **Next:** Steve tries Segue 0.5; once signed off, the same kit and frame changes go into `shared/core.js` for Tempo and Rubato, then Tutti's `frame.js`.
+
+- **The house kit on every tool (6 Nov): Segue 0.5.3, Tempo 0.12, Rubato 1.2, Tutti 6.2.** `shared/kit.css` is in all four builds (after Tempo's and Rubato's own CSS; before Segue's and Tutti's, which are written in its terms). `shared/UI.md` is now the house rules – the brief for every future build: principles, frame, the ladder of levels, the row grammar, controls, the change column and undo, details as chips, steadiness, type, colour, corners, space, motion, and how to build and test a tool. The slider moved into `shared/core.js` and `tutti/frame.js`. Change dots and undo are Segue-only so far – Tempo, Rubato and Tutti need a "where each setting started" first (Tempo's presets, Rubato's defaults, Tutti's inputs' `defaultValue`). Menus in place of choices are Segue-only too (the other tools' tests press the buttons).
 
 ## Dial ideas not built yet (0.5)
 - Hand shapes: tapered ends, a ring at the centre instead of a dot. (Round ends, tips, a counterweight and weights per hand went in in 0.9.)

@@ -260,7 +260,8 @@ with sync_playwright() as p:
     check('no drop shadows – hairlines only', not look['shadows'], '; '.join(look['shadows'][:3]))
     nums = pg.evaluate("[...document.querySelectorAll('#panel>section.card:not([hidden])>h2 .num')].map(e=>e.textContent)")
     titles = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .card-toggle>span:first-child')].map(e=>e.textContent)")
-    check('sections numbered in order, titles as they were', nums == [str(i) for i in range(1, len(nums) + 1)] and titles == ['Media', 'Canvas', 'Motion', 'Shapes', 'Captions', 'Overlay'], f'{nums} {titles}')
+    shown_nums = pg.evaluate("[...document.querySelectorAll('#panel>section.card>h2 .num')].filter(e=>e.offsetWidth).length")
+    check('sections: titles as they were, no numbers shown', shown_nums == 0 and titles == ['Media', 'Canvas', 'Motion', 'Shapes', 'Captions', 'Overlay'], f'{shown_nums} numbers showing, {titles}')
 
     # ---- sections open and shut, smoothly, and stay as left ----
     sec = pg.locator('#panel section.card[data-id=shapes]')
@@ -438,6 +439,13 @@ with sync_playwright() as p:
         pg.locator('#islandSheets .seg[aria-label=Format] > button', has_text=fmt).click(); time.sleep(.3)
         vis[fmt] = pg.evaluate("""[...document.querySelectorAll('#islandSheets .ctl,#islandSheets .toggle-row')].filter(e=>e.offsetParent).map(e=>{const h=e.querySelector('.ctl-head>span,.ctl-head>label,.toggle span:last-child');return h?h.textContent:''})""")
         vis[fmt].append(pg.locator('#islandSheets .btn-row .pill.primary').text_content())
+    tops = []
+    for fmt in ['MP4', 'GIF', 'PNG', 'MP4']:
+        pg.locator('#islandSheets .seg[aria-label=Format] > button', has_text=fmt).click(); time.sleep(.35)
+        tops.append(pg.evaluate("(()=>{const f=document.querySelector('#islandSheets .seg[aria-label=Format]').getBoundingClientRect(),d=document.querySelector('#islandSheets .btn-row .pill.primary').getBoundingClientRect();return [Math.round(f.top),Math.round(d.top)]})()"))
+    check('the Export sheet holds still as the format changes – Format and Download stay where they are', all(t == tops[0] for t in tops), str(tops))
+    chips = pg.evaluate("[...document.querySelectorAll('#islandSheets .xinfo .chip')].map(e=>e.textContent)")
+    check('what you’ll get shows as chips', len(chips) >= 2 and '×' in chips[0], str(chips))
     check('Format shows only what each format uses, and the button says what it makes',
           'Quality' in vis['MP4'] and 'Loops in the file' in vis['MP4'] and 'Download MP4' in vis['MP4'] and 'GIF size' in vis['GIF'] and 'Dither' in vis['GIF'] and 'Download GIF' in vis['GIF']
           and 'Quality' not in vis['PNG'] and 'GIF size' not in vis['PNG'] and 'Download PNG' in vis['PNG'], json.dumps(vis))

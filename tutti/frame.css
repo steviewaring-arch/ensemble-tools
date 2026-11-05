@@ -141,3 +141,58 @@
   video#src{position:absolute;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none;z-index:-1}
   #typeBlock,#customAR{display:none}
   @media(max-width:860px){#status{position:fixed;left:var(--gap)}.on-left{display:none}} /* on a phone the panel is below */
+
+  /* ================= Tutti on the house kit (shared/kit.css, UI round 4 – Nov 2026) =================
+     The kit sets the frame, cards, type, greys, corners and the slider; these put Tutti's own parts in its
+     terms. Same rules as every tool: four levels, a label column, controls 8 px, chosen white on grey,
+     black only for the main action. Nothing here changes what a control sets. */
+  .card-body>.row:not(.ctl-head){display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;min-height:var(--h-ctl);margin:0 0 10px}
+  .card-body>.row:not(.ctl-head)>.lbl{font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .card-body>.row:not(.ctl-head)>select,.card-body>.row:not(.ctl-head)>div,.card-body>.row:not(.ctl-head)>.cswatch{grid-column:2;margin-left:0!important;max-width:none!important;justify-self:stretch}
+  .card-body>.row:not(.ctl-head)>.cswatch{justify-self:start;width:var(--h-ctl);height:var(--h-ctl);border-radius:var(--r-ctl)}
+  .card-body>.row:not(.ctl-head)>.val{grid-column:2;margin-left:0;text-align:left}
+  .card-body>.row:not(.ctl-head):has(>.lbl:only-child){min-height:0;margin-bottom:6px}
+  .lbl{font-weight:500;color:var(--ink-strong)}
+  .rng-box .row .lbl{font-weight:500}
+  .rng-box .row .val{margin-left:auto;min-width:0;color:var(--ink);font-size:var(--fs-body)}
+  /* the Edges: half-width sliders keep their label inside the bar */
+  .edges .rng-box{overflow:hidden}
+  .edges .rng-box .ctl-head label,.rng-box.inner .ctl-head .lbl{position:static;transform:none;width:auto;font-weight:400;font-size:12px}
+  .edges .rng-box .ctl-head{padding:0 9px}
+  /* switches: the words in the label column, the tick where controls start */
+  .card-body>.toggle,.advsec>.toggle{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl);margin:0 0 10px}
+  .card-body>.toggle>span,.advsec>.toggle>span{order:-1;font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .toggle .box{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair)}
+  /* buttons: 8 px, grey fill, Medium; the main action black */
+  .btn{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-weight:500;font-size:var(--fs-body);height:var(--h-ctl)}
+  .btn:hover{background:var(--k-fill-hover)}
+  .btn.active{background:var(--k-raise);color:var(--ink-strong);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
+  .btn.primary,.rec-btn,#stillPanel .ebtn:first-child{border-radius:var(--r-ctl);background:var(--fill-ink);color:var(--on-ink);font-weight:500}
+  #stillPanel .ebtn+.ebtn{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-weight:500}
+  .num{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none}
+  /* choices: the chosen one white on grey */
+  .seg,.fmt,.pre,.cap-choose .lanes{background:var(--k-fill);border-radius:var(--r-ctl);padding:2px;gap:2px;box-shadow:none}
+  .seg button,.seg2,.lane{border-radius:var(--r-in);height:26px;font-size:12.5px;color:var(--muted)}
+  .seg button.on,.seg2.on,.lane.on{background:var(--k-raise);color:var(--ink-strong);font-weight:500;box-shadow:0 0 0 1px var(--k-raise-line)}
+  .seg2.on:hover{color:var(--ink-strong)}
+  /* quiet actions: keyline chips */
+  .card-tools a,.subttl-row a{height:24px;border-radius:var(--r-chip);box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 9px}
+  .card-tools a:hover,.subttl-row a:hover{background:var(--k-fill);color:var(--ink-strong)}
+  .svgbtn{border-radius:var(--r-chip);font-size:11.5px;font-weight:500}
+  /* lists: the bands as soft rows */
+  .state{background:var(--k-fill);box-shadow:none;border-radius:var(--r-ctl);padding:6px 8px;margin-bottom:4px}
+  .state .swatch,.svgprev{border-radius:var(--r-sw)}
+  .state .meta b{font-weight:500;color:var(--ink-strong)}
+  .stepper{border-top:0;padding-top:0;margin-top:10px}
+  .stepper>span{font-weight:500;color:var(--ink-strong)}
+  .steps{background:var(--k-fill);border-radius:var(--r-ctl);padding:2px}
+  .steps button{border-radius:var(--r-in)}
+  .steps button:hover{background:var(--k-raise)}
+  /* groups inside a card: a Bold title, one rule */
+  .subttl{font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);margin:0 0 10px}
+  .advsec+.advsec{padding-top:16px;margin-top:4px}
+  .gifmod{background:var(--k-fill);border-radius:var(--r-ctl)}
+  /* Export: labels as everywhere, Ping-pong as a switch */
+  .ep-sublabel{font-weight:500;color:var(--ink-strong)}
+  .pp .ppdot{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair)}
+  #status{border-radius:var(--r-ctl)}

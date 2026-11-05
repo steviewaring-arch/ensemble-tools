@@ -281,7 +281,7 @@ let xBar,xInfo,xGo,xStop;
     {t:'text',k:'name',label:'File name'}]);
   addHint(b,'Still slides cost almost nothing in a GIF – each is written once and held. Anything that moves is written frame by frame, so the file grows with every second of it: half size at 15 fps keeps it manageable.',s=>s.xFormat==='gif'&&gifMoves(s));
   addHint(b,'Safari makes MP4s with its video-call encoder, which keeps its own quality – for the crispest MP4, export in Chrome.',s=>s.xFormat==='mp4'&&isSafari);
-  xInfo=el('p','hint');addCustom(b,null,xInfo);
+  xInfo=el('div','xinfo');xInfo.setAttribute('aria-live','polite');addCustom(b,null,xInfo);
   const pr=el('div','progress');xBar=el('i');pr.append(xBar);addCustom(b,null,pr);
   const r=el('div','ctl btn-row');xGo=el('button','pill primary','Download');xGo.type='button';xStop=el('button','pill small','Stop');xStop.type='button';xStop.hidden=true;r.append(xGo,xStop);addCustom(b,null,r);
   xStop.onclick=()=>{stopFlag=true;};
@@ -291,13 +291,23 @@ let xBar,xInfo,xGo,xStop;
       await saveFile(fileName(f),blob);lastSize[f]=blob.size;const rate=f==='mp4'?` at ${(blob.size*8/(planNow().L*(+S.xLoops||1))/1e6).toFixed(1)} Mbps`:'';toast(`Saved ${fileName(f)} – ${mb(blob.size)}${rate}`);exportInfo();if(f==='mp4'&&encUsed)console.log('segue: encoder',encUsed.cfg.hardwareAcceleration,encUsed.cfg.bitrateMode,'honours bitrate:',encUsed.honours,encUsed.full,encUsed.third);console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
     catch(e){toast(e.message==='stopped'?'Stopped':`Couldn’t make it – ${e.message||e}`);console.error(e);}
     finally{busy=false;stopFlag=false;xGo.disabled=false;xStop.hidden=true;dirty=true;}};
-  cardToSheet(b,'export');}
+  cardToSheet(b,'export');
+  /* the sheet keeps one height whatever the format, so the choice you've just pressed stays under the pointer
+     and Download stays put: on opening it's measured at its tallest and held there */
+  const sh=b.closest('.sheet')||(SHEETS.export&&SHEETS.export.el),steady=()=>{if(!sh||sh.hidden)return;const keep=S.xFormat;let h=0;b.style.minHeight='';
+    for(const f of ['mp4','gif','png']){S.xFormat=f;refreshAll();h=Math.max(h,b.offsetHeight);}S.xFormat=keep;refreshAll();b.style.minHeight=h+'px';};
+  if(sh)new MutationObserver(()=>{if(!sh.hidden)steady();}).observe(sh,{attributes:true,attributeFilter:['hidden']});}
 const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
 /* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
 function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
 function exportInfo(){if(!xInfo)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
-  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, up to ${mb(mp4Bitrate()*P.L*l/8)} (flat colour and type come out far smaller)`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
+  /* what you'll get, as a row of chips – a detail, not a sentence */
+  const chips=f==='png'?[[`${W} × ${H}`],['This frame','The frame on the stage now']]
+    :f==='gif'?[[`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}`],[`${P.L.toFixed(1)} s`],[`${S.xGifFps} fps`],['Loops','Plays round for ever']]
+    :[[`${W} × ${H}`],[`${(P.L*l).toFixed(1)} s`],[`${S.fps} fps`],['H.264'],[`≤ ${mb(mp4Bitrate()*P.L*l/8)}`,'The most it can be – flat colour and type come out far smaller']];
+  if(lastSize[f])chips.push([`Last ${mb(lastSize[f])}`,'The size of the last one you made']);
+  xInfo.textContent='';for(const [t,tip] of chips){const c=el('span','chip',t);if(tip)c.dataset.tip=tip;xInfo.append(c);}}
 /* ---------------- start ---------------- */
 {const _r=appRefresh;appRefresh=function(){_r();exportInfo();};}
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};

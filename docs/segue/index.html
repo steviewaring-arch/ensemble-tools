@@ -422,17 +422,17 @@
     /* pure greys (no warmth), kept quiet: the panel a 4% grey, each section's controls on a white card */
     --k-panel:#f4f4f4; --k-card:#ffffff;
     --k-fill:#f2f2f2; --k-fill-2:#e2e2e2; --k-fill-hover:#ececec; --k-raise:#ffffff; --k-raise-line:rgba(0,0,0,.13);
-    --k-num:#a6a6a6; --k-handle:#1d1d1f;
+    --k-num:#a6a6a6; --k-handle:#1d1d1f; --k-dot:#2f6bff;
     --pw:320px;
     /* motion: three curves, named for what they do */
     --e-snap:cubic-bezier(.2,.8,.2,1); --e-smooth:cubic-bezier(.32,.72,0,1); --e-morph:cubic-bezier(.34,1.22,.64,1);
     --t-snap:140ms; --t-smooth:360ms; --t-morph:420ms; --t-roll:260ms;
-    --gutter:14px; /* the change column on the right of every row */
+    --gutter:20px; /* the change column on the right of every row */
   }
   body[data-theme="dark"]{
     --k-panel:#1b1b1b; --k-card:#262626;
     --k-fill:#313131; --k-fill-2:#434343; --k-fill-hover:#383838; --k-raise:#4b4b4b; --k-raise-line:rgba(255,255,255,.12);
-    --k-num:#767676; --k-handle:#ffffff;
+    --k-num:#767676; --k-handle:#ffffff; --k-dot:#6b95ff;
   }
   body{letter-spacing:-0.012em}
   button,input,textarea,select{letter-spacing:-0.012em}
@@ -453,7 +453,7 @@
   .card-toggle:focus-visible{border-radius:0;outline-offset:-3px}
   .card>h2{position:relative}
   .card-toggle .num{order:-1;flex:none;width:16px;font-size:var(--fs-title);font-weight:400;color:var(--k-num);font-variant-numeric:tabular-nums;letter-spacing:0}
-  .card-toggle .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+  .card-toggle .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--k-dot);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
   .card.collapsed.chg .card-toggle .cdot{transform:scale(1)}
   .card-toggle .sum{display:none}
   .card-toggle .chev,.card.collapsed .card-toggle .sum:not(:empty)+.chev{margin-left:auto}
@@ -466,11 +466,11 @@
   .card-anim{display:grid;grid-template-rows:1fr;transition:grid-template-rows var(--t-smooth) var(--e-smooth)}
   .card-anim>div{min-height:0;overflow:hidden}
   .card.collapsed .card-anim{grid-template-rows:0fr}
-  .card.collapsed .card-body{display:block}
+  .card.collapsed .card-anim .card-body{display:block}
   .card-anim[hidden]{display:none!important}
   .card-body{background:var(--k-card);border-radius:10px;margin:0 10px 12px;padding:14px calc(12px + var(--gutter)) 14px 12px;transition:opacity var(--t-smooth)}
   .card:first-child{border-top:0}
-  .card.collapsed .card-body{opacity:0}
+  .card.collapsed .card-anim .card-body{opacity:0}
 
   /* groups (level 2) */
   .fold{border-top:1px solid var(--keyline);margin:16px 0 0;padding-top:4px}
@@ -481,7 +481,7 @@
   .fold-head:hover{color:var(--ink-strong)}
   .fold-head .sum,.more-toggle .sum{display:none}
   .fold-head .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
-  .fold-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph);margin-right:auto}
+  .fold-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--k-dot);transform:scale(0);transition:transform var(--t-morph) var(--e-morph);margin-right:auto}
   .fold-head.chg[aria-expanded="false"] .cdot{transform:scale(1)}
   .fold-head>span:first-child{margin-right:0}
   .fold-head[aria-expanded="true"] .chev{transform:none}
@@ -501,7 +501,7 @@
   .toggle-row,.colour-row{position:relative}
   /* a red dot at the end of a row once it's moved from where it started; click it to put it back */
   .cx{position:absolute;right:calc(-1 * var(--gutter) - 2px);top:0;width:var(--gutter);height:16px;border:0;padding:0;background:none;cursor:default;display:flex;align-items:center;justify-content:center;pointer-events:none}
-  .cx::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+  .cx::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--k-dot);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
   .chg>.cx,.chg>.ctl-head>.cx{pointer-events:auto;cursor:pointer}
   .chg>.cx::before,.chg>.ctl-head>.cx::before{transform:scale(1)}
   .chg>.cx:hover::before,.chg>.ctl-head>.cx:hover::before{transform:scale(1.5)}
@@ -745,6 +745,64 @@
   .media-list .slot-det{--lc:84px}
   .colour-row>.q{position:absolute;left:calc(var(--lc) - 16px);top:50%;margin-top:-7.5px}
   .colour-row>.cx{grid-column:3}
+
+  /* ================= 0.5.3 – more room, one rule at a time, details as details ================= */
+  /* sections: no numbers – the title lines up with everything under it */
+  .card-toggle .num{display:none}
+  .card-toggle{padding:0 16px;min-height:48px}
+  .card-body{padding:2px calc(16px + var(--gutter)) 18px 16px}
+  .scroll{gap:10px;padding:0 10px 10px}
+  /* the change dot: blue, with room either side – it sits in the middle of the gutter */
+  .cx{right:calc(-1 * var(--gutter))}
+  .ctl,.toggle-row,.colour-row{margin:0 0 10px}
+  .fold{margin-top:20px;padding-top:6px}
+  /* one rule per edge: the group's own line, never the head's as well */
+  .fold-head,.more-toggle{border-top:0}
+  .hint{padding-right:12px;margin:0 0 18px}
+  /* sheets speak the panel's language: the title as a section title, groups as labels, one rule between groups */
+  .sheet .card-toggle{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);min-height:0;padding:0 0 14px;border:0}
+  .sheet{padding:18px 18px 16px}
+  .sheet .sub-head,.preset-list .sub-head{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);border-top:1px solid var(--keyline);padding-top:16px;margin:16px 0 10px}
+  .sheet .card-body>.sub-head:first-child,.preset-list>.sub-head:first-child{border-top:0;padding-top:0;margin-top:0}
+  /* a preset: its kind's picture and its name; the one in use white, its keyline inside so nothing clips it */
+  .preset-list{display:flex;flex-direction:column;gap:4px}
+  .preset-list .slot{padding:0}
+  .preset-list .slot-top{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px 0 8px}
+  .preset-list .slot-main{flex:1;min-width:0;padding:0}
+  .preset-list .slot-name{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong)}
+  .pk{flex:none;width:34px;height:24px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+  .pk svg{width:34px;height:24px;display:block;overflow:hidden}
+  .pk svg rect{fill:currentColor}.pk svg rect.dim{opacity:.38}.pk svg rect.line{fill:none;stroke:currentColor;stroke-width:1.2;opacity:.55}
+  .preset-list .slot.on .pk{color:var(--ink-strong)}
+  .media-list .slot.open,.preset-list .slot.on{box-shadow:inset 0 0 0 1px var(--k-raise-line)}
+  .preset-list .tag{font-size:11.5px;font-weight:500;height:22px;line-height:22px;padding:0 8px;border-radius:var(--r-chip);background:var(--k-fill);color:var(--ink)}
+  /* the Export sheet: Download sits at the foot of a sheet that keeps its height */
+  [data-sheet=export] .card-body{display:flex;flex-direction:column}
+  [data-sheet=export] .card-body>.btn-row{margin-top:auto}
+  /* details: what you'll get, as chips */
+  .xinfo{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 14px}
+  .xinfo .chip{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--r-chip);background:var(--k-fill);font-size:12px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
+  .xinfo .chip:first-child{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line);color:var(--ink-strong)}
+  /* choices that won't fit one row: an even grid (Tempo, Rubato), the white following into its row */
+  .seg.wrap{display:grid;grid-auto-flow:row;grid-template-columns:repeat(var(--cols),minmax(0,1fr))}
+  .seg.wrap>.pill{flex:none;min-width:0}
+  .seg.loose{display:flex;flex-direction:column}
+  .seg>.hl{top:2px;height:calc(100% - 4px)}
+  .sheet-h{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);letter-spacing:-0.012em;margin:0 0 14px}
+
+  /* groups without a wrapper (Tempo's folds, Rubato's More): the head carries the one rule */
+  .fold-head,.more-toggle{border-top:1px solid var(--keyline);margin-top:20px;padding-top:6px}
+  .fold>.fold-head{border-top:0;margin-top:0;padding-top:0}
+  .card-body>.fold-head:first-child,.card-body>.more-toggle:first-child{border-top:0;margin-top:0;padding-top:0}
+  /* Rubato's own parts in house terms: the stepper, the dial's label */
+  .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
+  .st-label{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .st-box{margin-left:0;justify-self:start;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px;gap:2px}
+  .st-btn{width:26px;height:26px;border-radius:var(--r-in);background:transparent;font-size:14px}
+  .st-btn:hover{background:var(--k-raise)}
+  .st-box .val{font-size:var(--fs-body);min-width:36px}
+  /* the island's choices keep their own widths (they scroll sideways on a phone) */
+  .isl-main .seg>.pill{flex:none;padding:0 12px}
   /* Segue – its own parts, on the shared tokens and components */
   .media-list .slot.dragging{opacity:.4}
   .media-list .slot.over{box-shadow:inset 0 2px 0 var(--fill-ink)}
@@ -813,7 +871,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.5.2</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.5.3</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -3527,7 +3585,7 @@ function placeHL(g,snap){let hl=g.querySelector(':scope>.hl');if(!hl){hl=el('i',
   if(!slide)hl.style.transition='none';
   hl.style.left=L;hl.style.width=W;hl.dataset.on=b.textContent;
   if(!slide){void hl.offsetWidth;hl.style.transition='';}g.classList.add('hl-ready');}
-const segRO=new ResizeObserver(es=>{for(const e of es)placeHL(e.target,true);});
+const segRO=new ResizeObserver(es=>{const gs=es.map(e=>e.target);requestAnimationFrame(()=>gs.forEach(g=>placeHL(g,true)));});
 /* quiet actions are keyline chips with an icon */
 const CHIP_ICON={'Shuffle':'shuffle','Clear all':'clear','Whole clip':'clip','Reset':'reset','Replace':'swap','Stop':'stop'};
 function chipIcon(b){if(b.querySelector('svg'))return;const t=(b.textContent||'').trim();let k=CHIP_ICON[t];
@@ -4311,8 +4369,9 @@ let presetBox,saveIn;
   dl.onclick=()=>saveFile('segue-presets.json',new Blob([JSON.stringify({segue:1,presets:mine},null,1)],{type:'application/json'}));ld.onclick=()=>$('#presetfile').click();r2.append(dl,ld);b.append(r2);
   cardToSheet(b,'presets');}
 function paintPresets(){presetBox.textContent='';
-  const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),meta=el('div','slot-meta',own?optLabel(KINDS,E.kindOf(p.s))+' · Yours':p.tip||'');
-    main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
+  /* a preset is its name and a small picture of its kind; what it does is in its tooltip */
+  const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),ic=el('span','pk');ic.innerHTML=KIND_ICON[E.kindOf(p.s)]||'';
+    if(p.tip||own)main.dataset.tip=p.tip||(optLabel(KINDS,E.kindOf(p.s))+' – one of yours');main.append(nm);if(own)top.append(ic);   /* built-ins sit under their kind already; yours are mixed, so they show it */main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
     top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);r.classList.add('on');}
     if(own){const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Delete';rm.setAttribute('aria-label','Delete '+p.name);
       rm.onclick=e=>{e.stopPropagation();mine=mine.filter(x=>x!==p);LS.set('presets',mine);paintPresets();};top.append(rm);}
@@ -4605,7 +4664,7 @@ let xBar,xInfo,xGo,xStop;
     {t:'text',k:'name',label:'File name'}]);
   addHint(b,'Still slides cost almost nothing in a GIF – each is written once and held. Anything that moves is written frame by frame, so the file grows with every second of it: half size at 15 fps keeps it manageable.',s=>s.xFormat==='gif'&&gifMoves(s));
   addHint(b,'Safari makes MP4s with its video-call encoder, which keeps its own quality – for the crispest MP4, export in Chrome.',s=>s.xFormat==='mp4'&&isSafari);
-  xInfo=el('p','hint');addCustom(b,null,xInfo);
+  xInfo=el('div','xinfo');xInfo.setAttribute('aria-live','polite');addCustom(b,null,xInfo);
   const pr=el('div','progress');xBar=el('i');pr.append(xBar);addCustom(b,null,pr);
   const r=el('div','ctl btn-row');xGo=el('button','pill primary','Download');xGo.type='button';xStop=el('button','pill small','Stop');xStop.type='button';xStop.hidden=true;r.append(xGo,xStop);addCustom(b,null,r);
   xStop.onclick=()=>{stopFlag=true;};
@@ -4615,13 +4674,23 @@ let xBar,xInfo,xGo,xStop;
       await saveFile(fileName(f),blob);lastSize[f]=blob.size;const rate=f==='mp4'?` at ${(blob.size*8/(planNow().L*(+S.xLoops||1))/1e6).toFixed(1)} Mbps`:'';toast(`Saved ${fileName(f)} – ${mb(blob.size)}${rate}`);exportInfo();if(f==='mp4'&&encUsed)console.log('segue: encoder',encUsed.cfg.hardwareAcceleration,encUsed.cfg.bitrateMode,'honours bitrate:',encUsed.honours,encUsed.full,encUsed.third);console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
     catch(e){toast(e.message==='stopped'?'Stopped':`Couldn’t make it – ${e.message||e}`);console.error(e);}
     finally{busy=false;stopFlag=false;xGo.disabled=false;xStop.hidden=true;dirty=true;}};
-  cardToSheet(b,'export');}
+  cardToSheet(b,'export');
+  /* the sheet keeps one height whatever the format, so the choice you've just pressed stays under the pointer
+     and Download stays put: on opening it's measured at its tallest and held there */
+  const sh=b.closest('.sheet')||(SHEETS.export&&SHEETS.export.el),steady=()=>{if(!sh||sh.hidden)return;const keep=S.xFormat;let h=0;b.style.minHeight='';
+    for(const f of ['mp4','gif','png']){S.xFormat=f;refreshAll();h=Math.max(h,b.offsetHeight);}S.xFormat=keep;refreshAll();b.style.minHeight=h+'px';};
+  if(sh)new MutationObserver(()=>{if(!sh.hidden)steady();}).observe(sh,{attributes:true,attributeFilter:['hidden']});}
 const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
 /* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
 function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
 function exportInfo(){if(!xInfo)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
-  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, up to ${mb(mp4Bitrate()*P.L*l/8)} (flat colour and type come out far smaller)`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
+  /* what you'll get, as a row of chips – a detail, not a sentence */
+  const chips=f==='png'?[[`${W} × ${H}`],['This frame','The frame on the stage now']]
+    :f==='gif'?[[`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}`],[`${P.L.toFixed(1)} s`],[`${S.xGifFps} fps`],['Loops','Plays round for ever']]
+    :[[`${W} × ${H}`],[`${(P.L*l).toFixed(1)} s`],[`${S.fps} fps`],['H.264'],[`≤ ${mb(mp4Bitrate()*P.L*l/8)}`,'The most it can be – flat colour and type come out far smaller']];
+  if(lastSize[f])chips.push([`Last ${mb(lastSize[f])}`,'The size of the last one you made']);
+  xInfo.textContent='';for(const [t,tip] of chips){const c=el('span','chip',t);if(tip)c.dataset.tip=tip;xInfo.append(c);}}
 /* ---------------- start ---------------- */
 {const _r=appRefresh;appRefresh=function(){_r();exportInfo();};}
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};

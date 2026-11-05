@@ -1,5 +1,16 @@
 # Changelog
 
+## 6 November 2026 – the house kit on every tool: Segue 0.5.3, Tempo 0.12, Rubato 1.2, Tutti 6.2
+
+Steve's review of Segue 0.5.2: blue dots with more room; no double rules; care over Presets (type, spacing, a picture where it helps; the chosen one's keyline was clipped) and Export (it jumped as rows came and went); more space and shorter lines; the Presets title as a section title and its groups as labels; Export's summary as chips – details as moments; no section numbers; then the same through every tool (not Decentish or Patch), tested – Tutti above all, as it's live – and the rules written down for future builds. Rules: `shared/UI.md` (rewritten as the house rules).
+
+- **All four tools** now build with `shared/kit.css`: sections as white cards on a 4% grey panel (360 px, 280–480), titles Bold with no numbers or summaries, one rule per group, the label column, neutral greys, corners 12 / 10 / 8 / 6 / 4, Medium labels, the white choice that slides, keyline chips, black only for the main action, focus rings for the keyboard only.
+- **The house slider in every tool** (`shared/core.js` for Tempo and Rubato, `tutti/frame.js` for Tutti): label beside the bar, value inside, drag by distance with Shift finer, a press that doesn't move jumps, a notch at the default; Tempo and Rubato's values can be typed. Each sets only its range's value and fires its own input event, so nothing a tool makes changes.
+- **Segue 0.5.3:** change dots blue (`--k-dot`) with room either side; Presets sheet titled as a section, groups as labels, presets as names (a kind picture only among yours, what each does in its tooltip), the chosen one's keyline inside so it isn't clipped; the Export sheet holds its height whatever the format, Download at its foot; what you'll get as chips (size, length, frame rate, loops, the most it can weigh).
+- **Tempo 0.12, Rubato 1.2:** choices that won't fit sit full width or as an even grid (never a menu – their tests press them); Rubato's stepper and More in house terms. Change dots and undo come to them next.
+- **Tutti 6.2:** its rows, switches, buttons, choices, bands, Edges, Advanced and the Export sheet in house terms; exports unchanged (`tests/tutti_check.py` hashes against 6.1.1).
+- Tests: see the handover.
+
 ## 5 November 2026 – Segue 0.5.2: cards back, and one ladder of levels
 
 Steve's review of 0.5: titles up a weight, labels more obvious, it still felt bitty; the panel a 4–5% grey, a touch wider; no summaries beside the section titles, numbers the size of the titles; quieter, neutral greys (the hover read warm); a considered use of rules and space; "we have definitely lost something with the loss of these cards as sections"; "a clear defined logic of category, sub parameter, sub sub". Segue only; rules in `shared/UI.md` (the ladder of levels).

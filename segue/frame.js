@@ -188,7 +188,7 @@ function placeHL(g,snap){let hl=g.querySelector(':scope>.hl');if(!hl){hl=el('i',
   if(!slide)hl.style.transition='none';
   hl.style.left=L;hl.style.width=W;hl.dataset.on=b.textContent;
   if(!slide){void hl.offsetWidth;hl.style.transition='';}g.classList.add('hl-ready');}
-const segRO=new ResizeObserver(es=>{for(const e of es)placeHL(e.target,true);});
+const segRO=new ResizeObserver(es=>{const gs=es.map(e=>e.target);requestAnimationFrame(()=>gs.forEach(g=>placeHL(g,true)));});
 /* quiet actions are keyline chips with an icon */
 const CHIP_ICON={'Shuffle':'shuffle','Clear all':'clear','Whole clip':'clip','Reset':'reset','Replace':'swap','Stop':'stop'};
 function chipIcon(b){if(b.querySelector('svg'))return;const t=(b.textContent||'').trim();let k=CHIP_ICON[t];
