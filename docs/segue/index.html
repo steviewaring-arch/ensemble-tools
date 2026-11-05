@@ -467,7 +467,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.4.3</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.4.4</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -3229,7 +3229,7 @@ const D={
   LF:'plex',LS:17,LTr:0,LLd:1.4,LC:'#6B6A66',LCase:'as',
   GF:'plex',GS:13,GTr:20,GLd:1.2,GC:'#111111',GCase:'as',
   ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',
-  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false,xCrisp:true,xQ:'high'};
+  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false,xCrisp:true,xQ:'high',xScale:1};
 /* the look: what a preset carries. Size, frame rate, the file name and what's over the top
    (it's content, like the captions) stay as they are. */
 const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','xDither','xCrisp','xQ','ovOn','ovKind','ovText'];
@@ -3818,20 +3818,20 @@ $('#presetfile').onchange=async e=>{const f=e.target.files[0];e.target.value='';
 /* ---------------- frames ---------------- */
 function seek(v,t){return new Promise(res=>{let done=false;const fin=()=>{if(done)return;done=true;v.removeEventListener('seeked',fin);res();};
   v.addEventListener('seeked',fin);try{v.currentTime=t;}catch(e){fin();}setTimeout(fin,4000);});}
-async function frameAt(c,x,W,H,t){
+async function frameAt(c,x,W,H,t,k){
   const sc=E.scene(S,items,x,FONTS,W,H,t),want=new Map();
   for(const o of sc.ops)if(o.item.kind==='video'&&o.time!=null&&!want.has(o.item))want.set(o.item,o.time);
   for(const [it,tm] of want){const v=it.el,d=Math.max(.01,it.dur||v.duration||1),tt=Math.min(d-1e-3,((tm%d)+d)%d);if(Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
-  crispNow=S.xCrisp!==false;try{E.paint(x,sc,S,FONTS,{scale:1,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});}finally{crispNow=false;}}
+  crispNow=S.xCrisp!==false;try{E.paint(x,sc,S,FONTS,{scale:k||1,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});}finally{crispNow=false;}}
 async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>S[r+'F']));if(S.ovOn&&S.ovKind==='text')used.add(S.OF);
   await Promise.all([...used].map(id=>FONTS[id]?document.fonts.load(fontStr(FONTS[id])).catch(()=>null):null));await document.fonts.ready;E.resetMeasure();}
 let stopFlag=false;
 /* n frames across the loops; when the loop isn't a whole number of frames long, each frame's
    moment is stretched by a fraction of a frame so the file still loops exactly */
-async function eachFrame(W,H,fps,n,fn,progress,len){
-  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true}),step=len?len/n:1/fps;
+async function eachFrame(W,H,fps,n,fn,progress,len,k){
+  k=k||1;const c=document.createElement('canvas');c.width=W*k;c.height=H*k;const x=c.getContext('2d',{willReadFrequently:true}),step=len?len/n:1/fps;
   for(const it of items)if(it.el)it.el.pause();
-  for(let i=0;i<n;i++){if(stopFlag)throw new Error('stopped');await frameAt(c,x,W,H,i*step);await fn(c,x,i);if(progress)progress((i+1)/n);if(i%6===5)await new Promise(r=>setTimeout(r,0));}}
+  for(let i=0;i<n;i++){if(stopFlag)throw new Error('stopped');await frameAt(c,x,W,H,i*step,k);await fn(c,x,i);if(progress)progress((i+1)/n);if(i%6===5)await new Promise(r=>setTimeout(r,0));}}
 /* ---------------- MP4 ---------------- */
 /* Colour (as Tempo 0.9.2): Segue turns each frame into video colours itself – BT.709, video
    range – and labels the file to match, with the sRGB tone curve, so #F5F5F3 plays back as
@@ -3849,6 +3849,44 @@ function toI420(d,w,h,Y,U,V){const {kr,kb}=V709,kg=1-kr-kb,cw=w>>1;
     if(flat){const q=yuvOf(d[j0],d[j0+1],d[j0+2]);Y[y*w+x]=Y[y*w+x+1]=Y[(y+1)*w+x]=Y[(y+1)*w+x+1]=q[0];U[o]=q[1];V[o]=q[2];continue;}
     let rs=0,gs=0,bs=0;for(const j of [j0,j1,j2,j3]){const r=d[j]/255,g=d[j+1]/255,b=d[j+2]/255;rs+=r;gs+=g;bs+=b;Y[((j/4)|0)]=Math.round(16+219*(kr*r+kg*g+kb*b));}
     rs/=4;gs/=4;bs/=4;const l=kr*rs+kg*gs+kb*bs;U[o]=Math.round(128+224*(bs-l)/(2*(1-kb)));V[o]=Math.round(128+224*(rs-l)/(2*(1-kr)));}}
+/* Sharper colour edges (0.4.4). H.264 keeps colour at half size each way (4:2:0), and each 2 × 2
+   block's colour was simply averaged – so where two colours meet with little difference in
+   brightness (Steve's magenta on orange, green on pale grey), the edge went hazy: measured 9.0
+   levels RMS from the drawn frame on his 22,41, against 7.8 for colour as players rebuild it.
+   Now, only where the colour changes (a sample whose neighbours differ by more than 4 levels):
+   each colour sample is refined three times against what a player rebuilding it (bilinear, from
+   the middle of each block) would show, then each pixel's brightness is corrected halfway towards
+   what makes it closest to the drawn colour once that colour is rebuilt. 5.2 levels on the same
+   frame; flat colour is untouched, so #F5F5F3 stays exact. Uses the drawn RGBA as the target. */
+let scT=null,scC=null,scS=null,scL=null,scF=0;
+function sharpChroma(d,w,h,Y,U,V){
+  const cw=w>>1,ch=h>>1,n=cw*ch,{kr,kb}=V709,kg=1-kr-kb,zone=[];
+  for(let j=0;j<ch;j++){const j0=j>0?j-1:0,j1=j<ch-1?j+1:j;
+    for(let i=0;i<cw;i++){const i0=i>0?i-1:0,i1=i<cw-1?i+1:i;let ul=255,uh=0,vl=255,vh=0;
+      for(let jj=j0;jj<=j1;jj++){const r=jj*cw;for(let ii=i0;ii<=i1;ii++){const uu=U[r+ii],vv=V[r+ii];if(uu<ul)ul=uu;if(uu>uh)uh=uu;if(vv<vl)vl=vv;if(vv>vh)vh=vv;}}
+      if(uh-ul>4||vh-vl>4)zone.push(j*cw+i);}}
+  if(!zone.length)return 0;
+  const N=w*h;if(!scT||scT.length<N){scT=new Float32Array(N);scC=new Float32Array(N);scS=new Uint32Array(N);scL=new Uint32Array(N);}
+  const fs=++scF,T=scT,C=scC,ST=scS,LS=scL;
+  const tgt=p=>{if(ST[p]!==fs){const q=p*4,r=d[q]/255,g=d[q+1]/255,b=d[q+2]/255,l=kr*r+kg*g+kb*b;T[p]=224*(b-l)/(2*(1-kb));C[p]=224*(r-l)/(2*(1-kr));ST[p]=fs;}};
+  const cb=new Float32Array(n),cr=new Float32Array(n);for(let k=0;k<n;k++){cb[k]=U[k]-128;cr[k]=V[k]-128;}
+  const upAt=(P,x,y)=>{const i=x>>1,j=y>>1,ia=x&1?(i<cw-1?i+1:i):(i>0?i-1:0),ja=y&1?(j<ch-1?j+1:j):(j>0?j-1:0);
+    return .5625*P[j*cw+i]+.1875*(P[j*cw+ia]+P[ja*cw+i])+.0625*P[ja*cw+ia];};
+  const WX=[.25,.75,.75,.25],nz=zone.length,db=new Float32Array(nz),dr=new Float32Array(nz);
+  for(let it=0;it<3;it++){
+    for(let z=0;z<nz;z++){const s=zone[z],i=s%cw,j=(s-i)/cw;let ab=0,ar=0;
+      for(let a=0;a<4;a++){const y=2*j-1+a;if(y<0||y>=h)continue;const wy=WX[a];
+        for(let c=0;c<4;c++){const x=2*i-1+c;if(x<0||x>=w)continue;const p=y*w+x,wt=wy*WX[c];tgt(p);ab+=wt*(T[p]-upAt(cb,x,y));ar+=wt*(C[p]-upAt(cr,x,y));}}
+      db[z]=ab/4;dr[z]=ar/4;}
+    for(let z=0;z<nz;z++){const s=zone[z];cb[s]+=db[z];cr[s]+=dr[z];}}
+  for(let z=0;z<nz;z++){const s=zone[z];const uu=Math.round(128+cb[s]),vv=Math.round(128+cr[s]);U[s]=uu<16?16:uu>240?240:uu;V[s]=vv<16?16:vv>240?240:vv;cb[s]=U[s]-128;cr[s]=V[s]-128;}
+  for(let z=0;z<nz;z++){const s=zone[z],i=s%cw,j=(s-i)/cw;
+    for(let a=0;a<4;a++){const y=2*j-1+a;if(y<0||y>=h)continue;
+      for(let c=0;c<4;c++){const x=2*i-1+c;if(x<0||x>=w)continue;const p=y*w+x;if(LS[p]===fs)continue;LS[p]=fs;
+        const q=p*4,r=d[q]/255,g=d[q+1]/255,b=d[q+2]/255,l=kr*r+kg*g+kb*b;
+        const cR=2*(1-kr)*upAt(cr,x,y)/224,cB=2*(1-kb)*upAt(cb,x,y)/224,cG=-(kr*cR+kb*cB)/kg,ys=((r-cR)+(g-cG)+(b-cB))/3;
+        const yy=16+219*(l+.5*(ys-l));Y[p]=yy<16?16:yy>235?235:Math.round(yy);}}}
+  return nz;}
 const MP4_COLOUR={primaries:'bt709',transfer:'iec61966-2-1',matrix:'bt709',fullRange:false};
 /* The range flag inside the H.264 stream. Some encoders (Apple's, behind Chrome and Safari on
    a Mac) write "full range" into the stream's own header even when the frames are video
@@ -3868,20 +3906,46 @@ function spsVideoRange(nal){
     if(!u(1))return null;u(3);const at=pos;if(!u(1))return null;
     rb[at>>3]&=~(1<<(7-(at&7)));}catch(e){return null;}
   const out=[];z=0;for(const b of rb){if(z>=2&&b<=3){out.push(3);z=0;}out.push(b);z=b===0?z+1:0;}return new Uint8Array(out);}
+/* Segue's own files (0.4.4): the same range fix, and the chroma location. Segue's colour samples sit
+   in the middle of each 2 × 2 block (type 1, "centre" – as JPEG); H.264 assumes "left" unless the
+   header says otherwise, so it says so, and players that read it put the colour back where it
+   was made. Rewritten bit by bit (the flag sits mid-header), with a VUI added if there isn't one. */
+function spsExport(nal){
+  const rb=[];let z=0;for(let i=0;i<nal.length;i++){const b=nal[i];if(z>=2&&b===3){z=0;continue;}rb.push(b);z=b===0?z+1:0;}
+  const bits=[];for(const b of rb)for(let k=7;k>=0;k--)bits.push((b>>k)&1);
+  let pos=8;const bit=()=>{if(pos>=bits.length)throw 0;return bits[pos++];},u=n=>{let v=0;for(let i=0;i<n;i++)v=v*2+bit();return v;};
+  const ue=()=>{let lz=0;while(!bit())lz++;return lz?(2**lz-1+u(lz)):0;},se=()=>{const k=ue();return k&1?(k+1)/2:-(k/2);};
+  const LOC=[1,0,1,0,0,1,0];let ins=null;
+  try{const prof=u(8);u(16);ue();
+    if([100,110,122,244,44,83,86,118,128,138,139,134,135].includes(prof)){const cf=ue();if(cf===3)u(1);ue();ue();u(1);
+      if(u(1))for(let i=0;i<(cf!==3?8:12);i++)if(u(1)){const n=i<6?16:64;let last=8,next=8;for(let j=0;j<n;j++){if(next!==0){next=(last+se()+256)%256;}last=next===0?last:next;}}}
+    ue();const poc=ue();if(poc===0)ue();else if(poc===1){u(1);se();se();const c=ue();for(let i=0;i<c;i++)se();}
+    ue();u(1);ue();ue();if(!u(1))u(1);u(1);if(u(1)){ue();ue();ue();ue();}
+    const vp=pos;
+    if(!u(1))ins=[vp,vp+1,[1,0,0,0].concat(LOC,[0,0,0,0,0])];
+    else{if(u(1)){if(u(8)===255){u(16);u(16);}}if(u(1))u(1);
+      if(u(1)){u(3);const fr=pos;if(u(1))bits[fr]=0;if(u(1))u(24);}
+      const cp=pos;if(u(1)){ue();ue();}ins=[cp,pos,LOC];}}catch(e){return null;}
+  let nb=bits.slice(0,ins[0]).concat(ins[2],bits.slice(ins[1]));
+  let last=nb.length-1;while(last>=0&&!nb[last])last--;if(last<0)return null;nb=nb.slice(0,last);nb.push(1);while(nb.length%8)nb.push(0);
+  const out=[];z=0;for(let i=0;i<nb.length;i+=8){let v=0;for(let k=0;k<8;k++)v=v*2+nb[i+k];if(z>=2&&v<=3){out.push(3);z=0;}out.push(v);z=v===0?z+1:0;}
+  return new Uint8Array(out);}
 function avcCVideoRange(desc){const b=new Uint8Array(desc instanceof ArrayBuffer?desc:desc.buffer?desc.buffer.slice(desc.byteOffset,desc.byteOffset+desc.byteLength):desc);
   if(b[0]!==1)return null;let p=5;const n=b[p++]&31,sps=[];for(let i=0;i<n;i++){const l=(b[p]<<8)|b[p+1];p+=2;sps.push(b.slice(p,p+l));p+=l;}
-  let changed=false;const fixed=sps.map(s=>{const f=spsVideoRange(s);if(f){changed=true;return f;}return s;});if(!changed)return null;
+  let changed=false;const fixed=sps.map(s=>{const f=spsExport(s);if(f){changed=true;return f;}return s;});if(!changed)return null;
   const rest=b.slice(p),parts=[b.slice(0,5),Uint8Array.of(0xE0|n)];for(const s of fixed)parts.push(Uint8Array.of(s.length>>8,s.length&255),s);parts.push(rest);
   const len=parts.reduce((a,x)=>a+x.length,0),out=new Uint8Array(len);let o=0;for(const x of parts){out.set(x,o);o+=x.length;}return out;}
 function chunkVideoRange(data){/* length-prefixed NALs: fix any SPS carried in the frames themselves */
   let p=0,changed=false;const parts=[];while(p+4<=data.length){const l=((data[p]<<24)|(data[p+1]<<16)|(data[p+2]<<8)|data[p+3])>>>0;const nal=data.subarray(p+4,p+4+l);
-    let f=null;if((nal[0]&31)===7)f=spsVideoRange(nal);if(f)changed=true;const x=f||nal;parts.push(Uint8Array.of(x.length>>>24,(x.length>>16)&255,(x.length>>8)&255,x.length&255),x);p+=4+l;}
+    let f=null;if((nal[0]&31)===7)f=spsExport(nal);if(f)changed=true;const x=f||nal;parts.push(Uint8Array.of(x.length>>>24,(x.length>>16)&255,(x.length>>8)&255,x.length&255),x);p+=4+l;}
   if(!changed)return null;const out=new Uint8Array(parts.reduce((a,x)=>a+x.length,0));let o=0;for(const x of parts){out.set(x,o);o+=x.length;}return out;}
 /* Quality: the bitrate the encoder is held to, for 1080 × 1350 at 30 fps and scaled to the
    size and frame rate. 0.3 held everything to 24 Mbps; Apple's encoder (behind Chrome and
    Safari on a Mac) softens fine detail at that – High gives it room, Best more. */
 const MP4_Q={std:16,high:32,best:50};
-function mp4Bitrate(){const [W,H]=size(),fps=+S.fps||30;return Math.round((MP4_Q[S.xQ]||32)*1e6*(W*H)/(1080*1350)*fps/30);}
+/* Size (0.4.4): 2× draws every frame at twice the pixels each way – the layout is the same, the type and media are drawn sharper, and the colour (kept at half size by H.264) is as fine as a 1× file's pixels. For MP4 and PNG. */
+function outSize(){const [W,H]=size(),k=S.xFormat!=='gif'&&+S.xScale===2?2:1;return [W*k,H*k,k];}
+function mp4Bitrate(){const [W,H]=outSize(),fps=+S.fps||30;return Math.round((MP4_Q[S.xQ]||32)*1e6*(W*H)/(1080*1350)*fps/30);}
 /* Which setup actually honours the bitrate. Steve's three renders at 16, 32 and 50 Mbps all came
    out at 16.5 MB (Safari, Intel iMac): the encoder kept its own quality whatever it was asked.
    Chrome's hardware H.264 encoder on a Mac does the same in variable mode (w3c/webcodecs#430).
@@ -3897,7 +3961,8 @@ const ENC_TRY=[['prefer-hardware','constant'],['prefer-software','variable'],['p
 const isSafari=/^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
 let encUsed=null;
 async function encoderSetups(W,H,fps,bitrate){
-  for(const codec of ['avc1.640033','avc1.640028','avc1.4d0033','avc1.4d0028','avc1.42003e']){const out=[];
+  const mbs=Math.ceil(W/16)*Math.ceil(H/16),big=mbs>36864||mbs*fps>983040;
+  for(const codec of (big?['avc1.640034']:[]).concat(['avc1.640033','avc1.640028','avc1.4d0033','avc1.4d0028','avc1.42003e'])){const out=[];
     for(const [hw,mode] of ENC_TRY){const cfg={codec,width:W,height:H,bitrate,framerate:fps,latencyMode:'quality',bitrateMode:mode,hardwareAcceleration:hw,avc:{format:'avc'}};
       try{const r=await VideoEncoder.isConfigSupported(cfg);if(r.supported)out.push(cfg);}catch(e){}}
     if(out.length){const rt=Object.assign({},out[out.length-1],{latencyMode:'realtime',bitrateMode:'variable',hardwareAcceleration:'no-preference'});
@@ -3922,13 +3987,15 @@ async function bytesFor(cfg,frames,fps){let n=0,err=null;const e=new VideoEncode
 async function pickEncoder(W,H,fps,bitrate){
   const setups=await encoderSetups(W,H,fps,bitrate);if(!setups.length)return null;
   if(setups[0].codec.startsWith('vp09')||setups.length===1)return{cfg:setups[0],honours:null};
-  const frames=sampleFrames(W,H);let first=null;
-  for(const cfg of setups){const full=await bytesFor(cfg,frames,fps);if(full<0)continue;const third=await bytesFor(Object.assign({},cfg,{bitrate:Math.round(bitrate/3)}),frames,fps);
+  /* tested at no more than 1080 × 1350's area (a 2× frame's samples would take 200 MB), at the same bitrate per pixel */
+  const sc=Math.min(1,Math.sqrt(1458000/(W*H))),tw=Math.max(16,Math.round(W*sc/2)*2),th=Math.max(16,Math.round(H*sc/2)*2),tb=Math.round(bitrate*tw*th/(W*H));
+  const frames=sampleFrames(tw,th);let first=null;
+  for(const cfg of setups){const tc=Object.assign({},cfg,{width:tw,height:th,bitrate:tb});const full=await bytesFor(tc,frames,fps);if(full<0)continue;const third=await bytesFor(Object.assign({},tc,{bitrate:Math.round(tb/3)}),frames,fps);
     const r={cfg,honours:third>0&&full>third*1.15,full,third};if(r.honours)return r;if(!first||full>first.full)first=r;}
   return first?Object.assign(first,{honours:false}):{cfg:setups[0],honours:false};}
 async function makeMP4(progress){
   if(!window.VideoEncoder||!window.Mp4Muxer)throw new Error('This browser can’t write MP4 – try Chrome, Edge or Safari');
-  const [W,H]=size(),fps=+S.fps||30,P=planNow(),n=Math.max(1,Math.round(P.L*(+S.xLoops||1)*fps)),bitrate=mp4Bitrate();
+  const [W,H,k]=outSize(),fps=+S.fps||30,P=planNow(),n=Math.max(1,Math.round(P.L*(+S.xLoops||1)*fps)),bitrate=mp4Bitrate();
   toast('Finding the encoder that keeps the quality…',true);
   const pick=await pickEncoder(W,H,fps,bitrate);if(!pick)throw new Error('This browser can’t encode video');
   const cfg=pick.cfg,codec=cfg.codec,kind=codec.startsWith('vp09')?'vp9':'avc';encUsed=pick;
@@ -3941,9 +4008,9 @@ async function makeMP4(progress){
       muxer.addVideoChunk(chunk,meta);}catch(e){err=e;}},error:e=>{err=e;}});
   enc.configure(Object.assign({contentHint:'detail'},cfg));let stall=0;
   const Y=new Uint8Array(W*H),U=new Uint8Array((W>>1)*(H>>1)),V=new Uint8Array((W>>1)*(H>>1)),buf=new Uint8Array(W*H*3/2);
-  await eachFrame(W,H,fps,n,async(c,x,i)=>{if(err)throw err;const d=x.getImageData(0,0,W,H).data;toI420(d,W,H,Y,U,V);buf.set(Y,0);buf.set(U,W*H);buf.set(V,W*H+U.length);
+  await eachFrame(W/k,H/k,fps,n,async(c,x,i)=>{if(err)throw err;const d=x.getImageData(0,0,W,H).data;toI420(d,W,H,Y,U,V);if(S.xChroma!==false)sharpChroma(d,W,H,Y,U,V);buf.set(Y,0);buf.set(U,W*H);buf.set(V,W*H+U.length);
     const f=new VideoFrame(buf,{format:'I420',codedWidth:W,codedHeight:H,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});enc.encode(f,{keyFrame:i%fps===0});f.close();
-    stall=0;while(enc.encodeQueueSize>4){await new Promise(r=>setTimeout(r,2));if((stall+=2)>15000)throw new Error('the video encoder stopped responding');}},progress,P.L*(+S.xLoops||1));
+    stall=0;while(enc.encodeQueueSize>4){await new Promise(r=>setTimeout(r,2));if((stall+=2)>15000)throw new Error('the video encoder stopped responding');}},progress,P.L*(+S.xLoops||1),k);
   await enc.flush();enc.close();if(err)throw err;muxer.finalize();return new Blob([muxer.target.buffer],{type:'video/mp4'});}
 /* ---------------- GIF ---------------- */
 /* Made for showcase GIFs, which are usually Photoshop's job. A frame that doesn't change isn't
@@ -4008,14 +4075,15 @@ async function makeGIF(progress){
     flush(cs(i));pend={cs:cs(i),bytes:fb.out(),see};},progress,len);
   flush(Math.round(len*100));
   buf.b(0x3B);const blob=new Blob([buf.out()],{type:'image/gif'});blob.gifFrames=frames;return blob;}
-async function makePNG(){const [W,H]=size(),P=planNow(),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
-  await frameAt(c,x,W,H,((clock%P.L)+P.L)%P.L);return await new Promise(r=>c.toBlob(r,'image/png'));}
+async function makePNG(){const [W,H,k]=outSize(),P=planNow(),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+  await frameAt(c,x,W/k,H/k,((clock%P.L)+P.L)%P.L,k);return await new Promise(r=>c.toBlob(r,'image/png'));}
 /* ---------------- the Export sheet ---------------- */
-const fileName=ext=>{const [W,H]=size();const base=(S.name||'Segue').trim().replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_')||'Segue';return `${base}_${W}x${H}.${ext}`;};
+const fileName=ext=>{const [W,H]=ext==='gif'?size():outSize();const base=(S.name||'Segue').trim().replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_')||'Segue';return `${base}_${W}x${H}.${ext}`;};
 let xBar,xInfo,xGo,xStop;
 {const b=card('export','Export');
   build(b,[{t:'seg',k:'xFormat',label:'Format',opts:[['mp4','MP4'],['gif','GIF'],['png','PNG','The frame on the stage now, at full size']]},
     {t:'seg',k:'xQ',label:'Quality',opts:[['std','Standard'],['high','High'],['best','Best']],show:s=>s.xFormat==='mp4',tip:'How much detail the video keeps: Standard 16, High 32, Best 50 Mbps at 1080 × 1350 – more is crisper and a bigger file'},
+    {t:'seg',k:'xScale',label:'Size',opts:[[1,'1×'],[2,'2×']],show:s=>s.xFormat!=='gif',tip:'2× draws every frame at twice the pixels each way – same layout, sharper type and media, and coloured type stays crisp (MP4 keeps colour at half size, so at 2× it’s as fine as a 1× file’s pixels). Crisp on Retina screens and when cropped in; about four times the time, and a bigger file. Instagram shrinks it to 1080 wide.'},
     {t:'seg',k:'xLoops',label:'Loops in the file',opts:[[1,'1'],[2,'2'],[3,'3']],show:s=>s.xFormat==='mp4'},
     {t:'seg',k:'xGifScale',label:'GIF size',opts:[[1,'Full'],[.5,'Half'],[.25,'Quarter']],show:s=>s.xFormat==='gif'},
     {t:'seg',k:'xGifFps',label:'GIF frame rate',opts:[[12,'12'],[15,'15'],[20,'20'],[25,'25']],show:s=>s.xFormat==='gif'},
@@ -4038,7 +4106,7 @@ let xBar,xInfo,xGo,xStop;
 const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
 /* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
 function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
-function exportInfo(){if(!xInfo)return;const [W,H]=size(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
+function exportInfo(){if(!xInfo)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
   xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, up to ${mb(mp4Bitrate()*P.L*l/8)} (flat colour and type come out far smaller)`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
 /* ---------------- start ---------------- */
@@ -4052,7 +4120,7 @@ $('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs
   window.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)drop.classList.remove('on');});
   window.addEventListener('dragover',e=>e.preventDefault());
   window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(fs.length)addFiles(fs).then(paintFonts);});}
-window.segue={E,S,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
+window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
   setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;}};
 frameStart();paintMedia();paintFonts();paintPresets();refreshAll();fitCanvas();layoutUI();
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});

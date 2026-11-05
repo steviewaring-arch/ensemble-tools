@@ -1,5 +1,14 @@
 # Changelog
 
+## 5 November 2026 – Segue 0.4.4: coloured type stays crisp in MP4, and a 2× size
+
+Steve's 0.4.3 MP4: "hazy around edges on some, even when the source material is not" – magenta 22,41 on orange (Numeral 01 Colour) and green on pale grey. Segue only.
+
+- **The cause:** H.264 keeps colour at half size each way (4:2:0). Where two colours meet with little difference in brightness, the edge is carried by the colour alone, and Segue made that half-size colour by simply averaging each 2 × 2 block – so the edge went soft and spread. The drawn frame was right (as crisp as a Lanczos resample of the source), and the encoder wasn't it: on Steve's iMac it keeps colour at 64 dB. Reproduced here with his clip: 8.0 levels RMS from the drawn frame.
+- **Now:** where the colour changes, each colour sample is refined against what a player will rebuild from it, and each pixel's brightness is corrected halfway towards what brings the rebuilt colour closest to the drawn one; the stream's header now says the colour sits in the middle of each block, so players put it back there. 5.5 levels on his 22,41; flat colour is untouched (#F5F5F3 still exact). About 20 ms a frame more here.
+- **Size: 1× or 2×** (Export, MP4 and PNG): the same layout drawn at twice the pixels each way – 2160 × 2700 for 4:5. Type and media are drawn finer, and the colour is as fine as a 1× file's pixels: 2.5 levels from the drawn frame when shown at 1080 wide. About 2.7× the time; Instagram shrinks it to 1080 wide. Steve's Mac encodes up to 3840 × 2160 and 2160 × 3840.
+- `tests/segue_check.py`: 82 checks (3 new) – colour edges nearer the drawn frame (17.9 → 13.9 levels at the edges of a magenta-on-orange and green-on-grey card), the stream says centre, 2× PNG and MP4 at twice the pixels with the same picture.
+
 ## 5 November 2026 – Segue 0.4.3: crisp media, really – drawn on the pixel grid
 
 Steve's MP4 from Chrome: "not as crisp as it could be", and only ~4 MB against an estimate of 300+. Measured on his iMac (Chrome 152, through the Claude app's browser) and here. Segue only.

@@ -476,6 +476,38 @@ with sync_playwright() as p:
           n3 > 3 * imgs and abs(t3 - L3 * 1000) <= 10 and rects[0] == (0, 0, 270, 338) and part >= len(rects) // 2, f'{n3} frames (loop {L3:.2f} s), {os.path.getsize(p3)//1000} KB, {part} of {len(rects)} partial')
     pg.evaluate("segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack');segue.set('ovOn',false)")
 
+    # ---- 0.4.4: colour edges in MP4 – magenta on orange, as Steve's 22,41 ----
+    HUE = os.path.join(OUT, 'hue.png')
+    if not os.path.exists(HUE):
+        him = Image.new('RGB', (1920, 1200), '#D54500'); hd = ImageDraw.Draw(him)
+        try: hf = ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', 300)
+        except Exception: hf = ImageFont.load_default(size=300)
+        hd.text((40, 20), '22,41', font=hf, fill='#FF44FF'); hd.text((40, 520), '09.27', font=hf, fill='#22EE22'); him.save(HUE)
+    pg.set_input_files('#mediafile', [HUE]); time.sleep(1.5)
+    hue = pg.evaluate("""async()=>{const it=segue.items[segue.items.length-1];segue.items.splice(0,segue.items.length,it);segue.refresh();
+      for(const [k,v] of [['cSize','custom'],['cW',540],['cH',676],['layout','one'],['oneFit','own'],['ownScale','fit'],['size',80],['kb','none'],['oneMove','cut'],['hold',.4],['capOn',false],['bg','#FFFFFF'],['radius',0],['bgImgA',0],['ovOn',false],['xFormat','mp4'],['xScale',1]])segue.set(k,v);
+      const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d',{willReadFrequently:true});await segue.frameAt(c,x,540,676,.1);
+      const b64=async()=>{const blob=await segue.makeMP4(()=>{});const u=new Uint8Array(await blob.arrayBuffer());let z='';for(let i=0;i<u.length;i+=32768)z+=String.fromCharCode.apply(null,u.subarray(i,i+32768));return btoa(z);};
+      segue.S.xChroma=false;const plain=await b64();segue.S.xChroma=true;const sharp=await b64();
+      return {drawn:c.toDataURL('image/png'),plain,sharp,rect:segue.E.scene(segue.S,segue.items,x,segue.fonts,540,676,.1).ops[0].rect};}""")
+    import base64
+    def hue_frame(b64, name):
+        fp = os.path.join(OUT, name); open(fp, 'wb').write(base64.b64decode(b64))
+        subprocess.run(['ffmpeg', '-loglevel', 'error', '-y', '-i', fp, '-vf', 'select=eq(n\\,3),scale=flags=accurate_rnd+full_chroma_int:out_range=pc,format=rgb24', '-frames:v', '1', fp[:-4] + '.png'], check=True)
+        return fp, np.asarray(Image.open(fp[:-4] + '.png').convert('RGB'), float)
+    hr = hue['rect']; hbox = (slice(int(hr['y']) + 2, int(hr['y'] + hr['h']) - 2), slice(int(hr['x']) + 2, int(hr['x'] + hr['w']) - 2))
+    hd0 = np.asarray(img_of(hue['drawn']), float)
+    hp, hpa = hue_frame(hue['plain'], 'hue_plain.mp4'); hs, hsa = hue_frame(hue['sharp'], 'hue_sharp.mp4')
+    hg = hd0[hbox]; hv = np.zeros(hg.shape[:2], bool)   # where the colour changes: within 3 px of an edge in the drawn frame
+    for dy in range(-3, 4):
+        for dx in range(-3, 4):
+            hv |= np.abs(np.roll(np.roll(hg, dy, 0), dx, 1) - hg).max(-1) > 24
+    hrms = lambda a: float(np.sqrt(((a[hbox][hv] - hg[hv]) ** 2).mean()))
+    check('MP4 colour edges: magenta on orange and green on grey come back nearer the drawn frame (colour refined where it changes)', hrms(hsa) < hrms(hpa) * .8, f'difference from the drawn frame at the edges {hrms(hpa):.1f} (0.4.3) → {hrms(hsa):.1f}')
+    cl = probe(hs, 'stream=chroma_location').get('chroma_location')
+    check('MP4: the stream says where its colour sits (centre), so players put it back there', cl == 'center', str(cl))
+    pg.evaluate("segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack');segue.set('ovOn',false)")
+
     # ---- exports ----
     pg.evaluate("for(const [k,v] of [['hold',.3],['dur',.3],['zOut',.3],['gHold',.3],['zIn',.3],['cSize','custom'],['cW',540],['cH',676],['bg','#F5F5F3'],['bgImgA',0],['name','Test reel']])segue.set(k,v)")
     L = pg.evaluate("segue.plan().L")
@@ -497,6 +529,18 @@ with sync_playwright() as p:
     check('GIF: half size, 20 frames a second at most, the loop’s length exactly', gim.size == (270, 338) and gn <= round(L * 20) and abs(gt - L * 1000) <= 10, f'{gim.size} {gn} frames {gt} ms')
     im = Image.open(got['png'])
     check('PNG: full size, the background exact', im.size == (540, 676) and im.convert('RGB').getpixel((2, 2)) == (245, 245, 243), f'{im.size} {im.convert("RGB").getpixel((2,2))}')
+    # 0.4.4: 2× – twice the pixels each way, the same picture
+    pg.evaluate("segue.set('xScale',2)"); got2 = {}
+    for fmt in ['png', 'mp4']:
+        pg.evaluate("f=>segue.set('xFormat',f)", fmt); sheet(pg, 'export')
+        with pg.expect_download(timeout=240000) as d:
+            pg.get_by_role('button', name='Download ' + fmt.upper()).click()
+        path = os.path.join(OUT, d.value.suggested_filename); d.value.save_as(path); got2[fmt] = path
+    pg.evaluate("segue.set('xScale',1)")
+    im2 = Image.open(got2['png']).convert('RGB'); m2 = probe(got2['mp4'])
+    same = float(np.sqrt(((np.asarray(im2.resize((540, 676), Image.LANCZOS), float) - np.asarray(im.convert('RGB'), float)) ** 2).mean()))
+    check('2×: PNG and MP4 at twice the pixels each way, named for it – the same picture, drawn finer', im2.size == (1080, 1352) and m2.get('width') == 1080 and m2.get('height') == 1352 and os.path.basename(got2['png']) == 'Test_reel_1080x1352.png' and same < 12,
+          f"PNG {im2.size}, MP4 {m2.get('width')}×{m2.get('height')}, {os.path.basename(got2['png'])}; shrunk back to 1×, {same:.1f} levels RMS from the 1× PNG")
 
     # ---- it all comes back ----
     pg.reload(); time.sleep(2.5)
