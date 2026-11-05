@@ -19,16 +19,20 @@
     --h-ctl:30px; --h-sm:24px; --h-chip:28px;
     --r-frame:12px; --r-card:8px; --r-inner:6px;
     --r-surface:12px; --r-ctl:8px; --r-in:6px; --r-chip:6px; --r-sw:4px;
-    --k-fill:#efeeeb; --k-fill-2:#dcdad5; --k-fill-hover:#e7e5e1; --k-raise:#ffffff; --k-raise-line:rgba(43,43,43,.15);
-    --k-num:#a5a3a9; --k-handle:#1d1d1f;
+    /* pure greys (no warmth), kept quiet: the panel a 4% grey, each section's controls on a white card */
+    --k-panel:#f4f4f4; --k-card:#ffffff;
+    --k-fill:#f2f2f2; --k-fill-2:#e2e2e2; --k-fill-hover:#ececec; --k-raise:#ffffff; --k-raise-line:rgba(0,0,0,.13);
+    --k-num:#a6a6a6; --k-handle:#1d1d1f;
+    --pw:320px;
     /* motion: three curves, named for what they do */
     --e-snap:cubic-bezier(.2,.8,.2,1); --e-smooth:cubic-bezier(.32,.72,0,1); --e-morph:cubic-bezier(.34,1.22,.64,1);
     --t-snap:140ms; --t-smooth:360ms; --t-morph:420ms; --t-roll:260ms;
     --gutter:14px; /* the change column on the right of every row */
   }
   body[data-theme="dark"]{
-    --k-fill:#2b2b30; --k-fill-2:#3d3d44; --k-fill-hover:#34343a; --k-raise:#4a4a52; --k-raise-line:rgba(255,255,255,.12);
-    --k-num:#77757c; --k-handle:#ffffff;
+    --k-panel:#1b1b1b; --k-card:#262626;
+    --k-fill:#313131; --k-fill-2:#434343; --k-fill-hover:#383838; --k-raise:#4b4b4b; --k-raise-line:rgba(255,255,255,.12);
+    --k-num:#767676; --k-handle:#ffffff;
   }
   body{letter-spacing:-0.012em}
   button,input,textarea,select{letter-spacing:-0.012em}
@@ -41,16 +45,18 @@
   .brand .bline.caps{font-size:var(--fs-by);letter-spacing:-0.035em}
   .scroll{padding:0;gap:0}
   .panel,.island,.pcap{border-radius:var(--r-surface)}
+  .panel{background:var(--k-panel);-webkit-backdrop-filter:none;backdrop-filter:none}
 
   /* sections (level 1): hairlines, not boxes */
   .card{background:transparent;border-radius:0;border-top:1px solid var(--keyline)}
-  .card-toggle{min-height:44px;padding:0 16px;gap:8px;font-size:var(--fs-title);font-weight:500;letter-spacing:-0.012em;border-bottom:0}
+  .card-toggle{min-height:46px;padding:0 16px;gap:8px;font-size:var(--fs-title);font-weight:700;letter-spacing:-0.012em;border-bottom:0}
   .card-toggle:focus-visible{border-radius:0;outline-offset:-3px}
   .card>h2{position:relative}
-  .card-toggle .num{order:-1;flex:none;width:14px;font-size:12px;font-weight:400;color:var(--k-num);font-variant-numeric:tabular-nums;letter-spacing:0}
+  .card-toggle .num{order:-1;flex:none;width:16px;font-size:var(--fs-title);font-weight:400;color:var(--k-num);font-variant-numeric:tabular-nums;letter-spacing:0}
   .card-toggle .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
   .card.collapsed.chg .card-toggle .cdot{transform:scale(1)}
-  .card-toggle .sum{font-weight:400;font-size:12px;margin-left:auto}
+  .card-toggle .sum{display:none}
+  .card-toggle .chev,.card.collapsed .card-toggle .sum:not(:empty)+.chev{margin-left:auto}
   h2>.pill.reset{position:absolute;right:38px;top:50%;margin-top:-12px;display:none}
   .card.chg:not(.collapsed)>h2>.reset{display:inline-flex;animation:kitFade var(--t-smooth) var(--e-smooth)}
   .card-toggle .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
@@ -62,29 +68,36 @@
   .card.collapsed .card-anim{grid-template-rows:0fr}
   .card.collapsed .card-body{display:block}
   .card-anim[hidden]{display:none!important}
-  .card-body{padding:2px calc(16px + var(--gutter)) 18px 16px;transition:opacity var(--t-smooth)}
+  .card-body{background:var(--k-card);border-radius:10px;margin:0 10px 12px;padding:14px calc(12px + var(--gutter)) 14px 12px;transition:opacity var(--t-smooth)}
+  .card:first-child{border-top:0}
   .card.collapsed .card-body{opacity:0}
 
   /* groups (level 2) */
-  .fold-head,.more-toggle{min-height:36px;margin:6px 0 8px;font-size:12.5px;font-weight:500;color:var(--ink);letter-spacing:-0.008em}
+  .fold{border-top:1px solid var(--keyline);margin:16px 0 0;padding-top:4px}
+  .card-body>.fold:first-child{border-top:0;margin-top:-6px;padding-top:0}
+  .fold-head,.more-toggle{min-height:38px;margin:0 0 6px;font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);letter-spacing:-0.008em}
+  .fold-head[aria-expanded="false"]{margin-bottom:0}
+  .fold-body{padding-bottom:4px}
   .fold-head:hover{color:var(--ink-strong)}
-  .fold-head .sum,.more-toggle .sum{color:var(--muted);font-weight:400;font-size:12px}
+  .fold-head .sum,.more-toggle .sum{display:none}
   .fold-head .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
   .fold-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph);margin-right:auto}
   .fold-head.chg[aria-expanded="false"] .cdot{transform:scale(1)}
   .fold-head>span:first-child{margin-right:0}
   .fold-head[aria-expanded="true"] .chev{transform:none}
   .fold-head[aria-expanded="false"] .chev{transform:rotate(-90deg)}
-  .sub-head{font-size:11.5px;font-weight:500;color:var(--muted);margin:10px 0 8px;letter-spacing:0}
+  .sub-head{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);margin:4px 0 8px;letter-spacing:-0.008em}
+  .sheet .sub-head,.preset-list .sub-head{font-size:11.5px;color:var(--muted);margin:10px 0 8px}
   body.kit-live .fold-body:not([hidden]),body.kit-live .card-body>.ctl:not([hidden]),body.kit-live .fold-body>.ctl:not([hidden]),
   body.kit-live .card-body>.toggle-row:not([hidden]),body.kit-live .card-body>.colour-row:not([hidden]){animation:kitIn var(--t-smooth) var(--e-smooth)}
   @keyframes kitIn{from{opacity:0;transform:translateY(-3px)}}
   @keyframes kitFade{from{opacity:0}}
 
   /* ---------------- rows and the change column ---------------- */
-  .ctl{margin:0 0 10px;position:relative}
+  .ctl{margin:0 0 12px;position:relative}
   .ctl-head{margin-bottom:6px;min-height:16px;gap:6px}
-  .ctl-head label,.ctl-head>span:first-child{font-size:var(--fs-body);color:var(--ink)}
+  .ctl-head label,.ctl-head>span:first-child{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong)}
+  .toggle-row .toggle>span:last-child,.colour-row>label,.colour-row>span:first-child{font-weight:500;color:var(--ink-strong)}
   .toggle-row,.colour-row{position:relative}
   /* a red dot at the end of a row once it's moved from where it started; click it to put it back */
   .cx{position:absolute;right:calc(-1 * var(--gutter) - 2px);top:0;width:var(--gutter);height:16px;border:0;padding:0;background:none;cursor:default;display:flex;align-items:center;justify-content:center;pointer-events:none}
@@ -112,9 +125,10 @@
   .rng-box:hover .rng-tick,.rng-box.drag .rng-tick{transform:scaleY(1.18)}
   .rng-notch{position:absolute;bottom:0;width:1px;height:5px;margin-left:-.5px;background:var(--ink);opacity:.32;left:calc(5px + (100% - 10px) * var(--b,0));pointer-events:none}
   .rng-box .ctl-head{padding:0 3px 0 10px}
-  .rng-box .ctl-head label{font-size:var(--fs-body)}
+  .rng-box .ctl-head label{font-size:var(--fs-body);font-weight:400;color:var(--ink-strong)}
   .rng-box input[type=range]{pointer-events:none}
-  .rng-box:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+  body.kbd .rng-box:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+  body:not(.kbd) select:focus,body:not(.kbd) button:focus,body:not(.kbd) [tabindex]:focus{outline:none}
   .ctl .ctl-head .val{font-size:12.5px;color:var(--muted);min-width:0}
   .ctl.chg .ctl-head .val{color:var(--ink-strong);font-weight:500}
   .rng-box .val.typable{pointer-events:auto;padding:0 7px;margin:0 0 0 auto;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center}
@@ -205,7 +219,7 @@
   .num-row label.num span{font-size:12px}
 
   /* help */
-  .hint{font-size:12px;line-height:1.45;margin:2px 0 10px}
+  .hint{font-size:12px;line-height:1.45;margin:-2px 0 16px;color:var(--muted)}
   .q{width:15px;height:15px;font-size:9.5px}
   .tip{border-radius:var(--r-ctl);font-size:12px}
 
@@ -280,3 +294,54 @@
     .card-body{padding-right:calc(16px + var(--gutter))}
   }
   @media (prefers-reduced-motion: reduce){.rng-box.ease{transition:none}}
+
+  /* ================= Structure (0.5.2) – one ladder of levels, one row grammar =================
+     1 Section  – a white card on the panel's 4% grey: number and title (14, Bold), chevron, Reset when changed.
+     2 Group    – inside a card, under a hairline: title (13, Bold), chevron.
+     3 Setting  – one row: its label (13, Medium) in a fixed column on the left, its control on the right,
+                  30 px high. When the control needs the full width – choices that won't fit beside the label,
+                  tiles, a list, a text box – the label sits above and the control takes the width.
+     4 Detail   – belongs to one row (a slide's own settings, a note): inside or under that row.
+     Space on an 8 px step: 8 between settings, 6 from a label to the control under it, 16 before a group.
+     Corners step down with the levels: panel 12, card 10, control 8, inside a control 6, swatch 4. */
+  :root{--pw:360px;--lc:104px;--r-cardk:10px}
+  .scroll{padding:0 8px 8px;gap:8px}
+  .card{background:var(--k-card);border-radius:var(--r-cardk);border-top:0}
+  .card-toggle{min-height:46px;padding:0 12px}
+  .card-toggle:focus-visible{border-radius:var(--r-cardk)}
+  .card-body{background:none;border-radius:0;margin:0;padding:0 calc(12px + var(--gutter)) 14px 12px}
+  h2>.pill.reset{right:34px}
+  .sheet .card{background:none}
+
+  /* level 3 – a setting on one row: label column, then the control */
+  .ctl,.toggle-row,.colour-row{margin:0 0 8px}
+  .ctl.sel,.ctl.txt:not(.multi),.ctl.nums,.ctl.stp,.ctl.seg-inline,.ctl.as-menu,.colour-row{display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;min-height:var(--h-ctl)}
+  .ctl.sel>.ctl-head,.ctl.txt:not(.multi)>.ctl-head,.ctl.nums>.ctl-head,.ctl.stp>.ctl-head,.ctl.seg-inline>.ctl-head,.ctl.as-menu>.ctl-head{margin:0;min-width:0;position:static}
+  .ctl.seg-inline>.seg,.ctl.as-menu>.seg-menu{grid-column:2}
+  .ctl.stp>.stp-g{justify-self:start}
+  .ctl-head label,.ctl-head>span:first-child{white-space:normal;line-height:1.2}
+  /* the change dot sits level with a one-line row */
+  .ctl.sel .cx,.ctl.txt:not(.multi) .cx,.ctl.nums .cx,.ctl.seg-inline .cx,.ctl.as-menu .cx{top:50%;margin-top:-8px}
+  /* a full-width control: the label above it */
+  .ctl:not(.seg-inline):not(.as-menu)>.ctl-head{margin-bottom:6px}
+  /* switch: its words in the label column, the tick where every control starts */
+  .toggle-row .toggle{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;width:100%;min-height:var(--h-ctl);margin:0}
+  .toggle-row .toggle>span:last-child{order:-1;font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .toggle-row>.q{position:absolute;left:calc(var(--lc) + 34px);top:50%;margin-top:-7.5px}
+  /* colour: the hex field across the control column, the swatch at its end */
+  .colour-row>label{font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .colour-row .cw{margin:0;display:flex;gap:6px;min-width:0}
+  .colour-row input.hexin{flex:1;width:auto;min-width:0;height:var(--h-ctl);border-radius:var(--r-ctl);font-size:var(--fs-body)}
+  .colour-row .cswatch{width:var(--h-ctl);height:var(--h-ctl);border-radius:var(--r-ctl);flex:none}
+  /* the slider: its label in the label column (a press there drags it too), the bar in the control column */
+  .ctl.rng{padding-left:calc(var(--lc) + 10px)}
+  .rng-box{overflow:visible}
+  .rng-box.from-start .rng-fill{border-radius:var(--r-ctl) 0 0 var(--r-ctl)}
+  .rng-box .ctl-head label{position:absolute;left:calc(-1 * (var(--lc) + 10px));width:var(--lc);top:50%;transform:translateY(-50%);
+    pointer-events:auto;cursor:ew-resize;font-weight:500;color:var(--ink-strong);line-height:1.2;white-space:normal}
+  @media (hover:hover){.rng-box .q{display:none}}
+  @media (hover:none){.rng-box .q{position:absolute;left:-24px;top:50%;margin-top:-7.5px}}
+  .media-list .slot-det{padding:10px 18px 4px 4px}
+  .media-list .slot-det{--lc:84px}
+  .colour-row>.q{position:absolute;left:calc(var(--lc) - 16px);top:50%;margin-top:-7.5px}
+  .colour-row>.cx{grid-column:3}

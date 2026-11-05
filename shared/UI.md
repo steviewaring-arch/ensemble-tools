@@ -205,3 +205,21 @@ and the ones above disagree, this one is where the system is going.
   260 ms for numbers that change. Nothing moves with reduced motion.
 - **Tests:** `tests/segue_ui_check.py` goes through every control in every set-up,
   the undo, presets, media, the island and the Export sheet.
+
+### The ladder of levels and the row grammar (Segue 0.5.2)
+
+Steve, 5 Nov: "a clear defined logic of category, sub parameter, sub sub… so it's not a constant scramble to understand where I am." Every part of the panel is one of four levels, and each level looks one way only.
+
+1. **Section** – a white card on the panel's 4% grey (the cards are back). Number and title the same size (14), the title Bold, the number Regular grey; a chevron; Reset when anything inside has moved. No summary line.
+2. **Group** – inside a card, under a hairline: title 13 Bold, a chevron. 16 px before it.
+3. **Setting** – one row, 30 px high: the label (13 Medium) in a fixed column on the left (`--lc`, 104 px), the control in the column to its right. Sliders, menus, fields, colours, steppers and switches all start at the same left edge. A slider's label sits in that column too, and a press on it drags the slider (a click there does nothing; double-click resets).
+   - When the control needs the full width, the label goes above it and the control takes the width: a row of choices that won't fit beside the label, tiles (Kind), lists (media, fonts, presets), a text box of more than one line.
+   - Choices: beside the label if each option fits its share with 8 px either side, else full width under it, else a menu beside it.
+4. **Detail** – belongs to one row: a slide's own settings open inside its row; a note sits under what it explains.
+
+- **Space:** an 8 px step – 8 between settings, 6 from a label to a control under it, 16 before a group, 8 between cards.
+- **Corners step down with the levels:** panel 12, card 10, control 8, inside a control 6 (and chips), swatch 4.
+- **Greys** are neutral (no warmth) and quiet: panel #F4F4F4, controls #F2F2F2, hover #ECECEC, a slider's value #E2E2E2.
+- **Weights:** Bold for section and group titles; Medium for labels, buttons and the chosen option; Regular for values, options and notes.
+- **Panel:** 360 px by default, dragged 280–480.
+- **Focus rings** show only when working from the keyboard (a press on a slider used to leave a blue ring in Safari).

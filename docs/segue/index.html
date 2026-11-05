@@ -419,16 +419,20 @@
     --h-ctl:30px; --h-sm:24px; --h-chip:28px;
     --r-frame:12px; --r-card:8px; --r-inner:6px;
     --r-surface:12px; --r-ctl:8px; --r-in:6px; --r-chip:6px; --r-sw:4px;
-    --k-fill:#efeeeb; --k-fill-2:#dcdad5; --k-fill-hover:#e7e5e1; --k-raise:#ffffff; --k-raise-line:rgba(43,43,43,.15);
-    --k-num:#a5a3a9; --k-handle:#1d1d1f;
+    /* pure greys (no warmth), kept quiet: the panel a 4% grey, each section's controls on a white card */
+    --k-panel:#f4f4f4; --k-card:#ffffff;
+    --k-fill:#f2f2f2; --k-fill-2:#e2e2e2; --k-fill-hover:#ececec; --k-raise:#ffffff; --k-raise-line:rgba(0,0,0,.13);
+    --k-num:#a6a6a6; --k-handle:#1d1d1f;
+    --pw:320px;
     /* motion: three curves, named for what they do */
     --e-snap:cubic-bezier(.2,.8,.2,1); --e-smooth:cubic-bezier(.32,.72,0,1); --e-morph:cubic-bezier(.34,1.22,.64,1);
     --t-snap:140ms; --t-smooth:360ms; --t-morph:420ms; --t-roll:260ms;
     --gutter:14px; /* the change column on the right of every row */
   }
   body[data-theme="dark"]{
-    --k-fill:#2b2b30; --k-fill-2:#3d3d44; --k-fill-hover:#34343a; --k-raise:#4a4a52; --k-raise-line:rgba(255,255,255,.12);
-    --k-num:#77757c; --k-handle:#ffffff;
+    --k-panel:#1b1b1b; --k-card:#262626;
+    --k-fill:#313131; --k-fill-2:#434343; --k-fill-hover:#383838; --k-raise:#4b4b4b; --k-raise-line:rgba(255,255,255,.12);
+    --k-num:#767676; --k-handle:#ffffff;
   }
   body{letter-spacing:-0.012em}
   button,input,textarea,select{letter-spacing:-0.012em}
@@ -441,16 +445,18 @@
   .brand .bline.caps{font-size:var(--fs-by);letter-spacing:-0.035em}
   .scroll{padding:0;gap:0}
   .panel,.island,.pcap{border-radius:var(--r-surface)}
+  .panel{background:var(--k-panel);-webkit-backdrop-filter:none;backdrop-filter:none}
 
   /* sections (level 1): hairlines, not boxes */
   .card{background:transparent;border-radius:0;border-top:1px solid var(--keyline)}
-  .card-toggle{min-height:44px;padding:0 16px;gap:8px;font-size:var(--fs-title);font-weight:500;letter-spacing:-0.012em;border-bottom:0}
+  .card-toggle{min-height:46px;padding:0 16px;gap:8px;font-size:var(--fs-title);font-weight:700;letter-spacing:-0.012em;border-bottom:0}
   .card-toggle:focus-visible{border-radius:0;outline-offset:-3px}
   .card>h2{position:relative}
-  .card-toggle .num{order:-1;flex:none;width:14px;font-size:12px;font-weight:400;color:var(--k-num);font-variant-numeric:tabular-nums;letter-spacing:0}
+  .card-toggle .num{order:-1;flex:none;width:16px;font-size:var(--fs-title);font-weight:400;color:var(--k-num);font-variant-numeric:tabular-nums;letter-spacing:0}
   .card-toggle .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
   .card.collapsed.chg .card-toggle .cdot{transform:scale(1)}
-  .card-toggle .sum{font-weight:400;font-size:12px;margin-left:auto}
+  .card-toggle .sum{display:none}
+  .card-toggle .chev,.card.collapsed .card-toggle .sum:not(:empty)+.chev{margin-left:auto}
   h2>.pill.reset{position:absolute;right:38px;top:50%;margin-top:-12px;display:none}
   .card.chg:not(.collapsed)>h2>.reset{display:inline-flex;animation:kitFade var(--t-smooth) var(--e-smooth)}
   .card-toggle .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
@@ -462,29 +468,36 @@
   .card.collapsed .card-anim{grid-template-rows:0fr}
   .card.collapsed .card-body{display:block}
   .card-anim[hidden]{display:none!important}
-  .card-body{padding:2px calc(16px + var(--gutter)) 18px 16px;transition:opacity var(--t-smooth)}
+  .card-body{background:var(--k-card);border-radius:10px;margin:0 10px 12px;padding:14px calc(12px + var(--gutter)) 14px 12px;transition:opacity var(--t-smooth)}
+  .card:first-child{border-top:0}
   .card.collapsed .card-body{opacity:0}
 
   /* groups (level 2) */
-  .fold-head,.more-toggle{min-height:36px;margin:6px 0 8px;font-size:12.5px;font-weight:500;color:var(--ink);letter-spacing:-0.008em}
+  .fold{border-top:1px solid var(--keyline);margin:16px 0 0;padding-top:4px}
+  .card-body>.fold:first-child{border-top:0;margin-top:-6px;padding-top:0}
+  .fold-head,.more-toggle{min-height:38px;margin:0 0 6px;font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);letter-spacing:-0.008em}
+  .fold-head[aria-expanded="false"]{margin-bottom:0}
+  .fold-body{padding-bottom:4px}
   .fold-head:hover{color:var(--ink-strong)}
-  .fold-head .sum,.more-toggle .sum{color:var(--muted);font-weight:400;font-size:12px}
+  .fold-head .sum,.more-toggle .sum{display:none}
   .fold-head .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
   .fold-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph);margin-right:auto}
   .fold-head.chg[aria-expanded="false"] .cdot{transform:scale(1)}
   .fold-head>span:first-child{margin-right:0}
   .fold-head[aria-expanded="true"] .chev{transform:none}
   .fold-head[aria-expanded="false"] .chev{transform:rotate(-90deg)}
-  .sub-head{font-size:11.5px;font-weight:500;color:var(--muted);margin:10px 0 8px;letter-spacing:0}
+  .sub-head{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);margin:4px 0 8px;letter-spacing:-0.008em}
+  .sheet .sub-head,.preset-list .sub-head{font-size:11.5px;color:var(--muted);margin:10px 0 8px}
   body.kit-live .fold-body:not([hidden]),body.kit-live .card-body>.ctl:not([hidden]),body.kit-live .fold-body>.ctl:not([hidden]),
   body.kit-live .card-body>.toggle-row:not([hidden]),body.kit-live .card-body>.colour-row:not([hidden]){animation:kitIn var(--t-smooth) var(--e-smooth)}
   @keyframes kitIn{from{opacity:0;transform:translateY(-3px)}}
   @keyframes kitFade{from{opacity:0}}
 
   /* ---------------- rows and the change column ---------------- */
-  .ctl{margin:0 0 10px;position:relative}
+  .ctl{margin:0 0 12px;position:relative}
   .ctl-head{margin-bottom:6px;min-height:16px;gap:6px}
-  .ctl-head label,.ctl-head>span:first-child{font-size:var(--fs-body);color:var(--ink)}
+  .ctl-head label,.ctl-head>span:first-child{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong)}
+  .toggle-row .toggle>span:last-child,.colour-row>label,.colour-row>span:first-child{font-weight:500;color:var(--ink-strong)}
   .toggle-row,.colour-row{position:relative}
   /* a red dot at the end of a row once it's moved from where it started; click it to put it back */
   .cx{position:absolute;right:calc(-1 * var(--gutter) - 2px);top:0;width:var(--gutter);height:16px;border:0;padding:0;background:none;cursor:default;display:flex;align-items:center;justify-content:center;pointer-events:none}
@@ -512,9 +525,10 @@
   .rng-box:hover .rng-tick,.rng-box.drag .rng-tick{transform:scaleY(1.18)}
   .rng-notch{position:absolute;bottom:0;width:1px;height:5px;margin-left:-.5px;background:var(--ink);opacity:.32;left:calc(5px + (100% - 10px) * var(--b,0));pointer-events:none}
   .rng-box .ctl-head{padding:0 3px 0 10px}
-  .rng-box .ctl-head label{font-size:var(--fs-body)}
+  .rng-box .ctl-head label{font-size:var(--fs-body);font-weight:400;color:var(--ink-strong)}
   .rng-box input[type=range]{pointer-events:none}
-  .rng-box:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+  body.kbd .rng-box:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+  body:not(.kbd) select:focus,body:not(.kbd) button:focus,body:not(.kbd) [tabindex]:focus{outline:none}
   .ctl .ctl-head .val{font-size:12.5px;color:var(--muted);min-width:0}
   .ctl.chg .ctl-head .val{color:var(--ink-strong);font-weight:500}
   .rng-box .val.typable{pointer-events:auto;padding:0 7px;margin:0 0 0 auto;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center}
@@ -605,7 +619,7 @@
   .num-row label.num span{font-size:12px}
 
   /* help */
-  .hint{font-size:12px;line-height:1.45;margin:2px 0 10px}
+  .hint{font-size:12px;line-height:1.45;margin:-2px 0 16px;color:var(--muted)}
   .q{width:15px;height:15px;font-size:9.5px}
   .tip{border-radius:var(--r-ctl);font-size:12px}
 
@@ -680,6 +694,57 @@
     .card-body{padding-right:calc(16px + var(--gutter))}
   }
   @media (prefers-reduced-motion: reduce){.rng-box.ease{transition:none}}
+
+  /* ================= Structure (0.5.2) – one ladder of levels, one row grammar =================
+     1 Section  – a white card on the panel's 4% grey: number and title (14, Bold), chevron, Reset when changed.
+     2 Group    – inside a card, under a hairline: title (13, Bold), chevron.
+     3 Setting  – one row: its label (13, Medium) in a fixed column on the left, its control on the right,
+                  30 px high. When the control needs the full width – choices that won't fit beside the label,
+                  tiles, a list, a text box – the label sits above and the control takes the width.
+     4 Detail   – belongs to one row (a slide's own settings, a note): inside or under that row.
+     Space on an 8 px step: 8 between settings, 6 from a label to the control under it, 16 before a group.
+     Corners step down with the levels: panel 12, card 10, control 8, inside a control 6, swatch 4. */
+  :root{--pw:360px;--lc:104px;--r-cardk:10px}
+  .scroll{padding:0 8px 8px;gap:8px}
+  .card{background:var(--k-card);border-radius:var(--r-cardk);border-top:0}
+  .card-toggle{min-height:46px;padding:0 12px}
+  .card-toggle:focus-visible{border-radius:var(--r-cardk)}
+  .card-body{background:none;border-radius:0;margin:0;padding:0 calc(12px + var(--gutter)) 14px 12px}
+  h2>.pill.reset{right:34px}
+  .sheet .card{background:none}
+
+  /* level 3 – a setting on one row: label column, then the control */
+  .ctl,.toggle-row,.colour-row{margin:0 0 8px}
+  .ctl.sel,.ctl.txt:not(.multi),.ctl.nums,.ctl.stp,.ctl.seg-inline,.ctl.as-menu,.colour-row{display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;min-height:var(--h-ctl)}
+  .ctl.sel>.ctl-head,.ctl.txt:not(.multi)>.ctl-head,.ctl.nums>.ctl-head,.ctl.stp>.ctl-head,.ctl.seg-inline>.ctl-head,.ctl.as-menu>.ctl-head{margin:0;min-width:0;position:static}
+  .ctl.seg-inline>.seg,.ctl.as-menu>.seg-menu{grid-column:2}
+  .ctl.stp>.stp-g{justify-self:start}
+  .ctl-head label,.ctl-head>span:first-child{white-space:normal;line-height:1.2}
+  /* the change dot sits level with a one-line row */
+  .ctl.sel .cx,.ctl.txt:not(.multi) .cx,.ctl.nums .cx,.ctl.seg-inline .cx,.ctl.as-menu .cx{top:50%;margin-top:-8px}
+  /* a full-width control: the label above it */
+  .ctl:not(.seg-inline):not(.as-menu)>.ctl-head{margin-bottom:6px}
+  /* switch: its words in the label column, the tick where every control starts */
+  .toggle-row .toggle{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;width:100%;min-height:var(--h-ctl);margin:0}
+  .toggle-row .toggle>span:last-child{order:-1;font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .toggle-row>.q{position:absolute;left:calc(var(--lc) + 34px);top:50%;margin-top:-7.5px}
+  /* colour: the hex field across the control column, the swatch at its end */
+  .colour-row>label{font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .colour-row .cw{margin:0;display:flex;gap:6px;min-width:0}
+  .colour-row input.hexin{flex:1;width:auto;min-width:0;height:var(--h-ctl);border-radius:var(--r-ctl);font-size:var(--fs-body)}
+  .colour-row .cswatch{width:var(--h-ctl);height:var(--h-ctl);border-radius:var(--r-ctl);flex:none}
+  /* the slider: its label in the label column (a press there drags it too), the bar in the control column */
+  .ctl.rng{padding-left:calc(var(--lc) + 10px)}
+  .rng-box{overflow:visible}
+  .rng-box.from-start .rng-fill{border-radius:var(--r-ctl) 0 0 var(--r-ctl)}
+  .rng-box .ctl-head label{position:absolute;left:calc(-1 * (var(--lc) + 10px));width:var(--lc);top:50%;transform:translateY(-50%);
+    pointer-events:auto;cursor:ew-resize;font-weight:500;color:var(--ink-strong);line-height:1.2;white-space:normal}
+  @media (hover:hover){.rng-box .q{display:none}}
+  @media (hover:none){.rng-box .q{position:absolute;left:-24px;top:50%;margin-top:-7.5px}}
+  .media-list .slot-det{padding:10px 18px 4px 4px}
+  .media-list .slot-det{--lc:84px}
+  .colour-row>.q{position:absolute;left:calc(var(--lc) - 16px);top:50%;margin-top:-7.5px}
+  .colour-row>.cx{grid-column:3}
   /* Segue – its own parts, on the shared tokens and components */
   .media-list .slot.dragging{opacity:.4}
   .media-list .slot.over{box-shadow:inset 0 2px 0 var(--fill-ink)}
@@ -748,7 +813,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.5.1</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.5.2</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -3347,7 +3412,7 @@ function card(id,title,show){curGroup=id;
   controls.push({d:{show:show||null},w:c,update(){},card:id});return body;}
 const FOLDS=LS.get('folds')||{};
 function fold(parent,id,title,show,shut,sum){
-  const box=el('div'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');head.type='button';chev.innerHTML=CHEV;
+  const box=el('div','fold'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');head.type='button';chev.innerHTML=CHEV;
   const open=FOLDS[id]!=null?FOLDS[id]:!shut,paint=o=>{body.hidden=!o;head.setAttribute('aria-expanded',o);if(o)requestAnimationFrame(()=>syncRanges(body));};paint(open);
   head.onclick=()=>{const o=body.hidden;FOLDS[id]=o;LS.set('folds',FOLDS);paint(o);};
   head.append(label,el('span','cdot'),chev);head._sum=sum||null;box.append(head,body);addCustom(parent,show||null,box);return body;}
@@ -3427,7 +3492,7 @@ function upgradeRange(inp){const ctl=inp.parentElement;if(!ctl||!ctl.classList.c
   /* drag from wherever you press – it moves by how far you go, not to where you are; Shift is ten times finer.
      A press that doesn't move jumps there. It catches for a moment where it started (the notch). */
   /* The ? sits inside the bar: a press on it that moves drags like anywhere else; one that doesn't shows its tip. */
-  box.addEventListener('pointerdown',e=>{if(e.button||e.target.closest('.val,.val-in,.cx'))return;const onQ=!!e.target.closest('.q');
+  box.addEventListener('pointerdown',e=>{if(e.button||e.target.closest('.val,.val-in,.cx'))return;const onQ=!!e.target.closest('.q,label');
     if(!onQ){e.preventDefault();inp.focus({preventScroll:true});try{box.setPointerCapture(e.pointerId);}catch(_){}}
     const r=box.getBoundingClientRect(),[mn,mx]=lim(),span=mx-mn,bv=+(box.style.getPropertyValue('--b')||0)*span+mn;let lastX=e.clientX,acc=+inp.value,movedAny=false;gesture=++gestureN;
     const mv=ev=>{const dx=ev.clientX-lastX;if(!movedAny&&Math.abs(ev.clientX-e.clientX)<3)return;
@@ -3447,8 +3512,11 @@ function textW(t){measureCtx.font='500 12.5px "aktiv-grotesk","Aktiv Grotesk","H
 function segRoom(g){const ctl=g.closest('.ctl');const w=ctl&&ctl.offsetWidth;if(w)return w;return g.closest('.sheet')?308:Math.max(180,($('#panelBox').offsetWidth||300)-46);}
 function fitSeg(g){const bs=[...g.children].filter(b=>b.tagName==='BUTTON'&&!b.hidden),n=bs.length;if(!n)return;g.classList.remove('wrap','loose');
   const ctl=g.closest('.ctl');if(g.closest('.isl-main')||!ctl||!ctl.querySelector(':scope>.seg-menu')){placeHL(g,true);return;}
-  const each=(segRoom(g)-4-(n-1)*2)/n,need=Math.max(...bs.map(b=>textW((b.textContent||'').trim())))+16;   /* at least 8 px either side of the words */
-  ctl.classList.toggle('as-menu',need>each);placeHL(g,true);}
+  /* a row of choices sits beside its label when every option fits its share (in Medium, 8 px either side);
+     otherwise it takes the full width under the label; and if even that won't hold it, it becomes a menu */
+  const W=segRoom(g),lc=parseFloat(getComputedStyle(ctl).getPropertyValue('--lc'))||104,need=Math.max(...bs.map(b=>textW((b.textContent||'').trim())))+16;
+  const share=w=>(w-4-(n-1)*2)/n,inline=need<=share(W-lc-10),block=!inline&&need<=share(W);
+  ctl.classList.toggle('seg-inline',inline);ctl.classList.toggle('as-menu',!inline&&!block);placeHL(g,true);}
 /* the white highlight slides to the chosen option (Morph) */
 function placeHL(g,snap){let hl=g.querySelector(':scope>.hl');if(!hl){hl=el('i','hl');g.prepend(hl);}
   const b=[...g.children].find(x=>x.tagName==='BUTTON'&&!x.hidden&&x.getAttribute('aria-pressed')==='true');
@@ -3560,7 +3628,7 @@ function addNums(parent,d){/* a pair of number fields on one row – Width × He
   w.append(hd,row);parent.append(w);d.group=d.group||curGroup;
   const c={d,w,update(){for(const [k,inp] of ins)if(document.activeElement!==inp)inp.value=S[k];}};controls.push(c);addCx(c,hd);return c;}
 function addText(parent,d){
-  const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,d.label),inp=el(d.multi?'textarea':'input');if(!d.multi)inp.type='text';else inp.rows=d.rows||2;
+  const w=el('div','ctl txt'+(d.multi?' multi':'')),hd=el('div','ctl-head'),lb=el('label',null,d.label),inp=el(d.multi?'textarea':'input');if(!d.multi)inp.type='text';else inp.rows=d.rows||2;
   inp.id='c_'+d.k;lb.htmlFor=inp.id;inp.spellcheck=false;if(d.placeholder)inp.placeholder=d.placeholder;d.group=d.group||curGroup;
   hd.append(lb);const q=qMark(d);if(q)hd.append(q);w.append(hd,inp);parent.append(w);
   inp.oninput=()=>set(d.k,inp.value,true);inp.onchange=()=>refreshAll();
@@ -3579,8 +3647,8 @@ function showTip(q,text,at){if(q&&q.getAttribute&&q.getAttribute('aria-expanded'
 function hideTip(){tipFor=null;tipEl.classList.remove('on');}
 let rowTipT=0,byKeys=false,tipMute=null;
 function tipRow(t){const row=t.closest('[data-tip],.ctl,.toggle-row,.colour-row,.slot-top');return row&&(row.dataset.tip?row:row.querySelector('.q'));}
-document.addEventListener('keydown',()=>{byKeys=true;},true);
-document.addEventListener('pointerdown',e=>{byKeys=false;clearTimeout(rowTipT);hideTip();const t=e.target.closest?e.target:null;tipMute=t&&!t.closest('.q')?tipRow(t):null;},true);
+document.addEventListener('keydown',e=>{byKeys=true;if(e.key==='Tab'||/^Arrow/.test(e.key))document.body.classList.add('kbd');},true);
+document.addEventListener('pointerdown',e=>{byKeys=false;document.body.classList.remove('kbd');clearTimeout(rowTipT);hideTip();const t=e.target.closest?e.target:null;tipMute=t&&!t.closest('.q')?tipRow(t):null;},true);
 document.addEventListener('mouseover',e=>{const t=e.target.closest?e.target:null;if(!t)return;const q=t.closest('.q');clearTimeout(rowTipT);
   if(q){tipMute=null;if(q!==tipFor)showTip(q);return;}
   const row=t.closest('[data-tip],.ctl,.toggle-row,.colour-row,.slot-top');const src=row&&(row.dataset.tip?row:row.querySelector('.q'));
@@ -3624,9 +3692,9 @@ function frameStart(){
   requestAnimationFrame(()=>setTimeout(()=>document.body.classList.add('kit-live'),600));
   window.addEventListener('resize',layoutUI);
   const rz=$('#resizer'),app=$('.app'),pw=LS.get('panelW'),put=w=>{app.style.setProperty('--pw',w+'px');document.documentElement.style.setProperty('--pw',w+'px');};
-  if(pw)put(clamp(pw,280,440));
+  if(pw)put(clamp(pw,280,480));
   rz.addEventListener('pointerdown',e=>{e.preventDefault();rz.setPointerCapture(e.pointerId);const x0=e.clientX,w0=$('#panelBox').offsetWidth;
-    const mv=ev=>{put(clamp(w0+ev.clientX-x0,280,440));syncRanges(panel);};
+    const mv=ev=>{put(clamp(w0+ev.clientX-x0,280,480));syncRanges(panel);};
     rz.addEventListener('pointermove',mv);rz.addEventListener('pointerup',()=>{rz.removeEventListener('pointermove',mv);LS.set('panelW',$('#panelBox').offsetWidth);},{once:true});});}
 /* Segue – the app. Media in, framed loops out: the canvas, the shapes the media sits in,
    how they move and loop, captions, fonts and presets. The engine (segue/engine.js) draws;

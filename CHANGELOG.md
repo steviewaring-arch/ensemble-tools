@@ -1,5 +1,16 @@
 # Changelog
 
+## 5 November 2026 – Segue 0.5.2: cards back, and one ladder of levels
+
+Steve's review of 0.5: titles up a weight, labels more obvious, it still felt bitty; the panel a 4–5% grey, a touch wider; no summaries beside the section titles, numbers the size of the titles; quieter, neutral greys (the hover read warm); a considered use of rules and space; "we have definitely lost something with the loss of these cards as sections"; "a clear defined logic of category, sub parameter, sub sub". Segue only; rules in `shared/UI.md` (the ladder of levels).
+
+- **Sections are cards again** – white on the panel's 4% grey, 8 px apart. Titles Bold, numbers the same size in grey, no summary line.
+- **Four levels, each with one look:** section (card), group (hairline and Bold title), setting (one row: label column, control column), detail (inside or under its row).
+- **One row grammar:** every setting's label sits in a fixed left column and its control to the right, so controls share a left edge – sliders included (their label now sits beside the bar, and dragging it drags the slider). Controls that need the width – choices that won't fit, tiles, lists, text boxes – take it with the label above.
+- **Greys** neutral and quieter; corners step down with the levels (12, 10, 8, 6, 4); space on an 8 px step.
+- **Panel** 360 px by default (was 300), up to 480.
+- **No blue ring** after pressing a slider (it focused its hidden range – Safari showed the ring); focus rings now only when using the keyboard.
+
 ## 5 November 2026 – Segue 0.5.1: Presets and Export empty after an earlier Segue
 
 Steve, in Safari: "export doesn't work. The presets have no presets in them." Not Safari – any browser that had used an earlier Segue. 0.5 hides a shut section's contents once it has closed; Presets and Export were sections early on, and a browser that remembered them as shut (`segue:collapsed`) opened their sheets with the contents still hidden. Sheets now always open in full. `tests/segue_ui_check.py`: 81 checks (1 new) – a browser with Presets, Export and others saved as shut.

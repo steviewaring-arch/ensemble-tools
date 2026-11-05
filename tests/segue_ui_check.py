@@ -251,11 +251,11 @@ with sync_playwright() as p:
     # ---- the kit: corners, weights, no shadows ----
     look = pg.evaluate("""(()=>{const r=s=>{const e=document.querySelector(s);return e?getComputedStyle(e).borderTopLeftRadius:null};const w=s=>{const e=document.querySelector(s);return e?getComputedStyle(e).fontWeight:null};
       const shadows=[...document.querySelectorAll('.panel,.island,.pcap,.card,.pill,.seg,.rng-box,.kind,.tools,.stage-foot span')].map(e=>getComputedStyle(e).boxShadow).filter(s=>s&&s!=='none'&&!/inset|0px 0px 0px/.test(s));
-      return {panel:r('.panel'),island:r('.island'),pcap:r('.pcap'),rng:r('.rng-box'),seg:r('.seg'),hl:r('.seg>.hl'),pill:r('.btn-row>.pill:not(.small)'),chip:r('.pill.small:not(.icon)'),sel:r('select'),kind:r('.kind'),chipTop:r('.stage-foot span'),
-        title:w('.card-toggle'),body:w('.ctl-head label'),chosen:w('.seg>.pill[aria-pressed=true]'),shadows}})()""")
-    check('corners: surfaces 12 px, controls 8, inside a control 6, chips 6 – nothing a lozenge',
-          [look['panel'], look['island'], look['pcap']] == ['12px'] * 3 and [look['rng'], look['seg'], look['pill'], look['sel'], look['kind'], look['chipTop']] == ['8px'] * 6 and look['hl'] == '6px' and look['chip'] == '6px', json.dumps(look))
-    check('two weights: titles and the chosen option Medium, the rest Regular', look['title'] == '500' and look['chosen'] == '500' and look['body'] == '400', f"{look['title']} {look['chosen']} {look['body']}")
+      return {panel:r('.panel'),card:r('#panel section.card'),island:r('.island'),pcap:r('.pcap'),rng:r('.rng-box'),seg:r('.seg'),hl:r('.seg>.hl'),pill:r('.btn-row>.pill:not(.small)'),chip:r('.pill.small:not(.icon)'),sel:r('select'),kind:r('.kind'),chipTop:r('.stage-foot span'),
+        title:w('.card-toggle'),body:w('.ctl-head label'),val:w('.rng-box .val'),chosen:w('.seg>.pill[aria-pressed=true]'),shadows}})()""")
+    check('corners step down with the levels: surfaces 12 px, cards 10, controls 8, inside a control 6, chips 6 – nothing a lozenge',
+          [look['panel'], look['island'], look['pcap']] == ['12px'] * 3 and look['card'] == '10px' and [look['rng'], look['seg'], look['pill'], look['sel'], look['kind'], look['chipTop']] == ['8px'] * 6 and look['hl'] == '6px' and look['chip'] == '6px', json.dumps(look))
+    check('weights: section titles Bold, labels and the chosen option Medium, values Regular', look['title'] == '700' and look['chosen'] == '500' and look['body'] == '500' and look['val'] == '400', f"{look['title']} {look['chosen']} {look['body']} {look['val']}")
     check('no drop shadows – hairlines only', not look['shadows'], '; '.join(look['shadows'][:3]))
     nums = pg.evaluate("[...document.querySelectorAll('#panel>section.card:not([hidden])>h2 .num')].map(e=>e.textContent)")
     titles = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .card-toggle>span:first-child')].map(e=>e.textContent)")
@@ -416,7 +416,7 @@ with sync_playwright() as p:
     wide = pg.evaluate("[document.querySelector('#panelBox').offsetWidth,document.querySelector('#c_cSize')?0:0,[...document.querySelectorAll('#panel .ctl')].find(w=>w.querySelector('.seg[aria-label=Size]')).classList.contains('as-menu')]")
     rz = pg.locator('#resizer').bounding_box(); pg.mouse.move(rz['x'] + 4, rz['y'] + 300); pg.mouse.down(); pg.mouse.move(rz['x'] - 260, rz['y'] + 300, steps=8); pg.mouse.up(); time.sleep(.5)
     narrow = pg.evaluate("[document.querySelector('#panelBox').offsetWidth,[...document.querySelectorAll('#panel .ctl')].find(w=>w.querySelector('.seg[aria-label=Size]')).classList.contains('as-menu')]")
-    check('the panel’s width drags (280–440), and choices re-fit: a row when there’s room, a menu when not', wide[0] == 440 and wide[2] is False and narrow[0] == 280 and narrow[1] is True, f'{wide} {narrow}')
+    check('the panel’s width drags (280–480), and choices re-fit: a row when there’s room, a menu when not', wide[0] == 480 and wide[2] is False and narrow[0] == 280 and narrow[1] is True, f'{wide} {narrow}')
     pg.locator('#themeBtn').click(); time.sleep(.3)
     dark = pg.evaluate("[document.body.dataset.theme,localStorage.getItem('segue:mode')]")
     pg.locator('#themeBtn').click(); time.sleep(.2)

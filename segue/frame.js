@@ -73,7 +73,7 @@ function card(id,title,show){curGroup=id;
   controls.push({d:{show:show||null},w:c,update(){},card:id});return body;}
 const FOLDS=LS.get('folds')||{};
 function fold(parent,id,title,show,shut,sum){
-  const box=el('div'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');head.type='button';chev.innerHTML=CHEV;
+  const box=el('div','fold'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');head.type='button';chev.innerHTML=CHEV;
   const open=FOLDS[id]!=null?FOLDS[id]:!shut,paint=o=>{body.hidden=!o;head.setAttribute('aria-expanded',o);if(o)requestAnimationFrame(()=>syncRanges(body));};paint(open);
   head.onclick=()=>{const o=body.hidden;FOLDS[id]=o;LS.set('folds',FOLDS);paint(o);};
   head.append(label,el('span','cdot'),chev);head._sum=sum||null;box.append(head,body);addCustom(parent,show||null,box);return body;}
@@ -153,7 +153,7 @@ function upgradeRange(inp){const ctl=inp.parentElement;if(!ctl||!ctl.classList.c
   /* drag from wherever you press – it moves by how far you go, not to where you are; Shift is ten times finer.
      A press that doesn't move jumps there. It catches for a moment where it started (the notch). */
   /* The ? sits inside the bar: a press on it that moves drags like anywhere else; one that doesn't shows its tip. */
-  box.addEventListener('pointerdown',e=>{if(e.button||e.target.closest('.val,.val-in,.cx'))return;const onQ=!!e.target.closest('.q');
+  box.addEventListener('pointerdown',e=>{if(e.button||e.target.closest('.val,.val-in,.cx'))return;const onQ=!!e.target.closest('.q,label');
     if(!onQ){e.preventDefault();inp.focus({preventScroll:true});try{box.setPointerCapture(e.pointerId);}catch(_){}}
     const r=box.getBoundingClientRect(),[mn,mx]=lim(),span=mx-mn,bv=+(box.style.getPropertyValue('--b')||0)*span+mn;let lastX=e.clientX,acc=+inp.value,movedAny=false;gesture=++gestureN;
     const mv=ev=>{const dx=ev.clientX-lastX;if(!movedAny&&Math.abs(ev.clientX-e.clientX)<3)return;
@@ -173,8 +173,11 @@ function textW(t){measureCtx.font='500 12.5px "aktiv-grotesk","Aktiv Grotesk","H
 function segRoom(g){const ctl=g.closest('.ctl');const w=ctl&&ctl.offsetWidth;if(w)return w;return g.closest('.sheet')?308:Math.max(180,($('#panelBox').offsetWidth||300)-46);}
 function fitSeg(g){const bs=[...g.children].filter(b=>b.tagName==='BUTTON'&&!b.hidden),n=bs.length;if(!n)return;g.classList.remove('wrap','loose');
   const ctl=g.closest('.ctl');if(g.closest('.isl-main')||!ctl||!ctl.querySelector(':scope>.seg-menu')){placeHL(g,true);return;}
-  const each=(segRoom(g)-4-(n-1)*2)/n,need=Math.max(...bs.map(b=>textW((b.textContent||'').trim())))+16;   /* at least 8 px either side of the words */
-  ctl.classList.toggle('as-menu',need>each);placeHL(g,true);}
+  /* a row of choices sits beside its label when every option fits its share (in Medium, 8 px either side);
+     otherwise it takes the full width under the label; and if even that won't hold it, it becomes a menu */
+  const W=segRoom(g),lc=parseFloat(getComputedStyle(ctl).getPropertyValue('--lc'))||104,need=Math.max(...bs.map(b=>textW((b.textContent||'').trim())))+16;
+  const share=w=>(w-4-(n-1)*2)/n,inline=need<=share(W-lc-10),block=!inline&&need<=share(W);
+  ctl.classList.toggle('seg-inline',inline);ctl.classList.toggle('as-menu',!inline&&!block);placeHL(g,true);}
 /* the white highlight slides to the chosen option (Morph) */
 function placeHL(g,snap){let hl=g.querySelector(':scope>.hl');if(!hl){hl=el('i','hl');g.prepend(hl);}
   const b=[...g.children].find(x=>x.tagName==='BUTTON'&&!x.hidden&&x.getAttribute('aria-pressed')==='true');
@@ -286,7 +289,7 @@ function addNums(parent,d){/* a pair of number fields on one row – Width × He
   w.append(hd,row);parent.append(w);d.group=d.group||curGroup;
   const c={d,w,update(){for(const [k,inp] of ins)if(document.activeElement!==inp)inp.value=S[k];}};controls.push(c);addCx(c,hd);return c;}
 function addText(parent,d){
-  const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,d.label),inp=el(d.multi?'textarea':'input');if(!d.multi)inp.type='text';else inp.rows=d.rows||2;
+  const w=el('div','ctl txt'+(d.multi?' multi':'')),hd=el('div','ctl-head'),lb=el('label',null,d.label),inp=el(d.multi?'textarea':'input');if(!d.multi)inp.type='text';else inp.rows=d.rows||2;
   inp.id='c_'+d.k;lb.htmlFor=inp.id;inp.spellcheck=false;if(d.placeholder)inp.placeholder=d.placeholder;d.group=d.group||curGroup;
   hd.append(lb);const q=qMark(d);if(q)hd.append(q);w.append(hd,inp);parent.append(w);
   inp.oninput=()=>set(d.k,inp.value,true);inp.onchange=()=>refreshAll();
@@ -305,8 +308,8 @@ function showTip(q,text,at){if(q&&q.getAttribute&&q.getAttribute('aria-expanded'
 function hideTip(){tipFor=null;tipEl.classList.remove('on');}
 let rowTipT=0,byKeys=false,tipMute=null;
 function tipRow(t){const row=t.closest('[data-tip],.ctl,.toggle-row,.colour-row,.slot-top');return row&&(row.dataset.tip?row:row.querySelector('.q'));}
-document.addEventListener('keydown',()=>{byKeys=true;},true);
-document.addEventListener('pointerdown',e=>{byKeys=false;clearTimeout(rowTipT);hideTip();const t=e.target.closest?e.target:null;tipMute=t&&!t.closest('.q')?tipRow(t):null;},true);
+document.addEventListener('keydown',e=>{byKeys=true;if(e.key==='Tab'||/^Arrow/.test(e.key))document.body.classList.add('kbd');},true);
+document.addEventListener('pointerdown',e=>{byKeys=false;document.body.classList.remove('kbd');clearTimeout(rowTipT);hideTip();const t=e.target.closest?e.target:null;tipMute=t&&!t.closest('.q')?tipRow(t):null;},true);
 document.addEventListener('mouseover',e=>{const t=e.target.closest?e.target:null;if(!t)return;const q=t.closest('.q');clearTimeout(rowTipT);
   if(q){tipMute=null;if(q!==tipFor)showTip(q);return;}
   const row=t.closest('[data-tip],.ctl,.toggle-row,.colour-row,.slot-top');const src=row&&(row.dataset.tip?row:row.querySelector('.q'));
@@ -350,7 +353,7 @@ function frameStart(){
   requestAnimationFrame(()=>setTimeout(()=>document.body.classList.add('kit-live'),600));
   window.addEventListener('resize',layoutUI);
   const rz=$('#resizer'),app=$('.app'),pw=LS.get('panelW'),put=w=>{app.style.setProperty('--pw',w+'px');document.documentElement.style.setProperty('--pw',w+'px');};
-  if(pw)put(clamp(pw,280,440));
+  if(pw)put(clamp(pw,280,480));
   rz.addEventListener('pointerdown',e=>{e.preventDefault();rz.setPointerCapture(e.pointerId);const x0=e.clientX,w0=$('#panelBox').offsetWidth;
-    const mv=ev=>{put(clamp(w0+ev.clientX-x0,280,440));syncRanges(panel);};
+    const mv=ev=>{put(clamp(w0+ev.clientX-x0,280,480));syncRanges(panel);};
     rz.addEventListener('pointermove',mv);rz.addEventListener('pointerup',()=>{rz.removeEventListener('pointermove',mv);LS.set('panelW',$('#panelBox').offsetWidth);},{once:true});});}
