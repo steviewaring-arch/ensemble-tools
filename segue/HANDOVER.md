@@ -1,4 +1,4 @@
-# Segue – handover (5 November 2026, Segue 0.4.2)
+# Segue – handover (5 November 2026, Segue 0.5)
 
 For the Segue chat. Read this, then the repo's `README.md` and `HANDOVER.md` (how the repo, the build, storage and the other streams work). Segue is internal for now: built to `docs/segue/`, live at https://steviewaring-arch.github.io/ensemble-tools/segue/, and not linked from the index page.
 
@@ -55,6 +55,16 @@ Steve's recordings are 554 × 370 at 60 fps, variable frame rate (two of the fiv
 - **Typing:** `typable()` in `frame.js` turns a slider's value into a button; click, Tab+Enter or Space opens a small field, Enter commits (units stripped, clamped to the slider's min and max, not rounded to its step), Escape cancels, blur commits. `addRange` and the media rows' `itemRange` both use it; a typed value shows as typed.
 - **Dragging** (`app.js`, before `setPlaying`): a press on the canvas finds the topmost op under it in the last scene (`cur`, clip-aware), pauses, and drags. Cropped (cover, not As it is): `px`/`py` per item, −100…100% of the picture to spare each way (`drawMedia` places it at `−spare + px/100 × spare`); only an axis with something to spare moves. As it is: `ox`/`oy` in px at a 1080 short side, applied in `oneFinish` with `zm` as the slide's size (those ops are `whole`, so `drawMedia` doesn't crop them). Ctrl or Alt + wheel sets `zm` (cropped 100–400%, as it is 30–200%); double-click resets. On release the item's row opens. Works in every kind where the media fills its shape.
 
+### The round 4 kit (0.5 – UI stream)
+Segue is where the house UI's next step is tried before Tempo, Rubato and Tutti take it (rules in `shared/UI.md`, last section). `build.py` adds `shared/kit.css` to Segue's styles only. In `frame.js`:
+- **Undo** (`UNDO`, `REDO`, `record`, `group`, `pushUndo`, `undo`, `redo`): every `set()` records; the same key within 0.8 s or in one drag (`gesture`) joins up. A preset, a section Reset and removing files push one entry each (`applyPreset`, `resetCard`, `removeItems`, `removePic` in `app.js` – removed files are read back from IndexedDB first so Undo restores them). ⌘Z / ⇧⌘Z / Ctrl+Y in `frameStart`, not while typing.
+- **What's changed** (`paintChanges`, `addCx`, `resetCtl`, `resetCard`): `baseOf(k)` in `app.js` gives a key's start value – the preset in use (px keys scaled by `unit()`, export keys from its `x`), else `D`. Rows that differ get `.chg` and a `.cx` dot (click to reset); sections and folds get a dot when shut. `edited` is now recomputed from `LOOK` rather than set on any change.
+- **Slider** (`upgradeRange`, `syncRange`): relative drag with Shift finer and a catch at the start value; click jumps; `--z` is the zero point (fills from zero), `--b` the notch. The native range stays for keyboard and tests (pointer events off).
+- **Choices** (`addSeg`, `fitSeg`, `placeHL`, `segRO`): a hidden `select.seg-menu` mirrors each seg; `.as-menu` swaps them when the widest label won't fit an equal share. `.hl` is the white that slides.
+- **Steppers** (`addStepper`): `addRange` uses one for whole counts of ten or fewer with no unit.
+- **Chips** (`CHIP_ICON`, `chipIcon`): Shuffle, Clear all, Whole clip, Reset, Replace, Stop and "+ …" get an icon; the words stay as the button's text (the tests read it).
+- Section titles stay the first span in `.card-toggle` (the tests read them); the number comes after in the markup and is placed first with CSS.
+
 ### How the loop works (`segue/engine.js`)
 - **One (Slides), Line, Grid** – as 0.1: shapes on a track (or a grid scrolling a row at a time); a camera visits each stop, rest then move with the feel. Loop = shapes × rest + moves (+ pull back), or shapes × Each shape for Drift. In Slides each stop's rest is that slide's own On screen if it has one (`holdOf` in `plan`).
 - **Slides – framing** (`oneFinish`, run after every Slides scene): Full bleed makes the shape the whole canvas and switches off corners, border, edge, nudge and caption room (captions under or above become On it); As it is makes the shape the whole space (Size %) and fits each slide's own aspect inside it – True to scale shrinks each by one common scale (`G.rel`), and captions under or above pin the slide to that edge so they line up.
@@ -101,7 +111,9 @@ Built for showcase GIFs. Each frame is drawn at full size, scaled to the GIF siz
 | `segue/app.js` | Settings (`D`, `LOOK`, `PX`), fonts, IndexedDB, media (each slide's own `hold`, `arrive`, `moves`), the background and overlay pictures (`PICS`, `setPic`, `clearPic`, `restorePics`), the preview, the cards (kind tiles, the place pad, picture rows), presets (`BUILTIN` grouped by kind, `RENAMED`; a preset's `x` sets export settings) |
 | `segue/export.js` | Frames, MP4, the GIF writer (`gifPalette`, `makeGIF`), PNG, the Export sheet (sizes after export, the movement note), start-up, `window.segue` (for tests and scripted renders – with `pics`, `setPic`, `clearPic`) |
 | `segue/app.html`, `app.css` | The frame's markup (plus `#bgfile`, `#ovfile`), the extra Google Fonts link, Segue's own styles (0.2: `.kinds`, `.kind`, `.place`, `.spot`) |
+| `shared/kit.css` | The round 4 kit (0.5) – Segue only until signed off |
 | `tests/segue_check.py` | 78 checks – see below |
+| `tests/segue_ui_check.py` | The interface, element by element (0.5) – see below |
 
 `build.py` builds it with `build_segue()` (version in `SEGUE`). Segue needs `tempo/vendor/mp4-muxer.js` – keep it (or move it to `shared/`) if Tempo's promo tools come out.
 
@@ -116,10 +128,9 @@ Not tested here: H.264 in a real Chrome or Safari (the test browser now makes H.
 ## The first job – Tempo Series 1 reel (4 Nov)
 `Tempo_Series1_Segue_4x5.mp4` – made with 0.1; see the Project doc `claude/tempo-promo-log.md`. Settings: Line (column) stepping up, Inertia, rest 1.0 s, move 0.65 s, pull back 3 columns, Glide; Timeless Sans captions under. Settings saved by 0.1 open in later versions and make nearly the same reel (lag and keep drifting default to none); from 0.4 the pull back staggers and floats by default – set Pull back › Stagger and Float to 0 to match the reel exactly. Applying the Card stack preset gives the pull back the Soft feel – set Pull back › Feel to Glide for the reel's.
 
-## Backlog – not in 0.4
+## Backlog – not in 0.5
 - **MP4 in Safari at full quality** (Steve to decide): bundle our own H.264 encoder – OpenH264 in WebAssembly (BSD) – used when the browser's won't follow the bitrate. Same file in every browser, at the cost of a bigger page and a slower export. Until then: MP4s from Chrome.
 - **From SOH Motion** (offered 5 Nov, waiting on Steve): fit the loop to a length; export at 2× or 3× the canvas; background from the current slide; a custom curve. Also safe zones, tilt, browsing presets by preview.
-- **Sliders** that drag relative to where you press (and finer with Shift) – for the house UI thread; typing is the stopgap.
 - **Smaller moving GIFs:** lossy LZW (as gifsicle's `--lossy`), or a palette shared across a slide's frames; maybe an option for movement that settles during a slide's rest, so most of its frames are held.
 - **Overlapping transitions** (Through, as the reference does it: the next card appears before the last has filled the frame).
 - **Project files:** save a job (settings, order, captions, start points, media names, background and overlay) and reopen it, matching media by name.

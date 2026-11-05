@@ -237,7 +237,9 @@ $('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs
   window.addEventListener('dragover',e=>e.preventDefault());
   window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(fs.length)addFiles(fs).then(paintFonts);});}
 window.segue={E,S,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
-  setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;}};
+  setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;},get clock(){return clock;},get playing(){return playing;},
+  /* the interface, for the checks: every control, the undo history, where each setting started */
+  ui:{controls,undo,redo,get undoSteps(){return UNDO.length;},get redoSteps(){return REDO.length;},base,moved,get preset(){return current;},get edited(){return edited;}}};
 frameStart();paintMedia();paintFonts();paintPresets();refreshAll();fitCanvas();layoutUI();
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
 loadBuiltinFonts();restoreFonts().then(paintFonts);restoreMedia();restorePics();

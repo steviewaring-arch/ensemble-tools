@@ -314,6 +314,8 @@ For the UI stream (`UI-BRIEF.md`). App chats add what they'd like changed in the
   - Motion: Snappy 140 ms, Smooth 360 ms, Morph 420 ms with overshoot, Roll 260 ms for numbers.
   - Recommendation: A's foundations everywhere first, then trial B on Segue. Three decisions for Steve: A / B / A then B; which slider; white pill or words.
 
+- **Round 4, Steve's review (5 Nov): A's look, our frame – on Segue 0.5 first.** Keep the panel left, island, Presets and chips where they are (no right-hand inspector); keyline chips for quiet actions; rounded rectangles, not lozenges, with one corner logic (12 surfaces, 8 controls, 6 inside a control and chips, round only for dots); the white choice tied to how things are picked (menu when it won't fit). Built as `shared/kit.css` plus frame changes in Segue (undo, change column and section Reset, relative-drag slider with a typeable value, steppers, menus that swap in). Rules in the last section of `shared/UI.md`; tests in `tests/segue_ui_check.py`. **Next:** Steve tries Segue 0.5; once signed off, the same kit and frame changes go into `shared/core.js` for Tempo and Rubato, then Tutti's `frame.js`.
+
 ## Dial ideas not built yet (0.5)
 - Hand shapes: tapered ends, a ring at the centre instead of a dot. (Round ends, tips, a counterweight and weights per hand went in in 0.9.)
 - Marks: numerals or a single 12 (would bring type back), a second ring inside, a 24-hour dial, a minute track of dashes.

@@ -1,0 +1,282 @@
+  /* Ensemble tool system – the kit, round 4 (UI stream, November 2026). On Segue first;
+     Tempo, Rubato and Tutti move onto it once it's signed off. It sits on top of tokens.css
+     and components.css and changes how things look, not where they are: the panel on the left,
+     the island at the bottom, Presets bottom right and the chips top right all stay put.
+
+     One corner logic. A rectangle's corner is the corner around it, less the space between:
+       surfaces – panel, island, Presets, sheets, tooltips – 12 px
+       controls – buttons, sliders, menus, fields, segmented tracks, rows – 8 px
+       anything set 2 px inside a control – the chosen option, the value you type – 6 px
+       chips (24 px high) – 6 px; thumbnails and swatches – 4 to 6 px
+     Only true dots are round: the tick, the change dot, the scrubber, the place pad's dots.
+
+     Two weights of Aktiv Grotesk: Medium (500) for section titles, the chosen option and
+     buttons; Regular for everything else. No drop shadows: hairlines and fills only.
+     Black is for the main action (Export, Download); a choice is shown white on grey. */
+  @property --p{syntax:'<number>';inherits:true;initial-value:0}
+  :root{
+    --fs-mark:20px; --fs-by:20px; --fs-title:14px; --fs-body:13px; --fs-small:12px;
+    --h-ctl:30px; --h-sm:24px; --h-chip:28px;
+    --r-frame:12px; --r-card:8px; --r-inner:6px;
+    --r-surface:12px; --r-ctl:8px; --r-in:6px; --r-chip:6px; --r-sw:4px;
+    --k-fill:#efeeeb; --k-fill-2:#dcdad5; --k-fill-hover:#e7e5e1; --k-raise:#ffffff; --k-raise-line:rgba(43,43,43,.15);
+    --k-num:#a5a3a9; --k-handle:#1d1d1f;
+    /* motion: three curves, named for what they do */
+    --e-snap:cubic-bezier(.2,.8,.2,1); --e-smooth:cubic-bezier(.32,.72,0,1); --e-morph:cubic-bezier(.34,1.22,.64,1);
+    --t-snap:140ms; --t-smooth:360ms; --t-morph:420ms; --t-roll:260ms;
+    --gutter:14px; /* the change column on the right of every row */
+  }
+  body[data-theme="dark"]{
+    --k-fill:#2b2b30; --k-fill-2:#3d3d44; --k-fill-hover:#34343a; --k-raise:#4a4a52; --k-raise-line:rgba(255,255,255,.12);
+    --k-num:#77757c; --k-handle:#ffffff;
+  }
+  body{letter-spacing:-0.012em}
+  button,input,textarea,select{letter-spacing:-0.012em}
+
+  /* ---------------- the panel ---------------- */
+  .brand{padding:16px 16px 14px;gap:1px}
+  .brand .bline{font-size:var(--fs-mark);letter-spacing:-0.035em;line-height:1.08;gap:6px}
+  .brand .mark{font-weight:500}
+  .brand .ver{font-size:var(--fs-mark);letter-spacing:-0.03em}
+  .brand .bline.caps{font-size:var(--fs-by);letter-spacing:-0.035em}
+  .scroll{padding:0;gap:0}
+  .panel,.island,.pcap{border-radius:var(--r-surface)}
+
+  /* sections (level 1): hairlines, not boxes */
+  .card{background:transparent;border-radius:0;border-top:1px solid var(--keyline)}
+  .card-toggle{min-height:44px;padding:0 16px;gap:8px;font-size:var(--fs-title);font-weight:500;letter-spacing:-0.012em;border-bottom:0}
+  .card-toggle:focus-visible{border-radius:0;outline-offset:-3px}
+  .card>h2{position:relative}
+  .card-toggle .num{order:-1;flex:none;width:14px;font-size:12px;font-weight:400;color:var(--k-num);font-variant-numeric:tabular-nums;letter-spacing:0}
+  .card-toggle .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+  .card.collapsed.chg .card-toggle .cdot{transform:scale(1)}
+  .card-toggle .sum{font-weight:400;font-size:12px;margin-left:auto}
+  h2>.pill.reset{position:absolute;right:38px;top:50%;margin-top:-12px;display:none}
+  .card.chg:not(.collapsed)>h2>.reset{display:inline-flex;animation:kitFade var(--t-smooth) var(--e-smooth)}
+  .card-toggle .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
+  .card:not(.collapsed)>h2 .chev{transform:none}
+  .card.collapsed>h2 .chev{transform:rotate(-90deg)}
+  /* open and shut with the Smooth curve */
+  .card-anim{display:grid;grid-template-rows:1fr;transition:grid-template-rows var(--t-smooth) var(--e-smooth)}
+  .card-anim>div{min-height:0;overflow:hidden}
+  .card.collapsed .card-anim{grid-template-rows:0fr}
+  .card.collapsed .card-body{display:block}
+  .card-anim[hidden]{display:none!important}
+  .card-body{padding:2px calc(16px + var(--gutter)) 18px 16px;transition:opacity var(--t-smooth)}
+  .card.collapsed .card-body{opacity:0}
+
+  /* groups (level 2) */
+  .fold-head,.more-toggle{min-height:36px;margin:6px 0 8px;font-size:12.5px;font-weight:500;color:var(--ink);letter-spacing:-0.008em}
+  .fold-head:hover{color:var(--ink-strong)}
+  .fold-head .sum,.more-toggle .sum{color:var(--muted);font-weight:400;font-size:12px}
+  .fold-head .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
+  .fold-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph);margin-right:auto}
+  .fold-head.chg[aria-expanded="false"] .cdot{transform:scale(1)}
+  .fold-head>span:first-child{margin-right:0}
+  .fold-head[aria-expanded="true"] .chev{transform:none}
+  .fold-head[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+  .sub-head{font-size:11.5px;font-weight:500;color:var(--muted);margin:10px 0 8px;letter-spacing:0}
+  body.kit-live .fold-body:not([hidden]),body.kit-live .card-body>.ctl:not([hidden]),body.kit-live .fold-body>.ctl:not([hidden]),
+  body.kit-live .card-body>.toggle-row:not([hidden]),body.kit-live .card-body>.colour-row:not([hidden]){animation:kitIn var(--t-smooth) var(--e-smooth)}
+  @keyframes kitIn{from{opacity:0;transform:translateY(-3px)}}
+  @keyframes kitFade{from{opacity:0}}
+
+  /* ---------------- rows and the change column ---------------- */
+  .ctl{margin:0 0 10px;position:relative}
+  .ctl-head{margin-bottom:6px;min-height:16px;gap:6px}
+  .ctl-head label,.ctl-head>span:first-child{font-size:var(--fs-body);color:var(--ink)}
+  .toggle-row,.colour-row{position:relative}
+  /* a red dot at the end of a row once it's moved from where it started; click it to put it back */
+  .cx{position:absolute;right:calc(-1 * var(--gutter) - 2px);top:0;width:var(--gutter);height:16px;border:0;padding:0;background:none;cursor:default;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .cx::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--live);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+  .chg>.cx,.chg>.ctl-head>.cx{pointer-events:auto;cursor:pointer}
+  .chg>.cx::before,.chg>.ctl-head>.cx::before{transform:scale(1)}
+  .chg>.cx:hover::before,.chg>.ctl-head>.cx:hover::before{transform:scale(1.5)}
+  .cx:focus-visible{outline:2px solid var(--focus);outline-offset:0;border-radius:50%}
+  .ctl-head>.cx{position:absolute;top:0}
+  .ctl.rng>.cx,.ctl.stp>.cx{top:50%;margin-top:-8px}
+  .toggle-row>.cx,.colour-row>.cx{top:50%;margin-top:-8px}
+  .sheet .cx{display:none}
+
+  /* ---------------- the slider: label and value inside, a handle that never hides ---------------- */
+  .rng-box{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;--z:0;cursor:ew-resize;touch-action:none}
+  .rng-box:hover{background:var(--k-fill-hover)}
+  .rng-box:hover .rng-fill{background:var(--k-fill-2)}
+  .rng-box.ease{transition:--p var(--t-smooth) var(--e-smooth)}
+  .rng-fill{left:calc(5px + (100% - 10px) * min(var(--p),var(--z)));width:calc((100% - 10px) * max(var(--p) - var(--z),var(--z) - var(--p)));border-radius:0;background:var(--k-fill-2)}
+  .rng-box.from-start .rng-fill{left:0;width:calc(5px + (100% - 10px) * var(--p))}
+  .rng-tick{top:7px;bottom:7px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--k-handle);left:calc(5px + (100% - 10px) * var(--p));transition:transform var(--t-snap) var(--e-snap),background var(--t-snap)}
+  .rng-tick.away{opacity:1;transform:none}
+  /* where it would cross the words it becomes two short ticks, so it never cuts a letter */
+  .rng-tick.split{background:linear-gradient(var(--k-handle) 0 3px,transparent 3px calc(100% - 3px),var(--k-handle) calc(100% - 3px));top:3px;bottom:3px}
+  .rng-box:hover .rng-tick,.rng-box.drag .rng-tick{transform:scaleY(1.18)}
+  .rng-notch{position:absolute;bottom:0;width:1px;height:5px;margin-left:-.5px;background:var(--ink);opacity:.32;left:calc(5px + (100% - 10px) * var(--b,0));pointer-events:none}
+  .rng-box .ctl-head{padding:0 3px 0 10px}
+  .rng-box .ctl-head label{font-size:var(--fs-body)}
+  .rng-box input[type=range]{pointer-events:none}
+  .rng-box:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+  .ctl .ctl-head .val{font-size:12.5px;color:var(--muted);min-width:0}
+  .ctl.chg .ctl-head .val{color:var(--ink-strong);font-weight:500}
+  .rng-box .val.typable{padding:0 7px;margin:0 0 0 auto;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center}
+  .rng-box .val.typable:hover{background:var(--k-raise);color:var(--ink)}
+  .val.roll{animation:kitRoll var(--t-roll) var(--e-smooth)}
+  .val.roll.down{animation-name:kitRollDown}
+  @keyframes kitRoll{from{transform:translateY(55%);opacity:0}}
+  @keyframes kitRollDown{from{transform:translateY(-55%);opacity:0}}
+  .ctl .ctl-head .val .val-in,.val-in{height:24px;border-radius:var(--r-in);background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line);font-size:12.5px}
+
+  /* a stepper, for small counts – Columns, Across, Down */
+  .ctl.stp .ctl-head{margin:0;min-height:var(--h-ctl)}
+  .stp-g{margin-left:auto;display:inline-flex;align-items:center;height:var(--h-ctl);padding:2px;border-radius:var(--r-ctl);background:var(--k-fill)}
+  .stp-g button{width:26px;height:26px;border:0;border-radius:var(--r-in);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap),color var(--t-snap)}
+  .stp-g button:hover:not(:disabled){background:var(--k-raise);color:var(--ink)}
+  .stp-g button:disabled{opacity:.35;cursor:default}
+  .stp-g button:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+  .stp-g button svg{width:10px;height:10px}
+  .stp-g .val{min-width:28px!important;text-align:center!important;margin:0!important}
+  .stp-g .val.typable{padding:0 4px;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
+  .stp-g .val.typable:hover{background:var(--k-raise)}
+
+  /* ---------------- choosing one: white on grey, the white sliding to what you pick ---------------- */
+  .seg{position:relative;display:flex;gap:2px;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px}
+  .seg>.pill,.seg>.pill.small{flex:1 1 0;position:relative;z-index:1;height:calc(var(--h-ctl) - 4px);border-radius:var(--r-in);font-size:12.5px;font-weight:400;color:var(--muted);padding:0 6px;background:transparent;box-shadow:none;transition:color var(--t-snap)}
+  .seg>.pill:hover,.seg>.pill.small:hover{color:var(--ink);background:transparent}
+  .seg>.pill[aria-pressed="true"],.seg>.pill[aria-pressed="true"]:hover{background:transparent;color:var(--ink-strong);font-weight:500;box-shadow:none}
+  .seg>.hl{position:absolute;top:2px;bottom:2px;left:0;width:0;border-radius:var(--r-in);background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line);opacity:0;pointer-events:none;
+    transition:left var(--t-morph) var(--e-morph),width var(--t-morph) var(--e-morph),opacity var(--t-snap)}
+  .seg.hl-ready>.hl{opacity:1}
+  .seg:not(.hl-ready)>.pill[aria-pressed="true"]{background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line)}
+  .seg.wrap,.seg.loose{display:flex;flex-wrap:nowrap}
+  /* more than fits a row: a menu instead, the same height and corners */
+  .seg-menu{display:none}
+  .ctl.as-menu>.seg{display:none}
+  .ctl.as-menu>.seg-menu{display:block}
+  .tabs,.lanes{border-radius:var(--r-ctl);padding:2px;background:var(--k-fill)}
+  .tab,.lane{border-radius:var(--r-in);height:calc(var(--h-ctl) - 4px)}
+  .tab[aria-pressed="true"],.lane[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:0 0 0 1px var(--k-raise-line);font-weight:500}
+
+  /* ---------------- buttons ---------------- */
+  .pill{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:var(--fs-body);font-weight:500;color:var(--ink);padding:0 12px;transition:background var(--t-snap),color var(--t-snap),transform var(--t-snap) var(--e-snap)}
+  .pill:hover{background:var(--k-fill-hover)}
+  .pill:active:not(:disabled){transform:scale(.97)}
+  .pill.primary,.pill[aria-pressed="true"]{background:var(--fill-ink);color:var(--on-ink)}
+  .pill.primary:hover{background:var(--fill-ink);opacity:.9}
+  /* quiet actions: keyline chips with an icon */
+  .pill.small{height:var(--h-sm);border-radius:var(--r-chip);background:transparent;box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 9px 0 8px;gap:5px}
+  .pill.small:hover{background:var(--k-fill);color:var(--ink-strong)}
+  .pill.small svg{width:11px;height:11px;flex:none}
+  .pill svg{width:12px;height:12px;flex:none}
+  .pill.small.icon{width:var(--h-sm);padding:0;color:var(--muted);box-shadow:none}
+  .pill.small.icon:hover{color:var(--ink);background:var(--k-fill-hover)}
+  .slot.open .pill.small.icon:hover{background:var(--k-fill)}
+  .pill.small.icon svg{width:10px;height:10px}
+  .btn-row{gap:6px}
+  /* a pair of plain actions (Move up, Move down; Download, Load) as even fills */
+  .btn-row.pairs{gap:6px}
+  .btn-row.pairs>.pill,.btn-row.pairs>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:12.5px;color:var(--ink);padding:0 10px}
+  .btn-row.pairs>.pill:hover,.save-row>.pill:hover{background:var(--k-fill-hover)}
+  .save-row>.pill,.save-row>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:12.5px;padding:0 14px}
+  .pill:focus-visible,.toggle:focus-visible,.tab:focus-visible,.lane:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+  /* toggle – the round tick */
+  .toggle{font-size:var(--fs-body);min-height:26px;gap:9px}
+  .toggle .box{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair);transition:background var(--t-snap) var(--e-snap),box-shadow var(--t-snap)}
+  .toggle:hover .box{box-shadow:inset 0 0 0 1px var(--muted)}
+  .toggle[aria-checked="true"] .box{background:var(--fill-ink);box-shadow:none}
+  .toggle[aria-checked="true"] .box::after{width:3.5px;height:7px;border-width:0 1.5px 1.5px 0}
+  body.kit-live .toggle[aria-checked="true"] .box::after{animation:kitTick var(--t-morph) var(--e-morph)}
+  @keyframes kitTick{from{transform:translateY(-1px) rotate(45deg) scale(.3);opacity:0}}
+  .toggle-row{margin:0 0 6px}
+
+  /* colour, fields, menus */
+  .colour-row{min-height:30px;margin:0 0 8px}
+  .colour-row label{font-size:var(--fs-body)}
+  .colour-row .cw{gap:6px}
+  .colour-row input.hexin{height:24px;width:76px;padding:0 8px;border-radius:var(--r-chip);background:var(--k-fill);box-shadow:none;font-size:12px;letter-spacing:0}
+  .cswatch{width:24px;height:24px;border-radius:var(--r-chip);box-shadow:none}
+  .cswatch::after{box-shadow:inset 0 0 0 1px var(--hair)}
+  input[type=text],input[type=number]{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;padding:0 10px;font-size:var(--fs-body)}
+  input[type=text]:hover,input[type=number]:hover{background:var(--k-fill-hover)}
+  input[type=text]:focus,input[type=number]:focus,textarea:focus{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
+  textarea{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;padding:7px 10px;font-size:var(--fs-body);min-height:44px}
+  textarea:hover{background:var(--k-fill-hover)}
+  select{height:var(--h-ctl);border-radius:var(--r-ctl);background-color:var(--k-fill);box-shadow:none;padding:0 28px 0 10px;font-size:var(--fs-body);background-position:right 9px center;background-size:12px}
+  select:hover{background-color:var(--k-fill-hover)}
+  .num-row label.num span{font-size:12px}
+
+  /* help */
+  .hint{font-size:12px;line-height:1.45;margin:2px 0 10px}
+  .q{width:15px;height:15px;font-size:9.5px}
+  .tip{border-radius:var(--r-ctl);font-size:12px}
+
+  /* lists: media, fonts, presets – rows as soft fills; the open one raised white */
+  .slot{padding:0;margin:0;border-bottom:0}
+  .media-list{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
+  .media-list .slot,.font-list .slot,.preset-list .slot{background:var(--k-fill);border-radius:var(--r-ctl);padding:6px;transition:background var(--t-snap)}
+  .media-list .slot:hover,.font-list .slot:hover,.preset-list .slot:hover{background:var(--k-fill-hover)}
+  .media-list .slot.open,.preset-list .slot.on{background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line)}
+  .media-list .slot.over{box-shadow:inset 0 2px 0 var(--fill-ink)}
+  .slot-top{gap:8px}
+  .slot-name{font-size:var(--fs-body)}
+  .slot-meta{font-size:11.5px;margin-top:2px}
+  .grip{flex:none;width:10px;height:18px;color:var(--k-num);cursor:grab;display:flex;align-items:center;justify-content:center;margin:0 -2px 0 0}
+  .grip svg{width:6px;height:12px}
+  .mthumb{width:44px;height:32px;border-radius:var(--r-sw)}
+  .slot-top .mthumb{margin-right:0}
+  .media-list .slot-det{padding:10px 18px 2px 4px}
+  .font-list{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
+  .font-list .slot{padding:7px 8px}
+  .font-row .sample{font-size:14px}
+  .preset-list{gap:4px;margin:2px 0 12px}
+  .preset-list .slot{padding:7px 8px 7px 10px}
+  .preset-list .slot-name{font-weight:500}
+  .preset-list .sub-head{margin:12px 0 4px}
+  .preset-list .sub-head:first-child{margin-top:0}
+  .preset-row .tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--r-chip);box-shadow:inset 0 0 0 1px var(--hair);font-size:11px;font-weight:500;color:var(--ink);margin:0}
+  .media-empty{border-radius:var(--r-ctl);padding:18px 12px}
+  .img-row{gap:8px;margin-bottom:10px}
+  .progress{height:4px;border-radius:2px;background:var(--k-fill)}
+  .progress>i{border-radius:2px;transition:width var(--t-snap) linear}
+
+  /* ---------------- sheets ---------------- */
+  .sheet{padding:16px 16px 14px}
+  .sheet .card-toggle{font-size:var(--fs-title);font-weight:500;min-height:0;padding:0;margin-bottom:12px}
+  .sheet .card-toggle .num,.sheet .card-toggle .cdot,.sheet .card-toggle .reset{display:none!important}
+  .sheet .card-anim{display:block}
+  .sheet .card-body{padding:0;opacity:1}
+  .sheet .sub-head{margin:14px 0 6px;padding-top:12px}
+  .sheet .btn-row>.pill.primary{height:36px}
+  .sheets{transition:grid-template-rows var(--t-smooth) var(--e-smooth)}
+
+  /* ---------------- the island, Presets and the top bar ---------------- */
+  .island,.pcap{transition:left var(--t-smooth) var(--e-smooth),min-width var(--t-smooth) var(--e-smooth),opacity .3s}
+  .ebtn{height:var(--h-isl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:var(--fs-body);font-weight:500;padding:0 14px;transition:background var(--t-snap),transform var(--t-snap) var(--e-snap)}
+  .ebtn:hover{background:var(--k-fill-hover)}
+  .ebtn:active{transform:scale(.97)}
+  .ebtn.primary{background:var(--fill-ink);color:var(--on-ink)}
+  .ebtn.primary[aria-expanded="true"]{opacity:1}
+  #play{min-width:64px;justify-content:center}
+  #scrub::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--k-fill-2)}
+  #scrub::-webkit-slider-thumb{width:12px;height:12px;margin-top:-4.5px;background:var(--k-handle)}
+  #scrub::-moz-range-track{height:3px;border-radius:2px;background:var(--k-fill-2)}
+  .act-main{font-size:12px}
+  .status{font-size:var(--fs-body)}
+  .status.on{display:flex;align-items:center;gap:10px;line-height:normal;height:var(--h-isl)}
+  .status .undo{all:unset;cursor:pointer;font-weight:500;color:var(--ink-strong);box-shadow:inset 0 -1px 0 var(--hair);line-height:1.2}
+  .status .undo:hover{box-shadow:inset 0 -1px 0 var(--ink)}
+  .status .undo:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
+  .pc-row{padding:0 14px 0 4px}
+  .pc-row:focus-visible{border-radius:var(--r-surface)}
+  .pc-row .pc-ic{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none}
+  .pc-row .pc-t{font-weight:500}
+  .stage-foot span{border-radius:var(--r-ctl);padding:0 10px}
+  .tools{border-radius:var(--r-ctl)}
+  .tools button{border-radius:var(--r-in)}
+  .panel-btn{border-radius:var(--r-ctl)}
+  .drop{font-weight:500}
+
+  @media (max-width:860px){
+    #islandMain{border-radius:var(--r-ctl)}
+    .card-body{padding-right:calc(16px + var(--gutter))}
+  }
+  @media (prefers-reduced-motion: reduce){.rng-box.ease{transition:none}}

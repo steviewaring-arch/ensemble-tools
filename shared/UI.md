@@ -148,3 +148,58 @@ tooltip, a sheet.
 3. Choose which cards start shut. Write a `SUMMARY` line wherever the automatic
    one isn't clear.
 4. Check it in both themes at 1440 × 900, 1280 × 800 and phone width.
+
+## The round 4 kit – on Segue first (5 November 2026)
+
+Steve's review of round 4: A's look, our frame. `shared/kit.css` sits on top of
+`tokens.css` and `components.css` and changes how things look and behave, not
+where they are – the panel stays left, the island bottom centre, Presets bottom
+right, chips top right. It's in Segue 0.5 only (`build_segue()` in `build.py`);
+Tempo, Rubato and Tutti move onto it once Steve signs it off. Where this section
+and the ones above disagree, this one is where the system is going.
+
+- **One corner logic.** A corner is the corner around it, less the space between.
+  - 12 px – surfaces: panel, island, Presets, sheets, tooltips.
+  - 8 px – controls: buttons, sliders, menus, fields, segmented tracks, list rows.
+  - 6 px – anything set 2 px inside a control (the chosen option, a value being
+    typed) and keyline chips.
+  - 4–6 px – thumbnails and swatches.
+  - Round – only true dots: the tick, the change dot, the scrubber, the place pad.
+  No lozenges.
+- **Two weights.** Aktiv Medium for section titles, the chosen option and button
+  words; Regular for everything else. 20 px name, 14 px section titles, 13 px
+  what you read and set, 12 px summaries, hints and chips. Section numbers in
+  light grey before each title.
+- **Sections are hairlines, not boxes.** Open and shut on the Smooth curve. Shut,
+  a section shows a red dot if anything in it is changed; open, a **Reset** chip
+  by its chevron puts the whole section back.
+- **Black is for the main action** (Export, Download). Everything else is a grey
+  fill; a choice is shown **white on grey**, and the white slides to the option
+  you pick. When the options won't fit one row at the panel's width, the same
+  control becomes a menu (`fitSeg`), and goes back when there's room.
+- **Keyline chips** – 24 px, a hairline, 6 px corners, an icon – for quiet actions:
+  Shuffle, Clear all, Reset, Replace, + Add. Icon-only chips (remove) have no
+  keyline until hovered.
+- **The slider** is a grey 30 px bar with 8 px corners: label inside on the left,
+  value inside on the right, a darker fill for the value and a 3 px handle that
+  splits into two short ticks where it would cross the words. A notch marks the
+  start value (the preset's, or the default). A range that runs through zero
+  fills from zero.
+  - **Drag** moves by distance from where you press, not to where you press;
+    **Shift** makes it ten times finer. It catches lightly at the start value.
+  - **Click** without moving jumps to that point. **Double-click** puts it back.
+  - **Click the value** to type it (units optional, kept to the range).
+  - **Arrow keys** step; **Shift + arrow** ten steps.
+- **Steppers** (− 3 +) for small whole counts – columns, across, down.
+- **The change column.** A narrow column on the right of every row: a red dot when
+  the row differs from where it started (the preset in use, or the default).
+  Click the dot to put that row back. Changed values are in ink and Medium.
+- **Undo.** ⌘Z / Ctrl+Z undoes, ⇧⌘Z (or Ctrl+Y) redoes – every setting, a preset
+  applied, a section Reset, files removed. A drag is one step; quick changes to
+  the same control join up. Not while typing in a field (that's the field's own).
+  Anything that removes something says so in the island, with **Undo**.
+- **Motion:** Snap 140 ms for presses, Smooth 360 ms for opening and shutting,
+  Morph 420 ms with a touch of overshoot for the white choice and the dots, Roll
+  260 ms for numbers that change. Nothing moves with reduced motion.
+- **Tests:** `tests/segue_ui_check.py` goes through every control in every set-up,
+  the undo, presets, media, the island and the Export sheet.

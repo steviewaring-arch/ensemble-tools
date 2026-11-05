@@ -63,7 +63,7 @@ APPS = {
 # does: the shared core is still tied to Rubato's settings and type engine. It takes the
 # shared GIF encoder and Tempo's copy of mp4-muxer (MIT).
 SEGUE = dict(
-    title='Segue – by Ensemble', version='0.4.2',
+    title='Segue – by Ensemble', version='0.5',
     body='segue/app.html', css='segue/app.css',
     tagged=[('segue-engine', 'segue/engine.js'), ('segue-mp4', 'tempo/vendor/mp4-muxer.js')],
     before='shared/gif.js',
@@ -71,7 +71,8 @@ SEGUE = dict(
 )
 
 def build_segue(cfg):
-    css = read('shared/tokens.css') + read('shared/components.css') + read(cfg['css'])
+    # the round 4 kit (shared/kit.css) goes on Segue first; the other tools follow once it's signed off
+    css = read('shared/tokens.css') + read('shared/components.css') + read('shared/kit.css') + read(cfg['css'])
     body = read(cfg['body']).replace('{{version}}', cfg['version'])
     scripts = ''
     for sid, path in cfg['tagged']:

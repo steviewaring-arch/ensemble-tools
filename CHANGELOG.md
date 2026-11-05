@@ -1,5 +1,20 @@
 # Changelog
 
+## 5 November 2026 – Segue 0.5: the round 4 kit (UI stream)
+
+Steve's picks from round 4: A's look, our frame (no right-hand inspector), keyline chips, rounded rectangles rather than lozenges with one corner logic, and the white choice tied to how things are picked. Tried on Segue first; the other tools follow once it's signed off. Nothing about what Segue makes has changed.
+
+- **`shared/kit.css`** (new, Segue only for now): one corner logic – 12 px surfaces, 8 px controls, 6 px for what sits inside a control and for chips, round only for true dots; Aktiv Medium for titles, the chosen option and buttons, Regular for the rest (20 / 14 / 13 / 12 px); sections as hairlines with grey numbers; black only for Export and Download; no shadows. Rules in `shared/UI.md`.
+- **The slider:** a grey bar with the label and value inside, a darker fill, a 3 px handle that splits into two ticks over the words, and a notch at the start value. Drag moves by distance (Shift finer, a catch at the start value), a click jumps, the value types, double-click resets, Shift + arrow steps by ten. Ranges through zero fill from zero.
+- **Choices** white on grey, the white sliding to what you pick; a choice that won't fit the panel's width becomes a menu, and back when there's room (Size, Feel, After the last, Arrives).
+- **Steppers** for small counts (Columns, Across, Down).
+- **Keyline chips** with icons for quiet actions (Shuffle, Clear all, Reset, Replace, + Add); media, fonts and presets as grey rows with a grip, the open one white.
+- **What's changed shows:** a red dot on every row that differs from the preset in use (or the default) – click it to put the row back; changed values in ink; a dot on a shut section, and **Reset** on an open one. A preset counts as edited only while something differs from it.
+- **Undo:** ⌘Z / Ctrl+Z and ⇧⌘Z / Ctrl+Y for every setting, presets, section resets and removing files (the files come back too); a drag is one step. Removing something says so in the island, with Undo.
+- **Motion:** three named curves (Snap, Smooth, Morph) and numbers that roll; sections open and shut smoothly. None with reduced motion.
+- `window.segue.ui` (controls, undo, redo, base, moved) for tests.
+- `tests/segue_ui_check.py` (new): CHECKS_PLACEHOLDER
+
 ## 5 November 2026 – Segue 0.4.2: an MP4 encoder that follows Quality
 
 Steve's three MP4s at Standard, High and Best all came out at 16.5 MB (Safari, Intel iMac): the encoder kept its own quality whatever it was asked for. Segue only.
