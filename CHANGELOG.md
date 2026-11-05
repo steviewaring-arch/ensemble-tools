@@ -1,5 +1,9 @@
 # Changelog
 
+## 5 November 2026 – Segue 0.5.1: Presets and Export empty after an earlier Segue
+
+Steve, in Safari: "export doesn't work. The presets have no presets in them." Not Safari – any browser that had used an earlier Segue. 0.5 hides a shut section's contents once it has closed; Presets and Export were sections early on, and a browser that remembered them as shut (`segue:collapsed`) opened their sheets with the contents still hidden. Sheets now always open in full. `tests/segue_ui_check.py`: 81 checks (1 new) – a browser with Presets, Export and others saved as shut.
+
 ## 5 November 2026 – Segue 0.5: the round 4 kit (UI stream)
 
 Steve's picks from round 4: A's look, our frame (no right-hand inspector), keyline chips, rounded rectangles rather than lozenges with one corner logic, and the white choice tied to how things are picked. Tried on Segue first; the other tools follow once it's signed off. Nothing about what Segue makes has changed.

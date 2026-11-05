@@ -479,6 +479,17 @@ with sync_playwright() as p:
     check('no errors on the page', not errs, '; '.join(errs[:3]))
     ctx.close()
 
+    # ---- a browser that used an earlier Segue: sections it had shut, Presets and Export among them ----
+    ctx = b.new_context(viewport={'width': 1440, 'height': 900})
+    pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append('older: ' + str(e))); pg.set_default_timeout(4000)
+    pg.goto(base); time.sleep(.8)
+    pg.evaluate("localStorage.setItem('segue:collapsed',JSON.stringify({presets:true,export:true,media:true,canvas:true,motion:false}))"); pg.reload(); time.sleep(1.5)
+    pg.locator('#pcapOpen').click(); time.sleep(.5); n_rows = pg.evaluate("[...document.querySelectorAll('#pcapSheets .preset-row')].filter(e=>e.offsetParent).length")
+    pg.keyboard.press('Escape'); time.sleep(.3); pg.locator('#exportOpen').click(); time.sleep(.5)
+    dl_ok = pg.evaluate("!!document.querySelector('#islandSheets .btn-row .pill.primary').offsetParent")
+    check('a browser with sections shut by an earlier Segue: Presets lists every preset and Export shows its Download', n_rows >= 14 and dl_ok, f'{n_rows} presets showing, Download showing: {dl_ok}')
+    ctx.close()
+
     # ---- a phone ----
     ctx = b.new_context(viewport={'width': 390, 'height': 844}, device_scale_factor=2, is_mobile=True, has_touch=True)
     pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append('phone: ' + str(e))); pg.set_default_timeout(4000)

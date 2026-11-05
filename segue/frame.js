@@ -102,7 +102,9 @@ function addSheet(name,node,opener){
   $(name==='presets'?'#pcapSheets':'#islandSheets').append(node);SHEETS[name]={el:node,opener:opener||(name==='presets'?$('#pcapOpen'):name==='export'?$('#exportOpen'):null)};
   if(name==='presets')$('#pcap').hidden=false;if(name==='export')$('#exportOpen').hidden=false;
   sheetObs.observe(node,{attributes:true,attributeFilter:['hidden']});return node;}
-function cardToSheet(body,name){const sec=body.closest('section');sec.classList.remove('card','collapsed');const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=null;return addSheet(name,sec);}
+/* a card that was shut in the panel once (saved in segue:collapsed) must still open in full as a sheet */
+function cardToSheet(body,name){const sec=body.closest('section');sec.classList.remove('card','collapsed');
+  const anim=sec.querySelector(':scope>.card-anim');if(anim){clearTimeout(anim._t);anim.hidden=false;}const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=null;return addSheet(name,sec);}
 function openSheet(name){if(!SHEETS[name])return;for(const k in SHEETS)SHEETS[k].el.hidden=k!==name;syncSheets();}
 function closeSheets(){for(const k in SHEETS)SHEETS[k].el.hidden=true;syncSheets();}
 const anySheet=()=>Object.values(SHEETS).some(s=>!s.el.hidden);
