@@ -408,6 +408,8 @@ with sync_playwright() as p:
     rms = lambda a: float(np.sqrt(((np.asarray(a, float)[3:-3, 3:-3] - np.asarray(lz, float)[3:-3, 3:-3]) ** 2).mean()))
     check('Crisp scaling: media scaled down comes out nearer a Lanczos resample (stepped down, then sharpened)', rms(ci) < rms(pi) * .9, f"difference from Lanczos {rms(pi):.2f} → {rms(ci):.2f} ({crisp['ms']} ms for the frame)")
     check('MP4 Quality: Standard 16, High 32, Best 50 Mbps at 1080 × 1350, 30 fps', crisp['rate'] == [16e6, 50e6, 32e6], str(crisp['rate']))
+    pick = pg.evaluate("(async()=>{const r=await segue.pickEncoder(540,676,30,50e6*(540*676)/(1080*1350));return r&&{hw:r.cfg.hardwareAcceleration,mode:r.cfg.bitrateMode,honours:r.honours,full:r.full,third:r.third};})()")
+    check('MP4: picks an encoder setup whose file grows with the bitrate (one that ignores it is passed over)', pick and pick['honours'] is True, str(pick))
     pg.evaluate("segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack')")
 
     # ---- 0.3: GIFs made for showcasing ----

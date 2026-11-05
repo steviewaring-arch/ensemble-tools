@@ -1,5 +1,15 @@
 # Changelog
 
+## 5 November 2026 – Segue 0.4.2: an MP4 encoder that follows Quality
+
+Steve's three MP4s at Standard, High and Best all came out at 16.5 MB (Safari, Intel iMac): the encoder kept its own quality whatever it was asked for. Segue only.
+
+- **Why:** Safari makes H.264 with WebKit's video-call encoder (libwebrtc on Apple's VideoToolbox), which settles its own quality rather than taking the bitrate as a target; Chrome's hardware encoder on a Mac does the same in variable mode (w3c/webcodecs#430). Not the source clips, and not Crisp scaling.
+- **Segue tests the encoder first:** each setup the browser offers (hardware or software, constant or variable bitrate, then real-time) encodes a second of panning fine detail at the bitrate asked for and at a third of it, and the first whose file grows with the bitrate is used – if none does, the one that spends the most, and it says so. Each setup gets a few seconds (some Safari versions stall for good in quality mode), and an encoder that stalls mid-export stops it with a message rather than hanging.
+- **In Safari** the Export sheet says so for MP4: Quality makes no difference there, and for the crispest MP4, export in Chrome. GIF and PNG come out the same in both.
+- After an MP4 the toast gives the rate it came out at, so whether Quality took is plain; the console names the encoder.
+- `tests/segue_check.py`: 78 checks (1 new) – the encoder picked is one whose file grows with the bitrate.
+
 ## 5 November 2026 – Segue 0.4.1: crisp exports
 
 Steve's MP4 of Tempo promo clips wasn't as crisp as it should be. Two causes, both fixed. Segue only.

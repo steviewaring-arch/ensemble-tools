@@ -467,7 +467,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.4.1</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.4.2</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -3848,22 +3848,66 @@ function chunkVideoRange(data){/* length-prefixed NALs: fix any SPS carried in t
    Safari on a Mac) softens fine detail at that – High gives it room, Best more. */
 const MP4_Q={std:16,high:32,best:50};
 function mp4Bitrate(){const [W,H]=size(),fps=+S.fps||30;return Math.round((MP4_Q[S.xQ]||32)*1e6*(W*H)/(1080*1350)*fps/30);}
+/* Which setup actually honours the bitrate. Steve's three renders at 16, 32 and 50 Mbps all came
+   out at 16.5 MB (Safari, Intel iMac): the encoder kept its own quality whatever it was asked.
+   Chrome's hardware H.264 encoder on a Mac does the same in variable mode (w3c/webcodecs#430).
+   So before the real thing: list the setups this browser takes (hardware or software, constant
+   or variable), encode a second of panning fine detail with each at the bitrate asked for and at
+   a third of it, and keep the first whose file grows with the bitrate (by more than 15% – one that
+   ignores it comes out the same both times). If none does, the one that spends the most, and it
+   says so. In Chrome the software encoder follows the bitrate; in Safari nothing does. */
+const ENC_TRY=[['prefer-hardware','constant'],['prefer-software','variable'],['prefer-software','constant'],['prefer-hardware','variable'],['no-preference','variable']];
+/* Safari makes H.264 with WebKit's video-call encoder (libwebrtc on VideoToolbox): it keeps its
+   own quality whatever bitrate it's asked for, and in some versions its 'quality' mode stalls
+   for good – so each setup gets a few seconds to prove itself, and real-time mode is tried last. */
+const isSafari=/^((?!chrome|chromium|android|crios|fxios|edg).)*safari/i.test(navigator.userAgent);
+let encUsed=null;
+async function encoderSetups(W,H,fps,bitrate){
+  for(const codec of ['avc1.640033','avc1.640028','avc1.4d0033','avc1.4d0028','avc1.42003e']){const out=[];
+    for(const [hw,mode] of ENC_TRY){const cfg={codec,width:W,height:H,bitrate,framerate:fps,latencyMode:'quality',bitrateMode:mode,hardwareAcceleration:hw,avc:{format:'avc'}};
+      try{const r=await VideoEncoder.isConfigSupported(cfg);if(r.supported)out.push(cfg);}catch(e){}}
+    if(out.length){const rt=Object.assign({},out[out.length-1],{latencyMode:'realtime',bitrateMode:'variable',hardwareAcceleration:'no-preference'});
+      try{if((await VideoEncoder.isConfigSupported(rt)).supported)out.push(rt);}catch(e){}return out;}}
+  try{const cfg={codec:'vp09.00.40.08',width:W,height:H,bitrate,framerate:fps,latencyMode:'quality'};if((await VideoEncoder.isConfigSupported(cfg)).supported)return[cfg];}catch(e){}
+  return[];}
+/* the frames to test with: a fixed, detailed texture panning 3 px a frame – what real motion
+   looks like to an encoder. (Fresh noise every frame was no good: an encoder that follows the
+   bitrate can't keep up with it at any rate, so both files came out alike.) */
+const SAMPLE_N=24,SAMPLE_FROM=8;
+function sampleFrames(W,H){const out=[];
+  const v=(X,Y)=>{let h=Math.imul(X,374761393)^Math.imul(Y,668265263);h=Math.imul(h^(h>>>13),1274126177);return((((X>>3)+(Y>>3))&1)?60:180)+((h>>>24)&31)+(((X*Y)>>6)&15);};
+  for(let j=0;j<SAMPLE_N;j++){const b=new Uint8Array(W*H*3/2);for(let y=0;y<H;y++){const r=y*W;for(let x=0;x<W;x++)b[r+x]=v(x+j*3,y);}b.fill(128,W*H);out.push(b);}
+  return out;}
+async function bytesFor(cfg,frames,fps){let n=0,err=null;const e=new VideoEncoder({output:ch=>{if(ch.timestamp>=Math.round(SAMPLE_FROM*1e6/fps))n+=ch.byteLength;},error:x=>{err=x;}});
+  const work=(async()=>{e.configure(cfg);for(let i=0;i<frames.length;i++){const f=new VideoFrame(frames[i],{format:'I420',codedWidth:cfg.width,codedHeight:cfg.height,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});e.encode(f,{keyFrame:i===0});f.close();
+      let w=0;while(e.encodeQueueSize>4){await new Promise(r=>setTimeout(r,5));if((w+=5)>4000)throw new Error('stalled');}}await e.flush();})();
+  const timeout=new Promise((_,rej)=>setTimeout(()=>rej(new Error('stalled')),8000));
+  try{await Promise.race([work,timeout]);}catch(x){err=x;}try{e.close();}catch(y){}return err?-1:n;}
+async function pickEncoder(W,H,fps,bitrate){
+  const setups=await encoderSetups(W,H,fps,bitrate);if(!setups.length)return null;
+  if(setups[0].codec.startsWith('vp09')||setups.length===1)return{cfg:setups[0],honours:null};
+  const frames=sampleFrames(W,H);let first=null;
+  for(const cfg of setups){const full=await bytesFor(cfg,frames,fps);if(full<0)continue;const third=await bytesFor(Object.assign({},cfg,{bitrate:Math.round(bitrate/3)}),frames,fps);
+    const r={cfg,honours:third>0&&full>third*1.15,full,third};if(r.honours)return r;if(!first||full>first.full)first=r;}
+  return first?Object.assign(first,{honours:false}):{cfg:setups[0],honours:false};}
 async function makeMP4(progress){
   if(!window.VideoEncoder||!window.Mp4Muxer)throw new Error('This browser can’t write MP4 – try Chrome, Edge or Safari');
-  const [W,H]=size(),fps=+S.fps||30,P=planNow(),n=Math.max(1,Math.round(P.L*(+S.xLoops||1)*fps));
-  let codec=null,kind='avc';for(const c of ['avc1.640033','avc1.640028','avc1.4d0033','avc1.4d0028','avc1.42003e','vp09.00.40.08']){try{const r=await VideoEncoder.isConfigSupported({codec:c,width:W,height:H,bitrate:24e6,framerate:fps});if(r.supported){codec=c;kind=c.startsWith('vp09')?'vp9':'avc';break;}}catch(e){}}
-  if(!codec)throw new Error('This browser can’t encode video');
+  const [W,H]=size(),fps=+S.fps||30,P=planNow(),n=Math.max(1,Math.round(P.L*(+S.xLoops||1)*fps)),bitrate=mp4Bitrate();
+  toast('Finding the encoder that keeps the quality…',true);
+  const pick=await pickEncoder(W,H,fps,bitrate);if(!pick)throw new Error('This browser can’t encode video');
+  const cfg=pick.cfg,codec=cfg.codec,kind=codec.startsWith('vp09')?'vp9':'avc';encUsed=pick;
   if(kind==='vp9')toast('This browser has no H.264, so the MP4 uses VP9 – it plays in browsers but not QuickTime. Chrome or Safari on a Mac makes H.264.');
+  else if(pick.honours===false)toast(isSafari?'Safari’s encoder keeps its own quality, so Quality makes no difference here – Chrome makes crisper MP4s on this Mac.':'This browser’s encoder doesn’t follow the Quality setting – the file may come out softer than asked.');
   const muxer=new Mp4Muxer.Muxer({target:new Mp4Muxer.ArrayBufferTarget(),video:{codec:kind,width:W,height:H,frameRate:fps},fastStart:'in-memory'});
   let err=null;const enc=new VideoEncoder({output:(chunk,meta)=>{try{
       if(meta&&meta.decoderConfig){meta.decoderConfig.colorSpace=Object.assign({},MP4_COLOUR);if(kind==='avc'&&meta.decoderConfig.description){const f=avcCVideoRange(meta.decoderConfig.description);if(f)meta.decoderConfig.description=f;}}
       if(kind==='avc'){const d=new Uint8Array(chunk.byteLength);chunk.copyTo(d);const f=chunkVideoRange(d);if(f){muxer.addVideoChunkRaw(f,chunk.type,chunk.timestamp,chunk.duration,meta);return;}}
       muxer.addVideoChunk(chunk,meta);}catch(e){err=e;}},error:e=>{err=e;}});
-  enc.configure(Object.assign({codec,width:W,height:H,bitrate:mp4Bitrate(),framerate:fps,latencyMode:'quality',contentHint:'detail'},kind==='avc'?{avc:{format:'avc'}}:{}));
+  enc.configure(Object.assign({contentHint:'detail'},cfg));let stall=0;
   const Y=new Uint8Array(W*H),U=new Uint8Array((W>>1)*(H>>1)),V=new Uint8Array((W>>1)*(H>>1)),buf=new Uint8Array(W*H*3/2);
   await eachFrame(W,H,fps,n,async(c,x,i)=>{if(err)throw err;const d=x.getImageData(0,0,W,H).data;toI420(d,W,H,Y,U,V);buf.set(Y,0);buf.set(U,W*H);buf.set(V,W*H+U.length);
     const f=new VideoFrame(buf,{format:'I420',codedWidth:W,codedHeight:H,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});enc.encode(f,{keyFrame:i%fps===0});f.close();
-    while(enc.encodeQueueSize>4)await new Promise(r=>setTimeout(r,2));},progress,P.L*(+S.xLoops||1));
+    stall=0;while(enc.encodeQueueSize>4){await new Promise(r=>setTimeout(r,2));if((stall+=2)>15000)throw new Error('the video encoder stopped responding');}},progress,P.L*(+S.xLoops||1));
   await enc.flush();enc.close();if(err)throw err;muxer.finalize();return new Blob([muxer.target.buffer],{type:'video/mp4'});}
 /* ---------------- GIF ---------------- */
 /* Made for showcase GIFs, which are usually Photoshop's job. A frame that doesn't change isn't
@@ -3943,6 +3987,7 @@ let xBar,xInfo,xGo,xStop;
     {t:'toggle',k:'xCrisp',label:'Crisp scaling',tip:'Media scaled down is resampled in steps and sharpened a touch – as Photoshop’s Bicubic Sharper does – so type and fine lines stay crisp. The paused preview shows it too. Exports take a little longer.'},
     {t:'text',k:'name',label:'File name'}]);
   addHint(b,'Still slides cost almost nothing in a GIF – each is written once and held. Anything that moves is written frame by frame, so the file grows with every second of it: half size at 15 fps keeps it manageable.',s=>s.xFormat==='gif'&&gifMoves(s));
+  addHint(b,'Safari makes MP4s with its video-call encoder, which keeps its own quality – for the crispest MP4, export in Chrome.',s=>s.xFormat==='mp4'&&isSafari);
   xInfo=el('p','hint');addCustom(b,null,xInfo);
   const pr=el('div','progress');xBar=el('i');pr.append(xBar);addCustom(b,null,pr);
   const r=el('div','ctl btn-row');xGo=el('button','pill primary','Download');xGo.type='button';xStop=el('button','pill small','Stop');xStop.type='button';xStop.hidden=true;r.append(xGo,xStop);addCustom(b,null,r);
@@ -3950,7 +3995,7 @@ let xBar,xInfo,xGo,xStop;
   xGo.onclick=async()=>{if(busy)return;const f=S.xFormat;busy=true;stopFlag=false;xGo.disabled=true;xStop.hidden=f==='png';xBar.style.width='0%';const t0=performance.now();
     try{await fontsReady();const prog=p=>{xBar.style.width=Math.round(p*100)+'%';toast(`Making the ${f.toUpperCase()} – ${Math.round(p*100)}%`,true);};
       const blob=f==='gif'?await makeGIF(prog):f==='png'?await makePNG():await makeMP4(prog);
-      await saveFile(fileName(f),blob);lastSize[f]=blob.size;toast(`Saved ${fileName(f)} – ${mb(blob.size)}`);exportInfo();console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
+      await saveFile(fileName(f),blob);lastSize[f]=blob.size;const rate=f==='mp4'?` at ${(blob.size*8/(planNow().L*(+S.xLoops||1))/1e6).toFixed(1)} Mbps`:'';toast(`Saved ${fileName(f)} – ${mb(blob.size)}${rate}`);exportInfo();if(f==='mp4'&&encUsed)console.log('segue: encoder',encUsed.cfg.hardwareAcceleration,encUsed.cfg.bitrateMode,'honours bitrate:',encUsed.honours,encUsed.full,encUsed.third);console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
     catch(e){toast(e.message==='stopped'?'Stopped':`Couldn’t make it – ${e.message||e}`);console.error(e);}
     finally{busy=false;stopFlag=false;xGo.disabled=false;xStop.hidden=true;dirty=true;}};
   cardToSheet(b,'export');}
@@ -3971,7 +4016,7 @@ $('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs
   window.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)drop.classList.remove('on');});
   window.addEventListener('dragover',e=>e.preventDefault());
   window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(fs.length)addFiles(fs).then(paintFonts);});}
-window.segue={E,S,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
+window.segue={E,S,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
   setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;}};
 frameStart();paintMedia();paintFonts();paintPresets();refreshAll();fitCanvas();layoutUI();
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
