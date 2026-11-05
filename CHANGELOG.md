@@ -10,6 +10,7 @@ Steve's review of 0.5: titles up a weight, labels more obvious, it still felt bi
 - **Greys** neutral and quieter; corners step down with the levels (12, 10, 8, 6, 4); space on an 8 px step.
 - **Panel** 360 px by default (was 300), up to 480.
 - **No blue ring** after pressing a slider (it focused its hidden range – Safari showed the ring); focus rings now only when using the keyboard.
+- Tests: `tests/segue_ui_check.py` 81 of 81 (weights and corners updated to the ladder, panel 280–480); `tests/segue_check.py` 82 of 82.
 
 ## 5 November 2026 – Segue 0.5.1: Presets and Export empty after an earlier Segue
 
