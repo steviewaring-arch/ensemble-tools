@@ -96,8 +96,9 @@ def try_slider(pg, c, tally):
         pg.evaluate("([k,v])=>segue.set(k,v)", [k, b]); time.sleep(.05)
     # click to jump: a press that doesn't move goes to that point
     box.scroll_into_view_if_needed(); bb = box.bounding_box()
-    pg.mouse.click(bb['x'] + 5 + (bb['width'] - 10) * 0.75, bb['y'] + bb['height'] / 2); time.sleep(.15)
-    want = mn + span * 0.75; ok['click jumps'] = abs(S(pg, k) - want) <= st * 1.01 + span * 0.02
+    # (0.6, clear of the value at the right end – a click on the value is for typing)
+    pg.mouse.click(bb['x'] + 5 + (bb['width'] - 10) * 0.6, bb['y'] + bb['height'] / 2); time.sleep(.15)
+    want = mn + span * 0.6; ok['click jumps'] = abs(S(pg, k) - want) <= st * 1.01 + span * 0.02
     # drag from where you press: it moves by how far you go; Shift is finer
     v0 = S(pg, k); x = bb['x'] + bb['width'] * 0.3; y = bb['y'] + bb['height'] / 2
     pg.mouse.move(x, y); pg.mouse.down(); pg.mouse.move(x - 50, y, steps=6); pg.mouse.up(); time.sleep(.1)
