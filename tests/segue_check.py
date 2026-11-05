@@ -53,7 +53,7 @@ def pixel(path, x, y):
     return tuple(d[:3])
 
 # ---------------- fixtures ----------------
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 COLS = ['#EA2631', '#2F5DA8', '#3C6E5A', '#E2552D', '#111111']
 IMGS = []
 for i, c in enumerate(COLS):
@@ -408,6 +408,36 @@ with sync_playwright() as p:
     rms = lambda a: float(np.sqrt(((np.asarray(a, float)[3:-3, 3:-3] - np.asarray(lz, float)[3:-3, 3:-3]) ** 2).mean()))
     check('Crisp scaling: media scaled down comes out nearer a Lanczos resample (stepped down, then sharpened)', rms(ci) < rms(pi) * .9, f"difference from Lanczos {rms(pi):.2f} → {rms(ci):.2f} ({crisp['ms']} ms for the frame)")
     check('MP4 Quality: Standard 16, High 32, Best 50 Mbps at 1080 × 1350, 30 fps', crisp['rate'] == [16e6, 50e6, 32e6], str(crisp['rate']))
+    # 0.4.3: on the pixel grid – fine type in a card at a fractional position, measured as drawn
+    TYPE = os.path.join(OUT, 'type.png')
+    if not os.path.exists(TYPE):
+        tim = Image.new('RGB', (1920, 1200), '#F5F5F3'); td = ImageDraw.Draw(tim)
+        def tf(n):
+            try: return ImageFont.truetype('/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf', n)
+            except Exception: return ImageFont.load_default(size=n)
+        yy, k = 8, 0
+        while yy < 1200:
+            td.text((10, yy), 'Numeral 01 Mono – 12:47:09 – Tempo Series 1 – the quick brown fox jumps over the lazy dog 0123456789 – ' * 3, font=tf(24 if k % 3 == 0 else 15), fill='#1E1D23')
+            yy += 34 if k % 3 == 0 else 22; k += 1
+        tim.save(TYPE)
+    pg.set_input_files('#mediafile', [TYPE]); time.sleep(1.5)
+    grid = pg.evaluate("""async()=>{const it=segue.items[segue.items.length-1];segue.items.splice(0,segue.items.length,it);segue.refresh();
+      const c=document.createElement('canvas');c.width=1080;c.height=1350;const x=c.getContext('2d',{willReadFrequently:true});
+      let sc=null;for(const sz of [41,43,45,47,49,42,44,46,48]){segue.set('size',sz);sc=segue.E.scene(segue.S,segue.items,x,segue.fonts,1080,1350,.1).ops[0].rect;const f=sc.x%1;if(f>.25&&f<.75)break;}
+      const R=[Math.ceil(sc.x)+4,Math.ceil(sc.y)+4,Math.floor(sc.w)-8,Math.floor(sc.h)-8];
+      const grab=async on=>{segue.set('xCrisp',on);await segue.frameAt(c,x,1080,1350,.1);const o=document.createElement('canvas');o.width=R[2];o.height=R[3];
+        o.getContext('2d').drawImage(c,R[0],R[1],R[2],R[3],0,0,R[2],R[3]);return o.toDataURL('image/png');};
+      const a=await grab(true),b=await grab(false);segue.set('xCrisp',true);segue.set('size',40);return {crisp:a,plain:b,x:sc.x,y:sc.y,w:sc.w,R,frac:+(sc.x%1).toFixed(3)};}""")
+    def edge(a):
+        a = np.asarray(a, float); return float((np.abs(np.diff(a, axis=1))[:-1] + np.abs(np.diff(a, axis=0))[:, :-1]).mean())
+    gi, gp = img_of(grid['crisp']).convert('L'), img_of(grid['plain']).convert('L')
+    tsrc, gs, R = Image.open(TYPE).convert('L'), grid['w'] / 1920, grid['R']
+    on_grid = tsrc.resize((round(1920 * gs), round(1200 * gs)), Image.LANCZOS).crop((4, 4, 4 + gi.width, 4 + gi.height))   # what crisp looks like
+    same_place = tsrc.resize((R[2], R[3]), Image.LANCZOS, box=((R[0] - grid['x']) / gs, (R[1] - grid['y']) / gs, (R[0] + R[2] - grid['x']) / gs, (R[1] + R[3] - grid['y']) / gs))
+    keep = edge(gi) / edge(on_grid)
+    rmsd = lambda a: float(np.sqrt(((np.asarray(a, float) - np.asarray(same_place, float)) ** 2).mean()))
+    check('Crisp scaling: fine type in a card at a fractional position lands on the pixel grid – 90% or more of a Lanczos resample’s edge detail, and no aliasing',
+          keep >= .9 and rmsd(gi) < rmsd(gp) * .5, f"x + {grid['frac']} px: edge detail {keep:.0%} (0.4.2: 65%); difference from Lanczos at the same place {rmsd(gp):.1f} plain → {rmsd(gi):.1f}")
     pick = pg.evaluate("(async()=>{const r=await segue.pickEncoder(540,676,30,50e6*(540*676)/(1080*1350));return r&&{hw:r.cfg.hardwareAcceleration,mode:r.cfg.bitrateMode,honours:r.honours,full:r.full,third:r.third};})()")
     check('MP4: picks an encoder setup whose file grows with the bitrate (one that ignores it is passed over)', pick and pick['honours'] is True, str(pick))
     pg.evaluate("segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack')")

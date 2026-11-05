@@ -90,13 +90,15 @@ async function encoderSetups(W,H,fps,bitrate){
       try{if((await VideoEncoder.isConfigSupported(rt)).supported)out.push(rt);}catch(e){}return out;}}
   try{const cfg={codec:'vp09.00.40.08',width:W,height:H,bitrate,framerate:fps,latencyMode:'quality'};if((await VideoEncoder.isConfigSupported(cfg)).supported)return[cfg];}catch(e){}
   return[];}
-/* the frames to test with: a fixed, detailed texture panning 3 px a frame – what real motion
-   looks like to an encoder. (Fresh noise every frame was no good: an encoder that follows the
-   bitrate can't keep up with it at any rate, so both files came out alike.) */
+/* the frames to test with: a fixed, detailed texture slowly zooming and drifting by fractions
+   of a pixel – what real motion looks like to an encoder. (0.4.2 panned it by whole pixels, which
+   an encoder predicts almost for nothing; fresh noise every frame was no good either – a following
+   encoder can't keep up with it at any rate, so both files came out alike.) */
 const SAMPLE_N=24,SAMPLE_FROM=8;
 function sampleFrames(W,H){const out=[];
   const v=(X,Y)=>{let h=Math.imul(X,374761393)^Math.imul(Y,668265263);h=Math.imul(h^(h>>>13),1274126177);return((((X>>3)+(Y>>3))&1)?60:180)+((h>>>24)&31)+(((X*Y)>>6)&15);};
-  for(let j=0;j<SAMPLE_N;j++){const b=new Uint8Array(W*H*3/2);for(let y=0;y<H;y++){const r=y*W;for(let x=0;x<W;x++)b[r+x]=v(x+j*3,y);}b.fill(128,W*H);out.push(b);}
+  for(let j=0;j<SAMPLE_N;j++){const b=new Uint8Array(W*H*3/2),z=1+j*.004,ox=j*1.37,cx=W/2,cy=H/2;
+    for(let y=0;y<H;y++){const r=y*W,Y=Math.floor((y-cy)*z+cy);for(let x=0;x<W;x++)b[r+x]=v(Math.floor((x-cx)*z+cx+ox),Y);}b.fill(128,W*H);out.push(b);}
   return out;}
 async function bytesFor(cfg,frames,fps){let n=0,err=null;const e=new VideoEncoder({output:ch=>{if(ch.timestamp>=Math.round(SAMPLE_FROM*1e6/fps))n+=ch.byteLength;},error:x=>{err=x;}});
   const work=(async()=>{e.configure(cfg);for(let i=0;i<frames.length;i++){const f=new VideoFrame(frames[i],{format:'I420',codedWidth:cfg.width,codedHeight:cfg.height,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});e.encode(f,{keyFrame:i===0});f.close();
@@ -224,7 +226,7 @@ const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.rou
 function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
 function exportInfo(){if(!xInfo)return;const [W,H]=size(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
-  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, about ${mb(mp4Bitrate()*P.L*l/8)}`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
+  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, up to ${mb(mp4Bitrate()*P.L*l/8)} (flat colour and type come out far smaller)`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
 /* ---------------- start ---------------- */
 {const _r=appRefresh;appRefresh=function(){_r();exportInfo();};}
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};

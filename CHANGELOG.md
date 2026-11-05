@@ -1,5 +1,15 @@
 # Changelog
 
+## 5 November 2026 – Segue 0.4.3: crisp media, really – drawn on the pixel grid
+
+Steve's MP4 from Chrome: "not as crisp as it could be", and only ~4 MB against an estimate of 300+. Measured on his iMac (Chrome 152, through the Claude app's browser) and here. Segue only.
+
+- **The cause was the drawing, not the encoder.** 0.4.1 shrank each piece carefully, then drew the result at wherever the layout put it – x + 0.6 px, say – and the browser blurred it again to get it there; anything enlarged was stretched with a plain bilinear filter. Measured with fine type against a Lanczos resample: Card stack kept 55–65% of the edge detail, Phone swipe 63–73%, Push and drift 70–87%, Straight cuts with a 16:10 piece in 4:5 (enlarged 1.125×) 79%.
+- **Now** each piece is resampled once, straight onto the pixel grid, with the fraction of a pixel built into that one step (so movement stays smooth): stepped down to within 2× (kept, for stills), drawn to its exact size and place, sharpened (half strength shrunk, a third enlarged) and copied on 1:1; the same size as its own pixels is copied straight, untouched. Card stack 91–92%, Phone swipe 83–86%, Push and drift 98%, Straight cuts 93%. Turned media keeps 0.4.1's path. Full-frame video costs about 90 ms a frame more on the test machine.
+- **The encoder was fine:** on Steve's iMac, Chrome's hardware encoder held to 32 Mbps gives 52 dB on busy test footage, and a Segue export of promo-like clips came back 56–59 dB from the frames it drew – visually identical. Flat colour and type cost little to encode, so the file is small: the Export sheet now says "up to" the size, not "about".
+- **Encoder test:** 0.4.2's test footage panned by whole pixels, which encoders predict almost for nothing; it now zooms and drifts by fractions of a pixel, so one that follows the bitrate shows it plainly (3.1× the bytes for 3× the bitrate, here).
+- `tests/segue_check.py`: 79 checks (1 new) – fine type in a card at x + 0.6 px keeps 90% or more of a Lanczos resample's edge detail with no aliasing (0.4.2: 65%).
+
 ## 5 November 2026 – Segue 0.4.2: an MP4 encoder that follows Quality
 
 Steve's three MP4s at Standard, High and Best all came out at 16.5 MB (Safari, Intel iMac): the encoder kept its own quality whatever it was asked for. Segue only.

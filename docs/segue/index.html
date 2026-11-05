@@ -467,7 +467,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.4.2</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.4.3</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -3341,7 +3341,8 @@ function drawMedia(ctx,o,r,mode){const it=o.item,src=it.src;if(!src||!it.w||!it.
   const crop=mode==='cover'&&!o.whole,z=crop?Math.max(1,(+it.zm||100)/100):1;
   const s=(mode==='cover'?Math.max(r.w/it.w,r.h/it.h):Math.min(r.w/it.w,r.h/it.h))*z,dw=it.w*s,dh=it.h*s,sx=(dw-r.w)/2,sy=(dh-r.h)/2;
   const dx=r.x-sx+(crop?clamp(+it.px||0,-100,100)/100*sx:0),dy=r.y-sy+(crop?clamp(+it.py||0,-100,100)/100*sy:0);
-  /* crisp: scaling down by more than a touch, export (and the paused preview) resample properly */
+  /* crisp: export (and the paused preview) draw it on the pixel grid, resampled once, properly */
+  if(crispNow&&drawCrisp(ctx,src,it,dx,dy,dw,dh))return;
   if(crispNow){const T=ctx.getTransform(),kx=Math.hypot(T.a,T.b),ky=Math.hypot(T.c,T.d),tw=Math.round(dw*kx),th=Math.round(dh*ky);
     if(tw>1&&th>1&&tw<it.w*.95&&th<it.h*.95&&tw*th<=16e6){const c=crispOf(src,it.w,it.h,tw,th,!!it.levels,it.kind==='video'?null:`${it.id}|${tw}|${th}|${+!!it.levels}`);ctx.drawImage(c,0,0,tw,th,dx,dy,dw,dh);return;}}
   if(!it.levels){ctx.drawImage(src,dx,dy,dw,dh);return;}
@@ -3350,14 +3351,51 @@ function drawMedia(ctx,o,r,mode){const it=o.item,src=it.src;if(!src||!it.w||!it.
   if(lvCanvas.width!==pw||lvCanvas.height!==ph){lvCanvas.width=pw;lvCanvas.height=ph;}
   lvCtx.drawImage(src,0,0,pw,ph);const id=lvCtx.getImageData(0,0,pw,ph),d=id.data;for(let j=0;j<d.length;j+=4){d[j]=LV[d[j]];d[j+1]=LV[d[j+1]];d[j+2]=LV[d[j+2]];}
   lvCtx.putImageData(id,0,0);ctx.drawImage(lvCanvas,dx,dy,dw,dh);}
-/* Crisp scaling. A browser shrinking a picture in one go (2–3× for a screen recording in a
-   card) softens fine type and lines – measured 5 Nov at 77% of the edge detail a Lanczos
-   resample keeps. So for export (and a paused preview): halve it step by step until it's
-   within 2× of its size, the last step to size, then a light sharpen (a centre-weighted 3×3,
-   half strength) – 98% of Lanczos, much as Photoshop's Bicubic Sharper does it. Stills are
-   kept once made; video is done afresh each frame. */
+/* Crisp drawing. Measured 5 Nov (0.4.3): fine type in a card kept only 55–70% of a Lanczos
+   resample's edge detail, even after 0.4.1's stepped downscale – because the result was then
+   drawn at a fractional position (x + 0.6 px), which the browser blurs again, and anything
+   enlarged was stretched with a plain bilinear filter. So, unless it's turned or flipped:
+   - work out where it lands in real pixels; the same size as its own pixels is copied straight
+     onto the grid (snapped by under half a pixel – nothing is resampled);
+   - otherwise it's resampled once, with the fraction of a pixel built into that one step:
+     halved step by step to within 2× (kept, for stills), then drawn to its exact size and
+     position on a canvas lined up with the pixel grid, then sharpened – half strength when
+     shrunk, as Photoshop's Bicubic Sharper, a third when enlarged – and copied on 1:1.
+   Stills at rest are kept, so a slide that sits still costs nothing after its first frame. */
 let crispNow=false;
-const CR=[document.createElement('canvas'),document.createElement('canvas'),document.createElement('canvas')],crCache=new Map();
+const CR=[document.createElement('canvas'),document.createElement('canvas'),document.createElement('canvas')],crCache=new Map(),halfCache=new Map(),onGrid=new Map();
+function halved(src,it,DW,DH){let cur=src,w=it.w,h=it.h,flip=0,n=0;while(w/2>=DW&&h/2>=DH){w=Math.max(1,Math.round(w/2));h=Math.max(1,Math.round(h/2));n++;}
+  if(!n)return src;const key=it.kind==='video'?null:`${it.id}|${n}`;if(key&&halfCache.has(key))return halfCache.get(key);
+  w=it.w;h=it.h;for(let i=0;i<n;i++){const t=key&&i===n-1?document.createElement('canvas'):CR[flip];flip^=1;const nw=Math.max(1,Math.round(w/2)),nh=Math.max(1,Math.round(h/2));if(t.width!==nw||t.height!==nh){t.width=nw;t.height=nh;}
+    const tx=t.getContext('2d');tx.imageSmoothingEnabled=true;tx.imageSmoothingQuality='high';tx.clearRect(0,0,nw,nh);tx.drawImage(cur,0,0,nw,nh);cur=t;w=nw;h=nh;}
+  if(key){halfCache.set(key,cur);if(halfCache.size>24)halfCache.delete(halfCache.keys().next().value);}
+  return cur;}
+function sharpenOn(d,w,h,amt,levels){const o=new Uint8ClampedArray(d),W4=w*4;
+  if(amt>0&&w>4&&h>4){/* unsharp against a 1-2-1 blur, done as two passes; the outer two pixels (part-covered at a fractional edge) are left */
+    let opaque=true;for(let y=1;y<h-1&&opaque;y++)for(let j=(y*w+1)*4+3,e=(y*w+w-1)*4;j<e;j+=4)if(d[j]<255){opaque=false;break;}
+    const t=new Uint16Array(d.length);
+    for(let y=1;y<h-1;y++)for(let i=(y*w+1)*4,e=(y*w+w-1)*4;i<e;i+=4){t[i]=d[i-4]+2*d[i]+d[i+4];t[i+1]=d[i-3]+2*d[i+1]+d[i+5];t[i+2]=d[i-2]+2*d[i+2]+d[i+6];}
+    for(let y=2;y<h-2;y++)for(let i=(y*w+2)*4,e=(y*w+w-2)*4;i<e;i+=4){
+      if(!opaque&&(d[i+3]<255||d[i-1]<255||d[i+7]<255||d[i-W4+3]<255||d[i+W4+3]<255))continue;
+      o[i]=d[i]+amt*(d[i]-(t[i-W4]+2*t[i]+t[i+W4])/16);o[i+1]=d[i+1]+amt*(d[i+1]-(t[i-W4+1]+2*t[i+1]+t[i+W4+1])/16);o[i+2]=d[i+2]+amt*(d[i+2]-(t[i-W4+2]+2*t[i+2]+t[i+W4+2])/16);}}
+  if(levels)for(let j=0;j<o.length;j+=4){o[j]=LV[o[j]];o[j+1]=LV[o[j+1]];o[j+2]=LV[o[j+2]];}
+  return o;}
+function drawCrisp(ctx,src,it,dx,dy,dw,dh){
+  const T=ctx.getTransform();if(Math.abs(T.b)>1e-6||Math.abs(T.c)>1e-6||T.a<=0||T.d<=0)return false;
+  const X=T.a*dx+T.e,Y=T.d*dy+T.f,DW=dw*T.a,DH=dh*T.d;if(DW<2||DH<2||DW*DH>16e6)return false;
+  const one=Math.abs(DW-it.w)<.5&&Math.abs(DH-it.h)<.5,levels=!!it.levels;
+  if(one&&!levels){ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(src,Math.round(X),Math.round(Y));ctx.restore();return true;}
+  const ix=Math.floor(X),iy=Math.floor(Y),fx=one?Math.round(X)-ix:X-ix,fy=one?Math.round(Y)-iy:Y-iy,ew=one?it.w:DW,eh=one?it.h:DH;
+  const amt=one?0:(DW<it.w*.95||DH<it.h*.95)?.5:(DW>it.w*1.02||DH>it.h*1.02)?.33:0;
+  const ow=Math.ceil(fx+ew),oh=Math.ceil(fy+eh),key=it.kind==='video'?null:`${fx.toFixed(3)}|${fy.toFixed(3)}|${ew.toFixed(2)}|${eh.toFixed(2)}|${+levels}`;
+  let g=onGrid.get(it.id);if(!g){g={key:null,c:document.createElement('canvas')};onGrid.set(it.id,g);if(onGrid.size>64)onGrid.delete(onGrid.keys().next().value);}
+  if(!key||g.key!==key){const c=g.c;if(c.width!==ow||c.height!==oh){c.width=ow;c.height=oh;}
+    const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.clearRect(0,0,ow,oh);
+    x.drawImage(one?src:halved(src,it,DW,DH),fx,fy,ew,eh);
+    if(amt>0||levels){const id=x.getImageData(0,0,ow,oh);id.data.set(sharpenOn(id.data,ow,oh,amt,levels));x.putImageData(id,0,0);}
+    g.key=key;}
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.drawImage(g.c,ix,iy);ctx.restore();return true;}
+/* 0.4.1's crisp scaling, kept for media that's turned: stepped down, sharpened, drawn as it lies */
 function crispOf(src,sw,sh,tw,th,levels,key){
   if(key&&crCache.has(key))return crCache.get(key);
   let cur=src,w=sw,h=sh,flip=0;
@@ -3365,11 +3403,7 @@ function crispOf(src,sw,sh,tw,th,levels,key){
     const tx=t.getContext('2d');tx.imageSmoothingEnabled=true;tx.imageSmoothingQuality='high';tx.clearRect(0,0,nw,nh);tx.drawImage(cur,0,0,nw,nh);cur=t;w=nw;h=nh;}
   const out=key?document.createElement('canvas'):CR[2];if(out.width!==tw||out.height!==th){out.width=tw;out.height=th;}
   const ox=out.getContext('2d',{willReadFrequently:true});ox.imageSmoothingEnabled=true;ox.imageSmoothingQuality='high';ox.clearRect(0,0,tw,th);ox.drawImage(cur,0,0,tw,th);
-  const id=ox.getImageData(0,0,tw,th),d=id.data,o=new Uint8ClampedArray(d),W4=tw*4;
-  for(let y=1;y<th-1;y++)for(let x=1,i=(y*tw+1)*4;x<tw-1;x++,i+=4)for(let k=i;k<i+3;k++){
-    const b=(4*d[k]+2*(d[k-4]+d[k+4]+d[k-W4]+d[k+W4])+d[k-W4-4]+d[k-W4+4]+d[k+W4-4]+d[k+W4+4])/16;o[k]=d[k]+.5*(d[k]-b);}
-  if(levels)for(let j=0;j<o.length;j+=4){o[j]=LV[o[j]];o[j+1]=LV[o[j+1]];o[j+2]=LV[o[j+2]];}
-  id.data.set(o);ox.putImageData(id,0,0);
+  const id=ox.getImageData(0,0,tw,th);id.data.set(sharpenOn(id.data,tw,th,.5,levels));ox.putImageData(id,0,0);
   if(key){crCache.set(key,out);if(crCache.size>48)crCache.delete(crCache.keys().next().value);}
   return out;}
 /* ---------------- the preview ---------------- */
@@ -3870,13 +3904,15 @@ async function encoderSetups(W,H,fps,bitrate){
       try{if((await VideoEncoder.isConfigSupported(rt)).supported)out.push(rt);}catch(e){}return out;}}
   try{const cfg={codec:'vp09.00.40.08',width:W,height:H,bitrate,framerate:fps,latencyMode:'quality'};if((await VideoEncoder.isConfigSupported(cfg)).supported)return[cfg];}catch(e){}
   return[];}
-/* the frames to test with: a fixed, detailed texture panning 3 px a frame – what real motion
-   looks like to an encoder. (Fresh noise every frame was no good: an encoder that follows the
-   bitrate can't keep up with it at any rate, so both files came out alike.) */
+/* the frames to test with: a fixed, detailed texture slowly zooming and drifting by fractions
+   of a pixel – what real motion looks like to an encoder. (0.4.2 panned it by whole pixels, which
+   an encoder predicts almost for nothing; fresh noise every frame was no good either – a following
+   encoder can't keep up with it at any rate, so both files came out alike.) */
 const SAMPLE_N=24,SAMPLE_FROM=8;
 function sampleFrames(W,H){const out=[];
   const v=(X,Y)=>{let h=Math.imul(X,374761393)^Math.imul(Y,668265263);h=Math.imul(h^(h>>>13),1274126177);return((((X>>3)+(Y>>3))&1)?60:180)+((h>>>24)&31)+(((X*Y)>>6)&15);};
-  for(let j=0;j<SAMPLE_N;j++){const b=new Uint8Array(W*H*3/2);for(let y=0;y<H;y++){const r=y*W;for(let x=0;x<W;x++)b[r+x]=v(x+j*3,y);}b.fill(128,W*H);out.push(b);}
+  for(let j=0;j<SAMPLE_N;j++){const b=new Uint8Array(W*H*3/2),z=1+j*.004,ox=j*1.37,cx=W/2,cy=H/2;
+    for(let y=0;y<H;y++){const r=y*W,Y=Math.floor((y-cy)*z+cy);for(let x=0;x<W;x++)b[r+x]=v(Math.floor((x-cx)*z+cx+ox),Y);}b.fill(128,W*H);out.push(b);}
   return out;}
 async function bytesFor(cfg,frames,fps){let n=0,err=null;const e=new VideoEncoder({output:ch=>{if(ch.timestamp>=Math.round(SAMPLE_FROM*1e6/fps))n+=ch.byteLength;},error:x=>{err=x;}});
   const work=(async()=>{e.configure(cfg);for(let i=0;i<frames.length;i++){const f=new VideoFrame(frames[i],{format:'I420',codedWidth:cfg.width,codedHeight:cfg.height,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});e.encode(f,{keyFrame:i===0});f.close();
@@ -4004,7 +4040,7 @@ const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.rou
 function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
 function exportInfo(){if(!xInfo)return;const [W,H]=size(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
-  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, about ${mb(mp4Bitrate()*P.L*l/8)}`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
+  xInfo.textContent=(f==='png'?`${W} × ${H}, the frame on the stage now`:f==='gif'?`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}, ${P.L.toFixed(1)} s at ${S.xGifFps} fps, looping`:`${W} × ${H}, ${(P.L*l).toFixed(1)} s at ${S.fps} fps – H.264, up to ${mb(mp4Bitrate()*P.L*l/8)} (flat colour and type come out far smaller)`)+(lastSize[f]?` · last one ${mb(lastSize[f])}`:'');}
 /* ---------------- start ---------------- */
 {const _r=appRefresh;appRefresh=function(){_r();exportInfo();};}
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};
