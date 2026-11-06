@@ -41,14 +41,14 @@ ARCHIVE = [('rubato', '0.9', 'archive/rubato-0.9.html', "const APP='rubato';", "
 # the exported page), and the app files that go inside the shared wrapper.
 APPS = {
     'rubato': dict(
-        title='Rubato – by Ensemble', version='1.1',
+        title='Rubato – by Ensemble', version='1.2',
         body='rubato/app.html', css='rubato/app.css',
         tagged=[('rubato-engine', 'rubato/engine.js')],
         before='shared/gif.js',
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo – by Ensemble', version='0.11.1',
+        title='Tempo – by Ensemble', version='0.12',
         body='tempo/app.html', css='tempo/app.css',
         tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
                 ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js'),
@@ -71,7 +71,7 @@ SEGUE = dict(
 )
 
 def build_segue(cfg):
-    # the round 4 kit (shared/kit.css) goes on Segue first; the other tools follow once it's signed off
+    # the house kit (shared/kit.css); Segue's own styles are written in its terms, so they come after it
     css = read('shared/tokens.css') + read('shared/components.css') + read('shared/kit.css') + read(cfg['css'])
     body = read(cfg['body']).replace('{{version}}', cfg['version'])
     scripts = ''
@@ -90,6 +90,7 @@ def build_app(name, cfg):
     css = read('shared/tokens.css') + read('shared/components.css')
     if cfg.get('css'):
         css += read(cfg['css'])
+    css += read('shared/kit.css')   # the house kit (UI round 4, Nov 2026) – after the app's own styles, so the house wins
     body = read(cfg['body']).replace('{{version}}', cfg['version'])
     scripts = ''
     for sid, path in cfg['tagged']:
@@ -197,7 +198,7 @@ def main():
     # (shared/tokens.css, shared/components.css), the frame (tutti/frame.css, frame.js) and the
     # shared GIF encoder (shared/gif.js)
     html = read('tutti/index.html')
-    for mark, text in [('/*{{shared-css}}*/', read('shared/tokens.css') + read('shared/components.css')),
+    for mark, text in [('/*{{shared-css}}*/', read('shared/tokens.css') + read('shared/components.css') + read('shared/kit.css')),
                        ('/*{{tutti-css}}*/', read('tutti/frame.css')), ('/*{{tutti-frame}}*/', read('tutti/frame.js')),
                        ('/*{{shared-gif}}*/', read('shared/gif.js'))]:
         assert html.count(mark) == 1, mark

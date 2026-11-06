@@ -1,225 +1,183 @@
-# The Ensemble tools interface
+# The Ensemble tools interface – house rules
 
-One system for Tutti, Rubato, Tempo and whatever comes next. Swiss in spirit:
-one weight of Aktiv Grotesk, monochrome, few sizes, nothing decorative. The work
-is the only colour on screen. Settled with Steve over three rounds, 8–9 October
-2026. The live reference is `ui/review/` (built to `docs/ui/review/`).
+One system for every browser tool Ensemble makes: Tutti, Rubato, Tempo, Segue and
+whatever comes next. Decentish and Patch are websites, not tools, and keep their own
+look. These rules are the brief for every future build; when a tool and this file
+disagree, the tool is wrong.
 
-Files: `shared/tokens.css` (the values), `shared/components.css` (the frame
-and every control), the layout parts of `shared/core.js` (cards and their
-summaries, sheets, Preview, tooltips, the slider and segmented-control
-upgrades) and `shared/core-end.js` (theme, keys, panel width). Tutti keeps its own
-page and script and takes the same styles at build time, with
-`tutti/frame.css` and `tutti/frame.js` for its own parts.
+Settled with Steve over rounds 1–4 (October–November 2026). The kit lives in
+`shared/kit.css`; the mock-ups and reasoning are at `ui/review/` (round 4 at
+`ui/review/round4/`). Last revised 6 November 2026 (Segue 0.5.3, Tempo 0.12,
+Rubato 1.2, Tutti 6.2).
+
+## Principles
+
+1. **The work is the only colour on screen.** The interface is neutral greys, black
+   and white, and one blue for "changed".
+2. **Clean, then usable, then clever.** Every element earns its place; if a label,
+   rule or note doesn't help someone find or set something, it goes.
+3. **One logic everywhere.** Where you are, what level you're on and what a control
+   does should be readable at a glance, the same in every tool.
+4. **Give it room.** Space is the main tool for grouping – more of it, not more lines.
+5. **Details are moments.** Small facts (sizes, durations, states) are designed as
+   chips and tags, not left as sentences.
+6. **Nothing is lost.** Changes show, and can be put back or undone.
+7. **Behaviour holds.** A UI change never changes what a tool makes – exports are
+   checked byte for byte where they can be.
 
 ## The frame
 
-- **The work fits, then fills.** By default the work sits in the clear space:
-  right of the panel, under the top bar and above the island, on the app's own
-  colour. **Preview** (the expanding arrows, or F) fills the window with it, and
-  the panel slides away to the left. The island, Presets and top bar stay. The
-  panel button (top left, Preview only) brings the panel back over the work;
-  a click on the work puts it away again. Esc or F leaves Preview.
-- **Four things float**, 12 px from the edges, frosted (the app colour at 92%,
-  24 px blur) and edged with a hairline. **No drop shadows anywhere**: surfaces
-  are told apart by hairlines and fills, never by shadow.
-  - **Panel**, left, top to bottom – making. Its right edge drags (280–440 px,
-    remembered).
-  - **Top bar**, top right – chips, then Preview and light/dark. The same place
-    in every app.
-  - **Island**, bottom centre – what you do to the view, and what you take away.
-  - **Presets**, bottom right, the island's height – choosing. Only in apps that
-    have presets.
-- **The island holds** what changes the view (Tempo's Show; Rubato's Pause,
-  scrub, Randomise and Undo; Tutti's Pause when the source moves), then
-  **Export**. Status lives here too ("Saved tempo.html", "Recording 0:03"). The
-  island centres under the work and moves aside for Presets.
-- **Sheets** grow out of whatever opened them: Export and Randomise's options
-  from the island, Presets from its capsule. One at a time. Esc, or a click on
-  the work, closes them – and that click only closes; it never reaches the work
-  (it won't start Rubato's kerning, say). An open sheet's surface goes almost
-  solid, so the work behind doesn't smudge its text. A card built with `card()` becomes a sheet with
-  `cardToSheet(body, 'export' | 'presets')`, with the same controls and labels.
-- **Light and dark:** light by default. Dark only once someone chooses it with the
-  button, then remembered per tool (`<app>:mode`, written only by the button).
-- **Phones** (860 px and under): the stage sits on top and the panel runs below
-  it. The island runs along the bottom: its view controls scroll sideways (the
-  far end fades when there's more), Export stays at its right end, and Presets
-  shrinks to its icon beside it. An open sheet takes the full width.
-- **Embedded:** in an iframe on another page (the Ensemble site), a tool shows as
-  a framed object – rounded, hairline, on that page's colour (`html.embed`, set in
-  the page's head). `?app` in its URL opts out, for a full-page embed that should
-  fill its iframe edge to edge. Embed code for the site is in `tutti/EMBED.md`.
+- **Panel** on the left: making. A 4% grey surface (`--k-panel`), 360 px by default,
+  dragged 280–480 px by its right edge (remembered per tool).
+- **Top bar**, top right: chips (facts about the work), then Preview and light/dark.
+- **Island**, bottom centre: what changes the view (Play, Show, scrub) and **Export**,
+  which opens its sheet upward. Status and Undo show here.
+- **Presets**, bottom right, the island's height – where a tool has presets.
+- **The work** fits the clear space; **Preview** (F) fills the window and slides the
+  panel away; Esc leaves.
+- **Sheets** (Export, Presets) grow out of what opened them; one at a time; Esc or a
+  click on the work closes them, and that click never reaches the work.
+- **No drop shadows anywhere.** Surfaces are told apart by fills and hairlines.
+- **Light by default**; dark only once chosen with the button, then remembered.
+- **Phones** (≤ 860 px): the work on top, the panel below; the island along the
+  bottom with Export pinned at its end; Presets as an icon.
+- **Embedded** (weareensemble.co.uk): framed on the page's colour, unless `?app`
+  asks for edge to edge. Embed code: `tutti/EMBED.md`.
 
-## Depth – three levels, never four
+## The ladder of levels
 
-1. **Card** (`card(id, title)`). One of the panel's chapters. Shut, its title row
-   says what's set – "24-hour · Comma · Leading zero". The line is built from the
-   card's own choices and switches (`autoSummary`), or `SUMMARY[id] = s => '…'`
-   when the app knows better. Which cards start shut: `appCollapseDefault()`. The
-   card for what you're working on starts open; the rest start shut.
-2. **Group** (`fold()` in Tempo, More in Rubato). The part of a card you don't
-   always need. A small grey label over a hairline, with its own summary when
-   shut.
-3. **Detail.** Belongs to one row, such as a font's role and tracking. It opens in
-   place, under its row.
+Every part of the panel is one of four levels. Each level looks one way only.
 
-Things that change nothing float instead and close when you click away: a
-tooltip, a sheet.
+1. **Section** – a white card (`--k-card`) on the panel's grey, 10 px apart.
+   Title 14 px **Bold**, lined up with everything under it (no numbers, no summary
+   line beside it), a chevron on the right. Opens and shuts on the Smooth curve.
+   Shut, a blue dot says something inside has changed; open, a **Reset** chip
+   puts the whole section back.
+2. **Group** – inside a card: one hairline, then a title 13 px **Bold** and a
+   chevron. 20 px of space before it. One rule per edge – never a rule on the group
+   and on its head.
+3. **Setting** – one row, 30 px high (see the row grammar).
+4. **Detail** – belongs to one row: a slide's own settings open inside its row; a
+   note sits under what it explains.
 
-## Controls – one of each
+Sheets speak the same language: the sheet's title is set as a section title
+(14 Bold), its groups as labels (13 Medium) with one rule between groups.
 
-- **Slider.** The label and value sit inside the track. The fill carries the
-  value. The tick shows only where it won't cross the words. Any `.ctl` holding
-  an `input[type=range]` is upgraded automatically. Double-click resets.
-- **Segmented control.** Up to four short options in one row. Otherwise an even
-  grid, and the last row's options share its width, so none is left on its own.
-  Each control is laid out to fit from its labels (`fitSeg`). Long labels or
-  many options: use a menu. A row of pill buttons that pick one thing (colour
-  themes) gets the class `choice` and looks and lays out the same.
-- **Pairs.** A handful of one-off actions (Rubato's colour presets) sit in an even
-  two-column grid (`btn-row pairs`), never a ragged wrap.
-- **Menu** (`select`). Under its label when the label is long, beside it when it's
-  short.
-- **Toggle.** The round tick. Anything that depends on it appears only while it's
-  on, and the space closes up.
-- **Buttons.**
-  - Primary: one per place – the main action in a sheet.
-  - Standard.
-  - Quiet: secondary actions.
-  - Icon buttons always carry a tooltip and a spoken label.
-- **List row.** A name, a short grey summary, then a switch, swatch or tag at the
-  end. Fonts, mapping bands and text blocks all use it.
-- **Chips.** Facts in two or three words ("1680 × 1050", "Demo face"). The
-  sentence goes in the chip's tooltip.
+## The row grammar
 
-## Sizes
+- **A setting sits on one line:** its label (13 px **Medium**, ink) in a fixed
+  left column (`--lc`, 104 px), its control in the column to the right. Sliders,
+  menus, fields, colours, steppers and switches all start at the same left edge.
+- **When the control needs the width** – a row of choices that won't fit beside
+  its label, tiles (Kind), lists (media, fonts, presets, bands), a text box of more
+  than one line – the label goes above and the control takes the full width.
+- **Choices:** beside the label when each option fits its share with 8 px either
+  side; otherwise full width under it; otherwise (Segue) a menu beside the label, or
+  (Tempo, Rubato) an even grid. The island's choices keep their own widths.
+- **Long labels wrap** onto two lines in the label column rather than squeeze the
+  control.
+- **Hints** are 12 px grey, one or two short lines, with room after them and a
+  right margin that keeps lines short. If it needs more, it's a tooltip.
 
-- **Type:** one weight.
-  - 22 px – name and version, and "By ENSEMBLE" under them in grey, the same
-    size and tracking.
-  - 16 px – card titles.
-  - 14 px – everything you read or set.
-  - 12 px – summaries, hints, chips.
-- **Heights:**
-  - 44 px – island and Presets capsule.
-  - 40 px – a card's title row; the one big action in a sheet.
-  - 36 px – controls in the island.
-  - 32 px – controls in the panel.
-  - 28 px – chips and the top-right buttons.
-- **Corners:**
-  - 12 px – panel and sheets.
-  - 6 px – cards and wells.
-  - 4 px – tiles and swatches.
-  - Round – every control, the island and the capsule.
-- **Space:** a 4 px step – 4 and 8 inside controls, 12 between them and from the
-  edges, 16 inside sheets.
-- **Grey text:** at least 4.5:1 in both themes (#67656B light, #A3A1A8 dark).
-- **Motion:** one curve, 0.42 s, for every grow and shrink. None with reduced
-  motion.
+## Controls
 
-## Help
+- **Slider:** a grey bar (8 px corners) with its value inside on the right, its
+  label in the label column. A darker fill shows the value (from zero when the
+  range runs through zero); a 3 px handle that splits into two short ticks where it
+  would cross the value; a notch where it started.
+  - Drag moves it by how far you go, not to where you press; **Shift** is ten times
+    finer; it catches lightly at the start value.
+  - A press that doesn't move jumps there. A press on the label drags it too.
+  - Click the value to type one (units optional, kept to the range, Escape cancels).
+  - Double-click resets. Arrow keys step; Shift + arrow steps ten.
+- **Choice (segmented):** a grey track; the chosen option white, raised by a
+  hairline, Medium; the white slides to what you pick (Morph).
+- **Stepper** (− 3 +) for small whole counts.
+- **Menu, field, colour:** grey fills, 8 px corners. A colour is its hex field
+  across the control column and a swatch at its end.
+- **Switch:** the round tick, in the control column; what depends on it appears
+  only while it's on.
+- **Buttons:** grey fill, 8 px, Medium. **Black only for the main action** in a
+  place (Export, Download, Save PNG). A pressed toggle button is white on grey.
+- **Keyline chips** (24 px, a hairline, 6 px corners, an icon) for quiet actions:
+  Shuffle, Clear all, Reset, Replace, + Add, Randomise.
+- **List rows:** soft grey fills, 8 px; a grip where they reorder; the open or
+  chosen one white with its keyline **inside** (so a scrolling sheet never clips it).
+- **Presets:** a list of names (13 Medium) under their kind; a small picture of the
+  kind only where the list mixes kinds (yours); what a preset does goes in its
+  tooltip; "In use" as a tag.
 
-- Every control has a tooltip. Hovering the row shows it after a beat; tabbing
-  to it shows it at once. A click always clears it, and a control you've just
-  pressed stays quiet until the pointer leaves it. The ? stays for touch screens
-  and keyboards, and on screens with a pointer it shows only when its row is
-  hovered.
-- A hint is one line and explains a situation ("No font loaded yet"). Anything
-  longer is a detail or a tooltip.
+## What's changed, and undo
 
-## Wording
+- **The change column:** a narrow column at the right of every row. A **blue** dot
+  (`--k-dot`) when the row differs from where it started (the preset in use, or the
+  default); click it to put the row back. Changed values read in ink, Medium.
+- **Undo:** ⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Y – settings, presets, section resets, removed
+  files. A drag is one step. Removing something says so in the island, with Undo.
+- In Segue now; Tempo, Rubato and Tutti take it next (their state needs a "where it
+  started" first).
 
-- One weight: emphasis is colour (ink against grey), never bold. `b` and `strong`
-  are set to the surrounding weight.
-- Plain and short, UK English, en dashes with spaces.
-- Name things by what people see, not how they're built.
-- A button says what it does ("Download for Mac"). Status says what happened
-  ("Saved tempo.html").
-- Labels and accessible names are the contract with the tests (`tests/`): rename
-  one only with its test and the app's chat in step.
+## Details as moments
 
-## Adding an app
+Facts are chips, not sentences: Export's "what you'll get" (`540 × 675` · `18.6 s` ·
+`20 fps` · `Loops`), the top bar's size and loop length, "In use", "Yours". The
+first chip (the size) is white; the rest grey. A chip's sentence goes in its tooltip.
 
-1. Use `shared/page.html` and an `app.html` with the frame: stage, panel, top bar,
-   island, Presets. Copy Tempo's.
-2. Build cards with `card()`, and sheets with `cardToSheet()`. Put the view's own
-   controls in the island with `toIsland()`.
-3. Choose which cards start shut. Write a `SUMMARY` line wherever the automatic
-   one isn't clear.
-4. Check it in both themes at 1440 × 900, 1280 × 800 and phone width.
+## Steadiness
 
-## The round 4 kit – on Segue first (5 November 2026)
+- A sheet keeps its height while you work in it: Export is measured at its tallest
+  format on opening, so the choice you pressed stays under the pointer and Download
+  stays put.
+- Nothing jumps: new rows fade in; choices re-fit only when their width changes.
+- Focus rings show only when working from the keyboard (Tab or arrows).
 
-Steve's review of round 4: A's look, our frame. `shared/kit.css` sits on top of
-`tokens.css` and `components.css` and changes how things look and behave, not
-where they are – the panel stays left, the island bottom centre, Presets bottom
-right, chips top right. It's in Segue 0.5 only (`build_segue()` in `build.py`);
-Tempo, Rubato and Tutti move onto it once Steve signs it off. Where this section
-and the ones above disagree, this one is where the system is going.
+## Type
 
-- **One corner logic.** A corner is the corner around it, less the space between.
-  - 12 px – surfaces: panel, island, Presets, sheets, tooltips.
-  - 8 px – controls: buttons, sliders, menus, fields, segmented tracks, list rows.
-  - 6 px – anything set 2 px inside a control (the chosen option, a value being
-    typed) and keyline chips.
-  - 4–6 px – thumbnails and swatches.
-  - Round – only true dots: the tick, the change dot, the scrubber, the place pad.
-  No lozenges.
-- **Two weights.** Aktiv Medium for section titles, the chosen option and button
-  words; Regular for everything else. 20 px name, 14 px section titles, 13 px
-  what you read and set, 12 px summaries, hints and chips. Section numbers in
-  light grey before each title.
-- **Sections are hairlines, not boxes.** Open and shut on the Smooth curve. Shut,
-  a section shows a red dot if anything in it is changed; open, a **Reset** chip
-  by its chevron puts the whole section back.
-- **Black is for the main action** (Export, Download). Everything else is a grey
-  fill; a choice is shown **white on grey**, and the white slides to the option
-  you pick. When the options won't fit one row at the panel's width – the
-  longest word, in Medium, with 8 px either side – the same control becomes a
-  menu (`fitSeg`), and goes back when there's room.
-- **Keyline chips** – 24 px, a hairline, 6 px corners, an icon – for quiet actions:
-  Shuffle, Clear all, Reset, Replace, + Add. Icon-only chips (remove) have no
-  keyline until hovered.
-- **The slider** is a grey 30 px bar with 8 px corners: label inside on the left,
-  value inside on the right, a darker fill for the value and a 3 px handle that
-  splits into two short ticks where it would cross the words. A notch marks the
-  start value (the preset's, or the default). A range that runs through zero
-  fills from zero.
-  - **Drag** moves by distance from where you press, not to where you press;
-    **Shift** makes it ten times finer. It catches lightly at the start value.
-    A drag can start anywhere on the bar, the ? included.
-  - **Click** without moving jumps to that point. **Double-click** puts it back.
-  - **Click the value** to type it (units optional, kept to the range).
-  - **Arrow keys** step; **Shift + arrow** ten steps.
-- **Steppers** (− 3 +) for small whole counts – columns, across, down.
-- **The change column.** A narrow column on the right of every row: a red dot when
-  the row differs from where it started (the preset in use, or the default).
-  Click the dot to put that row back. Changed values are in ink and Medium.
-- **Undo.** ⌘Z / Ctrl+Z undoes, ⇧⌘Z (or Ctrl+Y) redoes – every setting, a preset
-  applied, a section Reset, files removed. A drag is one step; quick changes to
-  the same control join up. Not while typing in a field (that's the field's own).
-  Anything that removes something says so in the island, with **Undo**.
+Aktiv Grotesk (Adobe Fonts kit `rhx3hsl`), three weights with three jobs:
+
+| | Size | Weight |
+|---|---|---|
+| Tool name and version, "By ENSEMBLE" | 20 | Medium / Regular grey |
+| Section and group titles | 14 / 13 | **Bold** |
+| Labels, buttons, the chosen option, chips | 13 / 12 | Medium |
+| Values, options, notes | 13 / 12 | Regular |
+
+UK English, en dashes with spaces, plain words. Name things by what people see.
+A button says what it does ("Download GIF"); status says what happened ("Saved …").
+
+## Colour
+
+Neutral greys only (no warmth): panel `#F4F4F4`, card `#FFFFFF`, controls `#F2F2F2`,
+hover `#ECECEC`, a slider's value `#E2E2E2`, grey text ≥ 4.5:1. Black for the main
+action. Blue `#2F6BFF` (dark `#6B95FF`) for "changed". Dark mode mirrors these
+(`body[data-theme=dark]` in `kit.css`).
+
+## Corners, space, motion
+
+- **Corners step down with the levels:** panel and surfaces 12, cards 10, controls
+  8, anything 2 px inside a control 6 (and chips), swatches and thumbnails 4.
+  Only true dots are round. No lozenges.
+- **Space** on a 4/8 px step: 10 between settings, 6 from a label to a control
+  under it, 20 before a group, 10 between cards, 16 inside a card (plus the change
+  column on the right), 18 inside a sheet.
 - **Motion:** Snap 140 ms for presses, Smooth 360 ms for opening and shutting,
-  Morph 420 ms with a touch of overshoot for the white choice and the dots, Roll
-  260 ms for numbers that change. Nothing moves with reduced motion.
-- **Tests:** `tests/segue_ui_check.py` goes through every control in every set-up,
-  the undo, presets, media, the island and the Export sheet.
+  Morph 420 ms with a touch of overshoot for the white choice and dots, Roll 260 ms
+  for numbers. None with reduced motion.
 
-### The ladder of levels and the row grammar (Segue 0.5.2)
+## Building a tool
 
-Steve, 5 Nov: "a clear defined logic of category, sub parameter, sub sub… so it's not a constant scramble to understand where I am." Every part of the panel is one of four levels, and each level looks one way only.
-
-1. **Section** – a white card on the panel's 4% grey (the cards are back). Number and title the same size (14), the title Bold, the number Regular grey; a chevron; Reset when anything inside has moved. No summary line.
-2. **Group** – inside a card, under a hairline: title 13 Bold, a chevron. 16 px before it.
-3. **Setting** – one row, 30 px high: the label (13 Medium) in a fixed column on the left (`--lc`, 104 px), the control in the column to its right. Sliders, menus, fields, colours, steppers and switches all start at the same left edge. A slider's label sits in that column too, and a press on it drags the slider (a click there does nothing; double-click resets).
-   - When the control needs the full width, the label goes above it and the control takes the width: a row of choices that won't fit beside the label, tiles (Kind), lists (media, fonts, presets), a text box of more than one line.
-   - Choices: beside the label if each option fits its share with 8 px either side, else full width under it, else a menu beside it.
-4. **Detail** – belongs to one row: a slide's own settings open inside its row; a note sits under what it explains.
-
-- **Space:** an 8 px step – 8 between settings, 6 from a label to a control under it, 16 before a group, 8 between cards.
-- **Corners step down with the levels:** panel 12, card 10, control 8, inside a control 6 (and chips), swatch 4.
-- **Greys** are neutral (no warmth) and quiet: panel #F4F4F4, controls #F2F2F2, hover #ECECEC, a slider's value #E2E2E2.
-- **Weights:** Bold for section and group titles; Medium for labels, buttons and the chosen option; Regular for values, options and notes.
-- **Panel:** 360 px by default, dragged 280–480.
-- **Focus rings** show only when working from the keyboard (a press on a slider used to leave a blue ring in Safari).
+1. Start from Segue (the most complete): `shared/page.html`, the frame markup, a
+   frame script with `card()`, `fold()`, `addRange/Seg/Toggle/Colour/Select/Text`,
+   `cardToSheet()`. Build CSS: `tokens.css` + `components.css` + `kit.css` + the
+   tool's own, written in kit terms (`--k-*` tokens, the ladder, the row grammar).
+2. Use the ladder: sections for chapters, groups for what you don't always need,
+   rows for settings, details inside rows. Don't invent a fifth level.
+3. Write labels short enough for the label column; put explanations in tooltips.
+4. Give every setting a default (for the change dot and Reset).
+5. Check it at 1440 × 900, 1280 × 800 and 390 px, light and dark, and in Safari.
+6. **Test it the way a person works it** (`tests/segue_ui_check.py` is the model:
+   every control typed, clicked, dragged, reset and undone; the Export bar in every
+   format; a phone), plus a check that exports are unchanged. Labels and accessible
+   names are the contract with the tests – rename one only with its test.
+7. Tutti is live on weareensemble.co.uk – check `/tutti` and `/tutti/app` after any
+   change to it or to the shared files it takes.

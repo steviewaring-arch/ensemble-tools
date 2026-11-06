@@ -336,23 +336,76 @@ window.ensembleUI={open:openSheet,close:closeSheets,preview:setPreview,
 /* ---------------- controls, upgraded where they appear ---------------- */
 /* A range in a .ctl becomes the system slider: label and value inside the track, the fill
    carries the value, and the tick steps aside where it would cross the words. */
+/* The slider (UI round 4, Nov 2026 – as Segue 0.5): a bar with its value inside and its label beside it.
+   Drag moves it by how far you go (Shift ten times finer) and catches lightly at the default; a press that
+   doesn't move jumps there; a press on the label or the ? drags too; double-click resets; click the value to type. */
+const kclamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function syncRange(box){const inp=box.querySelector('input[type=range]');if(!inp)return;
-  const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,p=mx>mn?Math.max(0,Math.min(1,(+inp.value-mn)/(mx-mn))):0;box.style.setProperty('--p',p);
-  const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const hh=box.offsetHeight,x=hh/2+(w-hh/2)*p,head=box.querySelector('.ctl-head');let over=false;
-  if(head)for(const e of head.children){if(!e.offsetWidth)continue;const l=head.offsetLeft+e.offsetLeft,r=l+e.offsetWidth;if(x>l-6&&x<r+6){over=true;break;}}
-  tick.classList.toggle('away',over||p<.03||p>.97);}
+  const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,sp=mx>mn?mx-mn:1,p=kclamp((+inp.value-mn)/sp,0,1);box.style.setProperty('--p',p);
+  const z=mn<0&&mx>0?-mn/sp:0;box.style.setProperty('--z',z);box.classList.toggle('from-start',z===0);
+  const ctl=box.parentElement,k=ctl&&ctl.dataset.k,bv=ctl&&ctl.dataset.def!=null?+ctl.dataset.def:k&&k in D?+D[k]:NaN;
+  if(Number.isFinite(bv))box.style.setProperty('--b',kclamp((bv-mn)/sp,0,1));
+  const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const x=5+(w-10)*p,head=box.querySelector('.ctl-head');let over=false;
+  if(head){const bl=box.getBoundingClientRect().left;for(const e of head.children){if(!e.offsetWidth||e.classList.contains('q')||e.tagName==='LABEL')continue;
+    const l=head.offsetLeft+e.offsetLeft,r=l+e.offsetWidth;if(x>l-4&&x<r+4){over=true;break;}}}
+  tick.classList.toggle('split',over);tick.classList.remove('away');}
 function syncRanges(root){(root||document).querySelectorAll('.rng-box').forEach(syncRange);}
 function upgradeRange(inp){const ctl=inp.parentElement;if(!ctl||!ctl.classList.contains('ctl')||inp.closest('.rng-box'))return;
   const head=ctl.querySelector(':scope>.ctl-head'),box=el('div','rng-box');ctl.classList.add('rng');ctl.insertBefore(box,head||inp);
-  box.append(el('span','rng-fill'),el('span','rng-tick'));if(head)box.append(head);box.append(inp);
-  inp.addEventListener('input',()=>syncRange(box));inp.addEventListener('dblclick',()=>{const l=box.querySelector('label');if(l&&l.ondblclick)l.ondblclick();});
+  box.append(el('span','rng-fill'),el('span','rng-notch'),el('span','rng-tick'));if(head)box.append(head);box.append(inp);
+  inp.addEventListener('input',()=>syncRange(box));
+  box.addEventListener('dblclick',e=>{if(e.target.closest('.val,.q'))return;const l=box.querySelector('label');if(l&&l.ondblclick)l.ondblclick();});
+  const lim=()=>[inp.min===''?0:+inp.min,inp.max===''?100:+inp.max,+inp.step||1];
+  const put=v=>{const [mn,mx,st]=lim();v=kclamp(v,mn,mx);v=+(Math.round((v-mn)/st)*st+mn).toFixed(6);v=kclamp(v,mn,mx);
+    if(v!==+inp.value){inp.value=v;inp.dispatchEvent(new Event('input',{bubbles:true}));}};
+  box.addEventListener('pointerdown',e=>{if(e.button||e.target.closest('.val,.val-in'))return;const soft=!!e.target.closest('.q,label');
+    if(!soft){e.preventDefault();inp.focus({preventScroll:true});try{box.setPointerCapture(e.pointerId);}catch(_){}}
+    const r=box.getBoundingClientRect(),[mn,mx]=lim(),span=mx-mn,bv=+(box.style.getPropertyValue('--b')||0)*span+mn;let lastX=e.clientX,acc=+inp.value,moved=false;
+    const mv=ev=>{const dx=ev.clientX-lastX;if(!moved&&Math.abs(ev.clientX-e.clientX)<3)return;
+      if(!moved){moved=true;box.classList.add('drag');if(soft){hideTip();inp.focus({preventScroll:true});try{box.setPointerCapture(e.pointerId);}catch(_){}}}
+      acc=kclamp(acc+dx/Math.max(40,r.width-10)*span*(ev.shiftKey?.1:1),mn,mx);lastX=ev.clientX;put(!ev.shiftKey&&Math.abs(acc-bv)<span*.012?bv:acc);};
+    const up=ev=>{box.removeEventListener('pointermove',mv);box.removeEventListener('pointerup',up);box.removeEventListener('pointercancel',up);box.classList.remove('drag');
+      if(!moved&&ev.type==='pointerup'&&!soft)put(mn+kclamp((ev.clientX-r.left-5)/Math.max(1,r.width-10),0,1)*span);
+      inp.dispatchEvent(new Event('change',{bubbles:true}));};
+    box.addEventListener('pointermove',mv);box.addEventListener('pointerup',up);box.addEventListener('pointercancel',up);});
+  inp.addEventListener('keydown',e=>{if(!e.shiftKey||!/^Arrow/.test(e.key))return;e.preventDefault();const [,, st]=lim();put(+inp.value+(/Right|Up/.test(e.key)?10:-10)*st);});
   requestAnimationFrame(()=>syncRange(box));}
+/* click a slider's value to type one: units optional, kept to its range, Escape leaves it */
+function typable(val,o){
+  val.classList.add('typable');val.tabIndex=0;val.setAttribute('role','button');val.dataset.tip='Click to type a value';val.setAttribute('aria-label',(o.label||'Value')+' – click to type');
+  const open=e=>{if(e)e.preventDefault();if(val.classList.contains('editing'))return;val.classList.add('editing');
+    const cur=+o.get(),inp=el('input','val-in');inp.type='text';inp.inputMode='decimal';inp.spellcheck=false;inp.setAttribute('aria-label',o.label||'Value');
+    inp.value=Number.isFinite(cur)?String(+cur.toFixed(4)):'';val.textContent='';val.append(inp);inp.focus();inp.select();let done=false;
+    const close=ok=>{if(done)return;done=true;const v=parseFloat(String(inp.value).replace(',','.').replace(/[^0-9.+\-eE]/g,''));val.classList.remove('editing');
+      if(ok&&Number.isFinite(v))o.put(kclamp(v,o.min,o.max));val.textContent=o.show();};
+    inp.onkeydown=ev=>{ev.stopPropagation();if(ev.key==='Enter'){ev.preventDefault();close(true);val.focus();}else if(ev.key==='Escape'){ev.preventDefault();close(false);val.focus();}};
+    inp.onblur=()=>close(true);inp.onpointerdown=ev=>ev.stopPropagation();};
+  val.addEventListener('pointerdown',e=>{e.stopPropagation();});val.addEventListener('click',open);
+  val.addEventListener('keydown',e=>{if(e.target===val&&(e.key==='Enter'||e.key===' '))open(e);});
+  return val;}
 /* Segmented controls: up to four short options in a row, otherwise an even grid. */
+const kMeasure=document.createElement('canvas').getContext('2d');
+function kTextW(t){kMeasure.font='500 12.5px "aktiv-grotesk","Aktiv Grotesk","Helvetica Neue",Arial,sans-serif';return kMeasure.measureText(t).width;}
+function placeHL(g,snap){let hl=g.querySelector(':scope>.hl');if(!hl){hl=el('i','hl');g.prepend(hl);}
+  const b=[...g.children].find(x=>x.tagName==='BUTTON'&&!x.hidden&&x.getAttribute('aria-pressed')==='true');
+  if(!b){g.classList.remove('hl-ready');delete hl.dataset.on;return;}if(!g.offsetWidth||!b.offsetWidth)return;
+  const L=b.offsetLeft+'px',T=b.offsetTop+'px',W=b.offsetWidth+'px',H=b.offsetHeight+'px';
+  if(hl.style.left===L&&hl.style.top===T&&hl.style.width===W&&hl.style.height===H){hl.dataset.on=b.textContent;return;}
+  const slide=!snap&&g.classList.contains('hl-ready')&&hl.dataset.on!=null&&hl.dataset.on!==b.textContent;if(!slide)hl.style.transition='none';
+  Object.assign(hl.style,{left:L,top:T,width:W,height:H});hl.dataset.on=b.textContent;if(!slide){void hl.offsetWidth;hl.style.transition='';}g.classList.add('hl-ready');}
+/* refit a row of choices when its width changes – a frame later, so layout never loops */
+const segRO=typeof ResizeObserver==='function'?new ResizeObserver(es=>{const gs=es.map(e=>e.target);requestAnimationFrame(()=>gs.forEach(g=>{const w=g.offsetWidth;if(w!==g._w){g._w=w;fitSeg(g);}}));}):null;
 function fitSeg(g){const bs=[...g.children].filter(b=>b.tagName==='BUTTON'&&!b.hidden),n=bs.length;if(!n)return;
-  const longest=Math.max(...bs.map(b=>(b.textContent||'').trim().length)),fits=c=>longest<=Math.floor((254/c-16)/6.6);
-  let cols=1;if(g.closest('.isl-main'))cols=n;else for(let c=Math.min(n,4);c>=1;c--)if(fits(c)&&(n%c===0||n%c>=c-1)){cols=c;break;}
-  g.classList.toggle('loose',cols===1&&n>1);
-  if(cols>=n){g.classList.remove('wrap');g.style.removeProperty('--cols');}else{g.classList.add('wrap');g.style.setProperty('--cols',cols);}}
+  if(segRO&&!g._ro){g._ro=1;segRO.observe(g);}
+  const ctl=g.closest('.ctl');
+  if(g.closest('.isl-main')||g.classList.contains('choice')||!ctl||ctl.classList.contains('nofit')){g.classList.remove('wrap','loose');g.style.removeProperty('--cols');placeHL(g,true);return;}
+  const W=ctl.offsetWidth;if(!W){placeHL(g,true);return;}
+  const lc=parseFloat(getComputedStyle(ctl).getPropertyValue('--lc'))||104,need=Math.max(...bs.map(b=>kTextW((b.textContent||'').trim())))+16,share=(w,c)=>(w-4-(c-1)*2)/c;
+  const hasLabel=!!ctl.querySelector(':scope>.ctl-head'),inline=hasLabel&&need<=share(W-lc-10,n);
+  ctl.classList.toggle('seg-inline',inline);
+  let cols=n;if(!inline&&need>share(W,n)){cols=1;for(let c=Math.min(n,4);c>=1;c--)if(need<=share(W,c)&&(n%c===0||n%c>=c-1)){cols=c;break;}}
+  if(cols>=n){g.classList.remove('wrap');g.style.removeProperty('--cols');}else{g.classList.add('wrap');g.style.setProperty('--cols',cols);}
+  g.classList.toggle('loose',cols===1&&n>1);placeHL(g,true);}
 function enhance(root){if(!root||root.nodeType!==1)return;
   if(root.matches('.ctl>input[type=range]'))upgradeRange(root);root.querySelectorAll('.ctl>input[type=range]').forEach(upgradeRange);
   if(root.matches('.seg,.choice'))fitSeg(root);root.querySelectorAll('.seg,.choice').forEach(fitSeg);}
@@ -364,9 +417,10 @@ function addRange(parent,d){
   const inp=el('input');inp.type='range';inp.id=id;inp.min=d.min;inp.max=d.max;inp.step=d.step;
   const fmt=v=>d.fmt?d.fmt(v):(roundTo(v,d.step)+(d.unit||''));d.group=d.group||curGroup;
   inp.oninput=()=>{set(d.k,parseFloat(inp.value),true);val.textContent=fmt(+inp.value);refreshVis();};
-  lb.ondblclick=()=>set(d.k,D[d.k]);
+  lb.ondblclick=()=>set(d.k,D[d.k]);w.dataset.k=d.k;
+  typable(val,{label:d.label,get:()=>S[d.k],put:v=>{set(d.k,v);},min:+d.min,max:+d.max,show:()=>fmt(S[d.k])});
   hd.append(lb);const q=qMark(d);if(q)hd.append(q);hd.append(val);w.append(hd,inp);parent.append(w);
-  const c={d,w,update(){if(document.activeElement!==inp)inp.value=S[d.k];val.textContent=fmt(S[d.k]);}};
+  const c={d,w,update(){if(document.activeElement!==inp)inp.value=S[d.k];if(!val.classList.contains('editing'))val.textContent=fmt(S[d.k]);}};
   controls.push(c);return c;
 }
 function addSeg(parent,d){
@@ -374,7 +428,7 @@ function addSeg(parent,d){
   const g=el('div','seg');g.setAttribute('role','group');if(d.label)g.setAttribute('aria-label',d.label);
   const bs=d.opts.map(([v,t])=>{const b=el('button','pill small',t);b.onclick=()=>set(d.k,v);g.append(b);return[v,b];});
   w.append(g);parent.append(w);
-  const c={d,w,update(){bs.forEach(([v,b])=>b.setAttribute('aria-pressed',S[d.k]===v));}};controls.push(c);return c;
+  const c={d,w,update(){bs.forEach(([v,b])=>b.setAttribute('aria-pressed',S[d.k]===v));placeHL(g);}};controls.push(c);return c;
 }
 function addToggle(parent,d){
   const w=el('div','toggle-row'),b=el('button','toggle');b.setAttribute('role','switch');b.setAttribute('aria-label',d.label);d.group=d.group||curGroup;
@@ -392,7 +446,7 @@ function addSegDyn(parent,d){
   const w=el('div','ctl'),hd=el('div','ctl-head');hd.append(el('span',null,d.label));const q=qMark(d);if(q)hd.append(q);d.group=d.group||curGroup;
   const g=el('div','seg');g.setAttribute('role','group');g.setAttribute('aria-label',d.label);w.append(hd,g);parent.append(w);let sig='',bs=[];
   const c={d,w,update(){const opts=d.optsFn();const ns=JSON.stringify(opts);if(ns!==sig){sig=ns;g.textContent='';bs=opts.map(([v,t])=>{const b=el('button','pill small',t);b.onclick=()=>set(d.k,v);g.append(b);return[v,b];});}
-    const cur=opts.some(o=>o[0]===S[d.k])?S[d.k]:(opts[0]||[])[0];bs.forEach(([v,b])=>b.setAttribute('aria-pressed',cur===v));}};controls.push(c);return c;
+    const cur=opts.some(o=>o[0]===S[d.k])?S[d.k]:(opts[0]||[])[0];bs.forEach(([v,b])=>b.setAttribute('aria-pressed',cur===v));fitSeg(g);placeHL(g);}};controls.push(c);return c;
 }
 function addCustom(parent,show,node){const c={d:{show},w:node,update(){}};parent.append(node);controls.push(c);return c;}
 function addHint(parent,text,show){const p=el('p','hint',text);return addCustom(parent,show,p);}
@@ -410,8 +464,8 @@ function showTip(q,text,at){if(q&&q.getAttribute&&q.getAttribute('aria-expanded'
 function hideTip(){tipFor=null;tipEl.classList.remove('on');}
 let rowTipT=0,byKeys=false,tipMute=null;/* a control you've just pressed stays quiet until the pointer leaves it */
 function tipRow(t){const row=t.closest('[data-tip],.ctl,.toggle-row,.colour-row,.slot-top');return row&&(row.dataset.tip?row:row.querySelector('.q'));}
-document.addEventListener('keydown',()=>{byKeys=true;},true);
-document.addEventListener('pointerdown',e=>{byKeys=false;clearTimeout(rowTipT);hideTip();const t=e.target.closest?e.target:null;tipMute=t&&!t.closest('.q')?tipRow(t):null;},true);
+document.addEventListener('keydown',e=>{byKeys=true;if(e.key==='Tab'||/^Arrow/.test(e.key))document.body.classList.add('kbd');},true);
+document.addEventListener('pointerdown',e=>{byKeys=false;document.body.classList.remove('kbd');clearTimeout(rowTipT);hideTip();const t=e.target.closest?e.target:null;tipMute=t&&!t.closest('.q')?tipRow(t):null;},true);
 document.addEventListener('mouseover',e=>{const t=e.target.closest?e.target:null;if(!t)return;const q=t.closest('.q');clearTimeout(rowTipT);
   if(q){tipMute=null;if(q!==tipFor)showTip(q);return;}
   const row=t.closest('[data-tip],.ctl,.toggle-row,.colour-row,.slot-top');const src=row&&(row.dataset.tip?row:row.querySelector('.q'));
