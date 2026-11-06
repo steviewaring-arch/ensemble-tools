@@ -588,7 +588,8 @@ const BUILTIN=[
 const RENAMED={Columns:'Columns up and down',Wall:'Masonry drift','Milky Way':'Float with title',Deck:'Flick across',Stack:'Spring up',Fade:'Fade with caption',Grid:'Rows up',
   Semplice:'Straight cuts',Adagio:'Slow fades',Andante:'Push and drift',Allegro:'Open and zoom',Presto:'Zoom through',Staccato:'Flick across',Pizzicato:'Spring up',Dolce:'Fade with caption',
   Coda:'Card stack',Canon:'Phone swipe',Ostinato:'Carousel',Chorale:'Rows up',Counterpoint:'Columns up and down',Polyrhythm:'Masonry drift',Fermata:'Posters',Nocturne:'Float with title'};
-let mine=LS.get('presets')||[],current=LS.get('preset')||'',edited=!!LS.get('presetEdited');
+/* presets kept by an earlier version are tidied as they're read: a name and a settings object each, or left out */
+let mine=(Array.isArray(LS.get('presets'))?LS.get('presets'):[]).filter(p=>p&&typeof p.name==='string'&&p.name).map(p=>({...p,s:p.s&&typeof p.s==='object'?p.s:{}})),current=LS.get('preset')||'',edited=!!LS.get('presetEdited');
 if(RENAMED[current]&&!mine.some(p=>p.name===current)){current=RENAMED[current];LS.set('preset',current);}
 const presetName=()=>current?current+(edited?' – changed':''):'';
 const unit=()=>{const [W,H]=size();return E.unitOf(W,H);};

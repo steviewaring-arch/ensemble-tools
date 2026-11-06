@@ -104,7 +104,8 @@ function addSheet(name,node,opener){
   sheetObs.observe(node,{attributes:true,attributeFilter:['hidden']});return node;}
 /* a card that was shut in the panel once (saved in segue:collapsed) must still open in full as a sheet */
 function cardToSheet(body,name){const sec=body.closest('section');sec.classList.remove('card','collapsed');
-  const anim=sec.querySelector(':scope>.card-anim');if(anim){clearTimeout(anim._t);anim.hidden=false;}const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=null;return addSheet(name,sec);}
+  /* a sheet holds the card's body itself – no open-and-shut wrapper (as 0.4, which Safari laid out fine) */
+  const anim=sec.querySelector(':scope>.card-anim');if(anim){clearTimeout(anim._t);sec.append(body);anim.remove();}const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=null;return addSheet(name,sec);}
 function openSheet(name){if(!SHEETS[name])return;for(const k in SHEETS)SHEETS[k].el.hidden=k!==name;syncSheets();}
 function closeSheets(){for(const k in SHEETS)SHEETS[k].el.hidden=true;syncSheets();}
 const anySheet=()=>Object.values(SHEETS).some(s=>!s.el.hidden);
@@ -332,6 +333,16 @@ async function saveFile(name,blob){
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast(`Saved ${name}`);}
 /* ---------------- light and dark, keys, the panel's width ---------------- */
 function setTheme(t,chosen){document.body.dataset.theme=t;if(chosen)LS.set('mode',t);const b=$('#themeBtn');if(b)b.setAttribute('aria-label',t==='dark'?'Light mode':'Dark mode');}
+/* anything that goes wrong shows as a note at the top of the panel, with the browser's name, so it can be sent
+   back as it is – Safari's console is out of reach for most people */
+const ERRS=[];
+function reportError(e,where){try{const m=(e&&(e.message||e.reason&&e.reason.message||String(e.reason||e)))||'unknown',st=(e&&(e.stack||e.reason&&e.reason.stack)||'').split('\n').slice(0,3).join(' | ');
+  const line=`${where?where+' – ':''}${m}${e&&e.filename?` (line ${e.lineno}:${e.colno})`:''}${st?' – '+st:''}`;if(ERRS.includes(line)||ERRS.length>4)return;ERRS.push(line);console.error('segue:',line);
+  let n=$('#errNote');if(!n){n=el('div','err-note');n.id='errNote';n.setAttribute('role','alert');const x=el('button','pill small icon');x.type='button';x.innerHTML=ICON.clear||'×';x.setAttribute('aria-label','Hide this note');x.onclick=()=>n.remove();
+    n.append(el('b',null,'Something in Segue went wrong – please send Claude this note:'),x);const pnl=$('#panel')||document.body;pnl.prepend(n);}
+  n.append(el('code',null,line));if(!n.querySelector('.ua'))n.append(el('code','ua',`Segue ${document.querySelector('.ver')?document.querySelector('.ver').textContent:''} · ${navigator.userAgent}`));else n.append(n.querySelector('.ua'));}catch(_){}}
+window.addEventListener('error',e=>{if(/ResizeObserver loop/.test(e.message||''))return;reportError(e);});
+window.addEventListener('unhandledrejection',e=>reportError(e,'async'));
 function frameStart(){
   {const b=$('#themeBtn');b.dataset.tip='Light or dark';b.onclick=()=>setTheme(document.body.dataset.theme==='dark'?'light':'dark',true);setTheme(LS.get('mode')==='dark'?'dark':'light');}
   const pb=$('#previewBtn');setPreview(false);pb.onclick=()=>setPreview(!$('.app').classList.contains('preview'));

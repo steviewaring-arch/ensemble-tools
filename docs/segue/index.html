@@ -859,6 +859,12 @@
   .val-in:focus{outline:2px solid var(--focus);outline-offset:0}
   #cv.grab{cursor:grab}
   #cv.grabbing{cursor:grabbing}
+  /* the error note (0.5.3) */
+  .err-note{margin:0 10px 10px;padding:12px 12px 10px;border-radius:10px;background:#fff1f0;color:#8a1c12;font-size:12px;line-height:1.4;display:flex;flex-direction:column;gap:6px;position:relative}
+  .err-note b{font-weight:700;padding-right:28px}
+  .err-note code{font:11px/1.4 ui-monospace,Menlo,monospace;word-break:break-word;user-select:all}
+  .err-note .pill{position:absolute;top:8px;right:8px}
+  body[data-theme="dark"] .err-note{background:#3a1512;color:#ffb4aa}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.js"></script>
 </head>
@@ -3501,7 +3507,8 @@ function addSheet(name,node,opener){
   sheetObs.observe(node,{attributes:true,attributeFilter:['hidden']});return node;}
 /* a card that was shut in the panel once (saved in segue:collapsed) must still open in full as a sheet */
 function cardToSheet(body,name){const sec=body.closest('section');sec.classList.remove('card','collapsed');
-  const anim=sec.querySelector(':scope>.card-anim');if(anim){clearTimeout(anim._t);anim.hidden=false;}const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=null;return addSheet(name,sec);}
+  /* a sheet holds the card's body itself – no open-and-shut wrapper (as 0.4, which Safari laid out fine) */
+  const anim=sec.querySelector(':scope>.card-anim');if(anim){clearTimeout(anim._t);sec.append(body);anim.remove();}const ent=controls.find(c=>c.w===sec);if(ent)ent.d.show=null;return addSheet(name,sec);}
 function openSheet(name){if(!SHEETS[name])return;for(const k in SHEETS)SHEETS[k].el.hidden=k!==name;syncSheets();}
 function closeSheets(){for(const k in SHEETS)SHEETS[k].el.hidden=true;syncSheets();}
 const anySheet=()=>Object.values(SHEETS).some(s=>!s.el.hidden);
@@ -3729,6 +3736,16 @@ async function saveFile(name,blob){
   const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),4000);toast(`Saved ${name}`);}
 /* ---------------- light and dark, keys, the panel's width ---------------- */
 function setTheme(t,chosen){document.body.dataset.theme=t;if(chosen)LS.set('mode',t);const b=$('#themeBtn');if(b)b.setAttribute('aria-label',t==='dark'?'Light mode':'Dark mode');}
+/* anything that goes wrong shows as a note at the top of the panel, with the browser's name, so it can be sent
+   back as it is – Safari's console is out of reach for most people */
+const ERRS=[];
+function reportError(e,where){try{const m=(e&&(e.message||e.reason&&e.reason.message||String(e.reason||e)))||'unknown',st=(e&&(e.stack||e.reason&&e.reason.stack)||'').split('\n').slice(0,3).join(' | ');
+  const line=`${where?where+' – ':''}${m}${e&&e.filename?` (line ${e.lineno}:${e.colno})`:''}${st?' – '+st:''}`;if(ERRS.includes(line)||ERRS.length>4)return;ERRS.push(line);console.error('segue:',line);
+  let n=$('#errNote');if(!n){n=el('div','err-note');n.id='errNote';n.setAttribute('role','alert');const x=el('button','pill small icon');x.type='button';x.innerHTML=ICON.clear||'×';x.setAttribute('aria-label','Hide this note');x.onclick=()=>n.remove();
+    n.append(el('b',null,'Something in Segue went wrong – please send Claude this note:'),x);const pnl=$('#panel')||document.body;pnl.prepend(n);}
+  n.append(el('code',null,line));if(!n.querySelector('.ua'))n.append(el('code','ua',`Segue ${document.querySelector('.ver')?document.querySelector('.ver').textContent:''} · ${navigator.userAgent}`));else n.append(n.querySelector('.ua'));}catch(_){}}
+window.addEventListener('error',e=>{if(/ResizeObserver loop/.test(e.message||''))return;reportError(e);});
+window.addEventListener('unhandledrejection',e=>reportError(e,'async'));
 function frameStart(){
   {const b=$('#themeBtn');b.dataset.tip='Light or dark';b.onclick=()=>setTheme(document.body.dataset.theme==='dark'?'light':'dark',true);setTheme(LS.get('mode')==='dark'?'dark':'light');}
   const pb=$('#previewBtn');setPreview(false);pb.onclick=()=>setPreview(!$('.app').classList.contains('preview'));
@@ -4344,7 +4361,8 @@ const BUILTIN=[
 const RENAMED={Columns:'Columns up and down',Wall:'Masonry drift','Milky Way':'Float with title',Deck:'Flick across',Stack:'Spring up',Fade:'Fade with caption',Grid:'Rows up',
   Semplice:'Straight cuts',Adagio:'Slow fades',Andante:'Push and drift',Allegro:'Open and zoom',Presto:'Zoom through',Staccato:'Flick across',Pizzicato:'Spring up',Dolce:'Fade with caption',
   Coda:'Card stack',Canon:'Phone swipe',Ostinato:'Carousel',Chorale:'Rows up',Counterpoint:'Columns up and down',Polyrhythm:'Masonry drift',Fermata:'Posters',Nocturne:'Float with title'};
-let mine=LS.get('presets')||[],current=LS.get('preset')||'',edited=!!LS.get('presetEdited');
+/* presets kept by an earlier version are tidied as they're read: a name and a settings object each, or left out */
+let mine=(Array.isArray(LS.get('presets'))?LS.get('presets'):[]).filter(p=>p&&typeof p.name==='string'&&p.name).map(p=>({...p,s:p.s&&typeof p.s==='object'?p.s:{}})),current=LS.get('preset')||'',edited=!!LS.get('presetEdited');
 if(RENAMED[current]&&!mine.some(p=>p.name===current)){current=RENAMED[current];LS.set('preset',current);}
 const presetName=()=>current?current+(edited?' – changed':''):'';
 const unit=()=>{const [W,H]=size();return E.unitOf(W,H);};
@@ -4706,7 +4724,9 @@ window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts
   setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;},get clock(){return clock;},get playing(){return playing;},
   /* the interface, for the checks: every control, the undo history, where each setting started */
   ui:{controls,undo,redo,get undoSteps(){return UNDO.length;},get redoSteps(){return REDO.length;},base,moved,get preset(){return current;},get edited(){return edited;}}};
-frameStart();paintMedia();paintFonts();paintPresets();refreshAll();fitCanvas();layoutUI();
+/* start-up: each step on its own, so one that fails (an odd saved setting, an older browser) can't stop the rest –
+   Presets and Export above all – and says what went wrong where it can be seen */
+for(const [n,f] of [['frame',frameStart],['media',paintMedia],['fonts',paintFonts],['presets',paintPresets],['refresh',refreshAll],['canvas',fitCanvas],['layout',layoutUI]]){try{f();}catch(e){reportError(e,'start-up: '+n);}}
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
 loadBuiltinFonts();restoreFonts().then(paintFonts);restoreMedia();restorePics();
 requestAnimationFrame(tick);

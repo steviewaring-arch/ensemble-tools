@@ -323,7 +323,9 @@ window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts
   setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;},get clock(){return clock;},get playing(){return playing;},
   /* the interface, for the checks: every control, the undo history, where each setting started */
   ui:{controls,undo,redo,get undoSteps(){return UNDO.length;},get redoSteps(){return REDO.length;},base,moved,get preset(){return current;},get edited(){return edited;}}};
-frameStart();paintMedia();paintFonts();paintPresets();refreshAll();fitCanvas();layoutUI();
+/* start-up: each step on its own, so one that fails (an odd saved setting, an older browser) can't stop the rest –
+   Presets and Export above all – and says what went wrong where it can be seen */
+for(const [n,f] of [['frame',frameStart],['media',paintMedia],['fonts',paintFonts],['presets',paintPresets],['refresh',refreshAll],['canvas',fitCanvas],['layout',layoutUI]]){try{f();}catch(e){reportError(e,'start-up: '+n);}}
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
 loadBuiltinFonts();restoreFonts().then(paintFonts);restoreMedia();restorePics();
 requestAnimationFrame(tick);
