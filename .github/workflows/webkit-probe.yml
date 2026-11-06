@@ -13,7 +13,8 @@ jobs:
         with: { fetch-depth: 0 }
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
-      - run: pip install playwright pillow && python -m playwright install --with-deps chromium webkit
+      - timeout-minutes: 15
+        run: pip install playwright pillow && python -m playwright install --with-deps webkit
       - run: mkdir -p docs/segue-live && git show origin/main:docs/segue/index.html > docs/segue-live/index.html
       - timeout-minutes: 20
         run: APPS="segue-live segue tempo rubato tutti" python3 -u tests/webkit_probe.py webkit 2>&1 | tee wk-results.txt
