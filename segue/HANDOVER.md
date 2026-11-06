@@ -1,4 +1,4 @@
-# Segue – handover (5 November 2026, Segue 0.5)
+# Segue – handover (6 November 2026, Segue 0.5.3)
 
 For the Segue chat. Read this, then the repo's `README.md` and `HANDOVER.md` (how the repo, the build, storage and the other streams work). Segue is internal for now: built to `docs/segue/`, live at https://steviewaring-arch.github.io/ensemble-tools/segue/, and not linked from the index page.
 

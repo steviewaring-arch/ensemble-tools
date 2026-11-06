@@ -1,5 +1,18 @@
 # Changelog
 
+## 6 November 2026 – Segue 0.5.3: Steve's notes on 0.5.2, and Safari
+
+Steve: blue dots, not red, with more room either side; no double rules above titles; care over Presets (type, spacing, a picture where it helps; the chosen one's keyline was clipped) and Export (it jumped as rows came and went); more space and shorter lines; no section numbers; Export's summary as chips – details as moments. And in his Safari, Presets and Export still didn't work. Segue only – Tempo, Rubato and Tutti wait for Safari to be right.
+
+- **Change dots blue** (`--k-dot`), centred in a wider change column, so there's room between a control and its dot and between the dot and the card's edge.
+- **One rule per edge:** a group's line no longer doubles with its head's.
+- **No section numbers;** titles line up with everything under them.
+- **Presets sheet:** titled as a section (14 Bold), groups as labels (13 Medium) with one rule between; presets as names (a picture of the kind only among yours, which mix kinds; what each does in its tooltip); the chosen one white with its keyline inside, so a scrolling sheet can't clip it; "In use" as a tag.
+- **Export sheet:** holds one height whatever the format (measured at its tallest on opening), so the choice you press stays under the pointer and Download stays put; what you'll get as chips – size, length, frame rate, Loops, the most it can weigh, the last one made.
+- **More room:** 10 px between settings, 20 before a group, 16 inside a card, cards 10 apart; notes with a right margin for shorter lines.
+- **Safari:** in Safari's engine (WebKit 27, run on GitHub's machines with `tests/webkit_probe.py`) both 0.5.2 and 0.5.3 list every preset and download PNG and GIF – so what fails is particular to Steve's Safari (its version or what it has saved). 0.5.3: sheets hold the card's body directly (no open-and-shut wrapper, as in 0.4); start-up runs in separate steps so one failing can't stop Presets or Export; saved presets from earlier versions are tidied as they're read (one without settings stopped the list); and anything that goes wrong shows as a red note at the top of the panel with the browser's name, to send back.
+- Tests: `tests/segue_ui_check.py` 83 checks (Export holding still, chips, no numbers); `tests/segue_check.py` 82 of 82.
+
 ## 5 November 2026 – Segue 0.5.2: cards back, and one ladder of levels
 
 Steve's review of 0.5: titles up a weight, labels more obvious, it still felt bitty; the panel a 4–5% grey, a touch wider; no summaries beside the section titles, numbers the size of the titles; quieter, neutral greys (the hover read warm); a considered use of rules and space; "we have definitely lost something with the loss of these cards as sections"; "a clear defined logic of category, sub parameter, sub sub". Segue only; rules in `shared/UI.md` (the ladder of levels).
