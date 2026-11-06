@@ -96,6 +96,27 @@ with sync_playwright() as p:
     feels = pg.evaluate("(()=>{const F=segue.E.FEEL;const r={};for(const k in F){const v=[...Array(101)].map((_,i)=>F[k](i/100));r[k]=[v[0],v[100],Math.max(...v)];}return r;})()")
     check('every feel starts at 0 and lands exactly on 1', all(v[0] == 0 and v[1] == 1 for v in feels.values()), str(feels))
     check('spring goes a little past the mark – under 6%', 1.02 < feels['spring'][2] < 1.06, str(feels['spring'][2]))
+    # Snap (0.7), measured frame by frame from two motion-pack recordings: a slow start, a throw across the middle, a long settle
+    snap = pg.evaluate("""(()=>{const E=segue.E,F=E.FEEL.snap,its=Array.from({length:5},()=>({kind:'image',w:1080,h:1350}));
+      const S={layout:'row',ratio:'4:5',size:60,gap:40,radius:0,trackMove:'step',dir:'left',feel:'snap',hold:2,dur:.9,lag:0,creep:0,after:'carry',capOn:false,cSize:'4:5'};
+      const sc=(o,t)=>E.scene(Object.assign({},S,o),its,null,{},1080,1350,t).ops;
+      const pos=(o,t,i)=>{const a=sc(o,t).filter(q=>q.i===i);return a.length?a[0].rect.x:null;};
+      const x0=pos({},0.05,1),pitch=x0-pos({},0.05,0),out={};   /* shape 1 sits one pitch to the right of shape 0 */
+      out.curve=[.1,.3,.5,.7,.9].map(k=>+F(k).toFixed(4));out.max=Math.max(...[...Array(201)].map((_,i)=>F(i/200)));
+      out.travel=[2.0,2.2,2.45,2.9,3.2].map(t=>+((x0-pos({},t,1))/pitch).toFixed(4));
+      out.gaps=[0.05,2.2,2.45,2.7,5.0].map(t=>{const a=sc({},t).map(q=>q.rect.x).sort((a,b)=>a-b);return new Set(a.slice(1).map((v,i)=>+(v-a[i]).toFixed(3))).size;});
+      out.creep=[0,15].map(c=>+((x0-pos({creep:c},2.0,1))/pitch).toFixed(4));
+      const L=E.plan(Object.assign({},S,{creep:15}),its).L,a=sc({creep:15},0.0001).map(q=>[q.i,q.rect.x]),b=sc({creep:15},L+0.0001).map(q=>[q.i,q.rect.x]);
+      out.seam=Math.max(...a.map((v,i)=>Math.abs(v[1]-b[i][1])));out.same=a.length===b.length;
+      return out;})()""")
+    ref = [.0184, .1134, .7842, .9532, .9946]
+    check('Snap is the measured curve – cubic-bezier(.84, .11, .01, .98): a slow start, 78% of the way by the half-way mark, a long settle, never past the mark',
+          all(abs(a - b) < .003 for a, b in zip(snap['curve'], ref)) and snap['max'] <= 1.0000001, str(snap['curve']))
+    check('a Snap move carries the row exactly one shape along (to the pixel) – and follows that curve in time',
+          abs(snap['travel'][0]) < 1e-6 and abs(snap['travel'][2] - .7842) < .004 and abs(snap['travel'][3] - 1) < 1e-6 and abs(snap['travel'][4] - 1) < 1e-6, str(snap['travel']))
+    check('a Snap row moves as one rigid piece – the gaps between shapes never change, at rest or mid-throw', snap['gaps'] == [1, 1, 1, 1, 1], str(snap['gaps']))
+    check('Keep drifting keeps a rest alive – none at 0%, about a tenth of a shape over a 2 s rest at 15%', snap['creep'][0] == 0 and abs(snap['creep'][1] - .1034) < .004, str(snap['creep']))
+    check('a Snap loop with Keep drifting closes exactly – the last frame runs into the first', snap['same'] and snap['seam'] < .01, f"{snap['seam']}")
     sizes = pg.evaluate("""(()=>{const E=segue.E;return [E.canvasSize({cSize:'4:5'}),E.canvasSize({cSize:'9:16'}),E.canvasSize({cSize:'16:9'}),E.canvasSize({cSize:'custom',cW:1001,cH:777})];})()""")
     check('canvas sizes, and a custom size made even for video', sizes == [[1080, 1350], [1080, 1920], [1920, 1080], [1000, 776]], str(sizes))
 
@@ -182,24 +203,28 @@ with sync_playwright() as p:
 
     # ---- 0.2: each kind shows its own controls, and only those ----
     def motion_labels():
-        return pg.evaluate("""[...document.querySelectorAll('#panel section.card[data-id=motion] .card-body > *')].filter(e=>!e.hidden&&e.offsetParent)
-          .map(e=>{const h=e.querySelector(':scope>.ctl-head>span,:scope>.ctl-head>label,:scope .rng-box>.ctl-head>label');return h?h.textContent:(e.querySelector('button.pill')?e.querySelector('button.pill').textContent:null);}).filter(Boolean)""")
+        # what the Motion card shows, top to bottom: rows by label, and each group (▸) with the rows inside it
+        return pg.evaluate("""(()=>{const lab=e=>{const h=e.querySelector(':scope>.ctl-head>span,:scope>.ctl-head>label,:scope .rng-box>.ctl-head>label');return h?h.textContent:(e.querySelector('button.pill')?e.querySelector('button.pill').textContent:null);};
+          const out=[],walk=box=>[...box.children].filter(e=>!e.hidden&&e.offsetParent).forEach(e=>{
+            if(e.classList.contains('fold')){out.push('▸ '+e.querySelector(':scope>.fold-head>span').textContent);walk(e.querySelector(':scope>.fold-body'));}
+            else{const l=lab(e);if(l)out.push(l);}});
+          walk(document.querySelector('#panel section.card[data-id=motion] .card-body'));return out;})()""")
     pg.evaluate("document.querySelectorAll('#panel section.card').forEach(c=>{if(c.dataset.id==='motion'&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();})")
     kinds = pg.evaluate("[...document.querySelectorAll('.kinds .kind')].map(b=>b.textContent)")
     check('Motion opens on six kinds', kinds == ['Slides', 'Line', 'Grid', 'Columns', 'Frames', 'Float'], str(kinds))
     want = {
-        'Line': (['Kind', 'Move', 'Direction', 'Rest', 'Move time', 'Feel', 'Lag', 'Keep drifting', 'After the last'], {'trackMove': 'step'}),
-        'Slides': (['Kind', 'Each slide', 'Transition', 'Direction', 'On screen', 'Transition time', 'Feel', 'Movement', 'After the last'], {'oneMove': 'slide', 'oneFit': 'shape', 'kb': 'none'}),
-        'Grid': (['Kind', 'Columns', 'Move', 'Direction', 'Rest', 'Move time', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
-        'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Rest', 'Move time', 'Feel', 'Out of step', 'Keep drifting', 'Offset'], {'trackMove': 'step'}),
-        'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', 'Rest', 'Move time', 'Feel', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
-        'Float': (['Kind', 'Move', 'Direction', 'Depth', 'Spread', 'Shuffle', 'Rest', 'Move time', 'Feel', 'Keep drifting'], {'trackMove': 'step'})}
+        'Line': (['Kind', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting', '▸ After the last', 'Then'], {'trackMove': 'step'}),
+        'Slides': (['Kind', 'Each slide', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', '▸ After the last', 'Then'], {'oneMove': 'slide', 'oneFit': 'shape', 'kb': 'none'}),
+        'Grid': (['Kind', 'Columns', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
+        'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Offset', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
+        'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
+        'Float': (['Kind', 'Move', 'Direction', 'Depth', 'Spread', 'Shuffle', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Keep drifting'], {'trackMove': 'step'})}
     seen = {}
     for name, (labels, setup) in want.items():
         pg.locator('.kinds .kind', has_text=name).click(); time.sleep(.15)
         pg.evaluate("o=>{for(const k in o)segue.set(k,o[k]);segue.set('after','carry')}", setup); time.sleep(.15)
         seen[name] = motion_labels()
-    check('each kind shows only its own controls, in the same order (how many, what moves, timing, feel, character)',
+    check('each kind shows only its own controls, in the same order: what moves and which way, then Timing, Character and After the last',
           all(seen[k] == v[0] for k, v in want.items()), '; '.join(f'{k}: {seen[k]}' for k in want if seen[k] != want[k][0]))
     pg.locator('.kinds .kind', has_text='Line').click(); time.sleep(.1)
     pg.locator('#panel section.card[data-id=motion] .seg[aria-label=Direction] .pill', has_text='Up').click(); time.sleep(.1)
@@ -300,9 +325,9 @@ with sync_playwright() as p:
         'bleed, cut, still': slide_labels({'oneFit': 'bleed', 'oneMove': 'cut', 'kb': 'none'}),
         'own, push, drift': slide_labels({'oneFit': 'own', 'oneMove': 'slide', 'kb': 'drift'}),
         'bleed, fade, zoom in': slide_labels({'oneFit': 'bleed', 'oneMove': 'fade', 'kb': 'in'})}
-    want3 = {'bleed, cut, still': ['Kind', 'Each slide', 'Transition', 'On screen', 'Movement', 'After the last'],
-             'own, push, drift': ['Kind', 'Each slide', 'Sizes', 'Transition', 'Direction', 'On screen', 'Transition time', 'Feel', 'Movement', 'Amount', 'After the last'],
-             'bleed, fade, zoom in': ['Kind', 'Each slide', 'Transition', 'On screen', 'Transition time', 'Movement', 'Amount', 'After the last']}
+    want3 = {'bleed, cut, still': ['Kind', 'Each slide', 'Transition', '▸ Timing', 'On screen', '▸ Character', 'Movement', '▸ After the last', 'Then'],
+             'own, push, drift': ['Kind', 'Each slide', 'Sizes', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', 'Amount', '▸ After the last', 'Then'],
+             'bleed, fade, zoom in': ['Kind', 'Each slide', 'Transition', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Movement', 'Amount', '▸ After the last', 'Then']}
     check('Slides shows only what each choice needs – no Feel for a cut or fade, no Direction unless something travels, Sizes only for As it is',
           all(lb[k] == want3[k] for k in want3), '; '.join(f'{k}: {lb[k]}' for k in want3 if lb[k] != want3[k]))
     vis = pg.evaluate("""(()=>{const shapes=()=>!document.querySelector('#panel section[data-id=shapes]').hidden,where=()=>[...document.querySelectorAll('#panel section[data-id=captions] .seg[aria-label=Where] .pill')].map(b=>b.textContent);
@@ -345,6 +370,71 @@ with sync_playwright() as p:
         const draw=t=>{const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d');E.paint(x,E.scene(S,its,x,segue.fonts,540,676,t),S,segue.fonts,{media:(cx,q,r)=>cx.drawImage(q.item.src,r.x,r.y,r.w,r.h)});return x.getImageData(0,0,540,676).data;};
         const P=E.plan(S,its),a=draw(0.0001),b=draw(P.L+0.0001);let d=0;for(let i=0;i<a.length;i++)d=Math.max(d,Math.abs(a[i]-b[i]));out[k]=d;}return out;}""")
     check('Slides loop exactly with movement, in every framing', all(v <= 1 for v in seam3.values()), str(seam3))
+
+    # ---- 0.7: the panel in groups that mean the same everywhere – and a Feel you can see ----
+    OUTLINE = """([id,deep])=>{const c=document.querySelector(`#panel section.card[data-id=${id}]`);if(c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();
+      if(deep)c.querySelectorAll('.fold-head[aria-expanded=false]').forEach(b=>b.click());
+      const lab=e=>{const q=x=>e.querySelector(x);const h=q(':scope>.ctl-head>span,:scope>.ctl-head>label,:scope .rng-box>.ctl-head>label');if(h)return h.textContent;
+        const il=q(':scope>.img-lab');if(il)return il.textContent;const cl=q(':scope>label');if(cl)return cl.textContent;const tg=q(':scope>button.toggle');if(tg)return tg.getAttribute('aria-label');
+        const pl=q('button.pill');return pl?pl.textContent:null;};
+      const out=[],walk=box=>[...box.children].filter(e=>!e.hidden&&e.offsetParent).forEach(e=>{
+        if(e.classList.contains('fold')){out.push('▸ '+e.querySelector(':scope>.fold-head>span').textContent);const b=e.querySelector(':scope>.fold-body');if(!b.hidden)walk(b);}
+        else{const l=lab(e);if(l)out.push(l);}});
+      walk(c.querySelector('.card-body'));return out;}"""
+    def outline(cid, deep=False):
+        o = pg.evaluate(OUTLINE, [cid, deep]); time.sleep(.35)
+        return pg.evaluate(OUTLINE, [cid, deep])
+    def group(o, title):
+        i = o.index('▸ ' + title); j = i + 1
+        while j < len(o) and not o[j].startswith('▸'): j += 1
+        return o[i + 1:j]
+    pg.evaluate("for(const [k,v] of [['cSize','4:5'],['layout','column'],['trackMove','step'],['after','carry'],['capOn',true],['ovOn',true],['ovKind','text']])segue.set(k,v)"); time.sleep(.3)
+    cv = outline('canvas', True)
+    check('Canvas: its Size, then Background (colour and image together) and Guides – no frame rate here',
+          cv[0] == 'Size' and group(cv, 'Background')[:2] == ['Colour', 'Image'] and '▸ Guides' in cv and 'Frame rate' not in cv and not pg.evaluate("!!document.querySelector('#panel .seg[aria-label=\"Frame rate\"]')"), str(cv))
+    cp = outline('captions', True)
+    check('Captions: what they do (where, align, arrives), then Position and spacing, each role’s type, Kerning and accent, Fonts',
+          cp[:5] == ['Captions', 'Where', 'Align', 'Arrives', 'Over'] and [x for x in cp if x.startswith('▸')] == ['▸ Position and spacing', '▸ Title', '▸ Line', '▸ Tags', '▸ Kerning and accent', '▸ Fonts'], str(cp))
+    check('Captions: the space, the line gap and the nudge sit together in Position and spacing; the accent and kerning together in Kerning and accent',
+          group(cp, 'Position and spacing') == ['Space', 'Between lines', 'Across', 'Up and down'] and group(cp, 'Kerning and accent') == ['Accent', 'Font kerning', 'Kerning pairs'], f"{group(cp, 'Position and spacing')} {group(cp, 'Kerning and accent')}")
+    ov = outline('overlay', True)
+    check('Overlay: what goes over, its Type, Position (the pad, margin and nudge together), then Blend and opacity',
+          ov[:3] == ['Over the top', 'What', 'Text'] and [x for x in ov if x.startswith('▸')] == ['▸ Type', '▸ Position', '▸ Blend and opacity']
+          and group(ov, 'Position') == ['Place', 'Margin', 'Across', 'Up and down'] and group(ov, 'Blend and opacity') == ['Blend', 'Opacity'], str(ov))
+    pg.evaluate("segue.set('ovOn',false);segue.set('capOn',false)")
+    mo = outline('motion')
+    check('Motion: After the last holds the choice; Pull back, its settings, appears as a group of its own only when you pull back',
+          group(mo, 'After the last') == ['Then'] and '▸ Pull back' not in mo and '▸ Pull back' in (pg.evaluate("segue.set('after','pull')") or time.sleep(.3) or outline('motion')), str(mo))
+    pg.evaluate("segue.set('after','carry')")
+    export_seg = lambda f: (pg.evaluate("f=>segue.set('xFormat',f)", f), sheet(pg, 'export'), pg.evaluate("[...document.querySelectorAll('#islandSheets .seg')].filter(g=>g.offsetParent).map(g=>g.getAttribute('aria-label'))"))[2]
+    ex = {f: export_seg(f) for f in ('mp4', 'gif', 'png')}
+    check('Export: the frame rate is a setting of the file – MP4 has Frame rate beside Quality, Scale and Loops; a GIF has its own',
+          ex['mp4'] == ['Format', 'Quality', 'Scale', 'Frame rate', 'Loops in the file'] and 'Frame rate' not in ex['gif'] and 'GIF frame rate' in ex['gif'] and ex['png'] == ['Format', 'Scale'], str(ex))
+    pg.evaluate("segue.set('xFormat','mp4')"); pg.keyboard.press('Escape'); time.sleep(.2)
+    fe = pg.evaluate("""(()=>{const seg=[...document.querySelectorAll('#panel section.card[data-id=motion] .seg[aria-label=Feel] .pill')].map(b=>b.textContent);
+      segue.set('layout','row');segue.set('trackMove','step');segue.set('feel','linear');
+      const g=()=>[document.querySelector('#panel .feel-pic .fp-curve').getAttribute('d'),document.querySelector('#panel .feel-pic .fp-cap').textContent];
+      const a=g();segue.set('feel','snap');const b=g();const mid=d=>+d.split('L')[24].split(' ')[1];
+      return {seg,a:[mid(a[0]),a[1]],b:[mid(b[0]),b[1]],shown:document.querySelector('#panel .feel-pic').offsetParent!==null};})()""")
+    check('Feel: Snap is first, and the curve under it is drawn – Linear a straight line, Snap thrown across the middle, with what it is in words',
+          fe['seg'][0] == 'Snap' and fe['seg'][-1] == 'Linear' and fe['shown'] and abs(fe['a'][0] - 22) < .01 and fe['b'][0] < 14 and fe['b'][1] == 'A slow start, a fast throw, a long settle', str(fe))
+    pr = pg.evaluate("""(()=>{const E=segue,out={};for(const n of ['Snap along','Snap up']){segue.applyPreset(n);out[n]=[segue.S.feel,segue.S.lag,segue.S.creep,segue.S.trackMove];}return out;})()""")
+    check('the Snap presets: Snap along (a row) and Snap up (a column) – rigid, Snap, a little Keep drifting', all(v[0] == 'snap' and v[1] == 0 and 10 <= v[2] <= 20 and v[3] == 'step' for v in pr.values()), str(pr))
+    pg.evaluate("segue.applyPreset('Card stack')")
+    # a piece's detail, in the order people reach for it
+    pg.evaluate("for(const [k,v] of [['layout','one'],['oneFit','bleed'],['capOn',true]])segue.set(k,v);segue.items.forEach(i=>i.join='own')"); time.sleep(.3)
+    def subheads(idx):
+        row = pg.locator('.media-list .slot').nth(idx)
+        if 'open' not in (row.get_attribute('class') or ''): row.locator('.slot-main').click(); time.sleep(.3)
+        h = row.evaluate("e=>[...e.querySelectorAll('.slot-det .sub-head')].map(x=>x.textContent)")
+        row.locator('.slot-main').click(); time.sleep(.2)
+        return h
+    first_sh, second_sh, clip_sh = subheads(0), subheads(1), subheads(3)
+    pg.evaluate("segue.items[2].join='on'"); layer_sh = subheads(2); pg.evaluate("segue.items[2].join='own'")
+    check('a piece’s detail goes Timing, Crop, Look, (Plays), Caption – and Layer, the rare choice, last; a layer’s opens with Layer, then Position, then Look',
+          first_sh == ['Timing', 'Crop', 'Look', 'Caption'] and second_sh == ['Timing', 'Crop', 'Look', 'Caption', 'Layer'] and clip_sh == ['Timing', 'Crop', 'Look', 'Plays', 'Caption', 'Layer']
+          and layer_sh == ['Layer', 'Position', 'Look'], f'{first_sh} {second_sh} {clip_sh} {layer_sh}')
+    pg.evaluate("segue.set('capOn',false)")
 
     # ---- 0.4: type a value; drag a piece; a looser pull back ----
     pg.evaluate("segue.applyPreset('Card stack');document.querySelectorAll('#panel section.card').forEach(c=>{if(c.dataset.id==='motion'&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();})"); time.sleep(.2)

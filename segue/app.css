@@ -83,3 +83,15 @@
   .trim-frame{display:flex;flex-direction:column;gap:4px;min-width:0}
   .trim-frame canvas{display:block;width:100%;height:auto;aspect-ratio:176/100;border-radius:var(--r-sw,4px);background:var(--well)}
   .trim-frame span{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+/* 0.7: a picture's row takes a label in the label column, like every other setting */
+.img-row.labelled{display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center}
+.img-row .img-lab{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2}
+.img-row .img-in{display:flex;align-items:center;gap:8px;min-width:0}
+.img-row .img-in .slot-name{flex:1;min-width:0}
+/* 0.7: what a Feel draws – lined up with the controls, under the Feel row */
+.feel-pic{margin:-2px 0 14px;padding-left:calc(var(--lc) + 10px)}
+.feel-pic svg{display:block;width:100%;height:44px;border-radius:var(--r-ctl);background:var(--k-fill)}
+.feel-pic .fp-base{fill:none;stroke:var(--hair);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
+.feel-pic .fp-base,.feel-pic .fp-curve{vector-effect:non-scaling-stroke}
+.feel-pic .fp-curve{fill:none;stroke:var(--ink-strong);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.feel-pic .fp-cap{display:block;margin-top:6px;font-size:12px;line-height:1.4;color:var(--muted)}

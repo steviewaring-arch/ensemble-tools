@@ -272,7 +272,8 @@ let xBar,xInfo,xGo,xStop;
 {const b=card('export','Export');
   build(b,[{t:'seg',k:'xFormat',label:'Format',opts:[['mp4','MP4'],['gif','GIF'],['png','PNG','The frame on the stage now, at full size']]},
     {t:'seg',k:'xQ',label:'Quality',opts:[['std','Standard'],['high','High'],['best','Best']],show:s=>s.xFormat==='mp4',tip:'How much detail the video keeps: Standard 16, High 32, Best 50 Mbps at 1080 × 1350 – more is crisper and a bigger file'},
-    {t:'seg',k:'xScale',label:'Size',opts:[[1,'1×'],[2,'2×']],show:s=>s.xFormat!=='gif',tip:'2× draws every frame at twice the pixels each way – same layout, sharper type and media, and coloured type stays crisp (MP4 keeps colour at half size, so at 2× it’s as fine as a 1× file’s pixels). Crisp on Retina screens and when cropped in; about four times the time, and a bigger file. Instagram shrinks it to 1080 wide.'},
+    {t:'seg',k:'xScale',label:'Scale',opts:[[1,'1×'],[2,'2×']],show:s=>s.xFormat!=='gif',tip:'2× draws every frame at twice the pixels each way – same layout, sharper type and media, and coloured type stays crisp (MP4 keeps colour at half size, so at 2× it’s as fine as a 1× file’s pixels). Crisp on Retina screens and when cropped in; about four times the time, and a bigger file. Instagram shrinks it to 1080 wide.'},
+    {t:'seg',k:'fps',label:'Frame rate',opts:[[24,'24'],[25,'25'],[30,'30'],[60,'60']],show:s=>s.xFormat==='mp4'},
     {t:'seg',k:'xLoops',label:'Loops in the file',opts:[[1,'1'],[2,'2'],[3,'3']],show:s=>s.xFormat==='mp4'},
     {t:'seg',k:'xGifScale',label:'GIF size',opts:[[1,'Full'],[.5,'Half'],[.25,'Quarter']],show:s=>s.xFormat==='gif'},
     {t:'seg',k:'xGifFps',label:'GIF frame rate',opts:[[12,'12'],[15,'15'],[20,'20'],[25,'25']],show:s=>s.xFormat==='gif'},

@@ -29,8 +29,12 @@ function bezier(x1,y1,x2,y2){
 const springRaw=x=>1-Math.exp(-7.2*x)*Math.cos(Math.PI*2*1.05*x);
 const spring=t=>t<=0?0:t>=1?1:springRaw(t)+t*(1-springRaw(1));
 /* Soft: a gentle ease in and out – the least abrupt, for zooms. Coast: a short push, then a
-   long glide that only just settles – fitted to Steve's phone-swipe reference (4 Nov). */
-const FEEL={glide:bezier(.65,0,.35,1),soft:bezier(.42,0,.58,1),coast:bezier(.18,0,.02,1),inertia:bezier(.35,.85,.2,1),spring,linear:t=>clamp(t,0,1)};
+   long glide that only just settles – fitted to Steve's phone-swipe reference (4 Nov).
+   Snap (0.7): measured frame by frame from two motion-pack recordings (6 Nov) – the camera is
+   rigid (everything moves as one), it holds, takes off slowly, throws across in the middle of
+   the move (78% of the way by the half-way mark) and then takes the last tenth a long time
+   settling. Best fit to both, six moves, rms error 1%: cubic-bezier(.84,.11,.01,.98), ~0.9 s. */
+const FEEL={snap:bezier(.84,.11,.01,.98),glide:bezier(.65,0,.35,1),soft:bezier(.42,0,.58,1),coast:bezier(.18,0,.02,1),inertia:bezier(.35,.85,.2,1),spring,linear:t=>clamp(t,0,1)};
 /* Through's own curve, in scale: off at once, slowing as it fills the frame – fitted to the card's growth in Steve's reference (5 Nov) */
 const THROUGH=bezier(.04,.35,.76,1);
 const feel=name=>FEEL[name]||FEEL.glide;
