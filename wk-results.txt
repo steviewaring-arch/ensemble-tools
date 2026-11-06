@@ -1,0 +1,23 @@
+== webkit 27.2
+-- segue-live: loaded, errors: none
+   presets {"hidden": false, "h": 760, "anim": {"hidden": false, "h": 1423, "cls": "sheet", "disp": "block", "rows": "1fr"}, "body": {"h": 1421, "op": "1", "disp": "block"}, "rows": 16, "dl": null}
+   export {"hidden": false, "h": 458, "anim": {"hidden": false, "h": 400, "cls": "sheet", "disp": "block", "rows": "1fr"}, "body": {"h": 400, "op": "1", "disp": "block"}, "rows": 0, "dl": {"w": 358, "h": 36, "t": "Download MP4"}}
+   download PNG: Segue_200x250.png
+   download GIF: Segue_200x250.gif
+   toast: Saved Segue_200x250.gif – 158 KB
+   presets after reload with old state {"hidden": false, "h": 760, "anim": {"hidden": false, "h": 1423, "cls": "sheet", "disp": "block", "rows": "1fr"}, "body": {"h": 1421, "op": "1", "disp": "block"}, "rows": 16, "dl": null}
+   errors after use: none
+-- segue: loaded, errors: none
+   presets {"hidden": false, "h": 760, "anim": {"hidden": false, "h": 1227, "cls": "sheet", "disp": "block", "rows": "1fr"}, "body": {"h": 1225, "op": "1", "disp": "block"}, "rows": 16, "dl": null}
+   export {"hidden": false, "h": 500, "anim": {"hidden": false, "h": 424, "cls": "sheet", "disp": "block", "rows": "1fr"}, "body": {"h": 424, "op": "1", "disp": "flex"}, "rows": 0, "dl": {"w": 354, "h": 36, "t": "Download MP4"}}
+   download PNG: Segue_200x250.png
+   download GIF: Segue_200x250.gif
+   toast: Saved Segue_200x250.gif – 158 KB
+   presets after reload with old state {"hidden": false, "h": 760, "anim": {"hidden": false, "h": 1227, "cls": "sheet", "disp": "block", "rows": "1fr"}, "body": {"h": 1225, "op": "1", "disp": "block"}, "rows": 16, "dl": null}
+   errors after use: none
+-- tempo: loaded, errors: none
+   errors after use: none
+-- rubato: loaded, errors: none
+   errors after use: none
+-- tutti: loaded, errors: none
+   errors after use: none
