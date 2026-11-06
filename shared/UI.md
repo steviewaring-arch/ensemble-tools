@@ -7,7 +7,7 @@ disagree, the tool is wrong.
 
 Settled with Steve over rounds 1–4 (October–November 2026). The kit lives in
 `shared/kit.css`; the mock-ups and reasoning are at `ui/review/` (round 4 at
-`ui/review/round4/`). Last revised 6 November 2026 (Segue 0.7, Tempo 0.12,
+`ui/review/round4/`). Last revised 6 November 2026 (Segue 0.8, Tempo 0.12,
 Rubato 1.2, Tutti 6.2).
 
 ## Principles
@@ -177,8 +177,11 @@ action. Blue `#2F6BFF` (dark `#6B95FF`) for "changed". Dark mode mirrors these
    not wherever there was room; one group name means one thing in every section
    (Position, Timing, Character, Look, Type); groups run in the order people decide
    things; no two controls share a label unless they never show together; an empty
-   group hides its heading; and where a choice has a shape (an easing curve), draw
-   it. Pin the order in the tool's tests.
+   group hides its heading; and where a choice has a shape (an easing curve, a route,
+   a transition), draw it – from the same settings the tool uses, as a picture that is
+   not itself a control, and only there: a number already says what a slider does.
+   Settings that take a number in steps start where the sliders do, so a column of
+   them lines up. Pin the order in the tool's tests.
 3. Write labels short enough for the label column; put explanations in tooltips.
 4. Give every setting a default (for the change dot and Reset).
 5. Check it at 1440 × 900, 1280 × 800 and 390 px, light and dark, and in Safari.

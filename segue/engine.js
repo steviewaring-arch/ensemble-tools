@@ -55,7 +55,7 @@ const unitOf=(W,H)=>Math.min(W,H)/1080;
 
 /* ---------------- kinds ---------------- */
 const kindOf=S=>{const l=S.layout||'one';return l==='row'||l==='column'?'line':l;};
-const OWN=new Set(['columns','frames','float']);   /* kinds with their own clock */
+const OWN=new Set(['columns','frames','float','wall']);   /* kinds with their own clock */
 /* which way things travel on each layout */
 function dirOf(S){const d=S.dir||'left';
   if(S.layout==='row')return d==='right'?'right':'left';
@@ -159,6 +159,10 @@ function plan(S,items){
     if(mv==='still')return{kind:'cstill',L:still(),n,C,N};
     if(mv==='drift')return{kind:'cdrift',L:Math.max(.2,n*(+S.spsh||2.5)*(S.colSpeed==='varied'?2:1)),n,C,N};
     return{kind:'cstep',L:cyc>0?n*cyc:1,n,C,N,hold,dur};}
+  if(lay==='wall'){const W=wallPlan(S,N);
+    if(mv==='still')return Object.assign(W,{kind:'wstill',L:still()});
+    if(mv==='drift')return Object.assign(W,{kind:'wdrift',L:Math.max(.2,W.n*(+S.spsh||2.5))});
+    return Object.assign(W,{kind:'wstep',L:cyc>0?W.n*cyc:1,hold,dur});}
   if(lay==='frames'){const F=framesOf(S),n=N>F?N/gcd(N,F)|0:1;
     if(mv==='still'||n<2)return{kind:'fstill',L:still(),n,F,N};
     return{kind:'fstep',L:cyc>0?n*cyc:1,n,F,N,hold,dur};}
@@ -274,6 +278,7 @@ function scene(S,items,ctx,fonts,W,H,t){
   if(S.layout==='columns')columnsScene(S,P,cam,list,ctx,fonts,W,H,push);
   else if(S.layout==='frames')framesScene(S,P,cam,list,ctx,fonts,W,H,push);
   else if(S.layout==='float')floatScene(S,P,cam,list,W,H,push,ops);
+  else if(S.layout==='wall')wallScene(S,P,cam,list,ctx,fonts,W,H,push);
   else if(cam.z>0&&P.kind==='step'&&S.layout!=='grid')pullScene(S,G,P,cam,N,push);
   else if(S.layout==='grid')gridScene(S,G,P,cam,N,push);
   else if(S.layout==='one'&&cam.seg&&cam.seg.k==='move'&&cam.how!=='slide')oneMove(S,G,cam,N,push);
@@ -445,6 +450,52 @@ function framesScene(S,P,cam,list,ctx,fonts,W,H,push){
     push(ia,r,{slide:[e*ux*back,e*uy*back],time:vtime(list[ia],sinceA),capAlpha:capA});
     push(ib,r,{frame:false,slide:[(e-1)*ux,(e-1)*uy],time:tb,rev:rb,capAlpha:capB});}}
 
+/* Wall (0.8): a camera snapping across a wall of shapes – the columns and rows are yours. It moves
+   rigidly, everything together and nothing lagging, the way the Snap was measured, along a path of
+   moves: across, diagonally, in stairs or round a square. Each move is the same Snap (or any Feel),
+   and it can keep drifting while it rests. The wall carries on past every edge; its media run in
+   reading order, a row after the last, so the loop closes after as many moves as it takes the
+   pattern to come round to where it began. */
+const DIRV={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]};
+const wallOf=S=>({C:clamp(Math.round(+S.wCols)||3,1,8),R:clamp(Math.round(+S.wRows)||2,1,6)});
+/* where the shapes travel on each move of the path, in tiles: the way you've set, then a quarter turn */
+function wallMoves(S){const u=DIRV[S.dir]||DIRV.up,v=[-u[1],u[0]],k=clamp(Math.round(+S.wStep)||1,1,4);
+  const add=(a,b)=>[a[0]+b[0],a[1]+b[1]],neg=a=>[-a[0],-a[1]],p=S.wPath;
+  return(p==='diagonal'?[add(u,v)]:p==='stairs'?[u,v]:p==='square'?[u,v,neg(u),neg(v)]:[u]).map(a=>[a[0]*k,a[1]*k]);}
+function wallPlan(S,N){
+  const {C,R}=wallOf(S),steps=wallMoves(S).map(a=>[-a[0],-a[1]]),m=steps.length;
+  /* a row after the last: one on, unless that would line the rows up exactly */
+  const stride=N>1&&C%N===0?C+1:C,pre=[],cyc=[0,0];
+  for(const st of steps){pre.push([cyc[0],cyc[1]]);cyc[0]+=st[0];cyc[1]+=st[1];}
+  const brick=(+S.wOff||0)>0;let q=1;
+  while(q<2*N+2&&!(mod(q*(cyc[0]+cyc[1]*stride),N)===0&&(!brick||(q*cyc[0])%2===0)))q++;
+  return{C,R,N,stride,steps,pre,cyc,q,n:q*m,tot:[q*cyc[0],q*cyc[1]]};}
+/* the camera's place on the wall in tiles, g moves along the path (any real g, either side of the loop) */
+function wallAt(P,g){const n=P.n,k=Math.floor(g/n),f=g-k*n,j=Math.min(n-1,Math.floor(f)),m=P.steps.length,cj=Math.floor(j/m),pj=j%m,w=f-j,s=P.steps[pj],pr=P.pre[pj];
+  return[k*P.tot[0]+cj*P.cyc[0]+pr[0]+w*s[0],k*P.tot[1]+cj*P.cyc[1]+pr[1]+w*s[1]];}
+function wallCamera(P,S,tt){
+  if(P.kind==='wstill')return[0,0];
+  if(P.kind==='wdrift'){const g=tt/(P.L/P.n);if(P.steps.length===1)return wallAt(P,g);
+    /* a path with corners is eased through them, so it never turns on a point */
+    let x=0,y=0;const K=24,w=.6;for(let i=0;i<K;i++){const p=wallAt(P,g+((i+.5)/K-.5)*w);x+=p[0];y+=p[1];}return[x/K,y/K];}
+  const c=P.hold+P.dur;if(c<=0)return wallAt(P,0);
+  const s=Math.min(P.n-1,Math.floor(tt/c)),tau=tt-s*c,e=tau<P.hold?0:P.dur>0?feel(S.feel)(clamp((tau-P.hold)/P.dur,0,1)):1,cr=creepOf(S);
+  return wallAt(P,s+(1-cr)*e+cr*tau/c);}
+function wallGeo(S,list,ctx,fonts,W,H){
+  const {C,R}=wallOf(S),r=ratioOf(S,list),size=clamp(+S.size||80,1,300)/100,gap=Math.max(0,+S.gap||0);
+  const {reserve}=capReserve(S,list,ctx,fonts),above=!!(S.capOn&&capWhereOf(S)==='above'&&reserve);
+  const sw=Math.max(1,Math.min((W*size-(C-1)*gap)/C,((H*size-(R-1)*gap)/R-reserve)*r)),sh=sw/r;
+  return{C,R,sw,sh,reserve,above,px:sw+gap,py:sh+reserve+gap,
+    x0:W/2+(+S.nudgeX||0)-(C*sw+(C-1)*gap)/2,y0:H/2+(+S.nudgeY||0)-(R*(sh+reserve)+(R-1)*gap)/2};}
+function wallScene(S,P,cam,list,ctx,fonts,W,H,push){
+  const G=wallGeo(S,list,ctx,fonts,W,H),N=list.length,tt=cam.tt,[cx,cy]=wallCamera(P,S,tt),brick=clamp((+S.wOff||0)/100,0,1);
+  const c0=Math.floor((-G.sw-G.x0)/G.px+cx),c1=Math.ceil((W-G.x0)/G.px+cx);
+  const r0=Math.floor((-G.sh-G.reserve-G.y0)/G.py+cy)-(brick?1:0),r1=Math.ceil((H-G.y0)/G.py+cy);
+  for(let r=r0;r<=r1;r++)for(let c=c0;c<=c1;c++){
+    const top=G.y0+(r-cy)*G.py+(brick&&mod(c,2)?brick*G.py:0),x=G.x0+(c-cx)*G.px;
+    if(x>=W||x+G.sw<=0||top>=H||top+G.sh+G.reserve<=0)continue;
+    const i=mod(c+r*P.stride,N);push(i,{x,y:top+(G.above?G.reserve:0),w:G.sw,h:G.sh},{time:vtime(list[i],tt),rev:1,key:'w'+c+'.'+r});}}
+
 /* Float: shapes scattered across the canvas at three depths. Each depth is a strip as long
    as it is near – twice the size, twice the length – and every strip goes round once a
    loop, so nearer shapes are bigger and faster and everything still joins up. Stepping, the
@@ -553,5 +604,5 @@ function drawBlock(ctx,S,b,x0,y0,sc,alpha,rev,seed,tt){
       draw(c.glyphs,cx+c.padX*sc,by,st.colour);}});
   ctx.restore();}
 
-return{FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
+return{FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
 })();

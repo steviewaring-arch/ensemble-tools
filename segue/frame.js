@@ -236,7 +236,7 @@ function addStepper(parent,d){
   d.group=d.group||curGroup;w.dataset.k=d.k;lb.title='Double-click to reset';lb.ondblclick=()=>set(d.k,base(d.k));
   const go=n=>set(d.k,clamp(Math.round(+S[d.k])+n,+d.min,+d.max));mi.onclick=()=>go(-1);pl.onclick=()=>go(1);
   typable(val,{label:d.label,get:()=>S[d.k],put:v=>set(d.k,Math.round(v)),min:+d.min,max:+d.max,show:()=>String(Math.round(+S[d.k]))});
-  g.append(mi,val,pl);hd.append(lb);const q=qMark(d);if(q)hd.append(q);hd.append(g);w.append(hd);parent.append(w);
+  g.append(mi,val,pl);hd.append(lb);const q=qMark(d);if(q)hd.append(q);w.append(hd,g);parent.append(w);
   const c={d,w,update(){const v=Math.round(+S[d.k]);if(!val.classList.contains('editing'))roll(val,String(v),v-(c._v==null?v:c._v));c._v=v;mi.disabled=v<=+d.min;pl.disabled=v>=+d.max;}};
   controls.push(c);addCx(c,w);return c;}
 function addRange(parent,d){

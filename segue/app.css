@@ -24,7 +24,7 @@
   .font-row .sample{font-size:15px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   #cv{background:transparent}
   /* 0.2: the kind of motion, as tiles – 0.5: in the kit's terms, the chosen one white on grey */
-  .kinds{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+  .kinds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
   .kind{border:0;background:var(--k-fill);box-shadow:none;color:var(--muted);border-radius:var(--r-ctl);padding:9px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;line-height:1;min-width:0;
     transition:background var(--t-snap),color var(--t-snap),box-shadow var(--t-snap),transform var(--t-snap) var(--e-snap)}
   .kind:hover{background:var(--k-fill-hover);color:var(--ink)}
@@ -89,9 +89,28 @@
 .img-row .img-in{display:flex;align-items:center;gap:8px;min-width:0}
 .img-row .img-in .slot-name{flex:1;min-width:0}
 /* 0.7: what a Feel draws – lined up with the controls, under the Feel row */
-.feel-pic{margin:-2px 0 14px;padding-left:calc(var(--lc) + 10px)}
-.feel-pic svg{display:block;width:100%;height:44px;border-radius:var(--r-ctl);background:var(--k-fill)}
+.feel-pic,.path-pic,.trans-pic{margin:-2px 0 14px;padding-left:calc(var(--lc) + 10px)}
+.feel-pic svg,.path-pic svg,.trans-pic svg{display:block;width:100%;height:44px;border-radius:var(--r-ctl);background:var(--k-fill)}
 .feel-pic .fp-base{fill:none;stroke:var(--hair);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
 .feel-pic .fp-base,.feel-pic .fp-curve{vector-effect:non-scaling-stroke}
 .feel-pic .fp-curve{fill:none;stroke:var(--ink-strong);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
-.feel-pic .fp-cap{display:block;margin-top:6px;font-size:12px;line-height:1.4;color:var(--muted)}
+.feel-pic .fp-cap,.path-pic .fp-cap,.trans-pic .fp-cap{display:block;margin-top:6px;font-size:12px;line-height:1.4;color:var(--muted)}
+
+.path-pic .pp-dot{fill:var(--muted);opacity:.35}
+.path-pic .pp-stop{fill:var(--ink-strong);opacity:.6}
+.path-pic .pp-stop.first{opacity:1}
+.path-pic .pp-line{fill:none;stroke:var(--ink-strong);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.trans-pic .tp-bg{fill:var(--k-raise);stroke:var(--hair);stroke-width:1}
+.trans-pic .tp-a{fill:var(--muted)}
+.trans-pic .tp-b{fill:var(--ink-strong)}
+.trans-pic .tp-o{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 2}
+.trans-pic .tp-go{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.preset-row .pk{width:44px;height:30px}
+.preset-row .pk svg{width:44px;height:30px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--hair)}
+.pd-arrow{fill:none;stroke:#E5484D;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.path-pic svg{height:56px}
+/* on a touch screen the small round buttons keep their look but get a hand-sized target */
+@media (pointer:coarse){.pill.small.icon{position:relative}.pill.small.icon::after{content:'';position:absolute;inset:-9px}}
+/* a stepper starts where the sliders do, so a column of settings lines up */
+.ctl.stp>.stp-g{margin-left:0;justify-self:start}
+.ctl.stp:not(.seg-inline):not(.as-menu)>.ctl-head{align-items:center;align-self:center;margin-bottom:0}

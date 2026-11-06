@@ -288,6 +288,8 @@ with sync_playwright() as p:
              ('Columns', "segue.set('layout','columns');segue.set('trackMove','drift')"),
              ('Frames', "segue.set('layout','frames');segue.set('fCols',2)"),
              ('Float', "segue.set('layout','float');segue.set('trackMove','step')"),
+             ('Wall stepping', "segue.set('layout','wall');segue.set('trackMove','step');segue.set('wPath','stairs');segue.set('wOff',30)"),
+             ('Wall drifting', "segue.set('layout','wall');segue.set('trackMove','drift');segue.set('wPath','square');segue.set('wOff',0)"),
              ('Captions fixed, overlay text', "segue.set('layout','one');segue.set('oneFit','shape');segue.set('capOn',true);segue.set('capWhere','fixed');segue.set('ovOn',true);segue.set('ovKind','text');segue.set('cSize','custom')"),
              ('Overlay image, border and edge', "segue.set('ovKind','image');segue.set('mat',20);segue.set('edge',true);segue.set('cSize','4:5')")]
     if os.environ.get('QUICK'): KINDS = KINDS[:1]   # QUICK=1: one set-up only, while working on the rest

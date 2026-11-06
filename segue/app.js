@@ -11,6 +11,7 @@ const D={
   oneMove:'slide',trackMove:'step',dir:'up',feel:'snap',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',gStag:40,gFloat:30,
   colDir:'alt',colSpeed:'same',colLag:.4,colOff:50,
   fCols:3,fRows:1,fMove:'push',fLag:.15,
+  wCols:3,wRows:2,wPath:'across',wStep:1,wOff:0,
   flSize:34,depth:60,spread:80,seed:0,
   capOn:true,capWhere:'under',capAlign:'left',capV:'bottom',capMargin:64,capSpace:28,capX:0,capY:0,capGapL:10,capReveal:'scramble',capRevealDur:.8,
   accent:'#EA2631',kern:true,pairs:'',gLook:'outline',gFill:'#E4E4E0',
@@ -369,6 +370,7 @@ Object.assign(TIPS,{
   gCols:'Columns in the grid you pull back to',zFeel:'How the camera eases out and back in – the same feels as a move. Inertia flicks out and coasts; Spring overshoots and settles.',gSize:'How much of the canvas the grid fills when it’s furthest out',gHold:'How long the whole range stays in view',
   colDir:'Which way each column runs. Alternate: down, up, down…',colSpeed:'Same: each column goes round once a loop. Varied: two, three or four times in a loop twice as long.',
   colLag:'Each column moves this long after the one to its left',colOff:'Sets every other column down by part of a shape, so they don’t line up',
+  wCols:'How many columns fit across the canvas',wRows:'How many rows fit down it – the wall carries on past the edges',wPath:'The route the camera takes over the wall, a move at a time',wStep:'How many tiles each move carries the camera along its route',wOff:'Sets every other column down by part of a tile, like brickwork',
   fCols:'Frames across',fRows:'Frames down',fMove:'How the media changes inside each frame',fLag:'Each frame changes this long after the one before it',
   depth:'How far apart the near and far shapes are – in size and in speed. None puts them all at one depth.',spread:'Space between shapes – more is sparser',
   capWhere:'Under or above each shape, on it, or fixed on the canvas for the shape that’s showing',capReveal:'How each caption arrives',
@@ -559,14 +561,15 @@ function paintMediaKeepFocus(){const a=document.activeElement,id=a&&a.id;paintMe
   SUMMARY.canvas=s=>{const [W,H]=E.canvasSize(s);return `${W} × ${H}`+(PICS.bg?' · image':'');};}
 /* Motion: the kind first, then only what that kind uses */
 const KINDS=[['one','Slides','A slide at a time – full bleed, as it is or in a shape, with a transition and a little movement in each'],['line','Line','A row or a column of shapes, moving along'],['grid','Grid','Rows of shapes, moving together'],
-  ['columns','Columns','Each column running up or down on its own'],['frames','Frames','The frames stay put and the media changes inside them'],['float','Float','Shapes drifting past at different depths']];
+  ['wall','Wall','A camera snapping across a wall of shapes – the columns and rows are yours'],['columns','Columns','Each column running up or down on its own'],['frames','Frames','The frames stay put and the media changes inside them'],['float','Float','Shapes drifting past at different depths']];
 const KIND_ICON={
   one:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="11" y="5" width="18" height="18" rx="2"/><rect x="33" y="8" width="7" height="12" rx="1.5" class="dim"/></svg>',
   line:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="1" y="8" width="10" height="12" rx="1.5" class="dim"/><rect x="15" y="8" width="10" height="12" rx="1.5"/><rect x="29" y="8" width="10" height="12" rx="1.5" class="dim"/></svg>',
   grid:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="5" y="3" width="9" height="9" rx="1.5"/><rect x="16" y="3" width="9" height="9" rx="1.5"/><rect x="27" y="3" width="9" height="9" rx="1.5"/><rect x="5" y="15" width="9" height="9" rx="1.5" class="dim"/><rect x="16" y="15" width="9" height="9" rx="1.5" class="dim"/><rect x="27" y="15" width="9" height="9" rx="1.5" class="dim"/></svg>',
   columns:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="5" y="-2" width="9" height="13" rx="1.5"/><rect x="5" y="14" width="9" height="13" rx="1.5" class="dim"/><rect x="16" y="5" width="9" height="13" rx="1.5" class="dim"/><rect x="16" y="21" width="9" height="13" rx="1.5"/><rect x="27" y="-6" width="9" height="13" rx="1.5" class="dim"/><rect x="27" y="10" width="9" height="13" rx="1.5"/></svg>',
   frames:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="3" y="6" width="10" height="16" rx="1" class="line"/><rect x="5.5" y="8.5" width="5" height="7" rx="1"/><rect x="15" y="6" width="10" height="16" rx="1" class="line"/><rect x="17.5" y="8.5" width="5" height="7" rx="1"/><rect x="27" y="6" width="10" height="16" rx="1" class="line"/><rect x="29.5" y="8.5" width="5" height="7" rx="1"/></svg>',
-  float:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="4" y="13" width="7" height="9" rx="1.2" class="dim"/><rect x="14" y="2" width="12" height="15" rx="1.5"/><rect x="29" y="11" width="6" height="7" rx="1" class="dim"/><rect x="24" y="20" width="9" height="11" rx="1.5"/></svg>'};
+  float:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="4" y="13" width="7" height="9" rx="1.2" class="dim"/><rect x="14" y="2" width="12" height="15" rx="1.5"/><rect x="29" y="11" width="6" height="7" rx="1" class="dim"/><rect x="24" y="20" width="9" height="11" rx="1.5"/></svg>',
+  wall:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="2" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="13" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="24" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="2" y="15" width="9" height="11" rx="1.5" class="dim"/><rect x="13" y="15" width="9" height="11" rx="1.5"/><rect x="24" y="15" width="9" height="11" rx="1.5"/><rect x="34.5" y="15" width="9" height="11" rx="1.5" class="dim"/><rect x="34.5" y="2" width="9" height="11" rx="1.5" class="dim"/></svg>'};
 function pickKind(k){if(k==='line')k=['up','down'].includes(S.dir)?'column':'row';if(S.layout!==k){set('layout',k);clock=0;}}
 function kindTiles(parent){const w=el('div','ctl kinds-ctl'),hd=el('div','ctl-head'),g=el('div','kinds');hd.append(el('span',null,'Kind'));g.setAttribute('role','group');g.setAttribute('aria-label','Kind');
   const bs=KINDS.map(([v,t,tip])=>{const b=el('button','kind');b.type='button';b.innerHTML=KIND_ICON[v];b.append(el('span',null,t));b.dataset.tip=tip;b.onclick=()=>pickKind(v);g.append(b);return[v,b];});
@@ -589,6 +592,7 @@ const dirOpts=()=>KIND(S)==='grid'?[['up','Up'],['down','Down']]:DIR4;
 function pickDir(v){if(KIND(S)==='line'){S.dir=v;set('layout',v==='left'||v==='right'?'row':'column');return;}set('dir',v);}
 const showDir=s=>{const k=KIND(s);if(k==='one')return oneTravels(s)||kbDrifts(s);if(k==='frames')return stepping(s)&&(s.fMove==='push'||s.fMove==='cover');if(k==='columns')return false;return mv(s)!=='still';};
 const kindName=s=>optLabel(KINDS,KIND(s));
+const PATHS=[['across','Across','Straight along, the way Direction says'],['diagonal','Diagonal','Both ways at once: along, and a quarter turn round'],['stairs','Stairs','Along, then a quarter turn, again and again'],['square','Square','Round a square and back to the start']];
 /* What a Feel draws, so it can be seen and not guessed: the move runs left to right, how far it has got goes up */
 function feelPic(parent,key,show){
   const NS='http://www.w3.org/2000/svg',row=el('div','feel-pic'),svg=document.createElementNS(NS,'svg'),base=document.createElementNS(NS,'path'),curve=document.createElementNS(NS,'path'),cap=el('span','fp-cap');
@@ -598,6 +602,86 @@ function feelPic(parent,key,show){
   c.update=()=>{const k=S[key];if(k===had)return;had=k;const f=E.feel(k);let d='';for(let i=0;i<=48;i++){const x=i/48;d+=(i?'L':'M')+(x*120).toFixed(1)+' '+(38-f(x)*32).toFixed(2);}
     curve.setAttribute('d',d);cap.textContent=(FEELS.find(o=>o[0]===k)||[])[2]||'';};
   return c;}
+/* a small picture under a setting, drawn again only when what it shows changes: draw() gives its key, the SVG inside and a line of words */
+function svgPic(parent,show,cls,viewBox,draw){
+  const NS='http://www.w3.org/2000/svg',row=el('div',cls),svg=document.createElementNS(NS,'svg'),cap=el('span','fp-cap');
+  svg.setAttribute('viewBox',viewBox);svg.setAttribute('aria-hidden','true');row.append(svg,cap);
+  let had=null;const c=addCustom(parent,show,row);
+  c.update=()=>{const r=draw();if(r.key===had)return;had=r.key;svg.innerHTML=r.svg;cap.textContent=r.cap||'';};
+  return c;}
+/* The Wall's route, drawn: dots for the tiles, a bigger one at each stop, arrows between them the way the shapes travel (one round of a square, two of the rest) */
+function pathDraw(){
+  const mvs=E.wallMoves(S),reps=S.wPath==='square'?1:2,pts=[[0,0]];
+  for(let r=0;r<reps;r++)for(const m of mvs){const l=pts[pts.length-1];pts.push([l[0]+m[0],l[1]+m[1]]);}
+  const xs=pts.map(q=>q[0]),ys=pts.map(q=>q[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+  const cell=Math.min(20,110/(x1-x0+1.4),50/(y1-y0+1.4)),mx=60-(x0+x1)/2*cell,my=28-(y0+y1)/2*cell,at=q=>[mx+q[0]*cell,my+q[1]*cell];
+  let svg='';
+  for(let j=-8;j<=8;j++)for(let i=-8;i<=8;i++){const x=mx+i*cell,y=my+j*cell;if(x>1&&x<119&&y>1&&y<55)svg+=`<circle class="pp-dot" cx="${f1(x)}" cy="${f1(y)}" r="1.1"/>`;}
+  for(let j=1;j<pts.length;j++){const a=at(pts[j-1]),b=at(pts[j]),dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,h=Math.min(3.6,L*.3),e=[b[0]-ux*3.8,b[1]-uy*3.8],s0=[a[0]+ux*3.4,a[1]+uy*3.4];
+    svg+=`<path class="pp-line" d="M${f1(s0[0])} ${f1(s0[1])}L${f1(e[0])} ${f1(e[1])}M${f1(e[0]-ux*h-uy*h*.7)} ${f1(e[1]-uy*h+ux*h*.7)}L${f1(e[0])} ${f1(e[1])}L${f1(e[0]-ux*h+uy*h*.7)} ${f1(e[1]-uy*h-ux*h*.7)}"/>`;}
+  pts.forEach((q,j)=>{const a=at(q);svg+=`<circle class="pp-stop${j?'':' first'}" cx="${f1(a[0])}" cy="${f1(a[1])}" r="${j?2:2.8}"/>`;});
+  const pn=PATHS.find(o=>o[0]===S.wPath)||PATHS[0];
+  return{key:[S.wPath,S.dir,S.wStep].join(),svg,cap:pn[2]};}
+/* ---------------- little drawings (0.8) ----------------
+   Pictures where a picture says it faster: what a transition does halfway, and what a preset is –
+   its shapes where they sit, in its colours, and the way it moves. All of it drawn from the settings,
+   so nothing here can drift from what the tool does. */
+const DV={left:[-1,0],right:[1,0],up:[0,-1],down:[0,1]};
+const lumOf=h=>{const m=String(h||'').replace('#','');if(m.length<6)return .5;const v=i=>parseInt(m.slice(i,i+2),16)/255;return .2126*v(0)+.7152*v(2)+.0722*v(4);};
+/* a transition halfway, in a frame fw × fh going the way d says: the pieces – a the one leaving, b the one arriving, o an outline – each a rectangle */
+function transMid(how,e,fw,fh,d,full){
+  const tw=full?fw:fw*.6,th=full?fh:fh*.72,x=(fw-tw)/2,y=(fh-th)/2,u=DV[d]||DV.left,r=full?0:2,out=[];
+  const T=(c,dx,dy,sc,o)=>{const w=tw*sc,h=th*sc;out.push({c,x:x+(tw-w)/2+dx,y:y+(th-h)/2+dy,w,h,o:o==null?1:o,r});};
+  if(how==='cut')T('a',0,0,1);
+  else if(how==='fade'){T('a',0,0,1,1-e);T('b',0,0,1,e);}
+  else if(how==='dip')out.push({c:'o',x,y,w:tw,h:th,o:1,r});
+  else if(how==='wipe'){const hz=u[1]===0,hf=(hz?fw:fh)/2;
+    out.push(hz?{c:'a',x:u[0]<0?0:fw-hf,y:0,w:hf,h:fh,o:1,r:0}:{c:'a',x:0,y:u[1]<0?0:fh-hf,w:fw,h:hf,o:1,r:0},
+             hz?{c:'b',x:u[0]<0?hf:0,y:0,w:hf,h:fh,o:1,r:0}:{c:'b',x:0,y:u[1]<0?hf:0,w:fw,h:hf,o:1,r:0});}
+  else if(how==='open'){T('a',0,0,1);out.push({c:'b',x:fw/2-tw*e/2,y:fh/2-th*e/2,w:tw*e,h:th*e,o:1,r});}
+  else if(how==='zoom'){T('a',0,0,1+.06*e,1-e);T('b',0,0,.9+.1*e,e);}
+  else if(how==='through'){T('a',0,0,1+.18*e,1-e);T('b',0,0,Math.pow(.12,1-e));}
+  else if(how==='stack'){T('a',0,0,1-.04*e);T('b',-u[0]*(1-e)*fw,-u[1]*(1-e)*fh,1);}
+  else{T('a',u[0]*e*fw,u[1]*e*fh,1);T('b',-u[0]*(1-e)*fw,-u[1]*(1-e)*fh,1);}
+  return out;}
+const f1=v=>(+v).toFixed(1);
+/* the three moments of the chosen transition: before, halfway, after – a cut has no halfway */
+function transDraw(){
+  const how=S.oneMove,full=S.oneFit==='bleed',fw=32,fh=34,fy=5,xs=how==='cut'?[24,64]:[4,44,84],mid=how==='cut'?[0,1]:[0,.5,1];
+  let svg='';
+  mid.forEach((e,j)=>{const els=e===0?[{c:'a',x:full?0:fw*.2,y:full?0:fh*.14,w:full?fw:fw*.6,h:full?fh:fh*.72,o:1,r:full?0:2}]:e===1?[{c:'b',x:full?0:fw*.2,y:full?0:fh*.14,w:full?fw:fw*.6,h:full?fh:fh*.72,o:1,r:full?0:2}]:transMid(how,e,fw,fh,S.dir,full);
+    svg+=`<svg x="${xs[j]}" y="${fy}" width="${fw}" height="${fh}" class="tp-frame"><rect class="tp-bg" width="${fw}" height="${fh}"/>`+els.map(q=>`<rect class="tp-${q.c}" x="${f1(q.x)}" y="${f1(q.y)}" width="${f1(q.w)}" height="${f1(q.h)}" rx="${q.r}" opacity="${f1(q.o)}"/>`).join('')+'</svg>';
+    if(j)svg+=`<path class="tp-go" d="M${xs[j]-5} ${fy+fh/2-3}l2.5 3-2.5 3"/>`;});
+  const o=MOVES_ONE.find(q=>q[0]===how);
+  return{key:[how,full,S.dir].join(),svg,cap:o&&o[2]?o[2].split(' – ')[0]:''};}
+/* a preset, drawn: its shapes where they sit on its ground, an arrow the way it moves (dashed when it never stops) */
+function presetPic(p){
+  const s=Object.assign({},D,p),k=E.kindOf(s),bg=s.bg||'#F5F5F3',ink=lumOf(bg)<.5?'#FFFFFF':'#111111',W=44,H=30,u=DV[s.dir]||DV.up;
+  const q=s.ratio==='custom'?Math.max(.3,Math.min(3,(+s.rW||1)/(+s.rH||1))):s.ratio==='media'?1.2:(E.RATIOS[s.ratio]||1.6),moving=s.trackMove!=='still',drift=s.trackMove==='drift';
+  const R=(x,y,w,h,o)=>`<rect x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="1.3" style="fill:${ink}" opacity="${o==null?.78:o}"/>`;
+  const Fr=(x,y,w,h)=>`<rect x="${f1(x+.5)}" y="${f1(y+.5)}" width="${f1(w-1)}" height="${f1(h-1)}" rx="1" style="fill:none;stroke:${ink}" stroke-width="1" opacity=".6"/>`;
+  const arrow=(pts)=>{const n=pts.length,a=pts[n-2],b=pts[n-1],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,h=3;
+    return`<path d="M${pts.map(t=>f1(t[0])+' '+f1(t[1])).join('L')}M${f1(b[0]-ux*h-uy*h*.7)} ${f1(b[1]-uy*h+ux*h*.7)}L${f1(b[0])} ${f1(b[1])}L${f1(b[0]-ux*h+uy*h*.7)} ${f1(b[1]-uy*h-ux*h*.7)}" class="pd-arrow"${drift?' stroke-dasharray="2.2 2"':''}/>`;};
+  const line=(cx,cy,vx,vy,len)=>arrow([[cx-vx*len/2,cy-vy*len/2],[cx+vx*len/2,cy+vy*len/2]]);
+  let g='';
+  if(k==='one'){const e=transMid(s.oneMove,.5,W-8,H-8,s.dir,s.oneFit==='bleed');
+    g=`<svg x="4" y="4" width="${W-8}" height="${H-8}">`+e.map(t=>t.c==='o'?`<rect x="${f1(t.x)}" y="${f1(t.y)}" width="${f1(t.w)}" height="${f1(t.h)}" rx="1.3" style="fill:none;stroke:${ink}" stroke-dasharray="2 1.6" opacity=".7"/>`:`<rect x="${f1(t.x)}" y="${f1(t.y)}" width="${f1(t.w)}" height="${f1(t.h)}" rx="${t.r?1.3:0}" style="fill:${ink}" opacity="${f1(t.c==='a'?t.o*.45:t.o*.85)}"/>`).join('')+'</svg>';}
+  else if(k==='line'){const hz=s.layout==='row'||u[1]===0;
+    if(hz){const h=14,w=Math.min(16,h*q);for(let i=-2;i<=2;i++)g+=R(W/2-w/2+i*(w+3),(H-h)/2-1,w,h,i?.4:.8);g+=line(W/2,H-4,u[0]||1,0,16);}
+    else{const w=Math.min(20,15*Math.min(q,1.4)),h=w/q;for(let i=-2;i<=2;i++)g+=R((W-w)/2-2,H/2-h/2+i*(h+3),w,h,i?.4:.8);g+=line(W-5,H/2,0,u[1]||-1,14);}}
+  else if(k==='grid'){const C=Math.max(1,Math.min(5,Math.round(s.cols)||3)),w=(34-(C-1)*3)/C,h=w/q;for(let r=-2;r<=2;r++)for(let c=0;c<C;c++)g+=R(2+c*(w+3),H/2-h/2+r*(h+3),w,h,r?.4:.8);g+=line(W-5,H/2,0,u[1]||-1,14);}
+  else if(k==='wall'){const C=Math.max(1,Math.min(5,Math.round(s.wCols)||3)),Rr=Math.max(1,Math.min(4,Math.round(s.wRows)||2)),sc=Math.min(1,36/(C*(Math.min(18/Rr,12)*q)+(C-1)*2));
+    let th=Math.min(18/Rr,12)*sc,tw=th*q;const off=(+s.wOff||0)/100;
+    for(let c=-1;c<=C;c++)for(let r=-1;r<=Rr+(off?1:0);r++){const inside=c>=0&&c<C&&r>=0&&r<Rr;g+=R(W/2-(C*tw+(C-1)*2)/2+c*(tw+2),H/2-(Rr*th+(Rr-1)*2)/2+r*(th+2)+(off&&((c%2)+2)%2?off*(th+2):0),tw,th,inside?.8:.28);}
+    const v=[-u[1],u[0]],cx=W/2,cy=H/2,L=7,at=(a,b,c)=>[cx+a*u[0]*L+b*v[0]*L,cy+a*u[1]*L+b*v[1]*L];
+    g+=s.wPath==='diagonal'?line(cx,cy,u[0]+v[0],u[1]+v[1],L*1.8):s.wPath==='stairs'?arrow([at(-1,-.5),at(0,-.5),at(0,.5),at(1,.5)]):s.wPath==='square'?arrow([at(-.7,-.7),at(.7,-.7),at(.7,.7),at(-.7,.7),at(-.7,-.3)]):line(cx,cy,u[0],u[1],18);}
+  else if(k==='columns'){const C=Math.max(2,Math.min(5,Math.round(s.cols)||3)),w=(38-(C-1)*2)/C,h=Math.min(11,w/q),off=(+s.colOff||0)/100*h;
+    for(let c=0;c<C;c++){for(let r=-1;r<=3;r++)g+=R(3+c*(w+2),r*(h+2)+(c%2?off:0)-1,w,h,.78);}
+    for(let c=0;c<C;c++){const dn=s.colDir==='down'||(s.colDir==='alt'&&c%2===0);g+=line(3+c*(w+2)+w/2,H/2,0,dn?1:-1,9);}}
+  else if(k==='frames'){const C=Math.max(1,Math.min(4,Math.round(s.fCols)||3)),Rr=Math.max(1,Math.min(2,Math.round(s.fRows)||1)),w=Math.min(13,(36-(C-1)*3)/C),h=Math.min(22/Rr,w/q),x0=(W-(C*w+(C-1)*3))/2,y0=(H-(Rr*h+(Rr-1)*3))/2;
+    for(let r=0;r<Rr;r++)for(let c=0;c<C;c++){const x=x0+c*(w+3),y=y0+r*(h+3);g+=Fr(x,y,w,h)+`<svg x="${f1(x+1)}" y="${f1(y+1)}" width="${f1(w-2)}" height="${f1(h-2)}">`+R(-(w-2)*u[0]*.45+(w-2)*.1,-(h-2)*u[1]*.45+(h-2)*.1,(w-2)*.8,(h-2)*.8,.8)+'</svg>';}}
+  else{const L=[[4,17,8,10,.35],[14,3,13,16,.8],[30,14,7,9,.35],[22,19,10,10,.8],[33,3,8,8,.5],[3,3,7,8,.5]];for(const t of L)g+=R(t[0],t[1],t[2],t[3],t[4]);g+=line(W/2,H/2,u[0],u[1],14);}
+  return`<svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><rect class="pd-bg" width="${W}" height="${H}" rx="3" style="fill:${bg}"/>${g}</svg>`;}
 const fmtS=v=>`${+(+v).toFixed(2)} s`;
 const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
 /* Motion (0.7): the kind first, then what that kind moves and which way; then three groups that mean the
@@ -609,16 +693,26 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
     {t:'seg',k:'ownScale',label:'Sizes',opts:[['fit','Fit each'],['true','True to scale']],show:s=>isK('one')(s)&&s.oneFit==='own'},
     {t:'range',k:'cols',label:'Columns',min:1,max:8,step:1,show:isK('grid')},
     {t:'range',k:'cols',id:'ccols',label:'Columns',min:2,max:8,step:1,show:isK('columns')},
+    {t:'range',k:'wCols',label:'Columns',min:1,max:8,step:1,show:isK('wall')},
+    {t:'range',k:'wRows',label:'Rows',min:1,max:6,step:1,show:isK('wall')},
+    {t:'range',k:'wOff',label:'Offset',min:0,max:100,step:1,unit:'%',show:isK('wall')},
     {t:'range',k:'fCols',label:'Across',min:1,max:6,step:1,show:isK('frames')},
     {t:'range',k:'fRows',label:'Down',min:1,max:4,step:1,show:isK('frames')},
-    {t:'seg',k:'oneMove',label:'Transition',opts:MOVES_ONE,show:isK('one')},
-    {t:'seg',k:'trackMove',label:'Move',opts:MOVES_TRACK,show:isK('line','grid','columns','float')},
+    {t:'seg',k:'oneMove',label:'Transition',opts:MOVES_ONE,show:isK('one')}]);
+  svgPic(b,isK('one'),'trans-pic','0 0 120 44',transDraw);
+  build(b,[
+    {t:'seg',k:'trackMove',label:'Move',opts:MOVES_TRACK,show:isK('line','grid','columns','float','wall')},
+    {t:'seg',k:'wPath',label:'Path',opts:PATHS,show:s=>isK('wall')(s)&&mv(s)!=='still'},
     {t:'seg',k:'fMove',label:'Change',opts:MOVES_FRAME,show:s=>isK('frames')(s)&&!framesStatic(s)},
     {t:'seg',k:'dir',label:'Direction',optsFn:dirOpts,pick:pickDir,show:showDir},
+    {t:'range',k:'wStep',label:'Distance',min:1,max:4,step:1,show:s=>isK('wall')(s)&&mv(s)!=='still'},
     {t:'seg',k:'colDir',label:'Directions',opts:[['alt','Alternate'],['up','All up'],['down','All down']],show:s=>isK('columns')(s)&&mv(s)!=='still'},
     {t:'range',k:'colOff',label:'Offset',min:0,max:100,step:1,unit:'%',show:isK('columns')},
     {t:'range',k:'depth',label:'Depth',min:0,max:100,step:1,unit:'%',show:isK('float')},
     {t:'range',k:'spread',label:'Spread',min:0,max:300,step:1,unit:'%',show:isK('float')}]);
+  svgPic(b,s=>isK('wall')(s)&&mv(s)!=='still','path-pic','0 0 120 56',pathDraw);
+  /* brickwork needs an even shift to join up: with an odd number of media the loop takes two laps – say so, where it happens */
+  addHint(b,'With brickwork and an odd number of media, the loop takes two laps to join up. Add or take away one to halve it.',s=>isK('wall')(s)&&+s.wOff>0&&mv(s)!=='still'&&(()=>{const it=items.length?items:Array.from({length:6},()=>({placeholder:true,kind:'image'}));return E.plan(s,it).n!==E.plan(Object.assign({},s,{wOff:0}),it).n;})());
   addHint(b,'As many frames as media: the frames stay as they are and video plays inside them. Add more media, or fewer frames, to have it change.',s=>isK('frames')(s)&&framesStatic(s));
   {const r=el('div','ctl btn-row'),sh=el('button','pill small','Shuffle');sh.type='button';sh.dataset.tip='Scatter the shapes another way';sh.onclick=()=>set('seed',(Math.round(+S.seed)||0)+1);r.append(sh);addCustom(b,isK('float'),r);}
   /* Timing: how long things take */
@@ -627,7 +721,8 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
     {t:'range',k:'dur',id:'dur1',label:'Transition time',min:.1,max:3,step:.05,unit:' s',show:s=>isK('one')(s)&&stepping(s)&&s.oneMove!=='cut'},
     {t:'range',k:'hold',label:'Rest',min:0,max:6,step:.05,unit:' s',show:s=>stepping(s)&&!isK('one')(s)},
     {t:'range',k:'dur',label:'Move time',min:.1,max:4,step:.05,unit:' s',show:s=>stepping(s)&&!isK('one')(s)&&!(isK('frames')(s)&&s.fMove==='cut')},
-    {t:'range',k:'spsh',label:'Each shape',min:.5,max:12,step:.05,unit:' s',show:s=>mv(s)==='drift'&&!isK('frames')(s)},
+    {t:'range',k:'spsh',label:'Each shape',min:.5,max:12,step:.05,unit:' s',show:s=>mv(s)==='drift'&&!isK('frames','wall')(s)},
+    {t:'range',k:'spsh',id:'spsh2',label:'Each move',min:.5,max:12,step:.05,unit:' s',show:s=>mv(s)==='drift'&&isK('wall')(s)},
     {t:'seg',k:'colSpeed',label:'Speeds',opts:[['same','Same'],['varied','Varied']],show:s=>isK('columns')(s)&&mv(s)==='drift'},
     {t:'range',k:'still',label:'Length',min:1,max:60,step:.5,unit:' s',show:s=>mv(s)==='still'||(isK('frames')(s)&&framesStatic(s))}];
   const tm=fold(b,'timing','Timing',groupShow(TIMING),false,s=>stepping(s)?(isK('one')(s)?fmtS(s.hold)+' on screen'+(s.oneMove!=='cut'?' · '+fmtS(s.dur):''):`${fmtS(s.hold)} rest · ${fmtS(s.dur)} move`):mv(s)==='drift'?`${fmtS(s.spsh)} a shape`:fmtS(s.still));
@@ -640,7 +735,7 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
     {t:'range',k:'lag',label:'Lag',min:0,max:.3,step:.005,unit:' s',show:s=>isK('line','grid')(s)&&stepping(s)},
     {t:'range',k:'colLag',label:'Lag',min:0,max:3,step:.05,unit:' s',show:s=>isK('columns')(s)&&stepping(s)},
     {t:'range',k:'fLag',id:'flag',label:'Lag',min:0,max:2,step:.01,unit:' s',show:s=>isK('frames')(s)&&stepping(s)},
-    {t:'range',k:'creep',label:'Keep drifting',min:0,max:60,step:1,unit:'%',show:s=>isK('line','grid','columns','float')(s)&&stepping(s)}];
+    {t:'range',k:'creep',label:'Keep drifting',min:0,max:60,step:1,unit:'%',show:s=>isK('line','grid','columns','float','wall')(s)&&stepping(s)}];
   const ch=fold(b,'character','Character',groupShow(CHAR.concat(FEELROW)),false,s=>[FEELROW.show(s)?optLabel(FEELS,s.feel):'',isK('one')(s)&&s.kb!=='none'?optLabel(KB,s.kb):'',+s.creep>0&&CHAR[5].show(s)?`drifting ${Math.round(s.creep)}%`:''].filter(Boolean).join(' · '));
   build(ch,[FEELROW]);feelPic(ch,'feel',FEELROW.show);build(ch,CHAR);
   /* After the last: how the loop ends – straight on round, or pulled back to show them all (its settings, a group of their own) */
@@ -654,17 +749,17 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
   feelPic(pb,'zFeel',null);
   build(pb,[{t:'range',k:'gStag',label:'Stagger',min:0,max:100,step:1,unit:'%',tip:'Each shape settles into the grid a beat after the one before, nearest first, so it gathers rather than arriving as one sheet. 0 for one rigid move.'},
     {t:'range',k:'gFloat',label:'Float',min:0,max:100,step:1,unit:'%',tip:'Every shape drifts gently on its own path while they’re pulled back'}]);
-  SUMMARY.motion=s=>{const P=planNow(),k=KIND(s),m=k==='one'?[optLabel(FITS,s.oneFit),optLabel(MOVES_ONE,s.oneMove)].join(' · '):k==='frames'?(framesStatic(s)?'Still':optLabel(MOVES_FRAME,s.fMove)):optLabel(MOVES_TRACK,s.trackMove);
+  SUMMARY.motion=s=>{const P=planNow(),k=KIND(s),m=k==='one'?[optLabel(FITS,s.oneFit),optLabel(MOVES_ONE,s.oneMove)].join(' · '):k==='frames'?(framesStatic(s)?'Still':optLabel(MOVES_FRAME,s.fMove)):k==='wall'&&mv(s)!=='still'?[`${Math.round(s.wCols)} × ${Math.round(s.wRows)}`,mv(s)==='drift'?'Drift':'',optLabel(PATHS,s.wPath)].filter(Boolean).join(' · '):optLabel(MOVES_TRACK,s.trackMove);
     return [kindName(s),m,k==='one'?(s.kb!=='none'?optLabel(KB,s.kb):''):stepping(s)?optLabel(FEELS,s.feel):'',`${P.L.toFixed(1)} s loop`].filter(Boolean).join(' · ');};}
 /* Shapes: how they look – the kind decides where they go */
 const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
 {const b=card('shapes','Shapes',s=>!(isK('one')(s)&&s.oneFit==='bleed'));
   build(b,[{t:'select',k:'ratio',label:'Shape',show:s=>!ownFit(s),opts:[['media','The media’s own'],['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']]},
     {t:'nums',keys:['rW','rH'],names:['W','H'],label:'Shape ratio',min:.1,max:100,step:.1,sep:':',show:s=>s.ratio==='custom'&&!ownFit(s)},
-    {t:'range',k:'size',label:'Size',min:10,max:100,step:.5,unit:'%',show:isK('one','line','frames'),tip:'How big the shapes are: 100% fills the canvas (Slides, Frames), its height (a row) or its width (a column)'},
+    {t:'range',k:'size',label:'Size',min:10,max:100,step:.5,unit:'%',show:isK('one','line','frames','wall'),tip:'How big the shapes are: 100% fills the canvas (Slides, Frames, Wall), its height (a row) or its width (a column)'},
     {t:'range',k:'size',id:'gsize',label:'Width',min:10,max:100,step:.5,unit:'%',show:isK('grid','columns'),tip:'How much of the canvas’s width they take'},
     {t:'range',k:'flSize',label:'Size',min:5,max:80,step:.5,unit:'%',show:isK('float'),tip:'How wide the nearest shapes are, against the canvas'},
-    {t:'range',k:'gap',label:'Gap',min:0,max:240,step:1,unit:' px',show:isK('line','grid','columns','frames')},
+    {t:'range',k:'gap',label:'Gap',min:0,max:240,step:1,unit:' px',show:isK('line','grid','columns','frames','wall')},
     {t:'range',k:'radius',label:'Corners',min:0,max:120,step:1,unit:' px'},
     {t:'seg',k:'fit',label:'Media fit',opts:[['fill','Fill the shape'],['fit','Fit inside']],show:s=>!ownFit(s)},
     {t:'colour',k:'shapeBg',label:'Behind the media',show:s=>!ownFit(s)}]);
@@ -681,11 +776,11 @@ let fontBox;
    of each role, then what applies to all text (accent, kerning), then the fonts. */
 {const b=card('captions','Captions');
   build(b,[{t:'toggle',k:'capOn',label:'Captions'},
-    {t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','frames','float'].includes(S.layout)?WHERE.slice(0,3):S.layout==='one'&&S.oneFit==='bleed'?WHERE.slice(2):WHERE,show:s=>s.capOn},
+    {t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','frames','float','wall'].includes(S.layout)?WHERE.slice(0,3):S.layout==='one'&&S.oneFit==='bleed'?WHERE.slice(2):WHERE,show:s=>s.capOn},
     {t:'seg',k:'capV',label:'Sits',opts:[['top','Top'],['bottom','Bottom']],show:s=>s.capOn&&E.capWhereOf(s)==='fixed'},
     {t:'seg',k:'capAlign',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],show:s=>s.capOn},
-    {t:'seg',k:'capReveal',label:'Arrives',opts:[['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],show:s=>s.capOn&&!isK('columns','float')(s)},
-    {t:'range',k:'capRevealDur',label:'Over',min:.1,max:3,step:.05,unit:' s',show:s=>s.capOn&&s.capReveal!=='none'&&!isK('columns','float')(s)}]);
+    {t:'seg',k:'capReveal',label:'Arrives',opts:[['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],show:s=>s.capOn&&!isK('columns','float','wall')(s)},
+    {t:'range',k:'capRevealDur',label:'Over',min:.1,max:3,step:.05,unit:' s',show:s=>s.capOn&&s.capReveal!=='none'&&!isK('columns','float','wall')(s)}]);
   addHint(b,'Write each caption in Media – open a row.',s=>s.capOn&&!items.some(i=>i.title||i.line||i.tags));
   const pf=fold(b,'capPos','Position and spacing',s=>s.capOn,true,s=>[E.capWhereOf(s)==='fixed'?`${Math.round(s.capMargin)} px margin`:`${Math.round(s.capSpace)} px space`,(+s.capX||+s.capY)?`moved ${Math.round(s.capX)}, ${Math.round(s.capY)} px`:''].filter(Boolean).join(' · '));
   build(pf,[{t:'range',k:'capMargin',label:'Margin',min:0,max:300,step:1,unit:' px',show:s=>E.capWhereOf(s)==='fixed'},
@@ -705,7 +800,7 @@ let fontBox;
   const fo=fold(b,'fonts','Fonts',null,true,()=>{const n=ownFontIds().length;return n?`${n} of your own`:'Built in';});fontBox=el('div','font-list');addCustom(fo,null,fontBox);
   const r=el('div','ctl btn-row'),add=el('button','pill small','+ Add font');add.type='button';add.onclick=()=>$('#fontfile').click();r.append(add);addCustom(fo,null,r);
   addHint(fo,'OTF, TTF or WOFF. Fonts you add stay on this computer, in this browser, and show in every Font menu – the overlay’s too.');
-  SUMMARY.captions=s=>s.capOn?[optLabel(WHERE,E.capWhereOf(s)),(FONTS[s.TF]||FONTS.default).label,isK('columns','float')(s)?'':optLabel([['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],s.capReveal)].filter(Boolean).join(' · '):'Off';}
+  SUMMARY.captions=s=>s.capOn?[optLabel(WHERE,E.capWhereOf(s)),(FONTS[s.TF]||FONTS.default).label,isK('columns','float','wall')(s)?'':optLabel([['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],s.capReveal)].filter(Boolean).join(' · '):'Off';}
 function paintFonts(){fontBox.textContent='';
   for(const [id,f] of Object.entries(FONTS)){if(!f.own&&!['aktiv','inter8','plex','helv'].includes(id))continue;
     const row=el('div','slot font-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name sample',f.label),meta=el('div','slot-meta',f.own?f.file:'Built in');
@@ -765,6 +860,9 @@ const BUILTIN=[
   {name:'Columns up and down',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
   {name:'Masonry drift',tip:'A wall of work in columns drifting down and up at their own speeds, each piece its own shape',s:{layout:'columns',cols:3,ratio:'media',size:100,gap:12,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'varied',spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
   {name:'Posters',tip:'Three mounted posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
+  {name:'Wall snap',tip:'A wall of posters, three across and two down, the whole of it thrown one tile along on the snap – then a long rest, drifting a touch',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:1,wOff:0,ratio:'3:4',size:94,gap:22,radius:4,trackMove:'step',dir:'left',feel:'snap',hold:1.7,dur:.9,creep:10,capOn:false,bg:'#0E0E0E',shapeBg:'#222222'}},
+  {name:'Wall stairs',tip:'A wall panned in stairs – along, then up, again and again – each move a snap',s:{layout:'wall',wCols:3,wRows:3,wPath:'stairs',wStep:1,wOff:0,ratio:'1:1',size:96,gap:18,radius:6,trackMove:'step',dir:'left',feel:'snap',hold:1.2,dur:.85,creep:8,capOn:false,bg:'#F1F0EC',shapeBg:'#DEDDD8'}},
+  {name:'Brick wall',tip:'Alternate columns set down half a tile, like brickwork, the camera snapping along',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:2,wOff:50,ratio:'4:5',size:100,gap:14,radius:5,trackMove:'step',dir:'left',feel:'snap',hold:1.4,dur:1,creep:6,capOn:false,bg:'#161616',shapeBg:'#262626'}},
   {name:'Float with title',tip:'Work floating up at three depths past a line of type – add it in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.1,dur:1,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
     ovBlend:'difference',ovZ:'mid',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'}}];
 /* earlier names (0.2 and 0.3), for anyone who had one in use */
@@ -797,9 +895,9 @@ let presetBox,saveIn;
   dl.onclick=()=>saveFile('segue-presets.json',new Blob([JSON.stringify({segue:1,presets:mine},null,1)],{type:'application/json'}));ld.onclick=()=>$('#presetfile').click();r2.append(dl,ld);b.append(r2);
   cardToSheet(b,'presets');}
 function paintPresets(){presetBox.textContent='';
-  /* a preset is its name and a small picture of its kind; what it does is in its tooltip */
-  const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),ic=el('span','pk');ic.innerHTML=KIND_ICON[E.kindOf(p.s)]||'';
-    if(p.tip||own)main.dataset.tip=p.tip||(optLabel(KINDS,E.kindOf(p.s))+' – one of yours');main.append(nm);if(own)top.append(ic);   /* built-ins sit under their kind already; yours are mixed, so they show it */main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
+  /* a preset is a small drawing of it and its name; what it does is in its tooltip */
+  const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),ic=el('span','pk');ic.innerHTML=presetPic(p.s);
+    if(p.tip||own)main.dataset.tip=p.tip||(optLabel(KINDS,E.kindOf(p.s))+' – one of yours');main.append(nm);top.append(ic);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
     top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);r.classList.add('on');}
     if(own){const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Delete';rm.setAttribute('aria-label','Delete '+p.name);
       rm.onclick=e=>{e.stopPropagation();mine=mine.filter(x=>x!==p);LS.set('presets',mine);paintPresets();};top.append(rm);}

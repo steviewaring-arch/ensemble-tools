@@ -182,7 +182,7 @@ with sync_playwright() as p:
     # ---- every layout and move draws, across the loop ----
     bad = pg.evaluate("""(()=>{const E=segue.E,c=document.createElement('canvas');c.width=540;c.height=675;const x=c.getContext('2d');const bad=[];
       const L=[['one',['slide','stack','fade','dip','wipe','open','zoom','through','cut','still']],['row',['step','drift','still']],['column',['step','drift','still']],['grid',['step','drift','still']],
-        ['columns',['step','drift','still']],['frames',['push','cover','fade','cut','still']],['float',['step','drift','still']]];
+        ['columns',['step','drift','still']],['frames',['push','cover','fade','cut','still']],['float',['step','drift','still']],['wall',['step','drift','still']]];
       for(const [lay,ms] of L)for(const m of ms)for(const after of ['carry','pull'])for(const dir of ['left','right','up','down'])for(const cw of ['under','over','above','fixed']){
         const S=Object.assign({},segue.S,{layout:lay,oneMove:m,trackMove:m,fMove:m,after,dir,capWhere:cw,cSize:'custom',cW:540,cH:676,lag:after==='pull'?.08:0,creep:after==='pull'?20:0,colSpeed:dir==='up'?'varied':'same',
           oneFit:['bleed','own','shape'][(dir.length+cw.length)%3],ownScale:cw==='over'?'true':'fit',kb:['none','in','out','drift','parallax','vary'][(m.length+dir.length)%6],kbAmt:8});
@@ -211,14 +211,15 @@ with sync_playwright() as p:
           walk(document.querySelector('#panel section.card[data-id=motion] .card-body'));return out;})()""")
     pg.evaluate("document.querySelectorAll('#panel section.card').forEach(c=>{if(c.dataset.id==='motion'&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();})")
     kinds = pg.evaluate("[...document.querySelectorAll('.kinds .kind')].map(b=>b.textContent)")
-    check('Motion opens on six kinds', kinds == ['Slides', 'Line', 'Grid', 'Columns', 'Frames', 'Float'], str(kinds))
+    check('Motion opens on seven kinds – the ones a camera moves across first, then the ones with a clock each', kinds == ['Slides', 'Line', 'Grid', 'Wall', 'Columns', 'Frames', 'Float'], str(kinds))
     want = {
         'Line': (['Kind', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting', '▸ After the last', 'Then'], {'trackMove': 'step'}),
         'Slides': (['Kind', 'Each slide', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', '▸ After the last', 'Then'], {'oneMove': 'slide', 'oneFit': 'shape', 'kb': 'none'}),
         'Grid': (['Kind', 'Columns', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
         'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Offset', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
         'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
-        'Float': (['Kind', 'Move', 'Direction', 'Depth', 'Spread', 'Shuffle', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Keep drifting'], {'trackMove': 'step'})}
+        'Float': (['Kind', 'Move', 'Direction', 'Depth', 'Spread', 'Shuffle', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Keep drifting'], {'trackMove': 'step'}),
+        'Wall': (['Kind', 'Columns', 'Rows', 'Offset', 'Move', 'Path', 'Direction', 'Distance', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Keep drifting'], {'trackMove': 'step', 'wPath': 'across', 'wOff': 0})}
     seen = {}
     for name, (labels, setup) in want.items():
         pg.locator('.kinds .kind', has_text=name).click(); time.sleep(.15)
@@ -281,8 +282,44 @@ with sync_playwright() as p:
       return Object.keys(by).sort().map(d=>[by[d][0][0],by[d].reduce((s,x)=>s+x[1],0)/by[d].length]);})()""")
     check('Float: three depths – nearer is bigger and faster, size and speed in step', len(fl) == 3 and fl[0][0] < fl[1][0] < fl[2][0] and fl[0][1] < fl[1][1] < fl[2][1]
           and abs(fl[2][1] / fl[0][1] - fl[2][0] / fl[0][0]) < .02, str([[round(w), round(v)] for w, v in fl]))
+    wl = pg.evaluate("""(()=>{const E=segue.E,out={};
+      const its=n=>Array.from({length:n},()=>({kind:'image',w:1080,h:1350}));
+      const S={layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:1,wOff:0,ratio:'4:5',size:96,gap:24,radius:0,trackMove:'step',dir:'left',feel:'snap',hold:1.5,dur:.9,creep:0,capOn:false,cSize:'4:5'};
+      const sc=(o,n,t)=>E.scene(Object.assign({},S,o),its(n),null,{},1080,1350,t);
+      const key=(o,n,t)=>sc(o,n,t).ops.map(q=>q.i+':'+q.rect.x.toFixed(2)+','+q.rect.y.toFixed(2)).sort().join('|');
+      /* every route, any number of media: a loop on is the same picture, and the plan says how many moves it took */
+      out.closes=[];out.moves={};
+      for(const path of ['across','diagonal','stairs','square'])for(const dir of ['left','up','right','down'])for(const n of [1,2,3,5,6,7])for(const off of [0,50]){const o={wPath:path,dir,wOff:off},P=E.plan(Object.assign({},S,o),its(n));
+        if(key(o,n,.001)!==key(o,n,P.L+.001))out.closes.push([path,dir,n,off]);}
+      for(const [path,n] of [['across',6],['across',7],['diagonal',6],['stairs',6],['square',6]])out.moves[path+n]=E.plan(Object.assign({},S,{wPath:path}),its(n)).n;
+      out.brick=[E.plan(Object.assign({},S,{wOff:50}),its(5)).n,E.plan(Object.assign({},S,{wOff:50}),its(6)).n,E.plan(S,its(5)).n];
+      /* the camera follows the Snap, and everything moves as one: the gaps never change */
+      const P=E.plan(S,its(6));
+      out.curve=[1.6,1.8,2.0,2.2,2.3].map(t=>Math.abs(E.wallCamera(P,S,t)[0]-E.FEEL.snap((t-1.5)/.9)));
+      const row=t=>{const o=sc({},6,t).ops,y0=o[0].rect.y;return o.filter(q=>Math.abs(q.rect.y-y0)<1).map(q=>q.rect.x).sort((a,b)=>a-b);};
+      out.gaps=[.1,1.7,1.9,2.1,3.2].map(t=>{const r=row(t);return Math.max(...r.slice(1).map((x,i)=>Math.abs(x-r[i]-(1080*.96-48)/3-24)));});
+      /* rows and columns are yours: more columns, narrower tiles; offset drops every other column */
+      const w=(o)=>sc(o,6,.1).ops[0].rect.w;out.cols=[w({wCols:2}),w({wCols:3}),w({wCols:4})];
+      const o=sc({wOff:50},6,.1).ops,byX={};for(const q of o){(byX[Math.round(q.rect.x)]=byX[Math.round(q.rect.x)]||[]).push(q.rect.y);}
+      const xs=Object.keys(byX).map(Number).sort((a,b)=>a-b),top=xs.map(x=>Math.min(...byX[x].filter(y=>y>=-1)));
+      out.brick2=[top[1]-top[0],top[2]-top[1]].map(v=>Math.abs(Math.round(v)));out.tile=sc({},6,.1).ops[0].rect;
+      /* drift moves along the route without stopping; a corner is eased, not turned on a point */
+      const D=Object.assign({},S,{trackMove:'drift',wPath:'stairs',spsh:2}),PD=E.plan(D,its(6));
+      const v=t=>{const a=E.wallCamera(PD,D,t),b=E.wallCamera(PD,D,t+.01);return[(b[0]-a[0])/.01,(b[1]-a[1])/.01];};
+      let jump=0,prev=v(0);for(let t=.02;t<PD.L;t+=.02){const c=v(t);jump=Math.max(jump,Math.hypot(c[0]-prev[0],c[1]-prev[1]));prev=c;}out.jump=jump;
+      return out;})()""")
+    check('Wall: every route, direction and number of media joins up – a loop on, the same picture, with or without offset', not wl['closes'], str(wl['closes'][:6]))
+    check('Wall: moves to come round – along takes one a medium, a diagonal or stairs only as many as the pattern needs, a square four',
+          wl['moves'] == {'across6': 6, 'across7': 7, 'diagonal6': 3, 'stairs6': 6, 'square6': 4}, str(wl['moves']))
+    check('Wall: brickwork with an odd number of media takes two laps to join up', wl['brick'] == [10, 6, 5], str(wl['brick']))
+    check('Wall: the camera follows the Snap curve', max(wl['curve']) < .005, str([round(x, 4) for x in wl['curve']]))
+    check('Wall: everything moves as one – the gaps never change, in the rest or the throw', max(wl['gaps']) < .01, str([round(x, 3) for x in wl['gaps']]))
+    check('Wall: more columns, narrower tiles; Offset sets every other column down', wl['cols'][0] > wl['cols'][1] > wl['cols'][2] and abs(wl['brick2'][0] - wl['tile']['h'] * .5 - 12) < 2 and abs(wl['brick2'][1] - wl['tile']['h'] * .5 - 12) < 2,
+          f"{[round(x) for x in wl['cols']]} {wl['brick2']} tile {round(wl['tile']['h'])}")
+    check('Wall: Drift runs along the route without stopping, and a corner is eased through', wl['jump'] < .1, f"largest change in speed between samples {wl['jump']:.3f} tiles a second (an unsmoothed corner would be .7)")
     seams = pg.evaluate("""async()=>{const its=segue.items.filter(i=>i.kind==='image');const E=segue.E;const out={};
-      const cases={line:{layout:'row',trackMove:'step',lag:.08,creep:20,feel:'coast',after:'carry'},columns:{layout:'columns',trackMove:'step',colLag:.4,creep:15},wall:{layout:'columns',trackMove:'drift',colSpeed:'varied',ratio:'media'},
+      const cases={line:{layout:'row',trackMove:'step',lag:.08,creep:20,feel:'coast',after:'carry'},columns:{layout:'columns',trackMove:'step',colLag:.4,creep:15},masonry:{layout:'columns',trackMove:'drift',colSpeed:'varied',ratio:'media'},
+        wallstairs:{layout:'wall',trackMove:'step',wPath:'stairs',dir:'left',creep:10},wallbrick:{layout:'wall',trackMove:'step',wPath:'across',dir:'left',wOff:50},walldrift:{layout:'wall',trackMove:'drift',wPath:'square',dir:'right'},wallup:{layout:'wall',trackMove:'step',wPath:'diagonal',dir:'up',wStep:2},
         frames:{layout:'frames',fCols:2,fRows:1,fMove:'push',fLag:.3},float:{layout:'float',trackMove:'step',creep:20,depth:60},floatdrift:{layout:'float',trackMove:'drift',dir:'left'}};
       for(const k in cases){const S=Object.assign({},segue.S,{cSize:'custom',cW:540,cH:676,capOn:true,capWhere:'under'},cases[k]);
         const draw=t=>{const c=document.createElement('canvas');c.width=540;c.height=676;const x=c.getContext('2d');E.paint(x,E.scene(S,its,x,segue.fonts,540,676,t),S,segue.fonts,{media:(cx,o,r)=>cx.drawImage(o.item.src,r.x,r.y,r.w,r.h)});return x.getImageData(0,0,540,676).data;};
@@ -316,6 +353,31 @@ with sync_playwright() as p:
     heads = pg.evaluate("[...document.querySelectorAll('#pcapSheets .preset-list .sub-head')].map(e=>e.textContent)")
     check('presets named for what they do, grouped by kind – the showcase five first, plainest to most extreme',
           names[:5] == ['Straight cuts', 'Slow fades', 'Push and drift', 'Open and zoom', 'Zoom through'] and not {'Milky Way', 'Semplice', 'Presto', 'Nocturne'} & set(names) and heads[:2] == ['Slides', 'Line'], f'{names} {heads}')
+    # ---- 0.8: the Wall's presets, and the little drawings ----
+    check('the Wall has presets of its own, listed between Grid and Columns', {'Wall snap', 'Wall stairs', 'Brick wall'} <= set(names) and heads.index('Wall') == heads.index('Grid') + 1 and heads.index('Columns') == heads.index('Wall') + 1, f'{names} {heads}')
+    pics = pg.evaluate("""(()=>{const rows=[...document.querySelectorAll('#pcapSheets .preset-row')];
+      return {rows:rows.length,pics:rows.filter(r=>r.querySelector('.pk svg rect')).length,arrows:rows.filter(r=>r.querySelector('.pk svg .pd-arrow')).length,hidden:rows.filter(r=>r.querySelector('.pk svg').getAttribute('aria-hidden')!=='true').length};})()""")
+    check('every preset, yours too, has a drawing of itself – and every one that travels has its arrow', pics['pics'] == pics['rows'] and pics['hidden'] == 0 and pics['arrows'] >= 12, str(pics))
+    tp = pg.evaluate("""(()=>{const out={};segue.set('layout','one');segue.set('oneFit','shape');
+      for(const m of ['cut','slide','fade','through']){segue.set('oneMove',m);const e=document.querySelector('.trans-pic');out[m]=[e.offsetParent!==null,e.querySelectorAll('svg.tp-frame').length,e.querySelector('.fp-cap').textContent.length>5];}
+      segue.set('oneMove','slide');const a=document.querySelector('.trans-pic svg').innerHTML;segue.set('oneMove','wipe');const b=document.querySelector('.trans-pic svg').innerHTML;
+      segue.set('layout','row');const hidden=document.querySelector('.trans-pic').offsetParent===null;return {out,changes:a!==b,hidden};})()""")
+    check('Slides: a picture of the transition – before, halfway, after (a cut has no halfway) – that follows the choice and is gone for the other kinds',
+          tp['out']['cut'] == [True, 2, True] and tp['out']['slide'] == [True, 3, True] and tp['out']['fade'] == [True, 3, True] and tp['out']['through'] == [True, 3, True] and tp['changes'] and tp['hidden'], str(tp))
+    pp = pg.evaluate("""(()=>{segue.set('layout','wall');segue.set('trackMove','step');segue.set('dir','left');segue.set('wStep',1);
+      const e=document.querySelector('.path-pic'),vis=()=>e.offsetParent!==null,svg=()=>e.querySelector('svg').innerHTML,out={shown:vis(),stops:{}};
+      for(const p of ['across','diagonal','stairs','square']){segue.set('wPath',p);out.stops[p]=e.querySelectorAll('.pp-stop').length;}
+      segue.set('wPath','stairs');const a=svg();segue.set('dir','up');out.dir=a!==svg();segue.set('trackMove','still');out.still=vis();segue.set('trackMove','step');return out;})()""")
+    check('Wall: a picture of the route – a dot for each stop, following Path and Direction, gone when it’s Still',
+          pp['shown'] and pp['stops'] == {'across': 3, 'diagonal': 3, 'stairs': 5, 'square': 5} and pp['dir'] and not pp['still'], str(pp))
+    hint = pg.evaluate("""(()=>{segue.set('layout','wall');segue.set('trackMove','step');const find=()=>{const h=[...document.querySelectorAll('#panel .hint')].find(e=>/two laps/.test(e.textContent));return !!h&&h.offsetParent!==null;};
+      const probe=()=>{segue.set('wOff',50);const on=find(),odd=segue.items.length%2===1;segue.set('wOff',0);return [on,odd,find()];};
+      const res=[probe()];const x=segue.items.pop();res.push(probe());segue.items.push(x);segue.set('wOff',0);return res;})()""")
+    check('Wall: brickwork says so when an odd number of media makes the loop take two laps – and not otherwise', all(r[0] == r[1] and r[2] is False for r in hint) and hint[0][1] != hint[1][1], str(hint))
+    sx = pg.evaluate("""(()=>{segue.set('layout','wall');const a=document.querySelector('.ctl.stp[data-k=wCols] .stp-g').getBoundingClientRect(),b=document.querySelector('.ctl[data-k=wOff] .rng-box').getBoundingClientRect(),
+      l=document.querySelector('.ctl.stp[data-k=wCols] label').getBoundingClientRect();return [Math.round(a.left-b.left),Math.round((a.top+a.height/2)-(l.top+l.height/2))];})()""")
+    check('a stepper starts where the sliders do, with its label level with it', abs(sx[0]) <= 2 and abs(sx[1]) <= 1, str(sx))
+    pg.evaluate("segue.applyPreset('Card stack')")
     pg.evaluate("segue.set('xFormat','mp4');segue.applyPreset('Zoom through')")
     check('a showcase preset sets the export to GIF', pg.evaluate("segue.S.xFormat") == 'gif')
     def slide_labels(setup):
