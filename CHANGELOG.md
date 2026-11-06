@@ -1,5 +1,16 @@
 # Changelog
 
+## 6 November 2026 – Segue 0.6: layers, blends, a clip's In and Out, working on the canvas, guides
+
+Steve: "better control over certain elements" – click an image and the timeline snaps to it; see clearly where a video starts and ends; hover the artboard and see the slide on the left; move and scale pieces on the artboard ("showing previous underneath"), video too; grids and margins; and, since he can't use After Effects, clips that interact with statics – scaling, cropping, blends (multiply), behind or in front. Segue only.
+
+- **Layers (Slides):** a piece set to sit **On the one before** joins that slide rather than being its own: **In front** or **Behind** (behind shows where the slide is see-through or blended), **As it is** (fitted inside, at its own size) or **Fill the slide**, placed anywhere with Across, Up and down and Size (5–400%), and it arrives, moves (Zoom, Drift…) and leaves with its slide. In a frame (full bleed, In a shape) it's clipped to it; As it is lets it go anywhere. Its row sits in under its slide's; the top bar counts pieces and slides.
+- **Blend and Opacity on every piece**, in every kind: Normal, Multiply, Screen, Overlay, Darken, Lighten, Difference – drawn straight onto what's beneath.
+- **A clip's In and Out:** a bar the length of the clip with its frames along it, the part that plays lit – drag either end, or the lit part to slide both – with the frames at In and Out under it, chips for In, Out and length, and a tick following the clip while it's on the canvas. **Start at** and the new **End at** take typing; the clip loops between them. Whole clip uses In to Out.
+- **The canvas:** hover a piece and it's outlined and its row in Media lights up (and the other way round); click it to select it – Media opens at its row; drag it (a cropped piece shows the rest of its picture faintly while you do); drag a corner to scale it. Opening a row takes the playhead to that piece and selects it. Click the empty canvas or press Esc to let go.
+- **Guides** (Canvas › Guides): margin, columns, rows and gutter, and the centre – on the preview only, never in an export; whole pieces catch on them as you drag (hold Alt to place freely).
+- `tests/segue_check.py`: 94 checks (12 new) – layers joining a slide, Multiply, Behind showing through, placing and sizing, opacity, moving with the slide, In and Out looping, a row taking the playhead to its piece, hover and click, scaling by a corner, catching on the centre (and Alt), guides only on the preview. `tests/segue_ui_check.py`: 83 of 83 (the Guides controls included).
+
 ## 6 November 2026 – the house kit on every tool: Tempo 0.12, Rubato 1.2, Tutti 6.2
 
 Steve's review of Segue 0.5.2: blue dots with more room; no double rules; care over Presets (type, spacing, a picture where it helps; the chosen one's keyline was clipped) and Export (it jumped as rows came and went); more space and shorter lines; the Presets title as a section title and its groups as labels; Export's summary as chips – details as moments; no section numbers; then the same through every tool (not Decentish or Patch), tested – Tutti above all, as it's live – and the rules written down for future builds. Rules: `shared/UI.md` (rewritten as the house rules).

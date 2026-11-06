@@ -18,10 +18,11 @@ const D={
   LF:'plex',LS:17,LTr:0,LLd:1.4,LC:'#6B6A66',LCase:'as',
   GF:'plex',GS:13,GTr:20,GLd:1.2,GC:'#111111',GCase:'as',
   ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',
-  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false,xCrisp:true,xQ:'high',xScale:1};
+  name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false,xCrisp:true,xQ:'high',xScale:1,
+  guides:false,guM:64,guC:4,guR:0,guG:24,guSnap:true};
 /* the look: what a preset carries. Size, frame rate, the file name and what's over the top
    (it's content, like the captions) stay as they are. */
-const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','xDither','xCrisp','xQ','ovOn','ovKind','ovText'];
+const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','xDither','xCrisp','xQ','ovOn','ovKind','ovText','guides','guM','guC','guR','guG','guSnap'];
 const LOOK=Object.keys(D).filter(k=>!NOT_LOOK.includes(k));
 /* px values: presets keep them for a 1080 short side and scale them to the canvas they land on */
 const PX=['gap','radius','edgeW','nudgeX','nudgeY','gGap','capSpace','capX','capY','capMargin','capGapL','TS','LS','GS','mat','matR','OS','ovM','ovX','ovY'];
@@ -61,7 +62,7 @@ const DB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=i
   return{put:(st,k,v)=>tx(st,'readwrite',s=>s.put(v,k)),get:(st,k)=>tx(st,'readonly',s=>s.get(k)),del:(st,k)=>tx(st,'readwrite',s=>s.delete(k))};})();
 /* ---------------- media ---------------- */
 let items=[];
-const META=['id','name','kind','w','h','dur','start','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','ox','oy'];
+const META=['id','name','kind','w','h','dur','start','end','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','ox','oy','join','place','lfit','blend','opa'];
 function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));}
 const isVideo=f=>/^video\//.test(f.type)||/\.(mp4|m4v|mov|webm)$/i.test(f.name);
 const isImage=f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif|svg|avif)$/i.test(f.name);
@@ -225,6 +226,8 @@ function render(){
   const sc=E.scene(S,items,ctx,FONTS,W,H,t);cur=sc;
   syncVideos(sc);
   crispNow=!playing&&S.xCrisp!==false;try{E.paint(ctx,sc,S,FONTS,{scale:cv.width/W,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});}finally{crispNow=false;}
+  drawUI();
+  for(const tr of trims){const o=sc.ops.find(q=>q.item===tr.it&&q.time!=null);tr.head.hidden=!o;if(o){const d=Math.max(.01,+tr.it.dur||1);tr.head.style.left=(((o.time%d)+d)%d/d*100)+'%';}}
   if(document.activeElement!==$('#scrub'))$('#scrub').value=Math.round(t/P.L*1000);
   $('#time').textContent=`${t.toFixed(1)} / ${P.L.toFixed(1)} s`;}
 /* the preview plays each video near where the loop wants it, and corrects it when it drifts */
@@ -239,38 +242,106 @@ function tick(now){const dt=lastT?Math.min(100,now-lastT):0;lastT=now;
   if(playing&&!busy){clock+=dt/1000;dirty=true;}
   if(dirty&&!busy){dirty=false;try{render();}catch(e){console.error(e);}}
   requestAnimationFrame(tick);}
-/* Grab a piece on the canvas and move it: inside its frame where it's cropped (full bleed, a
-   shape it fills), or the slide itself when Slides show each as it is. Ctrl or Alt and scroll
-   zooms it; double-click puts it back. It pauses, so what's under the pointer stays put. */
+/* The canvas (0.6). Hover a piece and it's outlined, and its row in Media lights up; click it to
+   select it – its row opens – and drag it: inside its frame where it's cropped (the rest of the
+   picture shows faintly while you do), or the piece itself where it's whole (a slide shown as it
+   is, a layer). Its corners scale it; Ctrl or Alt and scroll zooms; double-click puts it back.
+   With guides on, whole pieces catch on the margins, columns, rows and centre – hold Alt to place
+   one freely. Selection, outlines and guides are drawn on the preview only. */
 const canvasPt=e=>{const b=cv.getBoundingClientRect(),[W,H]=size();return[(e.clientX-b.left)*W/b.width,(e.clientY-b.top)*H/b.height];};
+const scrPx=()=>{const b=cv.getBoundingClientRect(),[W]=size();return Math.max(1e-6,b.width/W);};   /* screen px per canvas px */
 function inClip(c,x,y){if(!c)return true;const inside=x>=c.x&&x<=c.x+c.w&&y>=c.y&&y<=c.y+c.h;return c.out?!inside:inside;}
 function hitAt(x,y){if(!cur)return null;for(let j=cur.ops.length-1;j>=0;j--){const o=cur.ops[j],r=o.rect;if(!o.item||o.item.placeholder||!o.item.w||o.alpha<=.05||!r)continue;
-    if(x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h&&inClip(o.clip,x,y))return o;}return null;}
+    if(x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h&&inClip(o.clip,x,y)&&inClip(o.lclip,x,y))return o;}return null;}
 function spare(o){const S2=cur.S||S,r=o.rect,m=Math.min(Math.max(0,+S2.mat||0)*o.scale,r.w/3,r.h/3),w=r.w-2*m,h=r.h-2*m,it=o.item,k=Math.max(w/it.w,h/it.h)*Math.max(1,(+it.zm||100)/100);
   return[(it.w*k-w)/2,(it.h*k-h)/2];}
 const croppable=o=>o.whole||(cur.S||S).fit!=='fit';
-let grab=null,zoomT=0;
-cv.addEventListener('pointerdown',e=>{if(busy||e.button!==0)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;
-  e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);const it=o.item,[sx,sy]=o.whole?[0,0]:spare(o);
-  grab={it,whole:!!o.whole,x0:x,y0:y,px:+it.px||0,py:+it.py||0,ox:+it.ox||0,oy:+it.oy||0,sx,sy,u:E.unitOf(...size())};cv.classList.add('grabbing');});
+const zRange=o=>o.layer?[5,400]:o.whole?[20,400]:[100,400];
+let grab=null,zoomT=0,selId=null,hoverOp=null,hoverRow=null;
+const opOf=id=>cur&&id?cur.ops.find(o=>o.item&&o.item.id===id&&o.rect&&o.alpha>.05):null;
+const cornersOf=r=>[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]];
+function handleAt(x,y){const o=opOf(selId);if(!o||!croppable(o))return null;const tol=9/scrPx();
+  for(const [i,[cx,cy]] of cornersOf(o.rect).entries())if(Math.abs(x-cx)<=tol&&Math.abs(y-cy)<=tol)return{o,i};return null;}
+const rowOf=id=>mediaBox&&id?mediaBox.querySelector(`.slot[data-id="${id}"]`):null;
+function setHover(o){const id=o&&o.item?o.item.id:null,was=hoverOp&&hoverOp.item?hoverOp.item.id:null;hoverOp=o;if(id===was)return;
+  const a=rowOf(was);if(a)a.classList.remove('hover');const b=rowOf(id);if(b)b.classList.add('hover');dirty=true;}
+/* select a piece: outline it; open its row and bring it into view */
+function selectItem(id,open){selId=id;dirty=true;if(!id||!open)return;openRows.add(id);paintMedia();
+  const c=document.querySelector('section.card[data-id="media"]');if(c&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();
+  const r=rowOf(id);if(r)requestAnimationFrame(()=>r.scrollIntoView({block:'nearest',behavior:reduceMotion.matches?'auto':'smooth'}));}
+/* the guides: margins, columns and rows between them, and the centre */
+function guideLines(){const [W,H]=size(),m=clamp(+S.guM||0,0,Math.min(W,H)/2-1),C=Math.round(+S.guC||0),R=Math.round(+S.guR||0),g=Math.max(0,+S.guG||0);
+  const xs=[0,W/2,W],ys=[0,H/2,H],cols=[],rows=[];if(m>0){xs.push(m,W-m);ys.push(m,H-m);}
+  if(C>1||(C===1&&m>0)){const cw=(W-2*m-(C-1)*g)/C;if(cw>0)for(let c=0;c<C;c++){const x0=m+c*(cw+g);cols.push([x0,cw]);xs.push(x0,x0+cw);}}
+  if(R>1||(R===1&&m>0)){const rh=(H-2*m-(R-1)*g)/R;if(rh>0)for(let r=0;r<R;r++){const y0=m+r*(rh+g);rows.push([y0,rh]);ys.push(y0,y0+rh);}}
+  return{xs,ys,cols,rows,m,W,H};}
+function snapMove(r,dx,dy,free){if(free||!S.guides||S.guSnap===false)return[dx,dy,null,null];const L=guideLines(),tol=7/scrPx();
+  const best=(edges,lines)=>{let b=null;for(const e of edges)for(const l of lines){const d=l-e;if(Math.abs(d)<=tol&&(!b||Math.abs(d)<Math.abs(b.d)))b={d,l};}return b;};
+  const bx=best([r.x+dx,r.x+dx+r.w/2,r.x+dx+r.w],L.xs),by=best([r.y+dy,r.y+dy+r.h/2,r.y+dy+r.h],L.ys);
+  return[dx+(bx?bx.d:0),dy+(by?by.d:0),bx?bx.l:null,by?by.l:null];}
+/* how far a piece moves on the canvas for each px of its offset – measured, so it holds for a
+   slide shown as it is, a layer, a slide part-way through its movement */
+function unitK(o){const it=o.item,[W,H]=size(),P=planNow(),t=((clock%P.L)+P.L)%P.L,was=+it.ox||0;let k=E.unitOf(W,H);it.ox=was+100;
+  try{const q=E.scene(S,items,ctx,FONTS,W,H,t).ops.find(p=>p.key===o.key);if(q&&Math.abs(q.rect.x-o.rect.x)>1e-3)k=(q.rect.x-o.rect.x)/100;}finally{it.ox=was;}return k;}
+/* the whole picture of a cropped piece, where it lies – shown faintly while it's dragged */
+function cropBox(o){const S2=cur.S||S,r=o.rect,m=Math.min(Math.max(0,+S2.mat||0)*o.scale,r.w/3,r.h/3),mr={x:r.x+m,y:r.y+m,w:r.w-2*m,h:r.h-2*m},it=o.item;
+  const z=Math.max(1,(+it.zm||100)/100),k=Math.max(mr.w/it.w,mr.h/it.h)*z,dw=it.w*k,dh=it.h*k,sx=(dw-mr.w)/2,sy=(dh-mr.h)/2;
+  return{x:mr.x-sx+clamp(+it.px||0,-100,100)/100*sx,y:mr.y-sy+clamp(+it.py||0,-100,100)/100*sy,w:dw,h:dh};}
+function drawUI(){if($('.app').classList.contains('preview'))return;const [W,H]=size(),k=cv.width/W,lw=1/scrPx();
+  ctx.save();ctx.setTransform(k,0,0,k,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
+  const box=(r,thick)=>{ctx.lineWidth=3*lw;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.lineWidth=(thick?1.5:1)*lw;ctx.strokeStyle='#111111';ctx.strokeRect(r.x,r.y,r.w,r.h);};
+  if(S.guides){const L=guideLines();ctx.save();ctx.globalCompositeOperation='difference';ctx.fillStyle='rgba(255,255,255,.07)';
+    for(const [x0,w] of L.cols)ctx.fillRect(x0,L.m,w,H-2*L.m);for(const [y0,h] of L.rows)ctx.fillRect(L.m,y0,W-2*L.m,h);
+    ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=lw;if(L.m>0)ctx.strokeRect(L.m,L.m,W-2*L.m,H-2*L.m);
+    ctx.setLineDash([4*lw,4*lw]);ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.setLineDash([]);
+    if(grab&&grab.snap){ctx.strokeStyle='rgba(255,255,255,1)';ctx.lineWidth=1.5*lw;ctx.beginPath();if(grab.snap[0]!=null){ctx.moveTo(grab.snap[0],0);ctx.lineTo(grab.snap[0],H);}if(grab.snap[1]!=null){ctx.moveTo(0,grab.snap[1]);ctx.lineTo(W,grab.snap[1]);}ctx.stroke();}
+    ctx.restore();}
+  const so=opOf(selId),hid=hoverOp&&hoverOp.item?hoverOp.item.id:hoverRow,ho=hid&&hid!==selId?opOf(hid):null;
+  if(ho)box(ho.rect,false);
+  if(so){if(grab&&grab.moved&&!so.whole&&so.item.src&&(so.item.kind!=='video'||so.item.src.readyState>=2)){const g=cropBox(so);ctx.save();ctx.globalAlpha=.32;try{ctx.drawImage(so.item.src,g.x,g.y,g.w,g.h);}catch(e){}ctx.restore();ctx.save();ctx.setLineDash([4*lw,3*lw]);box(g,false);ctx.restore();}
+    box(so.rect,true);
+    if(croppable(so)){const hs=7*lw;for(const [cx,cy] of cornersOf(so.rect)){ctx.fillStyle='#FFFFFF';ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs);}}}
+  ctx.restore();}
+cv.addEventListener('pointerdown',e=>{if(busy||e.button!==0)return;const [x,y]=canvasPt(e),h=handleAt(x,y);
+  if(h){e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);const o=h.o,[lo,hi]=zRange(o),cx=o.rect.x+o.rect.w/2,cy=o.rect.y+o.rect.h/2;
+    grab={mode:'scale',it:o.item,o,zm0:+o.item.zm||100,cx,cy,d0:Math.max(1e-6,Math.hypot(x-cx,y-cy)),lo,hi,x0:x,y0:y,moved:false};return;}
+  const o=hitAt(x,y);if(!o){if(selId){selId=null;dirty=true;}return;}
+  e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);selId=o.item.id;dirty=true;
+  if(!croppable(o)){grab={mode:'click',it:o.item,x0:x,y0:y,moved:false};return;}
+  const it=o.item,[sx,sy]=o.whole?[0,0]:spare(o);
+  grab={mode:'move',it,o,whole:!!o.whole,x0:x,y0:y,px:+it.px||0,py:+it.py||0,ox:+it.ox||0,oy:+it.oy||0,sx,sy,k:o.whole?unitK(o):1,r0:Object.assign({},o.rect),moved:false,snap:null};cv.classList.add('grabbing');});
 cv.addEventListener('pointermove',e=>{const [x,y]=canvasPt(e);
-  if(!grab){const o=e.buttons?null:hitAt(x,y);cv.classList.toggle('grab',!!(o&&croppable(o)));return;}
-  const g=grab,it=g.it,dx=x-g.x0,dy=y-g.y0;
-  if(g.whole){it.ox=Math.round(g.ox+dx/g.u);it.oy=Math.round(g.oy+dy/g.u);}
+  if(!grab){if(e.buttons)return;const h=handleAt(x,y);if(h){cv.style.cursor=h.i%2===0?'nwse-resize':'nesw-resize';cv.classList.remove('grab');setHover(h.o);return;}
+    cv.style.cursor='';const o=hitAt(x,y);cv.classList.toggle('grab',!!(o&&croppable(o)));setHover(o);return;}
+  const g=grab,it=g.it,dx=x-g.x0,dy=y-g.y0;if(!g.moved&&Math.hypot(dx,dy)*scrPx()<3)return;g.moved=true;if(g.mode==='click')return;
+  if(g.mode==='scale'){it.zm=+clamp(g.zm0*Math.hypot(x-g.cx,y-g.cy)/g.d0,g.lo,g.hi).toFixed(1);dirty=true;return;}
+  if(g.whole){const [sdx,sdy,lx,ly]=snapMove(g.r0,dx,dy,e.altKey);g.snap=[lx,ly];it.ox=+(g.ox+sdx/g.k).toFixed(1);it.oy=+(g.oy+sdy/g.k).toFixed(1);}
   else{if(g.sx>.5)it.px=+clamp(g.px+dx/g.sx*100,-100,100).toFixed(1);if(g.sy>.5)it.py=+clamp(g.py+dy/g.sy*100,-100,100).toFixed(1);}
   dirty=true;});
-const letGo=()=>{if(!grab)return;const it=grab.it;grab=null;cv.classList.remove('grabbing');saveItems();openRows.add(it.id);paintMedia();};
-cv.addEventListener('pointerup',letGo);cv.addEventListener('pointercancel',letGo);
+const letGo=()=>{if(!grab)return;const g=grab;grab=null;cv.classList.remove('grabbing');if(g.moved&&g.mode!=='click')saveItems();selectItem(g.it.id,true);};
+cv.addEventListener('pointerup',letGo);cv.addEventListener('pointercancel',letGo);cv.addEventListener('pointerleave',()=>{if(!grab)setHover(null);});
 cv.addEventListener('dblclick',e=>{const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;const it=o.item;for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMedia();toast('Position reset');});
 cv.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.altKey))return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;e.preventDefault();setPlaying(false);
-  const it=o.item,lo=o.whole?30:100,hi=o.whole?200:400;it.zm=+clamp((+it.zm||100)*Math.exp(-e.deltaY*.0025),lo,hi).toFixed(1);dirty=true;
+  const it=o.item,[lo,hi]=zRange(o);it.zm=+clamp((+it.zm||100)*Math.exp(-e.deltaY*.0025),lo,hi).toFixed(1);selId=it.id;dirty=true;
   clearTimeout(zoomT);zoomT=setTimeout(()=>{saveItems();openRows.add(it.id);paintMedia();},250);},{passive:false});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!selId||busy)return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;selId=null;dirty=true;});
+/* the moment a piece is best seen: in Slides, as its slide has arrived; otherwise when it's
+   biggest and nearest the middle of the canvas */
+function momentOf(it){const P=planNow(),[W,H]=size();
+  if(S.layout==='one'&&P.kind==='step'){const g=E.slidesOf(items);let b=it;if(!g.bases.includes(it)){for(const [base,ls] of g.layers)if(ls.includes(it))b=base;}
+    const st=g.bases.indexOf(b),h=P.segs.find(q=>q.k==='hold'&&q.s===st);if(h)return h.t0+Math.min(.04,(h.t1-h.t0)/2);}
+  let best=0,bt=null;for(let j=0;j<160;j++){const t=P.L*j/160,sc=E.scene(S,items,ctx,FONTS,W,H,t);
+    for(const o of sc.ops){if(o.item!==it||!o.rect)continue;const r=o.rect,vx=Math.max(0,Math.min(r.x+r.w,W)-Math.max(r.x,0)),vy=Math.max(0,Math.min(r.y+r.h,H)-Math.max(r.y,0));
+      const d=Math.hypot(r.x+r.w/2-W/2,r.y+r.h/2-H/2)/Math.hypot(W,H),v=vx*vy*o.alpha*(1-d);if(v>best+1e-6){best=v;bt=t;}}}
+  return bt;}
+function seekTo(it){const t=momentOf(it);if(t==null)return;setPlaying(false);clock=t;dirty=true;}
 function setPlaying(v){playing=v;const b=$('#play');b.textContent=v?'Pause':'Play';b.setAttribute('aria-label',v?'Pause':'Play');dirty=true;}
 $('#play').onclick=()=>setPlaying(!playing);
 $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();clock=$('#scrub').value/1000*P.L;dirty=true;});
-function onSet(k){if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
+function onSet(k){if(/^gu/.test(k)||k==='guides')dirty=true;if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
 function appRefresh(){const P=planNow();$('#loopChip').textContent=`${P.L.toFixed(1)} s loop`;$('#loopChip').title=`The loop lasts ${P.L.toFixed(2)} seconds, then starts again exactly where it began`;
-  $('#countChip').textContent=items.length?(items.length===1?'1 shape':`${items.length} shapes`):'No media yet';
+  const g6=S.layout==='one'?E.slidesOf(items):null;
+  $('#countChip').textContent=!items.length?'No media yet':g6&&g6.layers.size?`${items.length} pieces · ${g6.bases.length} slides`:(items.length===1?'1 shape':`${items.length} shapes`);
   if(current&&BUILTIN.concat(mine).some(x=>x.name===current)){const e=LOOK.some(moved);if(e!==edited){edited=e;LS.set('presetEdited',e);}}
   const pn=$('#pcapName');pn.textContent=presetName();}
 
@@ -279,6 +350,7 @@ function appRefresh(){const P=planNow();$('#loopChip').textContent=`${P.L.toFixe
    shape, captions and what goes over the top. Each kind shows only its own controls, in the
    same order – how many, what moves and which way, timing, the feel, then its character. */
 Object.assign(TIPS,{
+  guides:'Lines over the canvas to line things up by – margins, columns, rows and the centre. They’re only on the preview: nothing of them goes into an export.',guM:'Space in from each edge',guC:'Columns between the margins',guR:'Rows between the margins',guG:'Space between the columns and rows',guSnap:'Pieces you move catch on the guides and the centre. Hold Alt as you drag to place one freely.',
   cSize:'The size of what comes out. Presets keep to it – they scale to fit.',bg:'The colour behind everything',fps:'Frames a second in the MP4',
   bgFit:'Fill crops the image to the canvas; Fit shows all of it, on the background colour',bgImgA:'How strongly the background image shows',
   ratio:'The shape each piece of media sits in. It’s cropped to fill it, or fitted inside. The media’s own: in Columns and Float each shape takes its own media’s shape.',
@@ -326,21 +398,26 @@ const openRows=new Set();let mediaBox;
   const r=el('div','ctl btn-row'),add=el('button','pill','+ Add images or video');add.type='button';add.onclick=()=>$('#mediafile').click();r.append(add);
   const clr=el('button','pill small','Clear all');clr.type='button';clr.onclick=()=>{if(!items.length)return;removeItems(items.map(it=>it.id),items.length===1?'Cleared 1 file':`Cleared ${items.length} files`);};r.append(clr);b.append(r);
   addHint(b,'Drag a row to change the order. Video plays from its start point as its shape arrives.',()=>items.length>1);
-  addHint(b,'Open a row to give that slide its own time on screen, transition or movement.',s=>s.layout==='one'&&items.length>0);
+  addHint(b,'Open a row to give that slide its own time, transition or movement – or set it on the one before, to layer it over (or under) that slide.',s=>s.layout==='one'&&items.length>0);
   SUMMARY.media=()=>!items.length?'No media yet':`${items.length} · `+(()=>{const v=items.filter(i=>i.kind==='video').length,i=items.length-v;return [v?`${v} video`:'',i?`${i} image${i>1?'s':''}`:''].filter(Boolean).join(', ');})();}
 function thumbOf(it){const c=el('canvas');c.width=88;c.height=64;const x=c.getContext('2d');x.fillStyle='#ddd';x.fillRect(0,0,88,64);
   try{if(it.src&&(it.kind!=='video'||it.src.readyState>=2)){const s=Math.max(88/it.w,64/it.h);x.drawImage(it.src,(88-it.w*s)/2,(64-it.h*s)/2,it.w*s,it.h*s);}}catch(e){}return c;}
-let dragId=null;
+let dragId=null,trims=[];
+const isLayer=(it,i)=>S.layout==='one'&&i>0&&it.join==='on';
+const BLENDS=[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['darken','Darken'],['lighten','Lighten'],['difference','Difference']];
 function paintMedia(){
-  mediaBox.textContent='';
+  mediaBox.textContent='';trims=[];
   if(!items.length){mediaBox.append(el('div','media-empty','Drop images or video here, or anywhere on the page'));return;}
   items.forEach((it,i)=>{
     const row=el('div','slot'),top=el('div','slot-top'),th=el('span','mthumb'),main=el('div','slot-main'),nm=el('div','slot-name',it.title?it.title.split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,''):it.name),meta=el('div','slot-meta');
-    th.append(thumbOf(it));meta.textContent=(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(S.layout==='one'&&+it.hold>0?` · on for ${+(+it.hold).toFixed(2)} s`:'')+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
+    const lay=isLayer(it,i),trimmed=it.kind==='video'&&(+it.start>0||+it.end>0);
+    th.append(thumbOf(it));meta.textContent=(lay?'On the one before'+(it.place==='behind'?', behind':'')+' · ':'')+(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(trimmed?` · plays ${(+it.start||0).toFixed(1)}–${(+it.end>(+it.start||0)?+it.end:+it.dur||0).toFixed(1)} s`:'')+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(it.blend&&it.blend!=='normal'?` · ${optLabel(BLENDS,it.blend)}`:'')+(it.opa!=null&&+it.opa<100?` · ${Math.round(+it.opa)}%`:'')+(!lay&&S.layout==='one'&&+it.hold>0?` · on for ${+(+it.hold).toFixed(2)} s`:'')+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-expanded',openRows.has(it.id));main.setAttribute('aria-label',`${i+1}. ${it.name} – details`);
-    const tog=()=>{openRows.has(it.id)?openRows.delete(it.id):openRows.add(it.id);paintMedia();};main.onclick=tog;main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
+    /* opening a row selects the piece and takes the playhead to it (0.6) */
+    const tog=()=>{if(openRows.has(it.id)){openRows.delete(it.id);if(selId===it.id)selId=null;}else{openRows.add(it.id);selId=it.id;seekTo(it);}paintMedia();dirty=true;};main.onclick=tog;main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
     const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+it.name);rm.onclick=e=>{e.stopPropagation();removeItems([it.id],`Removed ${it.name}`);};
-    const grip=el('span','grip');grip.innerHTML=ICON.grip;grip.setAttribute('aria-hidden','true');top.append(grip,th,main,rm);row.append(top);if(openRows.has(it.id))row.classList.add('open');
+    const grip=el('span','grip');grip.innerHTML=ICON.grip;grip.setAttribute('aria-hidden','true');top.append(grip,th,main,rm);row.append(top);if(openRows.has(it.id))row.classList.add('open');row.dataset.id=it.id;if(lay)row.classList.add('layer');if(hoverOp&&hoverOp.item===it)row.classList.add('hover');
+    row.onmouseenter=()=>{hoverRow=it.id;dirty=true;};row.onmouseleave=()=>{if(hoverRow===it.id){hoverRow=null;dirty=true;}};
     row.draggable=true;row.ondragstart=e=>{dragId=it.id;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',it.id);};
     row.ondragend=()=>{dragId=null;row.classList.remove('dragging');};
     row.ondragover=e=>{if(!dragId)return;e.preventDefault();e.stopPropagation();row.classList.add('over');};row.ondragleave=()=>row.classList.remove('over');
@@ -362,40 +439,95 @@ function itemRange(det,it,o){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=
 /* the shape of the frame a piece sits in now – to know which way it can be moved inside it */
 function frameAspect(it){const o=cur&&cur.ops.find(q=>q.item===it&&q.rect&&q.rect.w>1);if(o)return o.rect.w/o.rect.h;
   const [W,H]=size();return S.layout==='one'&&S.oneFit==='bleed'?W/H:E.ratioOf(S,items);}
-function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one';
+function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',layer=isLayer(it,i);
+  const qm=(w,label,tip)=>{if(!tip)return;const q=el('button','q','?');q.type='button';q.dataset.tip=tip;q.setAttribute('aria-label',label+': '+tip);w.append(q);};
   const sel=(label,key,opts,tip)=>{const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,label),s=el('select');s.id=`i_${key}_${it.id}`;lb.htmlFor=s.id;
     for(const [v,t] of opts){const o=el('option',null,t);o.value=v;s.append(o);}s.value=it[key]||'default';if(!opts.some(o=>o[0]===s.value))s.value='default';
-    s.onchange=()=>{it[key]=s.value;saveItems();dirty=true;refreshAll();};hd.append(lb);if(tip){const q=el('button','q','?');q.type='button';q.dataset.tip=tip;q.setAttribute('aria-label',label+': '+tip);hd.append(q);}w.append(hd,s);det.append(w);};
-  /* Slides: this slide's own time, transition and movement – each says what it falls back to */
-  if(one){const r=itemRange(det,it,{label:'On screen',key:'hold',min:0,max:Math.max(12,Math.ceil(+it.dur||0)),step:.05,def:0,
-      fmt:v=>v>0?`${+v.toFixed(2)} s`:`As set · ${+(+S.hold).toFixed(2)} s`,after:refreshAll,tip:'This slide’s own time on screen. 0 – or double-click the name – for the time set in Motion.'});
-    if(it.kind==='video'){const row=el('div','btn-row'),b=el('button','pill small','Whole clip');b.type='button';b.dataset.tip='Stays on screen long enough for the whole clip to play, transitions included';
-      b.onclick=()=>{const tr=S.oneMove==='cut'?0:+S.dur||0;r.put(Math.max(.2,+((+it.dur||1)-2*tr).toFixed(2)));};row.append(b);det.append(row);}
-    sel('Arrives by','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.map(o=>[o[0],o[1]])));
-    sel('Moves','moves',[['default',`As set · ${optLabel(KB,S.kb)}`]].concat(KB.filter(o=>o[0]!=='vary'&&!(S.oneFit==='bleed'&&o[0]==='parallax')).map(o=>[o[0],o[1]])));}
-  /* where it sits: As it is moves the slide itself; anything cropped moves the picture inside its frame */
-  {const own=one&&S.oneFit==='own',crop=!own&&(S.fit!=='fit'||(one&&S.oneFit==='bleed'));
+    s.onchange=()=>{it[key]=s.value;saveItems();dirty=true;refreshAll();};hd.append(lb);qm(hd,label,tip);w.append(hd,s);det.append(w);};
+  /* a choice of this piece's own, with a start value (for its change dot) */
+  const pick=(label,key,opts,def,tip,after)=>{const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,label),s=el('select');s.id=`i_${key}_${it.id}`;lb.htmlFor=s.id;
+    for(const [v,t] of opts){const o=el('option',null,t);o.value=v;s.append(o);}s.value=opts.some(o=>o[0]===it[key])?it[key]:def;
+    const mark=()=>w.classList.toggle('chg',s.value!==def);s.onchange=()=>{it[key]=s.value;saveItems();dirty=true;mark();if(after)after();else{paintMediaKeepFocus();refreshAll();}};
+    hd.append(lb);qm(hd,label,tip);w.append(hd,s);det.append(w);mark();return s;};
+  const resetRow=keys=>{const row=el('div','btn-row'),rs=el('button','pill small','Reset');rs.type='button';rs.onclick=()=>{for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMediaKeepFocus();};row.append(rs);det.append(row);};
+  /* Slides (0.6): a piece can sit on the slide before – in front of it or behind, anywhere on it */
+  if(one&&i>0)pick('Sits','join',[['own','Its own slide'],['on','On the one before']],'own','Its own slide comes and goes in its turn. On the one before puts it on the slide above it in the list – in front or behind, placed and sized anywhere on it, in its own blend – and it arrives, moves and leaves with that slide.');
+  if(layer){
+    pick('Order','place',[['front','In front'],['behind','Behind']],'front','In front of the slide, or behind it – behind shows where the slide is see-through or blended');
+    pick('Fit','lfit',[['own','As it is'],['fill','Fill the slide']],'own','As it is: all of it, fitted inside the slide, at the size below. Fill the slide: cropped to cover it.');
+    det.append(el('div','sub-head','Position'));
+    itemRange(det,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(det,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
+    itemRange(det,it,{label:'Size',key:'zm',min:5,max:400,step:1,def:100,unit:'%',tip:'100%: as big as fits the slide (or fills it)'});
+    resetRow();det.append(el('p','hint','Or drag it on the canvas – its corners scale it. With guides on it catches on them; hold Alt to place it freely.'));}
+  else{
+    /* Slides: this slide's own time, transition and movement – each says what it falls back to */
+    if(one){const r=itemRange(det,it,{label:'On screen',key:'hold',min:0,max:Math.max(12,Math.ceil(+it.dur||0)),step:.05,def:0,
+        fmt:v=>v>0?`${+v.toFixed(2)} s`:`As set · ${+(+S.hold).toFixed(2)} s`,after:refreshAll,tip:'This slide’s own time on screen. 0 – or double-click the name – for the time set in Motion.'});
+      if(it.kind==='video'){const row=el('div','btn-row'),b=el('button','pill small','Whole clip');b.type='button';b.dataset.tip='Stays on screen long enough for the clip to play from In to Out, transitions included';
+        b.onclick=()=>{const tr=S.oneMove==='cut'?0:+S.dur||0,st=+it.start||0,en=+it.end>st+.05?+it.end:+it.dur||1;r.put(Math.max(.2,+((en-st)-2*tr).toFixed(2)));};row.append(b);det.append(row);}
+      sel('Arrives by','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.map(o=>[o[0],o[1]])));
+      sel('Moves','moves',[['default',`As set · ${optLabel(KB,S.kb)}`]].concat(KB.filter(o=>o[0]!=='vary'&&!(S.oneFit==='bleed'&&o[0]==='parallax')).map(o=>[o[0],o[1]])));}
+    /* where it sits: As it is moves the slide itself; anything cropped moves the picture inside its frame */
+    const own=one&&S.oneFit==='own',crop=!own&&(S.fit!=='fit'||(one&&S.oneFit==='bleed'));
     if(own||crop){det.append(el('div','sub-head',own?'Position':'Crop'));const again=()=>paintMediaKeepFocus();
-      if(own){itemRange(det,it,{label:'Across',key:'ox',min:-600,max:600,step:1,def:0,unit:' px'});itemRange(det,it,{label:'Up and down',key:'oy',min:-600,max:600,step:1,def:0,unit:' px'});
-        itemRange(det,it,{label:'Size',key:'zm',min:30,max:200,step:1,def:100,unit:'%',tip:'This slide bigger or smaller than the rest'});}
+      if(own){itemRange(det,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(det,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
+        itemRange(det,it,{label:'Size',key:'zm',min:20,max:400,step:1,def:100,unit:'%',tip:'This slide bigger or smaller than the rest'});}
       else{const fa=frameAspect(it),ia=it.w&&it.h?it.w/it.h:fa,zoomed=(+it.zm||100)>100.5,wide=ia>fa*1.005,tall=ia<fa/1.005;
         if(zoomed||wide)itemRange(det,it,{label:'Across',key:'px',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows across: −100% the right edge, 100% the left'});
         if(zoomed||tall)itemRange(det,it,{label:'Up and down',key:'py',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows up and down: −100% the bottom, 100% the top'});
         itemRange(det,it,{label:'Zoom',key:'zm',min:100,max:400,step:1,def:100,unit:'%',change:again,tip:'Crop in tighter. Zoomed in, it can move both ways.'});
         if(!zoomed&&!wide&&!tall)addHint(det,'It fits its frame exactly – zoom in to move it.');}
-      const row=el('div','btn-row'),rs=el('button','pill small','Reset');rs.type='button';rs.onclick=()=>{for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMediaKeepFocus();};row.append(rs);det.append(row);
-      det.append(el('p','hint','Or drag it on the canvas. Ctrl or Alt and scroll to zoom; double-click to reset.'));}}
-  /* the caption, when there are captions */
-  if(S.capOn){const txt=(label,key,multi,ph)=>{const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,label),inp=el(multi?'textarea':'input');if(!multi)inp.type='text';else inp.rows=2;
+      resetRow();det.append(el('p','hint','Or drag it on the canvas – its corners zoom it. Double-click it to reset.'));}}
+  /* its own blend and opacity, over what's beneath (0.6) */
+  pick('Blend','blend',BLENDS,'normal','How it mixes with what’s beneath. Multiply darkens – white goes clear, so a scan or a texture sits into what’s under it. Screen lightens – black goes clear. Overlay deepens contrast; Difference flips colours.',()=>{paintMediaKeepFocus();});
+  itemRange(det,it,{label:'Opacity',key:'opa',min:0,max:100,step:1,def:100,unit:'%',change:()=>paintMediaKeepFocus()});
+  /* video: where it plays from and to, seen as frames (0.6) */
+  if(it.kind==='video')trimBlock(det,it);
+  /* the caption, when there are captions (a layer goes with its slide's) */
+  if(S.capOn&&!layer){const txt=(label,key,multi,ph)=>{const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,label),inp=el(multi?'textarea':'input');if(!multi)inp.type='text';else inp.rows=2;
       inp.id=`i_${key}_${it.id}`;lb.htmlFor=inp.id;inp.value=it[key]||'';inp.placeholder=ph||'';inp.spellcheck=false;
       inp.oninput=()=>{it[key]=inp.value;E.resetMeasure();dirty=true;saveItems();};inp.onchange=()=>{paintMediaKeepFocus();refreshAll();};hd.append(lb);w.append(hd,inp);det.append(w);};
     txt('Title','title',true,'A title – Enter for a new line');txt('Line','line',true,'A line under it');txt('Tags','tags',false,'Tags, split with commas');}
-  if(it.kind==='video'){itemRange(det,it,{label:'Start at',key:'start',min:0,max:Math.max(.1,+it.dur||1),step:.04,def:0,fmt:v=>`${v.toFixed(2)} s`});
-    const tr=el('div','toggle-row'),tb=el('button','toggle');tb.type='button';tb.setAttribute('role','switch');tb.setAttribute('aria-checked',!!it.levels);tb.setAttribute('aria-label','Lift washed-out colours');tb.append(el('span','box'),el('span',null,'Lift washed-out colours'));
-    tb.onclick=()=>{it.levels=!it.levels;tb.setAttribute('aria-checked',it.levels);saveItems();dirty=true;};tr.append(tb);const q=el('button','q','?');q.type='button';q.dataset.tip='For video whose greys look lifted and colours dull – it says it’s full range when it isn’t (Tempo’s promo MP4s up to 0.11.1). Reads it as video range.';q.setAttribute('aria-label','Lift washed-out colours: '+q.dataset.tip);tr.append(q);det.append(tr);}
+  if(it.kind==='video'){const tr=el('div','toggle-row'),tb=el('button','toggle');tb.type='button';tb.setAttribute('role','switch');tb.setAttribute('aria-checked',!!it.levels);tb.setAttribute('aria-label','Lift washed-out colours');tb.append(el('span','box'),el('span',null,'Lift washed-out colours'));
+    tb.onclick=()=>{it.levels=!it.levels;tb.setAttribute('aria-checked',it.levels);saveItems();dirty=true;};tr.append(tb);qm(tr,'Lift washed-out colours','For video whose greys look lifted and colours dull – it says it’s full range when it isn’t (Tempo’s promo MP4s up to 0.11.1). Reads it as video range.');det.append(tr);}
   const r=el('div','btn-row pairs'),up=el('button','pill small','Move up'),dn=el('button','pill small','Move down');up.type=dn.type='button';up.disabled=i===0;dn.disabled=i===items.length-1;
   up.onclick=()=>moveItem(it.id,i-1);dn.onclick=()=>moveItem(it.id,i+1);r.append(up,dn);det.append(r);
   return det;}
+/* A clip's In and Out (0.6): a bar the length of the clip with its frames along it, the part that
+   plays lit; drag either end, or the lit part to slide both. The frames at In and Out show under
+   it, and a tick follows the clip while it's on the canvas. Start at and End at below take typing. */
+function probeOf(it){if(!it._probe){const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';v.src=it.el.src;it._probe=v;}return it._probe;}
+function onProbe(it,fn){if(!it.el)return Promise.resolve();it._chain=(it._chain||Promise.resolve()).then(()=>fn(probeOf(it))).catch(()=>{});return it._chain;}
+async function probeAt(v,t){if(v.readyState<2)await new Promise(r=>{const f=()=>{v.removeEventListener('loadeddata',f);r();};v.addEventListener('loadeddata',f);setTimeout(f,4000);});
+  const d=v.duration||1;t=clamp(t,0,Math.max(0,d-.03));if(Math.abs(v.currentTime-t)<.01)return;
+  await new Promise(r=>{const f=()=>{v.removeEventListener('seeked',f);r();};v.addEventListener('seeked',f);v.currentTime=t;setTimeout(f,2000);});}
+function coverDraw(c,src,x0,w0){const x=c.getContext('2d'),iw=src.videoWidth||1,ih=src.videoHeight||1,W=w0||c.width,H=c.height,k=Math.max(W/iw,H/ih);x.save();x.beginPath();x.rect(x0||0,0,W,H);x.clip();x.drawImage(src,(x0||0)+(W-iw*k)/2,(H-ih*k)/2,iw*k,ih*k);x.restore();}
+function trimBlock(det,it){const dur=Math.max(.1,+it.dur||1);
+  const box=el('div','trim'),bar=el('div','trim-bar'),strip=el('canvas','trim-strip'),win=el('div','trim-win'),head=el('span','trim-head');
+  strip.width=320;strip.height=36;win.append(el('span','trim-h in'),el('span','trim-h out'));bar.append(strip,win,head);head.hidden=true;
+  bar.setAttribute('role','group');bar.setAttribute('aria-label','Where the clip plays – drag its ends');bar.dataset.tip='The clip, start to end – the lit part plays. Drag an end, or the lit part to slide both.';
+  const chips=el('div','trim-chips'),cIn=el('span','chip'),cOut=el('span','chip'),cLen=el('span','chip');chips.append(cIn,cOut,cLen);
+  const frame=label=>{const w=el('div','trim-frame'),c=el('canvas');c.width=176;c.height=100;const t=el('span',null,label);w.append(c,t);return{w,c,t};},fIn=frame('In'),fOut=frame('Out');
+  const fr=el('div','trim-frames');fr.append(fIn.w,fOut.w);
+  det.append(el('div','sub-head','Plays'));box.append(bar,chips,fr);det.append(box);
+  const span=()=>{const st=clamp(+it.start||0,0,dur),en=+it.end>st+.05?Math.min(+it.end,dur):dur;return[st,en];};
+  let fT=0;const frames=()=>{clearTimeout(fT);fT=setTimeout(()=>{const [a,b]=span();onProbe(it,async v=>{await probeAt(v,a);coverDraw(fIn.c,v);await probeAt(v,Math.max(a,b-.04));coverDraw(fOut.c,v);});},90);};
+  const show=()=>{const [a,b]=span();win.style.left=(a/dur*100)+'%';win.style.width=((b-a)/dur*100)+'%';cIn.textContent=`In ${a.toFixed(2)} s`;cOut.textContent=`Out ${b.toFixed(2)} s`;
+    cLen.textContent=`${(b-a).toFixed(2)} of ${dur.toFixed(1)} s`;fIn.t.textContent=`In · ${a.toFixed(2)} s`;fOut.t.textContent=`Out · ${b.toFixed(2)} s`;};
+  /* see the piece on the canvas while setting it */
+  const into=()=>{if(!(cur&&cur.ops.some(o=>o.item===it)))seekTo(it);selId=it.id;dirty=true;};
+  const changed=()=>{show();frames();into();};
+  const rs=itemRange(det,it,{label:'Start at',key:'start',min:0,max:dur,step:.04,def:0,fmt:v=>`${v.toFixed(2)} s`,after:changed,change:()=>paintMediaKeepFocus()});
+  const re=itemRange(det,it,{label:'End at',key:'end',min:0,max:dur,step:.04,def:0,fmt:v=>v>(+it.start||0)+.05?`${v.toFixed(2)} s`:`The end · ${dur.toFixed(2)} s`,after:changed,change:()=>paintMediaKeepFocus(),tip:'Where it stops and loops back to Start at. 0 – or double-click the name – plays to the end of the clip.'});
+  bar.onpointerdown=e=>{e.preventDefault();const bb=bar.getBoundingClientRect(),tAt=cx=>clamp((cx-bb.left)/bb.width,0,1)*dur,[a0,b0]=span(),t0=tAt(e.clientX),tol=10/bb.width*dur;
+    const mode=Math.abs(t0-a0)<=tol?'in':Math.abs(t0-b0)<=tol?'out':(t0>a0&&t0<b0)?'both':t0<a0?'in':'out';bar.setPointerCapture(e.pointerId);bar.classList.add('drag');
+    const mv=ev=>{const t=tAt(ev.clientX);if(mode==='in')rs.put(+clamp(t,0,b0-.1).toFixed(2));else if(mode==='out')re.put(+clamp(t,a0+.1,dur).toFixed(2));else{const d=clamp(t-t0,-a0,dur-b0);rs.put(+(a0+d).toFixed(2));re.put(+(b0+d).toFixed(2));}};
+    mv(e);bar.onpointermove=mv;bar.onpointerup=bar.onpointercancel=()=>{bar.onpointermove=null;bar.classList.remove('drag');paintMediaKeepFocus();};};
+  show();frames();trims.push({it,head});
+  /* the frames along the bar, once */
+  if(it._strip){strip.getContext('2d').drawImage(it._strip,0,0);}
+  else onProbe(it,async v=>{const c=document.createElement('canvas');c.width=strip.width;c.height=strip.height;const n=8,w=c.width/n;
+    for(let j=0;j<n;j++){await probeAt(v,(j+.5)/n*dur);coverDraw(c,v,j*w,w);}it._strip=c;for(const s2 of document.querySelectorAll('.trim-strip'))if(s2.closest('.slot')&&s2.closest('.slot').dataset.id===it.id)s2.getContext('2d').drawImage(c,0,0);});}
 function paintMediaKeepFocus(){const a=document.activeElement,id=a&&a.id;paintMedia();if(id){const n=document.getElementById(id);if(n)n.focus();}}
 /* Canvas */
 {const b=card('canvas','Canvas');
@@ -406,6 +538,14 @@ function paintMediaKeepFocus(){const a=document.activeElement,id=a&&a.id;paintMe
   build(b,[{t:'seg',k:'bgFit',label:'Image',opts:[['fill','Fill the canvas'],['fit','Fit inside']],show:()=>!!PICS.bg},
     {t:'range',k:'bgImgA',label:'Image strength',min:0,max:100,step:1,unit:'%',show:()=>!!PICS.bg},
     {t:'seg',k:'fps',label:'Frame rate',opts:[[24,'24'],[25,'25'],[30,'30'],[60,'60']]}]);
+  /* guides (0.6): margins, columns and rows to line things up by – on the preview only */
+  const gf=fold(b,'guides','Guides',null,true,s=>s.guides?[`${Math.round(s.guM)} px margin`,Math.round(s.guC)>0?`${Math.round(s.guC)} columns`:'',Math.round(s.guR)>0?`${Math.round(s.guR)} rows`:''].filter(Boolean).join(' · '):'Off');
+  build(gf,[{t:'toggle',k:'guides',label:'Show guides'},
+    {t:'range',k:'guM',label:'Margin',min:0,max:400,step:1,unit:' px',show:s=>s.guides},
+    {t:'range',k:'guC',label:'Columns',min:0,max:24,step:1,show:s=>s.guides},
+    {t:'range',k:'guR',label:'Rows',min:0,max:24,step:1,show:s=>s.guides},
+    {t:'range',k:'guG',label:'Gutter',min:0,max:200,step:1,unit:' px',show:s=>s.guides&&(Math.round(s.guC)>1||Math.round(s.guR)>1)},
+    {t:'toggle',k:'guSnap',label:'Snap to guides',show:s=>s.guides}]);
   SUMMARY.canvas=s=>{const [W,H]=E.canvasSize(s);return `${W} × ${H} · ${s.fps} fps`+(PICS.bg?' · image':'');};}
 /* Motion: the kind first, then only what that kind uses */
 const KINDS=[['one','Slides','A slide at a time – full bleed, as it is or in a shape, with a transition and a little movement in each'],['line','Line','A row or a column of shapes, moving along'],['grid','Grid','Rows of shapes, moving together'],

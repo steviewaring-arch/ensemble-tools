@@ -508,6 +508,85 @@ with sync_playwright() as p:
     check('MP4: the stream says where its colour sits (centre), so players put it back there', cl == 'center', str(cl))
     pg.evaluate("segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack');segue.set('ovOn',false)")
 
+    # ---- 0.6: layers, blends, a clip's In and Out, the canvas, guides ----
+    LP, LT, LF = (os.path.join(OUT, n) for n in ('l_poster.png', 'l_tex.png', 'l_frame.png'))
+    im0 = Image.new('RGB', (1080, 1350), '#FFFFFF'); ImageDraw.Draw(im0).rectangle([0, 0, 1080, 675], fill='#EA2631'); im0.save(LP)
+    im1 = Image.new('RGB', (1080, 1350), '#FFFFFF'); d1 = ImageDraw.Draw(im1)
+    for yy in range(0, 1350, 30): d1.rectangle([0, yy, 1080, yy + 9], fill='#808080')
+    im1.save(LT)
+    im2 = Image.new('RGBA', (1080, 1350), (17, 17, 17, 255)); ImageDraw.Draw(im2).rectangle([140, 140, 940, 1210], fill=(0, 0, 0, 0)); im2.save(LF)
+    pg.evaluate("window._keep=segue.items.slice()")
+    pg.set_input_files('#mediafile', [LP, LT, LF, CLIPS[0], IMGS[1]]); time.sleep(2.5)
+    lay = pg.evaluate("""async()=>{const n=segue.items.length,[po,tx,fr,cl,b2]=segue.items.slice(n-5);segue.items.splice(0,n,po,tx,fr,cl,b2);
+      for(const it of segue.items)Object.assign(it,{join:'own',place:'front',lfit:'own',blend:'normal',opa:100,px:0,py:0,ox:0,oy:0,zm:100,hold:0,start:0,end:0,moves:'default',arrive:'default'});
+      for(const [k,v] of [['cSize','custom'],['cW',1080],['cH',1350],['layout','one'],['oneFit','bleed'],['oneMove','cut'],['kb','none'],['hold',1],['capOn',false],['bg','#F5F5F3'],['bgImgA',0],['ovOn',false],['after','carry'],['guides',false]])segue.set(k,v);
+      tx.join='on';tx.blend='multiply';tx.lfit='fill';segue.refresh();
+      const x=document.createElement('canvas').getContext('2d'),sc=t=>segue.E.scene(segue.S,segue.items,x,segue.fonts,1080,1350,t);
+      const keys=sc(.2).ops.map(o=>o.key),stops=segue.plan().stops;
+      const c=document.createElement('canvas');c.width=1080;c.height=1350;const cx=c.getContext('2d',{willReadFrequently:true});await segue.frameAt(c,cx,1080,1350,.2);
+      const px=(a,b)=>Array.from(cx.getImageData(a,b,1,1).data).slice(0,3);
+      const mul={redLine:px(540,4),redGap:px(540,20),whiteLine:px(540,694),whiteGap:px(540,710)};
+      b2.join='on';b2.place='behind';b2.lfit='fill';segue.items.splice(0,segue.items.length,po,tx,fr,b2,cl);segue.refresh();
+      const h2=segue.plan().segs.find(g=>g.k==='hold'&&g.s===1).t0+.1;await segue.frameAt(c,cx,1080,1350,h2);
+      const behind={keys:sc(h2).ops.map(o=>o.key),middle:px(540,900),edge:px(60,675)};
+      b2.place='front';b2.lfit='own';b2.zm=50;b2.ox=100;segue.refresh();const o=sc(h2).ops.find(q=>q.item===b2);const place={w:o.rect.w,cx:o.rect.x+o.rect.w/2};
+      b2.zm=100;b2.ox=0;tx.join='own';tx.blend='normal';po.opa=50;segue.refresh();await segue.frameAt(c,cx,1080,1350,.2);const half=px(540,300);po.opa=100;
+      tx.join='on';segue.set('kb','in');segue.set('kbAmt',20);segue.refresh();const a1=sc(.05).ops,a2=sc(.9).ops;
+      const grow={base:[a1[0].inner.s,a2[0].inner.s],layer:[a1[1].rect.w,a2[1].rect.w]};segue.set('kb','none');
+      cl.start=1;cl.end=2;const trim=[0,.5,1.5,2.25].map(d=>+segue.E.clipTime(cl,d).toFixed(3));cl.start=0;cl.end=0;segue.refresh();
+      return {stops,keys,mul,behind,place,half,grow,trim};}""")
+    near = lambda a, b, t=4: all(abs(x - y) <= t for x, y in zip(a, b))
+    check('Layers: a piece set on the one before joins that slide, drawn after it (five pieces, four slides)', lay['stops'] == 4 and lay['keys'] == ['s0', 's0.f0'], f"{lay['stops']} slides, {lay['keys']}")
+    m = lay['mul']
+    check('Layers: Multiply – grey lines darken the red to half and show grey on white; white goes clear', near(m['redLine'], (117, 19, 25), 5) and near(m['redGap'], (234, 38, 49)) and near(m['whiteLine'], (128, 128, 128), 5) and near(m['whiteGap'], (255, 255, 255)), str(m))
+    bh = lay['behind']
+    check('Layers: Behind – drawn first, showing through where the slide is see-through', bh['keys'] == ['s1.b0', 's1'] and near(bh['middle'], (47, 93, 168)) and near(bh['edge'], (17, 17, 17)), str(bh))
+    check('Layers: placed and sized on the slide (As it is at 50%, 100 px right)', abs(lay['place']['w'] - 540) < .5 and abs(lay['place']['cx'] - 640) < .5, str(lay['place']))
+    check('Opacity: a slide at 50% over the background', near(lay['half'], (240, 142, 146), 3), str(lay['half']))
+    g6 = lay['grow']
+    check('Layers move with their slide (Zoom in: the layer grows as the slide does)', g6['base'][1] > g6['base'][0] and abs(g6['layer'][1] / g6['layer'][0] - g6['base'][1] / g6['base'][0]) < 1e-3, str(g6))
+    check('A clip plays from Start at to End at and loops between them', lay['trim'] == [1, 1.5, 1.5, 1.25], str(lay['trim']))
+    # the canvas, worked with the pointer
+    pg.keyboard.press('Escape'); time.sleep(.2); pg.keyboard.press('Escape'); time.sleep(.3)   # no sheet over the work
+    pg.evaluate("()=>{const c=document.querySelector('section.card[data-id=media]');if(c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();segue.setPlaying(false);segue.setClock(.2);}"); time.sleep(.4)
+    pg.locator('#panel .media-list .slot').nth(4).locator('.slot-main').click(); time.sleep(.6)
+    sk = pg.evaluate("()=>{const P=segue.plan(),h=P.segs.find(g=>g.k==='hold'&&g.s===2);return {t:segue.clock,want:h.t0,sel:segue.sel===segue.items[4].id,trim:!!document.querySelector('.slot.open .trim-bar'),playing:segue.playing};}")
+    check('Opening a piece’s row takes the playhead to it and selects it; a clip shows its In and Out bar', abs(sk['t'] - sk['want']) < .06 and sk['sel'] and sk['trim'] and not sk['playing'], str(sk))
+    cvb = pg.locator('#cv').bounding_box(); k6 = cvb['width'] / 1080
+    pg.evaluate("()=>{segue.setClock(segue.momentOf(segue.items[3]));}"); time.sleep(.4)
+    pg.evaluate("()=>{const b2=segue.items[3];b2.place='front';b2.lfit='own';b2.zm=50;b2.ox=0;b2.oy=0;segue.refresh();}"); time.sleep(.4)
+    pg.mouse.move(cvb['x'] + 540 * k6, cvb['y'] + 675 * k6); time.sleep(.3)
+    hov = pg.evaluate("[...document.querySelectorAll('.slot.hover')].map(r=>r.dataset.id===segue.items[3].id)")
+    pg.mouse.click(cvb['x'] + 540 * k6, cvb['y'] + 675 * k6); time.sleep(.5)
+    opened = pg.evaluate("()=>({sel:segue.sel===segue.items[3].id,open:!!document.querySelector(`.slot.open[data-id='${segue.items[3].id}']`)})")
+    check('Hovering a piece lights its row; clicking it selects it and opens its row', hov == [True] and opened['sel'] and opened['open'], f'{hov} {opened}')
+    # its corner scales it
+    r0 = pg.evaluate("()=>{const c=document.createElement('canvas').getContext('2d'),o=segue.E.scene(segue.S,segue.items,c,segue.fonts,1080,1350,segue.clock).ops.find(q=>q.item===segue.items[3]);return o.rect;}")
+    cx0, cy0 = cvb['x'] + (r0['x'] + r0['w']) * k6, cvb['y'] + (r0['y'] + r0['h']) * k6
+    pg.mouse.move(cx0, cy0); pg.mouse.down(); pg.mouse.move(cx0 + 30, cy0 + 20, steps=6); pg.mouse.move(cx0 + 60, cy0 + 38, steps=6); pg.mouse.up(); time.sleep(.3)
+    zm6 = pg.evaluate("segue.items[3].zm")
+    check('Dragging a selected piece’s corner scales it', zm6 > 55, f'{zm6}%')
+    # with guides on, it catches on the centre; hold Alt to place it freely
+    pg.evaluate("()=>{const b2=segue.items[3];b2.zm=50;b2.ox=37;b2.oy=0;segue.refresh();segue.set('guides',true);segue.set('guSnap',true);}"); time.sleep(.4)
+    def drag_by(dx, alt=False):
+        o = pg.evaluate("()=>{const c=document.createElement('canvas').getContext('2d'),o=segue.E.scene(segue.S,segue.items,c,segue.fonts,1080,1350,segue.clock).ops.find(q=>q.item===segue.items[3]);return o.rect;}")
+        sx, sy = cvb['x'] + (o['x'] + o['w'] / 2) * k6, cvb['y'] + (o['y'] + o['h'] / 2) * k6
+        pg.mouse.move(sx, sy); pg.mouse.down()
+        if alt: pg.keyboard.down('Alt')
+        pg.mouse.move(sx + dx / 2, sy, steps=5); pg.mouse.move(sx + dx, sy, steps=5); pg.mouse.up()
+        if alt: pg.keyboard.up('Alt')
+        time.sleep(.3); return pg.evaluate("segue.items[3].ox")
+    snapped = drag_by(-35 * k6)        # 37 px right of centre, dragged 35 back: within the catch, lands on the centre
+    free = drag_by(8 * k6, alt=True)   # within the catch – without Alt it would go back to the centre
+    check('With guides on, a piece catches on the centre; with Alt it goes where it’s put', abs(snapped) < .3 and abs(free - 8) < 1.5, f'snapped to {snapped} px, then free at {free} px')
+    # guides are drawn on the preview only
+    gd = pg.evaluate("""async()=>{segue.render();const v=document.querySelector('#cv'),a=v.getContext('2d').getImageData(0,0,v.width,v.height).data;segue.set('guides',false);segue.render();
+      const b=v.getContext('2d').getImageData(0,0,v.width,v.height).data;let diff=0;for(let i=0;i<a.length;i+=4)if(Math.abs(a[i]-b[i])>3)diff++;
+      const c=document.createElement('canvas');c.width=1080;c.height=1350;const x=c.getContext('2d',{willReadFrequently:true});segue.set('guides',true);await segue.frameAt(c,x,1080,1350,segue.clock);const e1=x.getImageData(0,0,1080,1350).data;
+      segue.set('guides',false);await segue.frameAt(c,x,1080,1350,segue.clock);const e2=x.getImageData(0,0,1080,1350).data;let ed=0;for(let i=0;i<e1.length;i+=4)if(e1[i]!==e2[i])ed++;return {preview:diff,export:ed};}""")
+    check('Guides show on the preview and never in an export', gd['preview'] > 500 and gd['export'] == 0, str(gd))
+    pg.evaluate("segue.set('guides',false);segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack');segue.set('ovOn',false)")
+
     # ---- exports ----
     pg.evaluate("for(const [k,v] of [['hold',.3],['dur',.3],['zOut',.3],['gHold',.3],['zIn',.3],['cSize','custom'],['cW',540],['cH',676],['bg','#F5F5F3'],['bgImgA',0],['name','Test reel']])segue.set(k,v)")
     L = pg.evaluate("segue.plan().L")

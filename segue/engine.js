@@ -122,6 +122,16 @@ function overlayBlock(ctx,S,fonts){
   b={st,lines,lh:st.size*st.lead,ch:capHeight(ctx,st.font),w:Math.max(0,...lines.map(l=>l.width))};capCache.set(key,b);return b;}
 
 /* ---------------- the plan: when each stop holds and moves ---------------- */
+/* Layers (0.6): in Slides a piece set to sit "on the one before" joins that slide rather than
+   being one of its own – in front of it or behind, placed and scaled anywhere on it, in its own
+   blend – and arrives, moves and leaves with it. */
+function slidesOf(items){const bases=[],layers=new Map();
+  for(const it of items){if(it&&it.join==='on'&&bases.length){const b=bases[bases.length-1];if(!layers.has(b))layers.set(b,[]);layers.get(b).push(it);}else bases.push(it);}
+  return{bases,layers};}
+/* where a clip is at a moment d after its shape arrives: from Start at, looping between Start
+   and End when an end is set (0.6) */
+function clipTime(it,d){const st=+it.start||0,en=+it.end||0;if(en>st+.05)return st+mod(d,en-st);return st+d;}
+const opaOf=it=>it&&it.opa!=null&&it.opa!==''?clamp(+it.opa/100,0,1):1;
 function gcd(a,b){while(b){[a,b]=[b,a%b];}return a;}
 function stopsOf(S,N){if(S.layout==='grid'){const C=colsOf(S);return N/gcd(N,C)|0||1;}return Math.max(1,N);}
 function arrivalOf(S,items,s){const it=items[mod(s,items.length)];const a=it&&it.arrive&&it.arrive!=='default'?it.arrive:null;return S.layout==='one'?(a||S.oneMove||'slide'):'slide';}
@@ -137,6 +147,7 @@ function floatSetup(S,items,W,H){
   const K=Math.max(Math.ceil(N/Ld),Math.ceil((E/scales[0]+aMax)/(aNear*sp))+1,2);
   return{vert,E,X,b,Ld,scales,K,aNear,aMax,sp,rf,along,dir};}
 function plan(S,items){
+  if((S.layout||'one')==='one'&&items.length&&!(items[0]&&items[0].placeholder))items=slidesOf(items).bases;
   const N=Math.max(1,items.length),mv=moveOf(S),lay=S.layout||'one';
   const hold=Math.max(0,+S.hold||0),dur=Math.max(0,+S.dur||0),cyc=hold+dur;
   const still=()=>Math.max(.5,+S.still||8);
@@ -242,19 +253,20 @@ function shapeIn(G,S,cx,cy,sc){const w=G.sw*sc,h=G.sh*sc,top=cy-G.slotH*sc/2;
 
 /* ---------------- the scene: what's drawn where, at time t ---------------- */
 function scene(S,items,ctx,fonts,W,H,t){
-  const real=items.length>0,list=real?items:placeholders(6,S);
+  const real=items.length>0;let list=real?items:placeholders(6,S),layers=null;
+  if(S.layout==='one'&&real){const g=slidesOf(list);list=g.bases;if(g.layers.size)layers=g.layers;}
   if(OWN.has(S.layout)&&S.capWhere==='fixed')S=Object.assign({},S,{capWhere:capWhereOf(S)});
   if(bleedOf(S))S=Object.assign({},S,{radius:0,mat:0,edge:false,fit:'fill',nudgeX:0,nudgeY:0,shapeBg:S.bg});
   else if(S.layout==='one'&&S.oneFit==='own')S=Object.assign({},S,{fit:'fill',shapeBg:'rgba(0,0,0,0)'});
   const G=geometry(S,list,ctx,fonts,W,H),P=plan(S,list),cam=cameraAt(P,S,t),N=list.length,ops=[];
-  const vt=i=>{const it=list[i];if(!it||it.kind!=='video')return null;const st=+it.start||0;
-    if(P.kind!=='step'||S.layout==='grid')return st+cam.tt;
-    let d=cam.tt-P.arrive[mod(i,P.stops)];d=mod(d+P.L/2,P.L)-P.L/2;return st+d;};
+  /* how long since shape i arrived – video plays from its start point then */
+  const since=i=>{if(P.kind!=='step'||S.layout==='grid')return cam.tt;const d=cam.tt-P.arrive[mod(i,P.stops)];return mod(d+P.L/2,P.L)-P.L/2;};
+  const vt=i=>{const it=list[i];return it&&it.kind==='video'?clipTime(it,since(i)):null;};
   const reveal=i=>{if(!S.capOn||S.capReveal==='none'||P.kind!=='step')return 1;
     let d=cam.tt-P.arrive[mod(i,P.stops)];d=mod(d+P.L/2,P.L)-P.L/2;
     const seg=P.segs.find(g=>(g.k==='move'&&mod(g.to,P.stops)===mod(i,P.stops))||(g.k==='in'&&mod(i,P.stops)===0));
     const lead=seg?(seg.t1-seg.t0)*(seg.k==='in'?.7:.45):0;return clamp((d-lead)/Math.max(.05,+S.capRevealDur||.8),0,1);};
-  const push=(i,rect,o)=>ops.push(Object.assign({i,item:list[i],rect,alpha:1,scale:1,rev:reveal(i),capAlpha:1,time:vt(i)},o||{}));
+  const push=(i,rect,o)=>ops.push(Object.assign({i,item:list[i],rect,alpha:1,scale:1,rev:reveal(i),capAlpha:1,time:vt(i),since:since(i)},o||{}));
   if(S.layout==='columns')columnsScene(S,P,cam,list,ctx,fonts,W,H,push);
   else if(S.layout==='frames')framesScene(S,P,cam,list,ctx,fonts,W,H,push);
   else if(S.layout==='float')floatScene(S,P,cam,list,W,H,push,ops);
@@ -262,7 +274,7 @@ function scene(S,items,ctx,fonts,W,H,t){
   else if(S.layout==='grid')gridScene(S,G,P,cam,N,push);
   else if(S.layout==='one'&&cam.seg&&cam.seg.k==='move'&&cam.how!=='slide')oneMove(S,G,cam,N,push);
   else trackScene(S,G,P,cam,N,push);
-  if(S.layout==='one')oneFinish(S,G,P,cam,ops);
+  if(S.layout==='one'){oneFinish(S,G,P,cam,ops);if(layers){const lo=layerOps(S,G,ops,layers);ops.length=0;ops.push(...lo);}}
   /* a caption fixed on the canvas: the current shape's, handing over during a move */
   let fixed=null;
   if(S.capOn&&capWhereOf(S)==='fixed'&&real&&!OWN.has(S.layout)){const cur=mod(Math.round(cam.p),N);
@@ -316,17 +328,36 @@ function uOf(P,cam,k){
   return clamp((cam.tt-A)/Math.max(1e-6,P.gone[s]-P.arrive[s]),0,1);}
 function oneFinish(S,G,P,cam,ops){
   const own=S.oneFit==='own',amt=clamp((+S.kbAmt||0)/100,0,.5),where=capWhereOf(S),d=G.dir,hz=horiz(d),sg=sgnOf(d)*-1;
-  for(const o of ops){if(o.k==null||!o.item)continue;let r=o.rect;o.key='s'+o.k;
+  for(const o of ops){if(o.k==null||!o.item)continue;let r=o.rect;o.key='s'+o.k;o.space=r;
     if(own&&o.item.w&&o.item.h){const q=o.item.w/o.item.h,f=G.rel?G.rel(o.item):1;let w=r.w,h=r.h;if(w/h>q)w=h*q;else h=w/q;w*=f;h*=f;
       const y=where==='under'&&S.capOn?r.y+r.h-h:where==='above'&&S.capOn?r.y:r.y+(r.h-h)/2;r={x:r.x+(r.w-w)/2,y,w,h};}
     /* As it is: this slide's own size and position, set in Media or by dragging it on the canvas */
     if(own){const z=clamp((+o.item.zm||100)/100,.2,4),w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2+(+o.item.ox||0)*G.u,y:r.y-(h-r.h)/2+(+o.item.oy||0)*G.u,w,h};o.whole=true;}
-    const m=moveKind(S,o.item,o.i);
+    const m=moveKind(S,o.item,o.i),pre=r;
     if(m!=='none'&&amt>0){const u=uOf(P,cam,o.k),off=(m==='back'?-sg:sg)*(u-.5)*amt;
       if(m==='in'||m==='out'){const z=1+amt*(m==='in'?u:1-u);if(own){const w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2,y:r.y-(h-r.h)/2,w,h};}else o.inner={s:z,x:0,y:0};}
       else if(m==='drift'||m==='back'){if(own)r=Object.assign({},r,hz?{x:r.x+off*r.w}:{y:r.y+off*r.h});else o.inner={s:1+amt,x:hz?off:0,y:hz?0:off};}
       else if(m==='parallax'){r=Object.assign({},r,hz?{x:r.x+off*r.w}:{y:r.y+off*r.h});o.inner={s:1+amt,x:hz?-off:0,y:hz?0:-off};}}
+    /* the slide's movement as one move – layers on it go with it */
+    let ms=r.w/Math.max(1e-6,pre.w),tx=(r.x+r.w/2)-(pre.x+pre.w/2),ty=(r.y+r.h/2)-(pre.y+pre.h/2);
+    if(o.inner&&m!=='parallax'){ms*=o.inner.s;tx+=o.inner.x*r.w;ty+=o.inner.y*r.h;}
+    o.mv={s:ms,cx:pre.x+pre.w/2,cy:pre.y+pre.h/2,tx,ty};
     o.rect=r;}}
+/* each slide's layers, placed on its space: fitted inside it (or filling it), at their own size and
+   offset (px at a 1080 short side, scaling with the slide), then moved with the slide's movement.
+   Behind ones are drawn first; in a frame (full bleed, In a shape) they're clipped to it. */
+function layerOps(S,G,ops,layers){const out=[],own=S.oneFit==='own',rad=Math.max(0,+S.radius||0);
+  for(const o of ops){const L=o.k!=null&&o.item?layers.get(o.item):null;if(!L){out.push(o);continue;}
+    const F=o.space||o.rect,fs=F.w/Math.max(1e-6,G.sw),m=o.mv;
+    const mk=(it,j)=>{const q=it.w&&it.h?it.w/it.h:F.w/F.h,fill=it.lfit==='fill';let w=F.w,h=F.h;
+      if(fill?(w/h<q):(w/h>q))w=h*q;else h=w/q;const z=clamp((+it.zm||100)/100,.05,4);w*=z;h*=z;
+      let cx=F.x+F.w/2+(+it.ox||0)*G.u*fs,cy=F.y+F.h/2+(+it.oy||0)*G.u*fs;
+      if(m){cx=(cx-m.cx)*m.s+m.cx+m.tx;cy=(cy-m.cy)*m.s+m.cy+m.ty;w*=m.s;h*=m.s;}
+      return Object.assign({},o,{item:it,layer:true,lfill:fill,key:o.key+'.'+j,rect:{x:cx-w/2,y:cy-h/2,w,h},whole:true,inner:null,slide:null,mv:null,
+        lclip:own?null:{x:o.rect.x,y:o.rect.y,w:o.rect.w,h:o.rect.h,r:rad*o.scale},time:it.kind==='video'?clipTime(it,o.since||0):null,capAlpha:0});};
+    const back=L.filter(it=>it.place==='behind'),front=L.filter(it=>it.place!=='behind');
+    back.forEach((it,j)=>out.push(mk(it,'b'+j)));out.push(back.length?Object.assign(o,{noFill:true}):o);front.forEach((it,j)=>out.push(mk(it,'f'+j)));}
+  return out;}
 /* pull back: the camera zooms out until every shape shows in a grid, then back in. Shapes that
    are neighbours both on the track and in the grid travel into place; the rest fade out where
    they were on the track and fade up in their place in the grid, so nothing flies across the
@@ -382,7 +413,7 @@ function columnsScene(S,P,cam,list,ctx,fonts,W,H,push){
     const phase=(c%2)*clamp(+S.colOff||0,0,100)/100*(T/n),x=cx+(c-(C-1)/2)*(cw+gap)-cw/2;
     for(let j=0;j<n;j++){const h=pitch[j]-reserve-gap;let y=mod(y0+gap/2+cum[j]+phase+way*s,T);while(y>-pitch[j])y-=T;
       for(y+=T;y<H;y+=T){if(y+pitch[j]<0)continue;push(idx[j],{x,y:y+(above?reserve:0),w:cw,h},{time:vtime(list[idx[j]],tt),rev:1,key:'c'+c+'.'+j});}}}}
-const vtime=(it,t)=>it&&it.kind==='video'?(+it.start||0)+t:null;
+const vtime=(it,t)=>it&&it.kind==='video'?clipTime(it,t):null;
 
 /* Frames: the shapes stay where they are and the media changes inside them – pushed through,
    covered, faded or cut – each frame a beat after the last. With as many frames as media,
@@ -431,7 +462,7 @@ function floatScene(S,P,cam,list,W,H,push,ops){
 function rr(ctx,x,y,w,h,r){r=Math.max(0,Math.min(r,w/2,h/2));ctx.beginPath();if(ctx.roundRect&&r>0){ctx.roundRect(x,y,w,h,r);}else if(r>0){ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();}else ctx.rect(x,y,w,h);}
 function hash(a,b){let h=(a*374761393+b*668265263)|0;h=(h^(h>>>13))*1274126177|0;return((h^(h>>>16))>>>0)/4294967296;}
 function lum(hex){const m=String(hex||'').replace('#','');if(m.length<6)return .5;const v=i=>parseInt(m.slice(i,i+2),16)/255;return .2126*v(0)+.7152*v(2)+.0722*v(4);}
-const BLEND={normal:'source-over',difference:'difference',multiply:'multiply',screen:'screen',overlay:'overlay',exclusion:'exclusion'};
+const BLEND={normal:'source-over',difference:'difference',multiply:'multiply',screen:'screen',overlay:'overlay',exclusion:'exclusion',darken:'darken',lighten:'lighten'};
 /* an image placed in a box: filling it (cropped) or fitting inside it */
 function placeImg(ctx,img,x,y,w,h,mode){const iw=img.w||img.width,ih=img.h||img.height;if(!iw||!ih)return;
   const s=mode==='fit'?Math.min(w/iw,h/ih):Math.max(w/iw,h/ih),dw=iw*s,dh=ih*s;ctx.drawImage(img.src||img,x+(w-dw)/2,y+(h-dh)/2,dw,dh);}
@@ -443,7 +474,9 @@ function paint(ctx,SC,S,fonts,opt){
   const rad=Math.max(0,+S.radius||0),mat=Math.max(0,+S.mat||0),matR=Math.max(0,+S.matR||0);let ovDone=false;
   SC.ops.forEach((o,oi)=>{
     if(oi===SC.mid&&S.ovZ==='mid'){drawOverlay(ctx,S,SC,fonts,opt);ovDone=true;}
-    if(o.alpha<=0)return;const r=o.rect,sc=o.scale,m=Math.min(mat*sc,r.w/3,r.h/3);
+    if(o.alpha<=0)return;
+    if(o.layer){drawLayer(ctx,o,opt,W,H);return;}
+    const r=o.rect,sc=o.scale,m=Math.min(mat*sc,r.w/3,r.h/3);
     const inn=m>0?{x:r.x+m,y:r.y+m,w:r.w-2*m,h:r.h-2*m}:r,iR=m>0?matR*sc:rad*sc;
     const mr=o.slide?{x:inn.x+o.slide[0]*inn.w,y:inn.y+o.slide[1]*inn.h,w:inn.w,h:inn.h}:inn;
     ctx.save();if(o.clip){const c=o.clip;ctx.beginPath();if(c.out){ctx.rect(0,0,W,H);ctx.rect(c.x,c.y,c.w,c.h);ctx.clip('evenodd');}else{ctx.rect(c.x,c.y,c.w,c.h);ctx.clip();}}
@@ -451,9 +484,12 @@ function paint(ctx,SC,S,fonts,opt){
     if(m>0&&o.frame!==false){rr(ctx,r.x,r.y,r.w,r.h,rad*sc);ctx.fillStyle=S.matC||'#FFFFFF';ctx.fill();}
     rr(ctx,inn.x,inn.y,inn.w,inn.h,iR);ctx.save();ctx.clip();
     if(o.inner){const cx=mr.x+mr.w/2,cy=mr.y+mr.h/2;ctx.translate(cx+o.inner.x*mr.w,cy+o.inner.y*mr.h);ctx.scale(o.inner.s,o.inner.s);ctx.translate(-cx,-cy);}
-    ctx.fillStyle=o.item.placeholder?(lum(S.bg)>.5?'#d9d8d4':'#3a3940'):(S.shapeBg||'#e6e6e3');ctx.fillRect(mr.x,mr.y,mr.w,mr.h);
+    /* its own blend and opacity (0.6): drawn straight onto what's beneath, without the shape's colour */
+    const it=o.item,bl=!it.placeholder&&it.blend&&it.blend!=='normal'?BLEND[it.blend]:null,op=it.placeholder?1:opaOf(it);
+    if(!(bl||op<1||o.noFill)){ctx.fillStyle=it.placeholder?(lum(S.bg)>.5?'#d9d8d4':'#3a3940'):(S.shapeBg||'#e6e6e3');ctx.fillRect(mr.x,mr.y,mr.w,mr.h);}
     if(o.item.placeholder){ctx.fillStyle=lum(S.bg)>.5?'#8f8d88':'#77757f';ctx.font=`400 ${Math.max(8,mr.h*.18)}px "Inter Tight", Helvetica, Arial, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(o.item.n),mr.x+mr.w/2,mr.y+mr.h/2);ctx.textAlign='left';ctx.textBaseline='alphabetic';}
-    else if(opt.media)opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');
+    else if(opt.media){if(bl||op<1){ctx.save();ctx.globalAlpha*=op;if(bl)ctx.globalCompositeOperation=bl;opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');ctx.restore();}
+      else opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');}
     ctx.restore();
     if(S.edge&&(+S.edgeW||0)>0&&o.frame!==false){const lw=(+S.edgeW)*sc;ctx.lineWidth=lw;ctx.strokeStyle=S.edgeC||'#000000';rr(ctx,r.x+lw/2,r.y+lw/2,r.w-lw,r.h-lw,Math.max(0,rad*sc-lw/2));ctx.stroke();}
     ctx.restore();
@@ -462,6 +498,14 @@ function paint(ctx,SC,S,fonts,opt){
   if(SC.fixed&&SC.fixed.alpha>0){const it=SC.list[SC.fixed.i],b=capBlock(ctx,S,it,fonts);if(b)drawFixed(ctx,S,b,SC.fixed,SC);}
   if(!ovDone)drawOverlay(ctx,S,SC,fonts,opt);
   ctx.restore();}
+/* a layer on a slide: clipped to the slide's frame (not As it is), to its own box if it fills it,
+   in its own blend and opacity */
+function drawLayer(ctx,o,opt,W,H){const it=o.item;if(!opt.media||it.placeholder)return;
+  ctx.save();if(o.clip){const c=o.clip;ctx.beginPath();if(c.out){ctx.rect(0,0,W,H);ctx.rect(c.x,c.y,c.w,c.h);ctx.clip('evenodd');}else{ctx.rect(c.x,c.y,c.w,c.h);ctx.clip();}}
+  const f=o.lclip;if(f){rr(ctx,f.x,f.y,f.w,f.h,f.r);ctx.clip();}
+  if(o.lfill){ctx.beginPath();ctx.rect(o.rect.x,o.rect.y,o.rect.w,o.rect.h);ctx.clip();}
+  ctx.globalAlpha=clamp(o.alpha*opaOf(it),0,1);ctx.globalCompositeOperation=BLEND[it.blend]||'source-over';
+  opt.media(ctx,o,o.rect,o.lfill?'cover':'contain');ctx.restore();}
 /* text or an image over everything, placed on a 3 × 3 grid with a margin, in a blend mode */
 function drawOverlay(ctx,S,SC,fonts,opt){
   if(!S.ovOn)return;const {W,H}=SC,pos=S.ovPos||'mc',v=pos[0],h=pos[1],m=+S.ovM||0,nx=+S.ovX||0,ny=+S.ovY||0;
@@ -505,5 +549,5 @@ function drawBlock(ctx,S,b,x0,y0,sc,alpha,rev,seed,tt){
       draw(c.glyphs,cx+c.padX*sc,by,st.colour);}});
   ctx.restore();}
 
-return{FEEL,feel,SIZES,RATIOS,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
+return{FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
 })();
