@@ -286,6 +286,7 @@ with sync_playwright() as p:
              ('Line drifting', "segue.set('layout','row');segue.set('trackMove','drift')"),
              ('Grid', "segue.set('layout','grid');segue.set('trackMove','step')"),
              ('Columns', "segue.set('layout','columns');segue.set('trackMove','drift')"),
+             ('Rows, each its own', "segue.set('layout','rows');segue.set('trackMove','step');segue.set('colDir','own');segue.set('colSpeed','own')"),
              ('Frames', "segue.set('layout','frames');segue.set('fCols',2)"),
              ('Float', "segue.set('layout','float');segue.set('trackMove','step')"),
              ('Wall stepping', "segue.set('layout','wall');segue.set('trackMove','step');segue.set('wPath','stairs');segue.set('wOff',30)"),
@@ -384,6 +385,7 @@ with sync_playwright() as p:
     pg.get_by_role('button', name='Move down').first.click(); time.sleep(.3)
     order1 = pg.evaluate("segue.items.map(i=>i.name)")
     check('Move down', order1[:2] == [order0[1], order0[0]], str(order1[:2]))
+    pg.locator('.media-list .slot.open .slot-main').first.click(); time.sleep(.3)   # shut the open row first: a piece's detail (0.9, in groups) is taller than the panel's view
     src = pg.locator('.media-list .slot').nth(3); dst = pg.locator('.media-list .slot').nth(0)
     src.drag_to(dst); time.sleep(.4)
     order2 = pg.evaluate("segue.items.map(i=>i.name)")

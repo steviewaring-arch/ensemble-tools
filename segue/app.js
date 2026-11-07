@@ -10,6 +10,7 @@ const D={
   oneFit:'shape',ownScale:'fit',kb:'none',kbAmt:6,
   oneMove:'slide',trackMove:'step',dir:'up',feel:'snap',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',gStag:40,gFloat:30,
   colDir:'alt',colSpeed:'same',colLag:.4,colOff:50,
+  sd0:1,sd1:-1,sd2:1,sd3:-1,sd4:1,sd5:-1,sd6:1,sd7:-1,ss0:1,ss1:1,ss2:1,ss3:1,ss4:1,ss5:1,ss6:1,ss7:1,
   fCols:3,fRows:1,fMove:'push',fLag:.15,
   wCols:3,wRows:2,wPath:'across',wStep:1,wOff:0,
   flSize:34,depth:60,spread:80,seed:0,
@@ -63,8 +64,26 @@ const DB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=i
   return{put:(st,k,v)=>tx(st,'readwrite',s=>s.put(v,k)),get:(st,k)=>tx(st,'readonly',s=>s.get(k)),del:(st,k)=>tx(st,'readwrite',s=>s.delete(k))};})();
 /* ---------------- media ---------------- */
 let items=[];
-const META=['id','name','kind','w','h','dur','start','end','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','ox','oy','join','place','lfit','blend','opa'];
-function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));}
+const META=['id','name','kind','w','h','dur','start','end','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','ox','oy','join','place','lfit','blend','opa','lin','lafter','lover'];
+function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));itemSteps();}
+/* undo for a piece's own settings (0.9): each save is compared with the one before, and what changed becomes a step –
+   the same piece and setting within 0.8 s, or in one drag, join up. Adding, removing and reordering have their own. */
+const ITEM_KEYS=META.filter(k=>!['id','name','kind','w','h','dur','fixed'].includes(k));
+const ITEM_LABEL={blend:'Blend',opa:'Opacity',px:'Crop',py:'Crop',zm:'Size',ox:'Position',oy:'Position',start:'Start at',end:'End at',hold:'On screen',arrive:'Arrives by',moves:'Moves',
+  join:'Sits',place:'Order',lfit:'Fit',title:'Title',line:'Line',tags:'Tags',levels:'Lift washed-out colours',lin:'Arrives',lafter:'After',lover:'Over'};
+let itemSnap=null,itemReplay=false;
+const snapItems=()=>new Map(items.map(it=>[it.id,Object.fromEntries(ITEM_KEYS.map(k=>[k,it[k]]))]));
+const sameV=(a,b)=>{const na=a==null||a==='',nb=b==null||b==='';if(na||nb)return na&&nb;if(typeof a!==typeof b&&!isNaN(+a)&&!isNaN(+b))return same(+a,+b);return same(a,b);};
+function itemSteps(){const next=snapItems();
+  if(itemSnap&&!itemReplay){const ch=[];for(const [id,o] of next){const p=itemSnap.get(id);if(!p)continue;for(const k of ITEM_KEYS)if(!sameV(p[k],o[k]))ch.push([id,k,p[k],o[k]]);}if(ch.length)itemStep(ch);}
+  itemSnap=next;}
+function itemStep(ch){const now=performance.now(),top=UNDO[UNDO.length-1],sig=ch.map(c=>c[0]+'.'+c[1]).sort().join();
+  if(top&&top.items&&top.sig===sig&&((gesture&&top.g===gesture)||now-top.t<800)){for(const c of ch){const q=top.items.find(x=>x[0]===c[0]&&x[1]===c[1]);if(q)q[3]=c[3];}top.t=now;
+    if(top.items.every(x=>sameV(x[2],x[3])))UNDO.pop();return;}
+  const it=items.find(x=>x.id===ch[0][0]),label=`${ITEM_LABEL[ch[0][1]]||'Change'}${it?' – '+it.name:''}`;
+  REDO.length=0;UNDO.push({items:ch,sig,label,t:now,g:gesture,fn:w=>putItems(ch,w)});if(UNDO.length>300)UNDO.shift();}
+function putItems(ch,w){itemReplay=true;try{for(const [id,k,p,n] of (w?ch:ch.slice().reverse())){const it=items.find(x=>x.id===id);if(!it)continue;const v=w?n:p;if(v===undefined)delete it[k];else it[k]=v;}saveItems();}
+  finally{itemReplay=false;}E.resetMeasure();dirty=true;paintMedia();refreshAll();}
 const isVideo=f=>/^video\//.test(f.type)||/\.(mp4|m4v|mov|webm)$/i.test(f.name);
 const isImage=f=>/^image\//.test(f.type)||/\.(png|jpe?g|webp|gif|svg|avif)$/i.test(f.name);
 async function loadImage(blob){
@@ -325,6 +344,14 @@ cv.addEventListener('dblclick',e=>{const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!
 cv.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.altKey))return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;e.preventDefault();setPlaying(false);
   const it=o.item,[lo,hi]=zRange(o);it.zm=+clamp((+it.zm||100)*Math.exp(-e.deltaY*.0025),lo,hi).toFixed(1);selId=it.id;dirty=true;
   clearTimeout(zoomT);zoomT=setTimeout(()=>{saveItems();openRows.add(it.id);paintMedia();},250);},{passive:false});
+/* the arrow keys nudge the selected piece (0.9): a px at a time, ten with Shift – a cropped piece moves its picture inside its frame */
+document.addEventListener('keydown',e=>{if(!selId||busy||!/^Arrow/.test(e.key)||e.metaKey||e.ctrlKey||e.altKey)return;const a=document.activeElement;
+  if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable||(a.closest&&a.closest('.ctl,.seg,.kinds,.way,.stp-g,.trim'))))return;
+  const o=opOf(selId);if(!o||!croppable(o))return;e.preventDefault();const it=o.item,n=e.shiftKey?10:1,dx=e.key==='ArrowLeft'?-n:e.key==='ArrowRight'?n:0,dy=e.key==='ArrowUp'?-n:e.key==='ArrowDown'?n:0;
+  if(o.whole){it.ox=Math.round((+it.ox||0)+dx);it.oy=Math.round((+it.oy||0)+dy);}
+  else{const [sx,sy]=spare(o);if(sx>.5)it.px=clamp((+it.px||0)+dx*100/sx,-100,100);if(sy>.5)it.py=clamp((+it.py||0)+dy*100/sy,-100,100);}
+  saveItems();dirty=true;clearTimeout(nudgeT);nudgeT=setTimeout(paintMediaKeepFocus,300);});
+let nudgeT=0;
 document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!selId||busy)return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;selId=null;dirty=true;});
 /* the moment a piece is best seen: in Slides, as its slide has arrived; otherwise when it's
    biggest and nearest the middle of the canvas */
@@ -340,7 +367,21 @@ function setPlaying(v){playing=v;const b=$('#play');b.textContent=v?'Pause':'Pla
 $('#play').onclick=()=>setPlaying(!playing);
 $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();clock=$('#scrub').value/1000*P.L;dirty=true;});
 function onSet(k){if(/^gu/.test(k)||k==='guides')dirty=true;if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
-function appRefresh(){const P=planNow();$('#loopChip').textContent=`${P.L.toFixed(1)} s loop`;$('#loopChip').title=`The loop lasts ${P.L.toFixed(2)} seconds, then starts again exactly where it began`;
+/* the loop's length, typed (0.9): click the chip and type a length – every time in the loop (rests, moves, each shape,
+   the pull back, lags, each slide's own time) is scaled by the same amount, so it lasts that long and still joins up.
+   Video plays at its own speed, as ever. One step to undo. */
+const LOOP_KEYS=['hold','dur','spsh','still','zOut','gHold','zIn','lag','colLag','fLag'];
+function fitLoop(T){T=clamp(+T||0,.5,600);const L0=planNow().L;if(!(L0>0)||Math.abs(T/L0-1)<5e-4)return;
+  const s0={},h0=items.map(it=>it.hold);for(const k of LOOP_KEYS)s0[k]=S[k];
+  for(let pass=0;pass<4;pass++){const f=T/planNow().L;if(!(f>0)||Math.abs(f-1)<5e-4)break;
+    for(const k of LOOP_KEYS)S[k]=+(+S[k]*f).toFixed(4);items.forEach(it=>{if(+it.hold>0)it.hold=+(+it.hold*f).toFixed(4);});}
+  const ch={},h1=items.map(it=>it.hold);for(const k of LOOP_KEYS)if(!same(+s0[k],+S[k]))ch[k]=[s0[k],S[k]];
+  const put=w=>{items.forEach((it,i)=>{const v=(w?h1:h0)[i];if(v==null)delete it.hold;else it.hold=v;});itemReplay=true;try{saveItems();}finally{itemReplay=false;}paintMedia();};
+  itemReplay=true;try{saveItems();}finally{itemReplay=false;}saveSettings();pushUndo({ch,label:`Loop ${T.toFixed(1)} s`,extra:put});
+  E.resetMeasure();dirty=true;paintMedia();refreshAll();toastUndo(`Loop ${planNow().L.toFixed(2)} s`);}
+{const c=$('#loopChip');typable(c,{label:'Loop length in seconds',get:()=>+planNow().L.toFixed(2),put:fitLoop,min:.5,max:600,show:()=>`${planNow().L.toFixed(1)} s loop`});
+  c.dataset.tip='Click to set how long the loop lasts – every time in it is scaled to fit';}
+function appRefresh(){const P=planNow(),lc=$('#loopChip');if(!lc.classList.contains('editing'))lc.textContent=`${P.L.toFixed(1)} s loop`;
   const g6=S.layout==='one'?E.slidesOf(items):null;
   $('#countChip').textContent=!items.length?'No media yet':g6&&g6.layers.size?`${items.length} pieces · ${g6.bases.length} slides`:(items.length===1?'1 shape':`${items.length} shapes`);
   if(current&&BUILTIN.concat(mine).some(x=>x.name===current)){const e=LOOK.some(moved);if(e!==edited){edited=e;LS.set('presetEdited',e);}}
@@ -407,6 +448,16 @@ function thumbOf(it){const c=el('canvas');c.width=88;c.height=64;const x=c.getCo
 let dragId=null,trims=[];
 const isLayer=(it,i)=>S.layout==='one'&&i>0&&it.join==='on';
 const BLENDS=[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['darken','Darken'],['lighten','Lighten'],['difference','Difference']];
+/* how much bigger than its own pixels each piece is ever drawn (0.9) – at the export's size, the most across the loop,
+   so the Media row can say when it can't be fully crisp and what size it would need */
+let enlSig='',enlMap=new Map();
+function enlargeMap(){const sig=JSON.stringify([S,items.map(it=>META.map(k=>it[k]))]);if(sig===enlSig)return enlMap;enlSig=sig;enlMap=new Map();
+  if(!items.length)return enlMap;const P=planNow(),[W,H]=size(),xk=outSize()[2]||1,fitIn=S.fit==='fit'&&!(S.layout==='one'&&S.oneFit==='bleed');
+  for(let j=0;j<24;j++){let sc;try{sc=E.scene(S,items,ctx,FONTS,W,H,P.L*(j+.5)/24);}catch(e){break;}
+    for(const o of sc.ops){const it=o.item,r=o.rect;if(!it||it.placeholder||!it.w||!it.h||!r||o.alpha<=.05)continue;
+      let k=o.whole||o.layer?Math.max(r.w/it.w,r.h/it.h):(fitIn?Math.min(r.w/it.w,r.h/it.h):Math.max(r.w/it.w,r.h/it.h)*Math.max(1,(+it.zm||100)/100));
+      if(o.inner&&o.inner.s)k*=o.inner.s;k*=xk;if(k>(enlMap.get(it)||0))enlMap.set(it,k);}}
+  return enlMap;}
 function paintMedia(){
   mediaBox.textContent='';trims=[];
   if(!items.length){mediaBox.append(el('div','media-empty','Drop images or video here, or anywhere on the page'));return;}
@@ -414,6 +465,7 @@ function paintMedia(){
     const row=el('div','slot'),top=el('div','slot-top'),th=el('span','mthumb'),main=el('div','slot-main'),nm=el('div','slot-name',it.title?it.title.split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,''):it.name),meta=el('div','slot-meta');
     const lay=isLayer(it,i),trimmed=it.kind==='video'&&(+it.start>0||+it.end>0);
     th.append(thumbOf(it));meta.textContent=(lay?'On the one before'+(it.place==='behind'?', behind':'')+' · ':'')+(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(trimmed?` · plays ${(+it.start||0).toFixed(1)}–${(+it.end>(+it.start||0)?+it.end:+it.dur||0).toFixed(1)} s`:'')+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(it.blend&&it.blend!=='normal'?` · ${optLabel(BLENDS,it.blend)}`:'')+(it.opa!=null&&+it.opa<100?` · ${Math.round(+it.opa)}%`:'')+(!lay&&S.layout==='one'&&+it.hold>0?` · on for ${+(+it.hold).toFixed(2)} s`:'')+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
+    {const k=enlargeMap().get(it);if(k>1.08){const e=el('span','enl',` · shown at ${Math.round(k*100)}%`);e.dataset.tip=`Drawn bigger than its own pixels – up to ${k.toFixed(2)}× – so it can’t be fully crisp. For a crisp export it would need ${Math.ceil(it.w*k)} × ${Math.ceil(it.h*k)} px.`;meta.append(e);}}
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-expanded',openRows.has(it.id));main.setAttribute('aria-label',`${i+1}. ${it.name} – details`);
     /* opening a row selects the piece and takes the playhead to it (0.6) */
     const tog=()=>{if(openRows.has(it.id)){openRows.delete(it.id);if(selId===it.id)selId=null;}else{openRows.add(it.id);selId=it.id;seekTo(it);}paintMedia();dirty=true;};main.onclick=tog;main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
@@ -441,68 +493,82 @@ function itemRange(det,it,o){const w=el('div','ctl'),hd=el('div','ctl-head'),lb=
 /* the shape of the frame a piece sits in now – to know which way it can be moved inside it */
 function frameAspect(it){const o=cur&&cur.ops.find(q=>q.item===it&&q.rect&&q.rect.w>1);if(o)return o.rect.w/o.rect.h;
   const [W,H]=size();return S.layout==='one'&&S.oneFit==='bleed'?W/H:E.ratioOf(S,items);}
-function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',layer=isLayer(it,i);
+/* A piece's own settings (0.9). What it is comes first – in Slides, whether it's a slide of its own or sits on the
+   one before – then groups in the panel's own terms (a rule, a bold title, a chevron; each remembered open or shut
+   for every piece): Timing, Position or Crop, Look, Plays, and the Caption, shut until wanted. */
+const DET_SHUT={caption:true};
+function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',layer=isLayer(it,i);let cur=det;
   const qm=(w,label,tip)=>{if(!tip)return;const q=el('button','q','?');q.type='button';q.dataset.tip=tip;q.setAttribute('aria-label',label+': '+tip);w.append(q);};
-  const head=t=>det.append(el('div','sub-head',t));
-  const sel=(label,key,opts,tip)=>{const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,label),s=el('select');s.id=`i_${key}_${it.id}`;lb.htmlFor=s.id;
-    for(const [v,t] of opts){const o=el('option',null,t);o.value=v;s.append(o);}s.value=it[key]||'default';if(!opts.some(o=>o[0]===s.value))s.value='default';
-    s.onchange=()=>{it[key]=s.value;saveItems();dirty=true;refreshAll();};hd.append(lb);qm(hd,label,tip);w.append(hd,s);det.append(w);};
+  /* a group: shut or open the same for every piece, its blue dot when shut and something inside has changed */
+  const grp=(id,title,dot)=>{const box=el('div','fold det-fold'),hd=el('button','fold-head'),body=el('div','fold-body'),ch=el('span','chev');hd.type='button';ch.innerHTML=CHEV;
+    const key='piece:'+id,open=FOLDS[key]!=null?FOLDS[key]:!DET_SHUT[id],paint=o=>{body.hidden=!o;hd.setAttribute('aria-expanded',o);if(o)requestAnimationFrame(()=>syncRanges(body));};paint(open);
+    hd.onclick=()=>{const o=body.hidden;FOLDS[key]=o;LS.set('folds',FOLDS);paint(o);};hd.append(el('span',null,title),el('span','cdot'),ch);box.append(hd,body);det.append(box);cur=body;
+    box._mark=()=>hd.classList.toggle('chg',!!(dot?dot():body.querySelector('.chg')));return box;};
+  const groups=[];const G=(id,title,dot)=>{const g=grp(id,title,dot);groups.push(g);return g;};
   /* a choice of this piece's own, with a start value (for its change dot) */
   const pick=(label,key,opts,def,tip,after)=>{const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,label),s=el('select');s.id=`i_${key}_${it.id}`;lb.htmlFor=s.id;
     for(const [v,t] of opts){const o=el('option',null,t);o.value=v;s.append(o);}s.value=opts.some(o=>o[0]===it[key])?it[key]:def;
     const mark=()=>w.classList.toggle('chg',s.value!==def);s.onchange=()=>{it[key]=s.value;saveItems();dirty=true;mark();if(after)after();else{paintMediaKeepFocus();refreshAll();}};
-    hd.append(lb);qm(hd,label,tip);w.append(hd,s);det.append(w);mark();return s;};
-  const resetRow=keys=>{const row=el('div','btn-row'),rs=el('button','pill small','Reset');rs.type='button';rs.onclick=()=>{for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMediaKeepFocus();};row.append(rs);det.append(row);};
-  /* Slides (0.6): a piece can sit on the slide before – in front of it or behind, anywhere on it */
-  const sits=()=>pick('Sits','join',[['own','Its own slide'],['on','On the one before']],'own','Its own slide comes and goes in its turn. On the one before puts it on the slide above it in the list – in front or behind, placed and sized anywhere on it, in its own blend – and it arrives, moves and leaves with that slide.');
-  /* The order of a piece's detail (0.7): what it is (Layer, for one that sits on another), when it plays (Timing),
-     where it sits (Position or Crop), how it looks (Look), the clip (Plays), its words (Caption), and – the
-     rare choice – whether it's a layer, last. */
+    const cx=el('button','cx');cx.type='button';cx.dataset.tip='Changed – click to put it back';cx.setAttribute('aria-label',`${label} – changed; put it back`);cx.onclick=e=>{e.stopPropagation();s.value=def;s.onchange();};
+    hd.append(lb);qm(hd,label,tip);w.append(hd,s,cx);cur.append(w);mark();return s;};
+  const hint=t=>{const p=el('p','hint',t);cur.append(p);return p;};
+  const moved=()=>(+it.px||0)!==0||(+it.py||0)!==0||(+it.ox||0)!==0||(+it.oy||0)!==0||(it.zm!=null&&+it.zm!==100);
+  const resetRow=()=>{if(!moved())return;const row=el('div','btn-row'),rs=el('button','pill small','Reset');rs.type='button';rs.dataset.tip='Put it back where it was';rs.onclick=()=>{for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMediaKeepFocus();};row.append(rs);cur.append(row);};
+  const base=()=>{for(let j=i-1;j>=0;j--)if(!isLayer(items[j],j))return items[j];return null;};
+  /* Slides: is it a slide of its own, or on the one before? – first, because everything else follows from it */
+  if(one&&i>0)pick('Sits','join',[['own','Its own slide'],['on','On the one before']],'own','Its own slide comes and goes in its turn. On the one before puts it on the slide above it in the list – in front or behind, placed and sized anywhere, blended with it – and it comes and goes with that slide.');
   if(layer){
-    head('Layer');sits();
+    G('layer','Layer');
     pick('Order','place',[['front','In front'],['behind','Behind']],'front','In front of the slide, or behind it – behind shows where the slide is see-through or blended');
     pick('Fit','lfit',[['own','As it is'],['fill','Fill the slide']],'own','As it is: all of it, fitted inside the slide, at the size below. Fill the slide: cropped to cover it.');
-    head('Position');
-    itemRange(det,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(det,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
-    itemRange(det,it,{label:'Size',key:'zm',min:5,max:400,step:1,def:100,unit:'%',tip:'100%: as big as fits the slide (or fills it)'});
-    resetRow();det.append(el('p','hint','Or drag it on the canvas – its corners scale it. With guides on it catches on them; hold Alt to place it freely.'));}
+    /* a build: it can arrive after its slide has landed, and stays until the slide goes */
+    pick('Arrives','lin',[['with','With the slide'],['fade','Fades in'],['rise','Rises in'],['grow','Grows in'],['cut','Cuts in']],'with','With the slide, or on its own after the slide has landed – a build, as in a deck. It leaves with the slide.');
+    if((it.lin||'with')!=='with'){itemRange(cur,it,{label:'After',key:'lafter',min:0,max:8,step:.05,def:.3,unit:' s',tip:'How long after the slide has landed'});
+      if(it.lin!=='cut')itemRange(cur,it,{label:'Over',key:'lover',min:.1,max:2,step:.05,def:.6,unit:' s'});}
+    G('position','Position');
+    itemRange(cur,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(cur,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
+    itemRange(cur,it,{label:'Size',key:'zm',min:5,max:400,step:1,def:100,unit:'%',tip:'100%: as big as fits the slide (or fills it)'});
+    hint('Or drag it on the canvas – its corners scale it; the arrow keys nudge it.');resetRow();}
   else{
     /* Slides: this slide's own time, transition and movement – each says what it falls back to */
-    if(one){head('Timing');
-      const r=itemRange(det,it,{label:'On screen',key:'hold',min:0,max:Math.max(12,Math.ceil(+it.dur||0)),step:.05,def:0,
+    if(one){G('timing','Timing');
+      const r=itemRange(cur,it,{label:'On screen',key:'hold',min:0,max:Math.max(12,Math.ceil(+it.dur||0)),step:.05,def:0,
         fmt:v=>v>0?`${+v.toFixed(2)} s`:`As set · ${+(+S.hold).toFixed(2)} s`,after:refreshAll,tip:'This slide’s own time on screen. 0 – or double-click the name – for the time set in Motion.'});
       if(it.kind==='video'){const row=el('div','btn-row'),b=el('button','pill small','Whole clip');b.type='button';b.dataset.tip='Stays on screen long enough for the clip to play from In to Out, transitions included';
-        b.onclick=()=>{const tr=S.oneMove==='cut'?0:+S.dur||0,st=+it.start||0,en=+it.end>st+.05?+it.end:+it.dur||1;r.put(Math.max(.2,+((en-st)-2*tr).toFixed(2)));};row.append(b);det.append(row);}
-      sel('Arrives by','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.map(o=>[o[0],o[1]])));
-      sel('Moves','moves',[['default',`As set · ${optLabel(KB,S.kb)}`]].concat(KB.filter(o=>o[0]!=='vary'&&!(S.oneFit==='bleed'&&o[0]==='parallax')).map(o=>[o[0],o[1]])));}
+        b.onclick=()=>{const tr=S.oneMove==='cut'?0:+S.dur||0,st=+it.start||0,en=+it.end>st+.05?+it.end:+it.dur||1;r.put(Math.max(.2,+((en-st)-2*tr).toFixed(2)));};row.append(b);cur.append(row);}
+      pick('Arrives by','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.map(o=>[o[0],o[1]])),'default',null,()=>refreshAll());
+      pick('Moves','moves',[['default',`As set · ${optLabel(KB,S.kb)}`]].concat(KB.filter(o=>o[0]!=='vary'&&!(S.oneFit==='bleed'&&o[0]==='parallax')).map(o=>[o[0],o[1]])),'default',null,()=>refreshAll());}
     /* where it sits: As it is moves the slide itself; anything cropped moves the picture inside its frame */
     const own=one&&S.oneFit==='own',crop=!own&&(S.fit!=='fit'||(one&&S.oneFit==='bleed'));
-    if(own||crop){head(own?'Position':'Crop');const again=()=>paintMediaKeepFocus();
-      if(own){itemRange(det,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(det,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
-        itemRange(det,it,{label:'Size',key:'zm',min:20,max:400,step:1,def:100,unit:'%',tip:'This slide bigger or smaller than the rest'});}
+    if(own||crop){G(own?'position':'crop',own?'Position':'Crop');const again=()=>paintMediaKeepFocus();
+      if(own){itemRange(cur,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(cur,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
+        itemRange(cur,it,{label:'Size',key:'zm',min:20,max:400,step:1,def:100,unit:'%',tip:'This slide bigger or smaller than the rest'});
+        hint('Or drag it on the canvas – its corners scale it; the arrow keys nudge it.');}
       else{const fa=frameAspect(it),ia=it.w&&it.h?it.w/it.h:fa,zoomed=(+it.zm||100)>100.5,wide=ia>fa*1.005,tall=ia<fa/1.005;
-        if(zoomed||wide)itemRange(det,it,{label:'Across',key:'px',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows across: −100% the right edge, 100% the left'});
-        if(zoomed||tall)itemRange(det,it,{label:'Up and down',key:'py',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows up and down: −100% the bottom, 100% the top'});
-        itemRange(det,it,{label:'Zoom',key:'zm',min:100,max:400,step:1,def:100,unit:'%',change:again,tip:'Crop in tighter. Zoomed in, it can move both ways.'});
-        if(!zoomed&&!wide&&!tall)addHint(det,'It fits its frame exactly – zoom in to move it.');}
-      resetRow();det.append(el('p','hint','Or drag it on the canvas – its corners zoom it. Double-click it to reset.'));}}
-  /* its own blend and opacity, over what's beneath (0.6) */
-  head('Look');
-  pick('Blend','blend',BLENDS,'normal','How it mixes with what’s beneath. Multiply darkens – white goes clear, so a scan or a texture sits into what’s under it. Screen lightens – black goes clear. Overlay deepens contrast; Difference flips colours.',()=>{paintMediaKeepFocus();});
-  itemRange(det,it,{label:'Opacity',key:'opa',min:0,max:100,step:1,def:100,unit:'%',change:()=>paintMediaKeepFocus()});
+        if(zoomed||wide)itemRange(cur,it,{label:'Across',key:'px',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows across: −100% the right edge, 100% the left'});
+        if(zoomed||tall)itemRange(cur,it,{label:'Up and down',key:'py',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows up and down: −100% the bottom, 100% the top'});
+        itemRange(cur,it,{label:'Zoom',key:'zm',min:100,max:400,step:1,def:100,unit:'%',change:again,tip:'Crop in tighter. Zoomed in, it can move both ways.'});
+        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it, or drag on the canvas.':'Or drag it on the canvas – its corners zoom it; the arrow keys nudge it.');}
+      resetRow();}}
+  /* its own blend and opacity – and, once it blends, what it blends with */
+  G('look','Look');
+  pick('Blend','blend',BLENDS,'normal','How it mixes with what’s beneath. Multiply darkens – white goes clear, so a scan or a texture sits into what’s under it. Screen lightens – black goes clear. Overlay deepens contrast; Difference flips colours.',()=>paintMediaKeepFocus());
+  if(it.blend&&it.blend!=='normal'){const b=layer?base():null;
+    hint(layer?(it.place==='behind'?`Behind ${b?b.name:'its slide'} – it shows where that’s see-through or blended.`:`Mixes with ${b?b.name:'its slide'}, beneath it.`)
+      :one&&i>0?'Over the background – set Sits to On the one before to blend it with that slide.':'Over the background.');}
+  itemRange(cur,it,{label:'Opacity',key:'opa',min:0,max:100,step:1,def:100,unit:'%',change:()=>paintMediaKeepFocus()});
   /* video: where it plays from and to, seen as frames (0.6) – and how its colours are read */
-  if(it.kind==='video'){trimBlock(det,it);
+  if(it.kind==='video'){G('plays','Plays');trimBlock(cur,it);
     const tr=el('div','toggle-row'),tb=el('button','toggle');tb.type='button';tb.setAttribute('role','switch');tb.setAttribute('aria-checked',!!it.levels);tb.setAttribute('aria-label','Lift washed-out colours');tb.append(el('span','box'),el('span',null,'Lift washed-out colours'));
-    tb.onclick=()=>{it.levels=!it.levels;tb.setAttribute('aria-checked',it.levels);saveItems();dirty=true;};tr.append(tb);qm(tr,'Lift washed-out colours','For video whose greys look lifted and colours dull – it says it’s full range when it isn’t (Tempo’s promo MP4s up to 0.11.1). Reads it as video range.');det.append(tr);}
-  /* the caption, when there are captions (a layer goes with its slide's) */
-  if(S.capOn&&!layer){head('Caption');
+    tb.onclick=()=>{it.levels=!it.levels;tb.setAttribute('aria-checked',it.levels);saveItems();dirty=true;};tr.append(tb);qm(tr,'Lift washed-out colours','For video whose greys look lifted and colours dull – it says it’s full range when it isn’t (Tempo’s promo MP4s up to 0.11.1). Reads it as video range.');cur.append(tr);}
+  /* the caption – useful, but rarely: shut until opened, with a dot when it has words (a layer goes with its slide's) */
+  if(S.capOn&&!layer){G('caption','Caption',()=>it.title||it.line||it.tags);
     const txt=(label,key,multi,ph)=>{const w=el('div','ctl txt'),hd=el('div','ctl-head'),lb=el('label',null,label),inp=el(multi?'textarea':'input');if(!multi)inp.type='text';else inp.rows=2;
       inp.id=`i_${key}_${it.id}`;lb.htmlFor=inp.id;inp.value=it[key]||'';inp.placeholder=ph||'';inp.spellcheck=false;
-      inp.oninput=()=>{it[key]=inp.value;E.resetMeasure();dirty=true;saveItems();};inp.onchange=()=>{paintMediaKeepFocus();refreshAll();};hd.append(lb);w.append(hd,inp);det.append(w);};
+      inp.oninput=()=>{it[key]=inp.value;E.resetMeasure();dirty=true;saveItems();};inp.onchange=()=>{paintMediaKeepFocus();refreshAll();};hd.append(lb);w.append(hd,inp);cur.append(w);};
     txt('Title','title',true,'A title – Enter for a new line');txt('Line','line',true,'A line under it');txt('Tags','tags',false,'Tags, split with commas');}
-  /* the rare choice, last: a layer is chosen at the top of its own detail, so this is for a slide that isn't one */
-  if(one&&i>0&&!layer){head('Layer');sits();}
-  const r=el('div','btn-row pairs'),up=el('button','pill small','Move up'),dn=el('button','pill small','Move down');up.type=dn.type='button';up.disabled=i===0;dn.disabled=i===items.length-1;
+  groups.forEach(g=>g._mark());
+  const r=el('div','btn-row pairs det-end'),up=el('button','pill small','Move up'),dn=el('button','pill small','Move down');up.type=dn.type='button';up.disabled=i===0;dn.disabled=i===items.length-1;
   up.onclick=()=>moveItem(it.id,i-1);dn.onclick=()=>moveItem(it.id,i+1);r.append(up,dn);det.append(r);
   return det;}
 /* A clip's In and Out (0.6): a bar the length of the clip with its frames along it, the part that
@@ -561,12 +627,13 @@ function paintMediaKeepFocus(){const a=document.activeElement,id=a&&a.id;paintMe
   SUMMARY.canvas=s=>{const [W,H]=E.canvasSize(s);return `${W} × ${H}`+(PICS.bg?' · image':'');};}
 /* Motion: the kind first, then only what that kind uses */
 const KINDS=[['one','Slides','A slide at a time – full bleed, as it is or in a shape, with a transition and a little movement in each'],['line','Line','A row or a column of shapes, moving along'],['grid','Grid','Rows of shapes, moving together'],
-  ['wall','Wall','A camera snapping across a wall of shapes – the columns and rows are yours'],['columns','Columns','Each column running up or down on its own'],['frames','Frames','The frames stay put and the media changes inside them'],['float','Float','Shapes drifting past at different depths']];
+  ['wall','Wall','A camera snapping across a wall of shapes – the columns and rows are yours'],['columns','Columns','Each column running up or down on its own – each at its own speed if you like'],['rows','Rows','Each row running left or right on its own – each at its own speed if you like'],['frames','Frames','The frames stay put and the media changes inside them'],['float','Float','Shapes drifting past at different depths']];
 const KIND_ICON={
   one:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="11" y="5" width="18" height="18" rx="2"/><rect x="33" y="8" width="7" height="12" rx="1.5" class="dim"/></svg>',
   line:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="1" y="8" width="10" height="12" rx="1.5" class="dim"/><rect x="15" y="8" width="10" height="12" rx="1.5"/><rect x="29" y="8" width="10" height="12" rx="1.5" class="dim"/></svg>',
   grid:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="5" y="3" width="9" height="9" rx="1.5"/><rect x="16" y="3" width="9" height="9" rx="1.5"/><rect x="27" y="3" width="9" height="9" rx="1.5"/><rect x="5" y="15" width="9" height="9" rx="1.5" class="dim"/><rect x="16" y="15" width="9" height="9" rx="1.5" class="dim"/><rect x="27" y="15" width="9" height="9" rx="1.5" class="dim"/></svg>',
   columns:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="5" y="-2" width="9" height="13" rx="1.5"/><rect x="5" y="14" width="9" height="13" rx="1.5" class="dim"/><rect x="16" y="5" width="9" height="13" rx="1.5" class="dim"/><rect x="16" y="21" width="9" height="13" rx="1.5"/><rect x="27" y="-6" width="9" height="13" rx="1.5" class="dim"/><rect x="27" y="10" width="9" height="13" rx="1.5"/></svg>',
+  rows:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="-3" y="2" width="13" height="7" rx="1.5"/><rect x="13" y="2" width="13" height="7" rx="1.5" class="dim"/><rect x="29" y="2" width="13" height="7" rx="1.5"/><rect x="4" y="11" width="13" height="7" rx="1.5" class="dim"/><rect x="20" y="11" width="13" height="7" rx="1.5"/><rect x="36" y="11" width="13" height="7" rx="1.5" class="dim"/><rect x="-6" y="20" width="13" height="7" rx="1.5" class="dim"/><rect x="10" y="20" width="13" height="7" rx="1.5"/><rect x="26" y="20" width="13" height="7" rx="1.5" class="dim"/></svg>',
   frames:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="3" y="6" width="10" height="16" rx="1" class="line"/><rect x="5.5" y="8.5" width="5" height="7" rx="1"/><rect x="15" y="6" width="10" height="16" rx="1" class="line"/><rect x="17.5" y="8.5" width="5" height="7" rx="1"/><rect x="27" y="6" width="10" height="16" rx="1" class="line"/><rect x="29.5" y="8.5" width="5" height="7" rx="1"/></svg>',
   float:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="4" y="13" width="7" height="9" rx="1.2" class="dim"/><rect x="14" y="2" width="12" height="15" rx="1.5"/><rect x="29" y="11" width="6" height="7" rx="1" class="dim"/><rect x="24" y="20" width="9" height="11" rx="1.5"/></svg>',
   wall:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="2" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="13" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="24" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="2" y="15" width="9" height="11" rx="1.5" class="dim"/><rect x="13" y="15" width="9" height="11" rx="1.5"/><rect x="24" y="15" width="9" height="11" rx="1.5"/><rect x="34.5" y="15" width="9" height="11" rx="1.5" class="dim"/><rect x="34.5" y="2" width="9" height="11" rx="1.5" class="dim"/></svg>'};
@@ -590,8 +657,40 @@ const FEELS=[['snap','Snap','A slow start, a fast throw, a long settle'],['glide
 const DIR4=[['left','Left'],['right','Right'],['up','Up'],['down','Down']];
 const dirOpts=()=>KIND(S)==='grid'?[['up','Up'],['down','Down']]:DIR4;
 function pickDir(v){if(KIND(S)==='line'){S.dir=v;set('layout',v==='left'||v==='right'?'row':'column');return;}set('dir',v);}
-const showDir=s=>{const k=KIND(s);if(k==='one')return oneTravels(s)||kbDrifts(s);if(k==='frames')return stepping(s)&&(s.fMove==='push'||s.fMove==='cover');if(k==='columns')return false;return mv(s)!=='still';};
+const showDir=s=>{const k=KIND(s);if(k==='one')return oneTravels(s)||kbDrifts(s);if(k==='frames')return stepping(s)&&(s.fMove==='push'||s.fMove==='cover');if(k==='columns'||k==='rows')return false;return mv(s)!=='still';};
 const kindName=s=>optLabel(KINDS,KIND(s));
+/* Columns and Rows (0.9): a pattern for every strip's way and speed, or each its own */
+const dirsOpts=()=>KIND(S)==='rows'?[['alt','Alternate','Right, left, right…'],['up','All left'],['down','All right'],['own','Each its own','Set each row’s way and speed below']]
+  :[['alt','Alternate','Down, up, down…'],['up','All up'],['down','All down'],['own','Each its own','Set each column’s way and speed below']];
+const speedsOpts=()=>mv(S)==='drift'?[['same','Same'],['varied','Varied','Two, three and four times round a loop'],['own','Each its own','Set each one’s speed below – 0 holds it still']]
+  :[['same','Same'],['own','Each its own','Shapes a move, set each below – 0 holds one still']];
+/* making a pattern your own starts from what it was doing, so nothing jumps */
+function stripsOwn(key,v,pre,eff){if(v===S[key])return;group(key==='colDir'?'Directions':'Speeds',()=>{if(v==='own')for(let c=0;c<8;c++)set(pre+c,eff(c),true);set(key,v,true);});refreshAll();}
+const ARROW={'-1':'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 10V2M2.8 5.2 6 2l3.2 3.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  '1':'<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M2.8 6.8 6 10l3.2-3.2" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>'};
+function stripsList(parent){
+  const show=s=>isK('columns','rows')(s)&&mv(s)!=='still'&&(s.colDir==='own'||s.colSpeed==='own');
+  const word=()=>KIND(S)==='rows'?'Row':'Column',sp=k=>k?(k===1?'1×':k+'×'):'Still';
+  const body=fold(parent,'strips','Each column',show,false,s=>{const C=Math.min(8,Math.round(+s.cols)||3),out=[];for(let c=0;c<C;c++)out.push(sp(E.stripSpeed(s,c)));return out.join(' · ');});
+  const lab=body.previousElementSibling.querySelector('span');
+  controls.push({d:{},w:lab,update(){const t=KIND(S)==='rows'?'Each row':'Each column';if(lab.textContent!==t)lab.textContent=t;}});
+  for(let c=0;c<8;c++){
+    const w=el('div','ctl stp strip'),hd=el('div','ctl-head'),lb=el('label'),g=el('div','strip-g'),way=el('div','way'),stp=el('div','stp-g'),mi=el('button'),val=el('span','val'),pl=el('button');
+    w.dataset.k='ss'+c;mi.type=pl.type='button';mi.innerHTML=ICON.minus;pl.innerHTML=ICON.plus;
+    const bs=[-1,1].map(v=>{const b=el('button');b.type='button';b.dataset.v=v;b.onclick=()=>{if(E.stripWay(S,c)===v&&S.colDir==='own')return;
+      group(`${word()} ${c+1}`,()=>{if(S.colDir!=='own'){for(let q=0;q<8;q++)set('sd'+q,E.stripWay(S,q),true);set('colDir','own',true);}set('sd'+c,v,true);});refreshAll();};way.append(b);return b;});
+    const speed=v=>{const k=clamp(Math.round(v),0,8);group(`${word()} ${c+1}`,()=>{if(S.colSpeed!=='own'){for(let q=0;q<8;q++)set('ss'+q,E.stripSpeed(S,q),true);set('colSpeed','own',true);}set('ss'+c,k,true);});refreshAll();};
+    mi.onclick=()=>speed(E.stripSpeed(S,c)-1);pl.onclick=()=>speed(E.stripSpeed(S,c)+1);
+    typable(val,{label:`Speed – ${word()} ${c+1}`,get:()=>E.stripSpeed(S,c),put:speed,min:0,max:8,show:()=>sp(E.stripSpeed(S,c))});
+    stp.append(mi,val,pl);g.append(way,stp);hd.append(lb);w.append(hd,g);body.append(w);
+    const ctl={d:{k:'ss'+c,keys:['sd'+c,'ss'+c],min:0,max:8,label:`${word()} ${c+1}`,show:s=>c<Math.min(8,Math.round(+s.cols)||3)},w,update(){
+      const W=word(),rows=W==='Row',dir=E.stripWay(S,c),k=E.stripSpeed(S,c);ctl.d.label=`${W} ${c+1}`;ctl.d.keys=(S.colDir==='own'?['sd'+c]:[]).concat(S.colSpeed==='own'?['ss'+c]:[]);
+      if(lb.textContent!==ctl.d.label)lb.textContent=ctl.d.label;
+      bs.forEach(b=>{const v=+b.dataset.v,name=rows?(v<0?'left':'right'):(v<0?'up':'down');b.innerHTML=ARROW[v];b.firstChild.style.transform=rows?'rotate(-90deg)':'';
+        b.setAttribute('aria-label',`${W} ${c+1} – ${name}`);b.dataset.tip=name[0].toUpperCase()+name.slice(1);b.setAttribute('aria-pressed',dir===v);});
+      way.classList.toggle('held',k===0);if(!val.classList.contains('editing'))val.textContent=sp(k);mi.disabled=k<=0;pl.disabled=k>=8;
+      mi.setAttribute('aria-label',`Slower – ${W} ${c+1}`);pl.setAttribute('aria-label',`Faster – ${W} ${c+1}`);}};
+    controls.push(ctl);addCx(ctl,w);}}
 const PATHS=[['across','Across','Straight along, the way Direction says'],['diagonal','Diagonal','Both ways at once: along, and a quarter turn round'],['stairs','Stairs','Along, then a quarter turn, again and again'],['square','Square','Round a square and back to the start']];
 /* What a Feel draws, so it can be seen and not guessed: the move runs left to right, how far it has got goes up */
 function feelPic(parent,key,show){
@@ -654,34 +753,30 @@ function transDraw(){
     if(j)svg+=`<path class="tp-go" d="M${xs[j]-5} ${fy+fh/2-3}l2.5 3-2.5 3"/>`;});
   const o=MOVES_ONE.find(q=>q[0]===how);
   return{key:[how,full,S.dir].join(),svg,cap:o&&o[2]?o[2].split(' – ')[0]:''};}
-/* a preset, drawn: its shapes where they sit on its ground, an arrow the way it moves (dashed when it never stops) */
+/* a preset, drawn (0.9): every drawing on the same small canvas, in the interface's own greys – the piece in focus
+   dark, the rest light – and each kind drawn one way, so within a group only what tells the presets apart changes
+   (the transition, the shape, how many, which way they sit). No arrows: the name and the tooltip say how it moves. */
 function presetPic(p){
-  const s=Object.assign({},D,p),k=E.kindOf(s),bg=s.bg||'#F5F5F3',ink=lumOf(bg)<.5?'#FFFFFF':'#111111',W=44,H=30,u=DV[s.dir]||DV.up;
-  const q=s.ratio==='custom'?Math.max(.3,Math.min(3,(+s.rW||1)/(+s.rH||1))):s.ratio==='media'?1.2:(E.RATIOS[s.ratio]||1.6),moving=s.trackMove!=='still',drift=s.trackMove==='drift';
-  const R=(x,y,w,h,o)=>`<rect x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="1.3" style="fill:${ink}" opacity="${o==null?.78:o}"/>`;
-  const Fr=(x,y,w,h)=>`<rect x="${f1(x+.5)}" y="${f1(y+.5)}" width="${f1(w-1)}" height="${f1(h-1)}" rx="1" style="fill:none;stroke:${ink}" stroke-width="1" opacity=".6"/>`;
-  const arrow=(pts)=>{const n=pts.length,a=pts[n-2],b=pts[n-1],dx=b[0]-a[0],dy=b[1]-a[1],L=Math.hypot(dx,dy)||1,ux=dx/L,uy=dy/L,h=3;
-    return`<path d="M${pts.map(t=>f1(t[0])+' '+f1(t[1])).join('L')}M${f1(b[0]-ux*h-uy*h*.7)} ${f1(b[1]-uy*h+ux*h*.7)}L${f1(b[0])} ${f1(b[1])}L${f1(b[0]-ux*h+uy*h*.7)} ${f1(b[1]-uy*h-ux*h*.7)}" class="pd-arrow"${drift?' stroke-dasharray="2.2 2"':''}/>`;};
-  const line=(cx,cy,vx,vy,len)=>arrow([[cx-vx*len/2,cy-vy*len/2],[cx+vx*len/2,cy+vy*len/2]]);
+  const s=Object.assign({},D,p),k=E.kindOf(s),W=44,H=30,u=DV[s.dir]||DV.up;
+  const q=s.ratio==='custom'?Math.max(.3,Math.min(3,(+s.rW||1)/(+s.rH||1))):s.ratio==='media'?1.2:(E.RATIOS[s.ratio]||1.6);
+  const R=(x,y,w,h,on,r)=>`<rect x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="${r==null?1.2:r}" class="${on?'pd-a':'pd-b'}"/>`;
+  const Fr=(x,y,w,h)=>`<rect x="${f1(x+.5)}" y="${f1(y+.5)}" width="${f1(w-1)}" height="${f1(h-1)}" rx="1" class="pd-f"/>`;
   let g='';
   if(k==='one'){const e=transMid(s.oneMove,.5,W-8,H-8,s.dir,s.oneFit==='bleed');
-    g=`<svg x="4" y="4" width="${W-8}" height="${H-8}">`+e.map(t=>t.c==='o'?`<rect x="${f1(t.x)}" y="${f1(t.y)}" width="${f1(t.w)}" height="${f1(t.h)}" rx="1.3" style="fill:none;stroke:${ink}" stroke-dasharray="2 1.6" opacity=".7"/>`:`<rect x="${f1(t.x)}" y="${f1(t.y)}" width="${f1(t.w)}" height="${f1(t.h)}" rx="${t.r?1.3:0}" style="fill:${ink}" opacity="${f1(t.c==='a'?t.o*.45:t.o*.85)}"/>`).join('')+'</svg>';}
+    g=`<svg x="4" y="4" width="${W-8}" height="${H-8}">`+e.map(t=>t.c==='o'?`<rect x="${f1(t.x)}" y="${f1(t.y)}" width="${f1(t.w)}" height="${f1(t.h)}" rx="1.2" class="pd-o"/>`:R(t.x,t.y,t.w,t.h,t.c==='b',t.r?1.2:0).replace('/>',t.o<.99?` fill-opacity="${f1(Math.max(.2,t.o))}"/>`:'/>')).join('')+'</svg>';}
   else if(k==='line'){const hz=s.layout==='row'||u[1]===0;
-    if(hz){const h=14,w=Math.min(16,h*q);for(let i=-2;i<=2;i++)g+=R(W/2-w/2+i*(w+3),(H-h)/2-1,w,h,i?.4:.8);g+=line(W/2,H-4,u[0]||1,0,16);}
-    else{const w=Math.min(20,15*Math.min(q,1.4)),h=w/q;for(let i=-2;i<=2;i++)g+=R((W-w)/2-2,H/2-h/2+i*(h+3),w,h,i?.4:.8);g+=line(W-5,H/2,0,u[1]||-1,14);}}
-  else if(k==='grid'){const C=Math.max(1,Math.min(5,Math.round(s.cols)||3)),w=(34-(C-1)*3)/C,h=w/q;for(let r=-2;r<=2;r++)for(let c=0;c<C;c++)g+=R(2+c*(w+3),H/2-h/2+r*(h+3),w,h,r?.4:.8);g+=line(W-5,H/2,0,u[1]||-1,14);}
+    if(hz){const h=14,w=Math.min(15,h*q);for(let i=-2;i<=2;i++)g+=R(W/2-w/2+i*(w+3),(H-h)/2,w,h,!i);}
+    else{const w=Math.min(20,14*Math.min(q,1.4)),h=w/q;for(let i=-2;i<=2;i++)g+=R((W-w)/2,H/2-h/2+i*(h+3),w,h,!i);}}
+  else if(k==='grid'){const C=Math.max(1,Math.min(5,Math.round(s.cols)||3)),w=(34-(C-1)*3)/C,h=w/q;for(let r=-2;r<=2;r++)for(let c=0;c<C;c++)g+=R(5+c*(w+3),H/2-h/2+r*(h+3),w,h,!r);}
   else if(k==='wall'){const C=Math.max(1,Math.min(5,Math.round(s.wCols)||3)),Rr=Math.max(1,Math.min(4,Math.round(s.wRows)||2)),sc=Math.min(1,36/(C*(Math.min(18/Rr,12)*q)+(C-1)*2));
-    let th=Math.min(18/Rr,12)*sc,tw=th*q;const off=(+s.wOff||0)/100;
-    for(let c=-1;c<=C;c++)for(let r=-1;r<=Rr+(off?1:0);r++){const inside=c>=0&&c<C&&r>=0&&r<Rr;g+=R(W/2-(C*tw+(C-1)*2)/2+c*(tw+2),H/2-(Rr*th+(Rr-1)*2)/2+r*(th+2)+(off&&((c%2)+2)%2?off*(th+2):0),tw,th,inside?.8:.28);}
-    const v=[-u[1],u[0]],cx=W/2,cy=H/2,L=7,at=(a,b,c)=>[cx+a*u[0]*L+b*v[0]*L,cy+a*u[1]*L+b*v[1]*L];
-    g+=s.wPath==='diagonal'?line(cx,cy,u[0]+v[0],u[1]+v[1],L*1.8):s.wPath==='stairs'?arrow([at(-1,-.5),at(0,-.5),at(0,.5),at(1,.5)]):s.wPath==='square'?arrow([at(-.7,-.7),at(.7,-.7),at(.7,.7),at(-.7,.7),at(-.7,-.3)]):line(cx,cy,u[0],u[1],18);}
-  else if(k==='columns'){const C=Math.max(2,Math.min(5,Math.round(s.cols)||3)),w=(38-(C-1)*2)/C,h=Math.min(11,w/q),off=(+s.colOff||0)/100*h;
-    for(let c=0;c<C;c++){for(let r=-1;r<=3;r++)g+=R(3+c*(w+2),r*(h+2)+(c%2?off:0)-1,w,h,.78);}
-    for(let c=0;c<C;c++){const dn=s.colDir==='down'||(s.colDir==='alt'&&c%2===0);g+=line(3+c*(w+2)+w/2,H/2,0,dn?1:-1,9);}}
+    const th=Math.min(18/Rr,12)*sc,tw=th*q,off=(+s.wOff||0)/100;
+    for(let c=-1;c<=C;c++)for(let r=-1;r<=Rr+(off?1:0);r++){const inside=c>=0&&c<C&&r>=0&&r<Rr;g+=R(W/2-(C*tw+(C-1)*2)/2+c*(tw+2),H/2-(Rr*th+(Rr-1)*2)/2+r*(th+2)+(off&&((c%2)+2)%2?off*(th+2):0),tw,th,inside&&c===0&&r===0).replace('class="pd-b"',inside?'class="pd-b"':'class="pd-b pd-out"');}}
+  else if(k==='columns'||k==='rows'){const rows=k==='rows',C=Math.max(rows?1:2,Math.min(5,Math.round(s.cols)||3)),A=rows?H-6:W-6,t=(A-(C-1)*2)/C,len=Math.min(rows?16:11,rows?t*q:t/q);
+    for(let c=0;c<C;c++){const off=(c%2)*(+s.colOff||0)/100*len;for(let j=-1;j<=4;j++){const a=3+c*(t+2),b=j*(len+2)+off-2;g+=rows?R(b,a,len,t,j===1&&c===0):R(a,b,t,len,j===1&&c===0);}}}
   else if(k==='frames'){const C=Math.max(1,Math.min(4,Math.round(s.fCols)||3)),Rr=Math.max(1,Math.min(2,Math.round(s.fRows)||1)),w=Math.min(13,(36-(C-1)*3)/C),h=Math.min(22/Rr,w/q),x0=(W-(C*w+(C-1)*3))/2,y0=(H-(Rr*h+(Rr-1)*3))/2;
-    for(let r=0;r<Rr;r++)for(let c=0;c<C;c++){const x=x0+c*(w+3),y=y0+r*(h+3);g+=Fr(x,y,w,h)+`<svg x="${f1(x+1)}" y="${f1(y+1)}" width="${f1(w-2)}" height="${f1(h-2)}">`+R(-(w-2)*u[0]*.45+(w-2)*.1,-(h-2)*u[1]*.45+(h-2)*.1,(w-2)*.8,(h-2)*.8,.8)+'</svg>';}}
-  else{const L=[[4,17,8,10,.35],[14,3,13,16,.8],[30,14,7,9,.35],[22,19,10,10,.8],[33,3,8,8,.5],[3,3,7,8,.5]];for(const t of L)g+=R(t[0],t[1],t[2],t[3],t[4]);g+=line(W/2,H/2,u[0],u[1],14);}
-  return`<svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><rect class="pd-bg" width="${W}" height="${H}" rx="3" style="fill:${bg}"/>${g}</svg>`;}
+    for(let r=0;r<Rr;r++)for(let c=0;c<C;c++){const x=x0+c*(w+3),y=y0+r*(h+3);g+=Fr(x,y,w,h)+R(x+2,y+2,w-4,h-4,!r&&!c,.8);}}
+  else{const L=[[4,17,8,10,0],[14,3,13,16,1],[30,14,7,9,0],[22,19,10,10,0],[33,3,8,8,0],[3,3,7,8,0]];for(const t of L)g+=R(t[0],t[1],t[2],t[3],t[4]);}
+  return`<svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><rect class="pd-bg" width="${W}" height="${H}" rx="3"/><svg width="${W}" height="${H}">${g}</svg></svg>`;}
 const fmtS=v=>`${+(+v).toFixed(2)} s`;
 const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
 /* Motion (0.7): the kind first, then what that kind moves and which way; then three groups that mean the
@@ -693,6 +788,7 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
     {t:'seg',k:'ownScale',label:'Sizes',opts:[['fit','Fit each'],['true','True to scale']],show:s=>isK('one')(s)&&s.oneFit==='own'},
     {t:'range',k:'cols',label:'Columns',min:1,max:8,step:1,show:isK('grid')},
     {t:'range',k:'cols',id:'ccols',label:'Columns',min:2,max:8,step:1,show:isK('columns')},
+    {t:'range',k:'cols',id:'rrows',label:'Rows',min:1,max:8,step:1,show:isK('rows')},
     {t:'range',k:'wCols',label:'Columns',min:1,max:8,step:1,show:isK('wall')},
     {t:'range',k:'wRows',label:'Rows',min:1,max:6,step:1,show:isK('wall')},
     {t:'range',k:'wOff',label:'Offset',min:0,max:100,step:1,unit:'%',show:isK('wall')},
@@ -701,13 +797,18 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
     {t:'seg',k:'oneMove',label:'Transition',opts:MOVES_ONE,show:isK('one')}]);
   svgPic(b,isK('one'),'trans-pic','0 0 120 44',transDraw);
   build(b,[
-    {t:'seg',k:'trackMove',label:'Move',opts:MOVES_TRACK,show:isK('line','grid','columns','float','wall')},
+    {t:'seg',k:'trackMove',label:'Move',opts:MOVES_TRACK,show:isK('line','grid','columns','rows','float','wall')},
     {t:'seg',k:'wPath',label:'Path',opts:PATHS,show:s=>isK('wall')(s)&&mv(s)!=='still'},
     {t:'seg',k:'fMove',label:'Change',opts:MOVES_FRAME,show:s=>isK('frames')(s)&&!framesStatic(s)},
     {t:'seg',k:'dir',label:'Direction',optsFn:dirOpts,pick:pickDir,show:showDir},
     {t:'range',k:'wStep',label:'Distance',min:1,max:4,step:1,show:s=>isK('wall')(s)&&mv(s)!=='still'},
-    {t:'seg',k:'colDir',label:'Directions',opts:[['alt','Alternate'],['up','All up'],['down','All down']],show:s=>isK('columns')(s)&&mv(s)!=='still'},
-    {t:'range',k:'colOff',label:'Offset',min:0,max:100,step:1,unit:'%',show:isK('columns')},
+    {t:'seg',k:'colDir',label:'Directions',optsFn:dirsOpts,pick:v=>stripsOwn('colDir',v,'sd',c=>E.stripWay(S,c)),show:s=>isK('columns','rows')(s)&&mv(s)!=='still'},
+    {t:'seg',k:'colSpeed',label:'Speeds',optsFn:speedsOpts,val:s=>s.colSpeed==='varied'&&mv(s)!=='drift'?'same':s.colSpeed,pick:v=>stripsOwn('colSpeed',v,'ss',c=>E.stripSpeed(S,c)),show:s=>isK('columns','rows')(s)&&mv(s)!=='still',tip:'Same: every one at one speed. Varied: two, three and four times round a loop. Each its own: set each one below – 0 holds it still.'},
+    {t:'range',k:'colOff',label:'Offset',min:0,max:100,step:1,unit:'%',show:isK('columns','rows'),tip:'Every other one set along by part of a shape, so it reads as a wall rather than a grid'}]);
+  /* each column (or row) on its own: its way and its speed – the list always shows what each is doing; changing
+     one makes the pattern above Each its own */
+  stripsList(b);
+  build(b,[
     {t:'range',k:'depth',label:'Depth',min:0,max:100,step:1,unit:'%',show:isK('float')},
     {t:'range',k:'spread',label:'Spread',min:0,max:300,step:1,unit:'%',show:isK('float')}]);
   svgPic(b,s=>isK('wall')(s)&&mv(s)!=='still','path-pic','0 0 120 56',pathDraw);
@@ -723,7 +824,6 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
     {t:'range',k:'dur',label:'Move time',min:.1,max:4,step:.05,unit:' s',show:s=>stepping(s)&&!isK('one')(s)&&!(isK('frames')(s)&&s.fMove==='cut')},
     {t:'range',k:'spsh',label:'Each shape',min:.5,max:12,step:.05,unit:' s',show:s=>mv(s)==='drift'&&!isK('frames','wall')(s)},
     {t:'range',k:'spsh',id:'spsh2',label:'Each move',min:.5,max:12,step:.05,unit:' s',show:s=>mv(s)==='drift'&&isK('wall')(s)},
-    {t:'seg',k:'colSpeed',label:'Speeds',opts:[['same','Same'],['varied','Varied']],show:s=>isK('columns')(s)&&mv(s)==='drift'},
     {t:'range',k:'still',label:'Length',min:1,max:60,step:.5,unit:' s',show:s=>mv(s)==='still'||(isK('frames')(s)&&framesStatic(s))}];
   const tm=fold(b,'timing','Timing',groupShow(TIMING),false,s=>stepping(s)?(isK('one')(s)?fmtS(s.hold)+' on screen'+(s.oneMove!=='cut'?' · '+fmtS(s.dur):''):`${fmtS(s.hold)} rest · ${fmtS(s.dur)} move`):mv(s)==='drift'?`${fmtS(s.spsh)} a shape`:fmtS(s.still));
   build(tm,TIMING);
@@ -733,9 +833,9 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
     {t:'seg',k:'kb',label:'Movement',optsFn:()=>S.oneFit==='bleed'?KB.filter(o=>o[0]!=='parallax'):KB,val:s=>s.oneFit==='bleed'&&s.kb==='parallax'?'drift':s.kb,show:isK('one')},
     {t:'range',k:'kbAmt',label:'Amount',min:1,max:30,step:.5,unit:'%',show:s=>isK('one')(s)&&kbOn(s)},
     {t:'range',k:'lag',label:'Lag',min:0,max:.3,step:.005,unit:' s',show:s=>isK('line','grid')(s)&&stepping(s)},
-    {t:'range',k:'colLag',label:'Lag',min:0,max:3,step:.05,unit:' s',show:s=>isK('columns')(s)&&stepping(s)},
+    {t:'range',k:'colLag',label:'Lag',min:0,max:3,step:.05,unit:' s',show:s=>isK('columns','rows')(s)&&stepping(s)},
     {t:'range',k:'fLag',id:'flag',label:'Lag',min:0,max:2,step:.01,unit:' s',show:s=>isK('frames')(s)&&stepping(s)},
-    {t:'range',k:'creep',label:'Keep drifting',min:0,max:60,step:1,unit:'%',show:s=>isK('line','grid','columns','float','wall')(s)&&stepping(s)}];
+    {t:'range',k:'creep',label:'Keep drifting',min:0,max:60,step:1,unit:'%',show:s=>isK('line','grid','columns','rows','float','wall')(s)&&stepping(s)}];
   const ch=fold(b,'character','Character',groupShow(CHAR.concat(FEELROW)),false,s=>[FEELROW.show(s)?optLabel(FEELS,s.feel):'',isK('one')(s)&&s.kb!=='none'?optLabel(KB,s.kb):'',+s.creep>0&&CHAR[5].show(s)?`drifting ${Math.round(s.creep)}%`:''].filter(Boolean).join(' · '));
   build(ch,[FEELROW]);feelPic(ch,'feel',FEELROW.show);build(ch,CHAR);
   /* After the last: how the loop ends – straight on round, or pulled back to show them all (its settings, a group of their own) */
@@ -757,9 +857,11 @@ const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
   build(b,[{t:'select',k:'ratio',label:'Shape',show:s=>!ownFit(s),opts:[['media','The media’s own'],['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']]},
     {t:'nums',keys:['rW','rH'],names:['W','H'],label:'Shape ratio',min:.1,max:100,step:.1,sep:':',show:s=>s.ratio==='custom'&&!ownFit(s)},
     {t:'range',k:'size',label:'Size',min:10,max:100,step:.5,unit:'%',show:isK('one','line','frames','wall'),tip:'How big the shapes are: 100% fills the canvas (Slides, Frames, Wall), its height (a row) or its width (a column)'},
-    {t:'range',k:'size',id:'gsize',label:'Width',min:10,max:100,step:.5,unit:'%',show:isK('grid','columns'),tip:'How much of the canvas’s width they take'},
+    {t:'range',k:'size',id:'gsize',label:'Width',min:10,max:100,step:.5,unit:'%',show:isK('grid'),tip:'How much of the canvas’s width they take'},
+    {t:'range',k:'size',id:'csize',label:'Width',min:10,max:160,step:.5,unit:'%',show:isK('columns'),tip:'How much of the canvas’s width the columns take – past 100% the outer ones run off the sides'},
+    {t:'range',k:'size',id:'rsize',label:'Height',min:10,max:160,step:.5,unit:'%',show:isK('rows'),tip:'How much of the canvas’s height the rows take – past 100% the outer ones run off the top and bottom'},
     {t:'range',k:'flSize',label:'Size',min:5,max:80,step:.5,unit:'%',show:isK('float'),tip:'How wide the nearest shapes are, against the canvas'},
-    {t:'range',k:'gap',label:'Gap',min:0,max:240,step:1,unit:' px',show:isK('line','grid','columns','frames','wall')},
+    {t:'range',k:'gap',label:'Gap',min:0,max:240,step:1,unit:' px',show:isK('line','grid','columns','rows','frames','wall')},
     {t:'range',k:'radius',label:'Corners',min:0,max:120,step:1,unit:' px'},
     {t:'seg',k:'fit',label:'Media fit',opts:[['fill','Fill the shape'],['fit','Fit inside']],show:s=>!ownFit(s)},
     {t:'colour',k:'shapeBg',label:'Behind the media',show:s=>!ownFit(s)}]);
@@ -776,11 +878,11 @@ let fontBox;
    of each role, then what applies to all text (accent, kerning), then the fonts. */
 {const b=card('captions','Captions');
   build(b,[{t:'toggle',k:'capOn',label:'Captions'},
-    {t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','frames','float','wall'].includes(S.layout)?WHERE.slice(0,3):S.layout==='one'&&S.oneFit==='bleed'?WHERE.slice(2):WHERE,show:s=>s.capOn},
+    {t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','rows','frames','float','wall'].includes(S.layout)?WHERE.slice(0,3):S.layout==='one'&&S.oneFit==='bleed'?WHERE.slice(2):WHERE,show:s=>s.capOn},
     {t:'seg',k:'capV',label:'Sits',opts:[['top','Top'],['bottom','Bottom']],show:s=>s.capOn&&E.capWhereOf(s)==='fixed'},
     {t:'seg',k:'capAlign',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],show:s=>s.capOn},
-    {t:'seg',k:'capReveal',label:'Arrives',opts:[['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],show:s=>s.capOn&&!isK('columns','float','wall')(s)},
-    {t:'range',k:'capRevealDur',label:'Over',min:.1,max:3,step:.05,unit:' s',show:s=>s.capOn&&s.capReveal!=='none'&&!isK('columns','float','wall')(s)}]);
+    {t:'seg',k:'capReveal',label:'Arrives',opts:[['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],show:s=>s.capOn&&!isK('columns','rows','float','wall')(s)},
+    {t:'range',k:'capRevealDur',label:'Over',min:.1,max:3,step:.05,unit:' s',show:s=>s.capOn&&s.capReveal!=='none'&&!isK('columns','rows','float','wall')(s)}]);
   addHint(b,'Write each caption in Media – open a row.',s=>s.capOn&&!items.some(i=>i.title||i.line||i.tags));
   const pf=fold(b,'capPos','Position and spacing',s=>s.capOn,true,s=>[E.capWhereOf(s)==='fixed'?`${Math.round(s.capMargin)} px margin`:`${Math.round(s.capSpace)} px space`,(+s.capX||+s.capY)?`moved ${Math.round(s.capX)}, ${Math.round(s.capY)} px`:''].filter(Boolean).join(' · '));
   build(pf,[{t:'range',k:'capMargin',label:'Margin',min:0,max:300,step:1,unit:' px',show:s=>E.capWhereOf(s)==='fixed'},
@@ -800,7 +902,7 @@ let fontBox;
   const fo=fold(b,'fonts','Fonts',null,true,()=>{const n=ownFontIds().length;return n?`${n} of your own`:'Built in';});fontBox=el('div','font-list');addCustom(fo,null,fontBox);
   const r=el('div','ctl btn-row'),add=el('button','pill small','+ Add font');add.type='button';add.onclick=()=>$('#fontfile').click();r.append(add);addCustom(fo,null,r);
   addHint(fo,'OTF, TTF or WOFF. Fonts you add stay on this computer, in this browser, and show in every Font menu – the overlay’s too.');
-  SUMMARY.captions=s=>s.capOn?[optLabel(WHERE,E.capWhereOf(s)),(FONTS[s.TF]||FONTS.default).label,isK('columns','float','wall')(s)?'':optLabel([['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],s.capReveal)].filter(Boolean).join(' · '):'Off';}
+  SUMMARY.captions=s=>s.capOn?[optLabel(WHERE,E.capWhereOf(s)),(FONTS[s.TF]||FONTS.default).label,isK('columns','rows','float','wall')(s)?'':optLabel([['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],s.capReveal)].filter(Boolean).join(' · '):'Off';}
 function paintFonts(){fontBox.textContent='';
   for(const [id,f] of Object.entries(FONTS)){if(!f.own&&!['aktiv','inter8','plex','helv'].includes(id))continue;
     const row=el('div','slot font-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name sample',f.label),meta=el('div','slot-meta',f.own?f.file:'Built in');
@@ -858,7 +960,9 @@ const BUILTIN=[
   {name:'Carousel',tip:'Tall cards drifting along in a row, never stopping',s:{layout:'row',ratio:'custom',rW:9,rH:20,size:59,gap:49,radius:14,trackMove:'drift',dir:'left',spsh:2.67,capOn:false,bg:'#1D1C23',shapeBg:'#2B2A31'}},
   {name:'Rows up',tip:'Rows of shapes stepping up together, a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1,dur:.9,capOn:false}},
   {name:'Columns up and down',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
-  {name:'Masonry drift',tip:'A wall of work in columns drifting down and up at their own speeds, each piece its own shape',s:{layout:'columns',cols:3,ratio:'media',size:100,gap:12,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'varied',spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
+  {name:'Masonry drift',tip:'A wall of work in columns drifting down, up and down at their own speeds – 3, 4 and 7 times round a loop, as the reference – each piece its own shape, the outer columns running off the sides',s:{layout:'columns',cols:3,ratio:'media',size:128,gap:10,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:3,ss1:4,ss2:7,spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
+  {name:'Rows side to side',tip:'Rows stepping right and left in turn on the snap, each a beat after the last',s:{layout:'rows',cols:3,ratio:'16:10',size:100,gap:18,radius:6,trackMove:'step',colDir:'alt',colSpeed:'same',colLag:.3,colOff:50,feel:'snap',hold:1,dur:.9,capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
+  {name:'Rows drift',tip:'Rows of work drifting left and right, never stopping, each at its own speed, running off the top and bottom',s:{layout:'rows',cols:4,ratio:'media',size:118,gap:10,radius:4,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:2,ss1:3,ss2:2,ss3:4,spsh:3,colOff:40,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
   {name:'Posters',tip:'Three mounted posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
   {name:'Wall snap',tip:'A wall of posters, three across and two down, the whole of it thrown one tile along on the snap – then a long rest, drifting a touch',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:1,wOff:0,ratio:'3:4',size:94,gap:22,radius:4,trackMove:'step',dir:'left',feel:'snap',hold:1.7,dur:.9,creep:10,capOn:false,bg:'#0E0E0E',shapeBg:'#222222'}},
   {name:'Wall stairs',tip:'A wall panned in stairs – along, then up, again and again – each move a snap',s:{layout:'wall',wCols:3,wRows:3,wPath:'stairs',wStep:1,wOff:0,ratio:'1:1',size:96,gap:18,radius:6,trackMove:'step',dir:'left',feel:'snap',hold:1.2,dur:.85,creep:8,capOn:false,bg:'#F1F0EC',shapeBg:'#DEDDD8'}},
@@ -893,10 +997,19 @@ let presetBox,saveIn;
   r.append(saveIn,sv);b.append(el('div','sub-head','Save these settings'),r);
   const r2=el('div','btn-row pairs'),dl=el('button','pill small','Download presets'),ld=el('button','pill small','Load presets');dl.type=ld.type='button';
   dl.onclick=()=>saveFile('segue-presets.json',new Blob([JSON.stringify({segue:1,presets:mine},null,1)],{type:'application/json'}));ld.onclick=()=>$('#presetfile').click();r2.append(dl,ld);b.append(r2);
-  cardToSheet(b,'presets');}
+  cardToSheet(b,'presets');
+  /* Safari (0.9): if the list doesn't show when the sheet opens, say so on the panel with what the browser reports –
+     a list that's there but can't be seen throws no error, so nothing else would */
+  const sh=b.closest('.sheet')||(SHEETS.presets&&SHEETS.presets.el);
+  if(sh)new MutationObserver(()=>{if(sh.hidden)return;setTimeout(()=>{if(sh.hidden)return;try{const rows=[...presetBox.querySelectorAll('.preset-row')],r=sh.getBoundingClientRect(),pc=$('#pcap'),cs=getComputedStyle(sh);
+    /* some row in sight inside the sheet (it may be scrolled), the sheet itself on screen and not see-through */
+    const seen=rows.find(e=>{const q=e.getBoundingClientRect();return q.height>10&&q.bottom>Math.max(0,r.top)&&q.top<Math.min(innerHeight,r.bottom);}),f=(seen||rows[0]||{getBoundingClientRect:()=>null}).getBoundingClientRect();
+    const ok=rows.length>0&&r.height>80&&r.bottom>0&&r.top<innerHeight&&!!seen&&cs.visibility!=='hidden'&&+cs.opacity>.5;
+    if(!ok)reportError({message:`Presets didn’t show – ${rows.length} rows, sheet ${Math.round(r.width)}×${Math.round(r.height)} at ${Math.round(r.top)}, a row ${f?Math.round(f.height)+' high at '+Math.round(f.top):'none'}, list ${presetBox.childElementCount}, capsule ${pc?getComputedStyle(pc).display+' '+pc.className:'none'}, sheets ${getComputedStyle(sh.parentElement.parentElement).gridTemplateRows}, window ${innerWidth}×${innerHeight}`},'presets');}catch(e){reportError(e,'presets check');}},450);}).observe(sh,{attributes:true,attributeFilter:['hidden']});}
 function paintPresets(){presetBox.textContent='';
   /* a preset is a small drawing of it and its name; what it does is in its tooltip */
-  const row=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),ic=el('span','pk');ic.innerHTML=presetPic(p.s);
+  const row=(p,own)=>{try{row1(p,own);}catch(e){reportError(e,'preset '+p.name);const r=el('div','slot preset-row'),m=el('div','slot-main');m.append(el('div','slot-name',p.name));m.setAttribute('role','button');m.tabIndex=0;m.onclick=()=>{applyPreset(p);paintPresets();};r.append(m);presetBox.append(r);}};
+  const row1=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),ic=el('span','pk');try{ic.innerHTML=presetPic(p.s);}catch(e){}
     if(p.tip||own)main.dataset.tip=p.tip||(optLabel(KINDS,E.kindOf(p.s))+' – one of yours');main.append(nm);top.append(ic);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
     top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);r.classList.add('on');}
     if(own){const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Delete';rm.setAttribute('aria-label','Delete '+p.name);

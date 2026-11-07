@@ -64,7 +64,7 @@
   .media-list .slot.hover{background:var(--k-fill-hover);box-shadow:inset 0 0 0 1px var(--hair)}
   .media-list .slot.open.hover{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
   .media-list .slot.layer{margin-left:18px;position:relative}
-  .media-list .slot.layer::before{content:'';position:absolute;left:-11px;top:-4px;height:calc(50% + 4px);width:7px;border-left:1px solid var(--hair);border-bottom:1px solid var(--hair);border-bottom-left-radius:4px;pointer-events:none}
+  .media-list .slot.layer::before{content:'';position:absolute;left:-11px;top:-4px;height:28px;width:7px;border-left:1px solid var(--hair);border-bottom:1px solid var(--hair);border-bottom-left-radius:4px;pointer-events:none}
   /* 0.6: a clip's In and Out – the clip as frames, the part that plays lit */
   .trim{margin:0 0 12px}
   .trim-bar{position:relative;height:36px;border-radius:var(--r-ctl,8px);overflow:hidden;background:var(--k-fill);cursor:ew-resize;touch-action:none;user-select:none}
@@ -107,10 +107,27 @@
 .trans-pic .tp-go{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
 .preset-row .pk{width:44px;height:30px}
 .preset-row .pk svg{width:44px;height:30px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--hair)}
-.pd-arrow{fill:none;stroke:#E5484D;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+/* 0.9: preset drawings in the interface's greys – one ground for all, the piece in focus dark */
+.pk svg rect.pd-bg{fill:var(--k-card)}
+.pk svg rect.pd-a{fill:var(--ink-strong);opacity:.86}
+.pk svg rect.pd-b{fill:var(--ink-strong);opacity:.24}
+.pk svg rect.pd-b.pd-out{opacity:.1}
+.pk svg rect.pd-f{fill:none;stroke:var(--ink-strong);stroke-width:1;opacity:.45}
+.pk svg rect.pd-o{fill:none;stroke:var(--ink-strong);stroke-dasharray:2 1.6;opacity:.5}
 .path-pic svg{height:56px}
 /* on a touch screen the small round buttons keep their look but get a hand-sized target */
 @media (pointer:coarse){.pill.small.icon{position:relative}.pill.small.icon::after{content:'';position:absolute;inset:-9px}}
 /* a stepper starts where the sliders do, so a column of settings lines up */
 .ctl.stp>.stp-g{margin-left:0;justify-self:start}
 .ctl.stp:not(.seg-inline):not(.as-menu)>.ctl-head{align-items:center;align-self:center;margin-bottom:0}
+/* 0.9: each column or row on its own – its way (two arrows, the chosen one white) and its speed */
+.ctl.strip>.strip-g{display:flex;align-items:center;gap:6px;justify-self:start}
+.way{display:inline-flex;height:var(--h-ctl);padding:2px;border-radius:var(--r-ctl);background:var(--k-fill)}
+.way button{width:30px;height:100%;border:0;border-radius:var(--r-in);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap),color var(--t-snap),box-shadow var(--t-snap)}
+.way button svg{width:12px;height:12px;transition:transform var(--t-snap)}
+.way button:hover{color:var(--ink)}
+.way button[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
+.way button:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+.way.held button[aria-pressed="true"]{color:var(--muted)}
+.ctl.strip .stp-g .val{min-width:40px!important}
+.slot-meta .enl{color:var(--ink)}

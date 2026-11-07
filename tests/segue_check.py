@@ -211,12 +211,13 @@ with sync_playwright() as p:
           walk(document.querySelector('#panel section.card[data-id=motion] .card-body'));return out;})()""")
     pg.evaluate("document.querySelectorAll('#panel section.card').forEach(c=>{if(c.dataset.id==='motion'&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();})")
     kinds = pg.evaluate("[...document.querySelectorAll('.kinds .kind')].map(b=>b.textContent)")
-    check('Motion opens on seven kinds – the ones a camera moves across first, then the ones with a clock each', kinds == ['Slides', 'Line', 'Grid', 'Wall', 'Columns', 'Frames', 'Float'], str(kinds))
+    check('Motion opens on eight kinds – the ones a camera moves across first, then the ones with a clock each (Rows beside Columns, 0.9)', kinds == ['Slides', 'Line', 'Grid', 'Wall', 'Columns', 'Rows', 'Frames', 'Float'], str(kinds))
     want = {
         'Line': (['Kind', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting', '▸ After the last', 'Then'], {'trackMove': 'step'}),
         'Slides': (['Kind', 'Each slide', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', '▸ After the last', 'Then'], {'oneMove': 'slide', 'oneFit': 'shape', 'kb': 'none'}),
         'Grid': (['Kind', 'Columns', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
-        'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Offset', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
+        'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Speeds', 'Offset', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step', 'colDir': 'alt', 'colSpeed': 'same'}),
+        'Rows': (['Kind', 'Rows', 'Move', 'Directions', 'Speeds', 'Offset', '▸ Each row', 'Row 1', 'Row 2', 'Row 3', '▸ Timing', 'Each shape'], {'trackMove': 'drift', 'cols': 3, 'colDir': 'own', 'colSpeed': 'same'}),
         'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
         'Float': (['Kind', 'Move', 'Direction', 'Depth', 'Spread', 'Shuffle', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Keep drifting'], {'trackMove': 'step'}),
         'Wall': (['Kind', 'Columns', 'Rows', 'Offset', 'Move', 'Path', 'Direction', 'Distance', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Keep drifting'], {'trackMove': 'step', 'wPath': 'across', 'wOff': 0})}
@@ -356,8 +357,9 @@ with sync_playwright() as p:
     # ---- 0.8: the Wall's presets, and the little drawings ----
     check('the Wall has presets of its own, listed between Grid and Columns', {'Wall snap', 'Wall stairs', 'Brick wall'} <= set(names) and heads.index('Wall') == heads.index('Grid') + 1 and heads.index('Columns') == heads.index('Wall') + 1, f'{names} {heads}')
     pics = pg.evaluate("""(()=>{const rows=[...document.querySelectorAll('#pcapSheets .preset-row')];
-      return {rows:rows.length,pics:rows.filter(r=>r.querySelector('.pk svg rect')).length,arrows:rows.filter(r=>r.querySelector('.pk svg .pd-arrow')).length,hidden:rows.filter(r=>r.querySelector('.pk svg').getAttribute('aria-hidden')!=='true').length};})()""")
-    check('every preset, yours too, has a drawing of itself – and every one that travels has its arrow', pics['pics'] == pics['rows'] and pics['hidden'] == 0 and pics['arrows'] >= 12, str(pics))
+      const fills=new Set(rows.map(r=>getComputedStyle(r.querySelector('.pk svg .pd-bg')).fill));
+      return {rows:rows.length,pics:rows.filter(r=>r.querySelector('.pk svg rect')).length,arrows:document.querySelectorAll('#pcapSheets .pk svg path').length,grounds:fills.size,focus:rows.filter(r=>r.querySelector('.pk svg .pd-a')).length,hidden:rows.filter(r=>r.querySelector('.pk svg').getAttribute('aria-hidden')!=='true').length};})()""")
+    check('every preset, yours too, has a drawing of itself (0.9): all on one ground, the piece in focus dark, no arrows', pics['pics'] == pics['rows'] and pics['hidden'] == 0 and pics['arrows'] == 0 and pics['grounds'] == 1 and pics['focus'] >= pics['rows'] - 2, str(pics))
     tp = pg.evaluate("""(()=>{const out={};segue.set('layout','one');segue.set('oneFit','shape');
       for(const m of ['cut','slide','fade','through']){segue.set('oneMove',m);const e=document.querySelector('.trans-pic');out[m]=[e.offsetParent!==null,e.querySelectorAll('svg.tp-frame').length,e.querySelector('.fp-cap').textContent.length>5];}
       segue.set('oneMove','slide');const a=document.querySelector('.trans-pic svg').innerHTML;segue.set('oneMove','wipe');const b=document.querySelector('.trans-pic svg').innerHTML;
@@ -488,14 +490,15 @@ with sync_playwright() as p:
     def subheads(idx):
         row = pg.locator('.media-list .slot').nth(idx)
         if 'open' not in (row.get_attribute('class') or ''): row.locator('.slot-main').click(); time.sleep(.3)
-        h = row.evaluate("e=>[...e.querySelectorAll('.slot-det .sub-head')].map(x=>x.textContent)")
+        h = row.evaluate("e=>[...e.querySelectorAll('.slot-det>.fold>.fold-head>span:first-child')].map(x=>x.textContent+(x.parentElement.getAttribute('aria-expanded')==='false'?' (shut)':''))")
+        h = ['Sits'] * bool(row.evaluate("e=>!!e.querySelector('.slot-det>.ctl select[id^=i_join_]')")) + h
         row.locator('.slot-main').click(); time.sleep(.2)
         return h
     first_sh, second_sh, clip_sh = subheads(0), subheads(1), subheads(3)
     pg.evaluate("segue.items[2].join='on'"); layer_sh = subheads(2); pg.evaluate("segue.items[2].join='own'")
-    check('a piece’s detail goes Timing, Crop, Look, (Plays), Caption – and Layer, the rare choice, last; a layer’s opens with Layer, then Position, then Look',
-          first_sh == ['Timing', 'Crop', 'Look', 'Caption'] and second_sh == ['Timing', 'Crop', 'Look', 'Caption', 'Layer'] and clip_sh == ['Timing', 'Crop', 'Look', 'Plays', 'Caption', 'Layer']
-          and layer_sh == ['Layer', 'Position', 'Look'], f'{first_sh} {second_sh} {clip_sh} {layer_sh}')
+    check('a piece’s detail (0.9): Sits first (from the second slide on), then groups – Timing, Crop, Look, (Plays), and the Caption shut; a layer’s: Sits, Layer, Position, Look',
+          first_sh == ['Timing', 'Crop', 'Look', 'Caption (shut)'] and second_sh == ['Sits', 'Timing', 'Crop', 'Look', 'Caption (shut)'] and clip_sh == ['Sits', 'Timing', 'Crop', 'Look', 'Plays', 'Caption (shut)']
+          and layer_sh == ['Sits', 'Layer', 'Position', 'Look'], f'{first_sh} {second_sh} {clip_sh} {layer_sh}')
     pg.evaluate("segue.set('capOn',false)")
 
     # ---- 0.4: type a value; drag a piece; a looser pull back ----
@@ -738,6 +741,92 @@ with sync_playwright() as p:
       segue.set('guides',false);await segue.frameAt(c,x,1080,1350,segue.clock);const e2=x.getImageData(0,0,1080,1350).data;let ed=0;for(let i=0;i<e1.length;i+=4)if(e1[i]!==e2[i])ed++;return {preview:diff,export:ed};}""")
     check('Guides show on the preview and never in an export', gd['preview'] > 500 and gd['export'] == 0, str(gd))
     pg.evaluate("segue.set('guides',false);segue.items.splice(0,segue.items.length,...window._keep);segue.refresh();segue.applyPreset('Card stack');segue.set('ovOn',false)")
+
+    # ---- 0.9: Rows, each column (or row) its own way and speed, builds, a piece's undo, nudging, the loop's length ----
+    st = pg.evaluate("""()=>{const x=document.createElement('canvas').getContext('2d'),E=segue.E;segue.applyPreset('Card stack');
+      for(const [k,v] of [['cSize','custom'],['cW',1080],['cH',1350],['capOn',false],['layout','rows'],['cols',3],['ratio','16:10'],['size',100],['gap',20],['trackMove','drift'],['spsh',2],['colDir','alt'],['colSpeed','same'],['colOff',0]])segue.set(k,v);
+      const sc=t=>E.scene(segue.S,segue.items,x,segue.fonts,1080,1350,t).ops,vel=(t,c)=>{const a=sc(t),b=sc(t+.05),o=a.find(q=>q.key.startsWith('c'+c+'.')&&b.some(p=>p.key===q.key)),q=b.find(p=>p.key===o.key);return [(q.rect.x-o.rect.x)/.05,(q.rect.y-o.rect.y)/.05];};
+      const rows=[0,1,2].map(c=>vel(1,c));const P=segue.plan(),n=segue.items.length;
+      segue.set('colSpeed','varied');const varied=[0,1,2].map(c=>vel(1,c)[0]),Lv=segue.plan().L;
+      segue.set('layout','columns');segue.set('colSpeed','own');for(const [k,v] of [['ss0',3],['ss1',4],['ss2',7]])segue.set(k,v);
+      const cols=[0,1,2].map(c=>vel(1,c)[1]),Lc=segue.plan().L;
+      const key=t=>sc(t).map(o=>o.key+':'+o.rect.x.toFixed(2)+','+o.rect.y.toFixed(2)).join('|'),loops=key(0)===key(Lc);
+      segue.set('ss1',0);const held=vel(1,1)[1];segue.set('ss1',4);
+      segue.set('trackMove','step');segue.set('hold',.5);segue.set('dur',.5);segue.set('colLag',0);segue.set('creep',0);segue.set('ss0',2);
+      const pitch=(1080-40)/3/1.6+20,T=n*pitch,y0=sc(.25).find(o=>o.key==='c0.0').rect.y,y1=sc(1.25).find(o=>o.key==='c0.0').rect.y,Ls=segue.plan().L,stepLoops=key(.25)===key(.25+Ls);
+      const moved=((y1-y0)%T+T)%T;
+      segue.set('trackMove','drift');segue.set('size',140);const wide=sc(1).some(o=>o.rect.x<-1)&&sc(1).some(o=>o.rect.x+o.rect.w>1081);
+      return {rows,n,L:P.L,varied,Lv,cols,Lc,loops,held,step:[moved,2*pitch],Ls,stepLoops,wide};}""")
+    check('Rows run left and right – alternate ones each way, nothing moving up or down', st['rows'][0][0] > 0 and st['rows'][1][0] < 0 and st['rows'][2][0] > 0 and all(abs(r[1]) < 1e-6 for r in st['rows']), str(st['rows']))
+    check('Rows: Varied speeds are two, three and four times round a loop twice as long', abs(st['varied'][1] / st['varied'][0] + 1.5) < .02 and abs(st['varied'][2] / st['varied'][0] - 2) < .02 and abs(st['Lv'] - 2 * st['L']) < 1e-6, f"{st['varied']} {st['L']}→{st['Lv']}")
+    check('Each its own: columns at 3, 4 and 7 run at 3 : 4 : 7 (Steve’s reference is about 1 : 1.37 : 2.3), the slowest setting the pace, and the loop still joins up',
+          abs(-st['cols'][1] / st['cols'][0] - 4 / 3) < .01 and abs(st['cols'][2] / st['cols'][0] - 7 / 3) < .01 and abs(st['Lc'] - st['n'] * 2 * 3) < 1e-6 and st['loops'], f"{st['cols']} loop {st['Lc']} s")
+    check('A speed of 0 holds a column still', abs(st['held']) < 1e-6, str(st['held']))
+    check('Stepping, a speed of 2 moves two shapes a move, and the loop still joins up', abs(st['step'][0] - st['step'][1]) < .5 and st['stepLoops'], f"moved {st['step'][0]:.1f} px (two shapes: {st['step'][1]:.1f}), joins up: {st['stepLoops']}")
+    check('Width past 100% runs the outer columns off the sides', st['wide'], str(st['wide']))
+    # the list of columns: it shows what each is doing; changing one makes it your own, in one undo step
+    pg.evaluate("()=>{for(const [k,v] of [['layout','columns'],['cols',3],['trackMove','drift'],['colDir','alt'],['colSpeed','same']])segue.set(k,v);const c=document.querySelector('section.card[data-id=motion]');if(c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();}"); time.sleep(.3)
+    hidden_list = pg.evaluate("!document.querySelector('.ctl.strip')||document.querySelector('.ctl.strip').closest('.fold').hidden")
+    pg.evaluate("()=>{const b=[...document.querySelectorAll('section.card[data-id=motion] .seg[aria-label=Directions] .pill')].find(x=>x.textContent==='Each its own');b.click();}"); time.sleep(.3)
+    lst = pg.evaluate("()=>({own:segue.S.colDir,ways:[0,1,2].map(c=>segue.E.stripWay(segue.S,c)),rows:[...document.querySelectorAll('.ctl.strip')].filter(e=>!e.hidden).map(e=>e.querySelector('label').textContent),head:document.querySelector('.ctl.strip').closest('.fold').querySelector('.fold-head span').textContent})")
+    pg.evaluate("segue.set('colSpeed','own');segue.set('colDir','alt')"); time.sleep(.3)   # the list stays (speeds are your own); ways follow Alternate
+    pg.locator('.ctl.strip button[aria-label="Column 2 – down"]').click(); time.sleep(.3)
+    one = pg.evaluate("[segue.S.colDir,segue.E.stripWay(segue.S,1),segue.ui.undoSteps]")
+    pg.keyboard.press('Control+z'); time.sleep(.3)
+    back = pg.evaluate("[segue.S.colDir,segue.E.stripWay(segue.S,1)]")
+    check('Each column: the list shows only once a pattern is your own – Each its own keeps what they were doing, and lists them by name',
+          hidden_list and lst['own'] == 'own' and lst['ways'] == [1, -1, 1] and lst['rows'] == ['Column 1', 'Column 2', 'Column 3'] and lst['head'] == 'Each column', f'{hidden_list} {lst}')
+    check('Changing one column’s way makes the pattern your own; one Undo puts both back', one[0] == 'own' and one[1] == 1 and back == ['alt', -1], f'{one} → {back}')
+    rp = pg.evaluate("()=>{const o={};for(const n of ['Rows side to side','Rows drift','Masonry drift']){segue.applyPreset(n);o[n]=[segue.S.layout,segue.S.trackMove,segue.S.colSpeed,[0,1,2].map(c=>segue.E.stripSpeed(segue.S,c))];}return o;}")
+    check('Presets for Rows (stepping and drifting); Masonry drift now 3, 4 and 7 as the reference', rp['Rows side to side'][:2] == ['rows', 'step'] and rp['Rows drift'][:3] == ['rows', 'drift', 'own'] and rp['Masonry drift'][3] == [3, 4, 7], str(rp))
+    # a layer as a build: it arrives on its own once its slide has landed
+    bd = pg.evaluate("""()=>{const x=document.createElement('canvas').getContext('2d'),E=segue.E;segue.applyPreset('Card stack');
+      for(const [k,v] of [['layout','one'],['oneFit','bleed'],['oneMove','fade'],['dur',.5],['hold',3],['kb','none'],['capOn',false],['after','carry']])segue.set(k,v);
+      const [a,b]=segue.items;for(const it of segue.items)Object.assign(it,{join:'own',lin:undefined,lafter:undefined,lover:undefined,arrive:'default',hold:0});b.join='on';b.lfit='own';b.zm=50;b.lin='rise';b.lafter=.4;b.lover=.6;segue.refresh();
+      const P=segue.plan(),t0=P.segs.find(g=>g.k==='move'&&g.to%P.stops===0)?P.segs.find(g=>g.k==='move'&&mod(g.to,P.stops)===0).t0:0;function mod(a,n){return((a%n)+n)%n;}
+      const L=t=>E.scene(segue.S,segue.items,x,segue.fonts,1080,1350,((t%P.L)+P.L)%P.L).ops.find(o=>o.item===b);
+      const at=d=>{const o=L(t0+d);return o?[+o.alpha.toFixed(3),+o.rect.y.toFixed(1)]:null;};
+      const r={before:at(.5+.3),mid:at(.5+.4+.3),after:at(.5+.4+.6+.2)};b.lin='with';segue.refresh();r.with=at(.5+.3);b.join='own';segue.refresh();return r;}""")
+    check('A layer can arrive on its own after its slide lands (a build) – Rises in: not there, rising and fading up, then in place; With the slide: there all along',
+          bd['before'][0] == 0 and 0 < bd['mid'][0] < 1 and bd['mid'][1] > bd['after'][1] and bd['after'][0] == 1 and bd['with'][0] == 1, str(bd))
+    # a piece's own settings undo; the arrow keys nudge the selected piece; Blend says what it mixes with
+    pg.evaluate("()=>{segue.applyPreset('Straight cuts');segue.set('xFormat','mp4');for(const it of segue.items)Object.assign(it,{join:'own',blend:'normal',ox:0,oy:0,px:0,py:0,zm:100});segue.refresh();const c=document.querySelector('section.card[data-id=media]');if(c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();}"); time.sleep(.3)
+    pg.locator('#panel .media-list .slot').nth(1).locator('.slot-main').click(); time.sleep(.5)
+    iid = pg.evaluate("segue.items[1].id")
+    pg.select_option(f'#i_blend_{iid}', 'multiply'); time.sleep(.4)
+    note = pg.evaluate("[...document.querySelectorAll('.slot.open .hint')].map(h=>h.textContent).join(' | ')")
+    pg.mouse.click(5, 5); pg.keyboard.press('Control+z'); time.sleep(.4)
+    u1 = pg.evaluate("segue.items[1].blend||'normal'")
+    pg.keyboard.press('Control+Shift+z'); time.sleep(.4)
+    u2 = pg.evaluate("segue.items[1].blend")
+    check('A piece’s own settings undo and redo (0.9) – and once it blends, its row says what with', u1 == 'normal' and u2 == 'multiply' and 'Over the background' in note, f'{u1} {u2} {note!r}')
+    pg.evaluate("()=>{segue.items[1].blend='normal';segue.set('oneFit','own');segue.refresh();segue.setPlaying(false);segue.setClock(segue.momentOf(segue.items[1]));}"); time.sleep(.4)
+    cvb = pg.locator('#cv').bounding_box(); pg.mouse.click(cvb['x'] + cvb['width'] / 2, cvb['y'] + cvb['height'] / 2); time.sleep(.4)
+    pg.keyboard.press('ArrowRight'); pg.keyboard.press('Shift+ArrowDown'); time.sleep(.3)
+    nd = pg.evaluate("(()=>{const it=segue.items.find(i=>i.id===segue.sel);return it?[+it.ox,+it.oy]:null})()")
+    check('The arrow keys nudge the selected piece – a px at a time, ten with Shift', nd == [1, 10], str(nd))
+    # the loop's length, typed
+    pg.evaluate("()=>{segue.applyPreset('Push and drift');}"); time.sleep(.3)
+    L0 = pg.evaluate("segue.plan().L")
+    pg.locator('#loopChip').click(); time.sleep(.2); pg.keyboard.type('15'); pg.keyboard.press('Enter'); time.sleep(.4)
+    L1 = pg.evaluate("segue.plan().L"); pg.mouse.click(5, 5); pg.keyboard.press('Control+z'); time.sleep(.4); L2 = pg.evaluate("segue.plan().L")
+    check('Click the loop’s length and type one: every time in it is scaled to fit, in one undo step', abs(L1 - 15) < .01 and abs(L2 - L0) < 1e-6, f'{L0:.2f} → {L1:.3f} → {L2:.2f}')
+    # media drawn bigger than its own pixels says so
+    enl = pg.evaluate("""async()=>{const c=document.createElement('canvas');c.width=270;c.height=338;c.getContext('2d').fillRect(0,0,270,338);const b=await new Promise(r=>c.toBlob(r));
+      await segue.addFiles([new File([b],'small.png',{type:'image/png'})]);await new Promise(r=>setTimeout(r,800));segue.applyPreset('Straight cuts');segue.set('xFormat','mp4');segue.refresh();
+      const rows=[...document.querySelectorAll('.media-list .slot')];const small=rows.find(r=>r.querySelector('.slot-name').textContent==='small.png');
+      const out={small:small&&small.querySelector('.enl')?small.querySelector('.enl').textContent:null,big:rows.filter(r=>r.querySelector('.slot-name').textContent.startsWith('l_poster')).map(r=>!!r.querySelector('.enl'))};
+      const it=segue.items.find(i=>i.name==='small.png');if(it){segue.items.splice(segue.items.indexOf(it),1);segue.refresh();}return out;}""")
+    check('A piece drawn bigger than its own pixels says so in its row, with the size it would need', enl['small'] == ' · shown at 400%', str(enl))
+    # Presets: if the list doesn't show when the sheet opens, the panel says so
+    pg.evaluate("document.querySelectorAll('.err-note').forEach(n=>n.remove())")
+    sheet(pg, 'presets'); time.sleep(.7); ok_note = pg.evaluate("!!document.querySelector('#errNote')"); pg.evaluate("ensembleUI.close()"); time.sleep(.3)
+    pg.evaluate("document.head.insertAdjacentHTML('beforeend','<style id=hidepr>.preset-row{display:none!important}</style>')")
+    sheet(pg, 'presets'); time.sleep(.7); bad_note = pg.evaluate("(document.querySelector('#errNote')||{}).textContent||''"); pg.evaluate("ensembleUI.close()"); time.sleep(.3)
+    pg.evaluate("document.querySelector('#hidepr').remove();document.querySelectorAll('#errNote').forEach(n=>n.remove())")
+    errs[:] = [e for e in errs if 'Presets didn’t show' not in e]   # the note made on purpose just now isn't an error on the page
+    check('Presets that can’t be seen when the sheet opens put a note on the panel (for Safari) – and none when they show', not ok_note and 'Presets didn’t show' in bad_note, f'{ok_note} {bad_note[:160]!r}')
+    pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false)")
 
     # ---- exports ----
     pg.evaluate("for(const [k,v] of [['hold',.3],['dur',.3],['zOut',.3],['gHold',.3],['zIn',.3],['cSize','custom'],['cW',540],['cH',676],['bg','#F5F5F3'],['bgImgA',0],['name','Test reel']])segue.set(k,v)")

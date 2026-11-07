@@ -63,7 +63,7 @@ APPS = {
 # does: the shared core is still tied to Rubato's settings and type engine. It takes the
 # shared GIF encoder and Tempo's copy of mp4-muxer (MIT).
 SEGUE = dict(
-    title='Segue – by Ensemble', version='0.8',
+    title='Segue – by Ensemble', version='0.9',
     body='segue/app.html', css='segue/app.css',
     tagged=[('segue-engine', 'segue/engine.js'), ('segue-mp4', 'tempo/vendor/mp4-muxer.js')],
     before='shared/gif.js',

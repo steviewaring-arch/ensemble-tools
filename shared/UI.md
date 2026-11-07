@@ -7,7 +7,7 @@ disagree, the tool is wrong.
 
 Settled with Steve over rounds 1–4 (October–November 2026). The kit lives in
 `shared/kit.css`; the mock-ups and reasoning are at `ui/review/` (round 4 at
-`ui/review/round4/`). Last revised 6 November 2026 (Segue 0.8, Tempo 0.12,
+`ui/review/round4/`). Last revised 7 November 2026 (Segue 0.9, Tempo 0.12,
 Rubato 1.2, Tutti 6.2).
 
 ## Principles
@@ -58,7 +58,10 @@ Every part of the panel is one of four levels. Each level looks one way only.
    and on its head.
 3. **Setting** – one row, 30 px high (see the row grammar).
 4. **Detail** – belongs to one row: a slide's own settings open inside its row; a
-   note sits under what it explains.
+   note sits under what it explains. When a detail has groups of its own (a piece's
+   Timing, Look, Caption…), they are groups in the level-2 style – a rule, a 13 Bold
+   title, a chevron – never sub-heads that read like labels; what's rarely used
+   starts shut (Segue 0.9).
 
 Sheets speak the same language: the sheet's title is set as a section title
 (14 Bold), its groups as labels (13 Medium) with one rule between groups.
@@ -103,9 +106,13 @@ Sheets speak the same language: the sheet's title is set as a section title
   Shuffle, Clear all, Reset, Replace, + Add, Randomise.
 - **List rows:** soft grey fills, 8 px; a grip where they reorder; the open or
   chosen one white with its keyline **inside** (so a scrolling sheet never clips it).
-- **Presets:** a list of names (13 Medium) under their kind; a small picture of the
-  kind only where the list mixes kinds (yours); what a preset does goes in its
-  tooltip; "In use" as a tag.
+- **Presets:** a list of names (13 Medium) under their kind, each with a small
+  drawing of itself – all on one white ground in the interface's greys, the piece in
+  focus dark, each kind drawn one way, no arrows or colour (Segue 0.9); what a preset
+  does goes in its tooltip; "In use" as a tag.
+- **Scrollbars:** thin – 6 px, a soft grey thumb that darkens under the pointer, no
+  track (`kit.css`, every tool). Chrome ignores `::-webkit-scrollbar` wherever
+  `scrollbar-width` is set, so the kit sets it back to `auto` there; Firefox keeps thin.
 
 ## What's changed, and undo
 
@@ -113,7 +120,7 @@ Sheets speak the same language: the sheet's title is set as a section title
   (`--k-dot`) when the row differs from where it started (the preset in use, or the
   default); click it to put the row back. Changed values read in ink, Medium.
 - **Undo:** ⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Y – settings, presets, section resets, removed
-  files. A drag is one step. Removing something says so in the island, with Undo.
+  files, and (Segue 0.9) a piece's own settings. A drag is one step. Removing something says so in the island, with Undo.
 - In Segue now; Tempo, Rubato and Tutti take it next (their state needs a "where it
   started" first).
 

@@ -55,7 +55,7 @@ const unitOf=(W,H)=>Math.min(W,H)/1080;
 
 /* ---------------- kinds ---------------- */
 const kindOf=S=>{const l=S.layout||'one';return l==='row'||l==='column'?'line':l;};
-const OWN=new Set(['columns','frames','float','wall']);   /* kinds with their own clock */
+const OWN=new Set(['columns','rows','frames','float','wall']);   /* kinds with their own clock */
 /* which way things travel on each layout */
 function dirOf(S){const d=S.dir||'left';
   if(S.layout==='row')return d==='right'?'right':'left';
@@ -65,6 +65,14 @@ const horiz=d=>d==='left'||d==='right';
 const sgnOf=d=>(d==='left'||d==='up')?1:-1;
 const moveOf=S=>S.layout==='one'?(S.oneMove||'slide'):S.layout==='frames'?(S.fMove||'push'):(S.trackMove||'step');
 const colsOf=S=>Math.max(1,Math.round(+S.cols)||3);
+/* Columns and Rows (0.9): each strip's way (+1 down or right, −1 up or left) and speed (times round a loop; 0 holds
+   it still). A pattern sets them all – Alternate, all one way, the same or varied speeds – or each strip has its own. */
+const stripsOf=S=>S.layout==='columns'||S.layout==='rows';
+function stripWay(S,c){const p=S.colDir||'alt';if(p==='own')return +S['sd'+c]<0?-1:1;return p==='up'?-1:p==='down'?1:(c%2?-1:1);}
+function stripSpeed(S,c){const p=S.colSpeed||'same';if(p==='own'){const v=Math.round(+S['ss'+c]);return Number.isFinite(v)?clamp(v,0,8):1;}
+  return p==='varied'&&moveOf(S)==='drift'?[2,3,4][c%3]:1;}
+/* drifting, the slowest moving strip goes round once in Each shape × media – the rest are as many times faster */
+function stripBase(S,C){if(moveOf(S)!=='drift')return 1;let m=0;for(let c=0;c<C;c++){const v=stripSpeed(S,c);if(v>0&&(!m||v<m))m=v;}return m||1;}
 const framesOf=S=>Math.max(1,Math.round(+S.fCols)||1)*Math.max(1,Math.round(+S.fRows)||1);
 const creepOf=S=>clamp((+S.creep||0)/100,0,.9);
 /* captions fixed on the canvas belong to a shape at a time – not to the kinds with many at once */
@@ -155,9 +163,9 @@ function plan(S,items){
   const N=Math.max(1,items.length),mv=moveOf(S),lay=S.layout||'one';
   const hold=Math.max(0,+S.hold||0),dur=Math.max(0,+S.dur||0),cyc=hold+dur;
   const still=()=>Math.max(.5,+S.still||8);
-  if(lay==='columns'){const C=colsOf(S),n=N;
+  if(lay==='columns'||lay==='rows'){const C=colsOf(S),n=N;
     if(mv==='still')return{kind:'cstill',L:still(),n,C,N};
-    if(mv==='drift')return{kind:'cdrift',L:Math.max(.2,n*(+S.spsh||2.5)*(S.colSpeed==='varied'?2:1)),n,C,N};
+    if(mv==='drift')return{kind:'cdrift',L:Math.max(.2,n*(+S.spsh||2.5)*stripBase(S,C)),n,C,N};
     return{kind:'cstep',L:cyc>0?n*cyc:1,n,C,N,hold,dur};}
   if(lay==='wall'){const W=wallPlan(S,N);
     if(mv==='still')return Object.assign(W,{kind:'wstill',L:still()});
@@ -275,7 +283,7 @@ function scene(S,items,ctx,fonts,W,H,t){
     const seg=P.segs.find(g=>(g.k==='move'&&mod(g.to,P.stops)===mod(i,P.stops))||(g.k==='in'&&mod(i,P.stops)===0));
     const lead=seg?(seg.t1-seg.t0)*(seg.k==='in'?.7:.45):0;return clamp((d-lead)/Math.max(.05,+S.capRevealDur||.8),0,1);};
   const push=(i,rect,o)=>ops.push(Object.assign({i,item:list[i],rect,alpha:1,scale:1,rev:reveal(i),capAlpha:1,time:vt(i),since:since(i)},o||{}));
-  if(S.layout==='columns')columnsScene(S,P,cam,list,ctx,fonts,W,H,push);
+  if(stripsOf(S))columnsScene(S,P,cam,list,ctx,fonts,W,H,push);
   else if(S.layout==='frames')framesScene(S,P,cam,list,ctx,fonts,W,H,push);
   else if(S.layout==='float')floatScene(S,P,cam,list,W,H,push,ops);
   else if(S.layout==='wall')wallScene(S,P,cam,list,ctx,fonts,W,H,push);
@@ -361,8 +369,13 @@ function layerOps(S,G,ops,layers){const out=[],own=S.oneFit==='own',rad=Math.max
     const mk=(it,j)=>{const q=it.w&&it.h?it.w/it.h:F.w/F.h,fill=it.lfit==='fill';let w=F.w,h=F.h;
       if(fill?(w/h<q):(w/h>q))w=h*q;else h=w/q;const z=clamp((+it.zm||100)/100,.05,4);w*=z;h*=z;
       let cx=F.x+F.w/2+(+it.ox||0)*G.u*fs,cy=F.y+F.h/2+(+it.oy||0)*G.u*fs;
+      /* a build (0.9): it arrives on its own once the slide has landed – faded, risen or grown in, or cut – and leaves with it */
+      const how=it.lin||'with';let a=o.alpha;
+      if(how!=='with'){const lands=((o.item&&o.item.arrive&&o.item.arrive!=='default'?o.item.arrive:S.oneMove)==='cut')?0:Math.max(0,+S.dur||0);
+        const t=(o.since||0)-lands-Math.max(0,it.lafter==null?.3:+it.lafter),e=how==='cut'?(t>=0?1:0):smooth(clamp(t/Math.max(.05,it.lover==null?.6:+it.lover),0,1));
+        a*=e;if(how==="rise")cy+=(1-e)*.08*F.h;if(how==='grow'){const g=.88+.12*e;w*=g;h*=g;}}
       if(m){cx=(cx-m.cx)*m.s+m.cx+m.tx;cy=(cy-m.cy)*m.s+m.cy+m.ty;w*=m.s;h*=m.s;}
-      return Object.assign({},o,{item:it,layer:true,lfill:fill,key:o.key+'.'+j,rect:{x:cx-w/2,y:cy-h/2,w,h},whole:true,inner:null,slide:null,mv:null,
+      return Object.assign({},o,{item:it,layer:true,lfill:fill,key:o.key+'.'+j,rect:{x:cx-w/2,y:cy-h/2,w,h},alpha:a,whole:true,inner:null,slide:null,mv:null,
         lclip:own?null:{x:o.rect.x,y:o.rect.y,w:o.rect.w,h:o.rect.h,r:rad*o.scale},time:it.kind==='video'?clipTime(it,o.since||0):null,capAlpha:0});};
     const back=L.filter(it=>it.place==='behind'),front=L.filter(it=>it.place!=='behind');
     back.forEach((it,j)=>out.push(mk(it,'b'+j)));out.push(back.length?Object.assign(o,{noFill:true}):o);front.forEach((it,j)=>out.push(mk(it,'f'+j)));}
@@ -402,26 +415,30 @@ function pullScene(S,G,P,cam,N,push){
   for(const l of later)push(l[0],l[1],l[2]);
   if(focus)push(focus[0],focus[1],{scale:sc,rev:1,k:focus[2]});}
 
-/* Columns: every column a loop of all the media, each starting further along, running up or
-   down on its own. Drifting, each goes round once a loop (Varied: two, three or four times
-   in a loop twice as long, so their speeds differ about as Steve's reference does);
-   stepping, a shape at a time, each column a beat out of step with the one before.
-   Alternate columns can sit part of a shape down, so it reads as a wall rather than a grid. */
+/* Columns and Rows: every strip a loop of all the media, each starting further along, running its own way
+   (up or down; Rows left or right). Drifting, each goes round as many times a loop as its speed (Varied: two,
+   three or four times in a loop twice as long, so their speeds differ about as Steve's reference does; Each its
+   own: the slowest moving one sets the pace); stepping, its speed in shapes a move, each strip a beat out of step
+   with the one before. Alternate strips can sit part of a shape along, so it reads as a wall rather than a grid.
+   Columns are as wide as Width shares out across the canvas (more than 100% runs off the sides); Rows as tall. */
 function columnsScene(S,P,cam,list,ctx,fonts,W,H,push){
-  const C=P.C,n=P.n,N=list.length,size=clamp(+S.size||80,1,300)/100,gap=Math.max(0,+S.gap||0),rf=ratioEach(S,list);
+  const rows=S.layout==='rows',C=P.C,n=P.n,N=list.length,size=clamp(+S.size||80,1,300)/100,gap=Math.max(0,+S.gap||0),rf=ratioEach(S,list);
   const {reserve}=capReserve(S,list,ctx,fonts),above=S.capOn&&capWhereOf(S)==='above'&&reserve;
-  const cw=Math.max(1,(W*size-(C-1)*gap)/C),cx=W/2+(+S.nudgeX||0),y0=+S.nudgeY||0,cr=creepOf(S),fn=feel(S.feel),tt=cam.tt;
+  const A=rows?H:W,B=rows?W:H,cw=Math.max(1,(A*size-(C-1)*gap)/C),mid=rows?H/2+(+S.nudgeY||0):W/2+(+S.nudgeX||0),z0=rows?+S.nudgeX||0:+S.nudgeY||0;
+  const cr=creepOf(S),fn=feel(S.feel),tt=cam.tt;
   for(let c=0;c<C;c++){
     const idx=[],pitch=[],cum=[];let T=0;
     const from=Math.round(N*c/C);
-    for(let j=0;j<n;j++){const i=mod(from+j,N);idx.push(i);const p=cw/rf(list[i])+reserve+gap;cum.push(T);pitch.push(p);T+=p;}
-    const way=S.colDir==='up'?-1:S.colDir==='down'?1:(c%2?-1:1);
+    for(let j=0;j<n;j++){const i=mod(from+j,N);idx.push(i);const p=(rows?Math.max(1,cw-reserve)*rf(list[i]):cw/rf(list[i])+reserve)+gap;cum.push(T);pitch.push(p);T+=p;}
+    const way=stripWay(S,c),k=stripSpeed(S,c),at=x=>{const f=Math.floor(x),m=mod(f,n);return Math.floor(f/n)*T+cum[m]+(x-f)*pitch[m];};
     let s=0;
-    if(P.kind==='cdrift'){const laps=S.colSpeed==='varied'?[2,3,4][c%3]:1;s=laps*T*tt/P.L;}
-    else if(P.kind==='cstep'){const pos=cycPos(tt-c*Math.max(0,+S.colLag||0),P.hold,P.dur,fn,cr),k=Math.floor(pos),f=pos-k,km=mod(k,n);s=Math.floor(k/n)*T+cum[km]+f*pitch[km];}
-    const phase=(c%2)*clamp(+S.colOff||0,0,100)/100*(T/n),x=cx+(c-(C-1)/2)*(cw+gap)-cw/2;
-    for(let j=0;j<n;j++){const h=pitch[j]-reserve-gap;let y=mod(y0+gap/2+cum[j]+phase+way*s,T);while(y>-pitch[j])y-=T;
-      for(y+=T;y<H;y+=T){if(y+pitch[j]<0)continue;push(idx[j],{x,y:y+(above?reserve:0),w:cw,h},{time:vtime(list[idx[j]],tt),rev:1,key:'c'+c+'.'+j});}}}}
+    if(P.kind==='cdrift')s=k*T*tt/P.L;
+    else if(P.kind==='cstep'&&k>0)s=at(k*cycPos(tt-c*Math.max(0,+S.colLag||0),P.hold,P.dur,fn,cr));
+    const phase=(c%2)*clamp(+S.colOff||0,0,100)/100*(T/n),x=mid+(c-(C-1)/2)*(cw+gap)-cw/2;
+    for(let j=0;j<n;j++){const len=pitch[j]-gap;let y=mod(z0+gap/2+cum[j]+phase+way*s,T);while(y>-pitch[j])y-=T;
+      for(y+=T;y<B;y+=T){if(y+pitch[j]<0)continue;
+        const r=rows?{x:y,y:x+(above?reserve:0),w:len,h:Math.max(1,cw-reserve)}:{x,y:y+(above?reserve:0),w:cw,h:len-reserve};
+        push(idx[j],r,{time:vtime(list[idx[j]],tt),rev:1,key:'c'+c+'.'+j});}}}}
 const vtime=(it,t)=>it&&it.kind==='video'?clipTime(it,t):null;
 
 /* Frames: the shapes stay where they are and the media changes inside them – pushed through,
@@ -604,5 +621,5 @@ function drawBlock(ctx,S,b,x0,y0,sc,alpha,rev,seed,tt){
       draw(c.glyphs,cx+c.padX*sc,by,st.colour);}});
   ctx.restore();}
 
-return{FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
+return{stripWay,stripSpeed,stripBase,stripsOf,FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
 })();

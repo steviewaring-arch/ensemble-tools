@@ -906,6 +906,17 @@
   .st-box .val{font-size:var(--fs-body);min-width:36px}
   /* the island's choices keep their own widths (they scroll sideways on a phone) */
   .isl-main .seg>.pill{flex:none;padding:0 12px}
+
+  /* thin scrollbars on every tool (Steve, 7 Nov): 6 px, a soft grey thumb that darkens under the pointer, no track.
+     Chrome and Safari draw them from the ::-webkit-scrollbar rules – which Chrome ignores wherever scrollbar-width
+     is set, so that's put back to auto there; Firefox, which has no such rules, keeps its own thin one. */
+  ::-webkit-scrollbar{width:6px;height:6px}
+  ::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+  ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink) 20%,transparent);border-radius:3px}
+  ::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--ink) 40%,transparent)}
+  @supports selector(::-webkit-scrollbar){.scroll,.sheet{scrollbar-width:auto}}
+  @supports not selector(::-webkit-scrollbar){.scroll,.sheet,body{scrollbar-width:thin}}
+  #islandMain::-webkit-scrollbar,.island-row::-webkit-scrollbar{display:none}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.js"></script>
 </head>
