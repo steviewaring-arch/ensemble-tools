@@ -1,0 +1,29 @@
+# Safari's engine, older and newer: Segue's Presets and Export sheets (and every tool loading) checked
+# in the WebKit that Playwright ships with each version – 1.31 ≈ Safari 16.4, 1.36 ≈ 17.0,
+# 1.40 ≈ 17.4, 1.45 ≈ 18.0, 1.49 ≈ 18.2, 1.54 ≈ 26. Run by hand: gh workflow run webkit.yml
+name: webkit
+on:
+  workflow_dispatch:
+    inputs:
+      apps:
+        description: 'tools to load'
+        default: 'segue'
+jobs:
+  probe:
+    strategy:
+      fail-fast: false
+      matrix:
+        pw: ['1.31.0', '1.36.0', '1.40.0', '1.45.0', '1.49.0', '1.54.0']
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install "playwright==${{ matrix.pw }}" pillow
+      - run: python -m playwright install --with-deps webkit
+      - run: APPS="${{ github.event.inputs.apps }}" python tests/webkit_probe.py webkit
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: webkit-${{ matrix.pw }}
+          path: tests/out/webkit-*
