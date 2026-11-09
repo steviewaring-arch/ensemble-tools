@@ -74,10 +74,15 @@ with sync_playwright() as p:
     pg = ctx.new_page(); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
     pg.goto(url); time.sleep(1.2)
+    OPEN_TIER = "(()=>{const t=document.querySelector('.tier');if(t&&!t.classList.contains('open'))t.querySelector('.tier-head').click();})()"
+    tier_shut = pg.evaluate("!document.querySelector('.tier').classList.contains('open')&&document.querySelector('.tier-body').hidden")
+    pg.evaluate(OPEN_TIER); time.sleep(.3)
 
     # ---- the frame ----
     titles = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .card-toggle>span:first-child')].map(e=>e.textContent)")
-    check('the panel: Media, Canvas, Motion, Shapes, Captions, Overlay', titles == ['Media', 'Canvas', 'Motion', 'Shapes', 'Captions', 'Overlay'], str(titles))
+    check('the panel: Media, Canvas, Motion, Shapes – then Additionals, shut at first, holding Captions, Overlay and Position (0.10)',
+          titles == ['Media', 'Canvas', 'Motion', 'Shapes', 'Captions', 'Overlay', 'Position'] and tier_shut
+          and pg.evaluate("[...document.querySelectorAll('.tier-body>section.card')].map(c=>c.dataset.id).join()") == 'captions,overlay,position', f'{titles} shut at first: {tier_shut}')
     check('Export and Presets are sheets', pg.evaluate("!!document.querySelector('#islandSheets [data-sheet=export]')&&!!document.querySelector('#pcapSheets [data-sheet=presets]')"))
     blank = pg.evaluate("(()=>{const c=document.querySelector('#cv'),x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height).data;const s=new Set();for(let i=0;i<d.length;i+=4*97)s.add(d[i]+','+d[i+1]+','+d[i+2]);return s.size;})()")
     check('with no media, the stage shows the layout with numbered placeholders', blank > 2, f'{blank} colours')
@@ -454,16 +459,16 @@ with sync_playwright() as p:
         return o[i + 1:j]
     pg.evaluate("for(const [k,v] of [['cSize','4:5'],['layout','column'],['trackMove','step'],['after','carry'],['capOn',true],['ovOn',true],['ovKind','text']])segue.set(k,v)"); time.sleep(.3)
     cv = outline('canvas', True)
-    check('Canvas: its Size, then Background (colour and image together) and Guides – no frame rate here',
-          cv[0] == 'Size' and group(cv, 'Background')[:2] == ['Colour', 'Image'] and '▸ Guides' in cv and 'Frame rate' not in cv and not pg.evaluate("!!document.querySelector('#panel .seg[aria-label=\"Frame rate\"]')"), str(cv))
+    check('Canvas: its Size, then Background (colour and image together) – Guides moved to the top bar (0.10), no frame rate here',
+          cv[0] == 'Size' and group(cv, 'Background')[:2] == ['Colour', 'Image'] and '▸ Guides' not in cv and 'Frame rate' not in cv and not pg.evaluate("!!document.querySelector('#panel .seg[aria-label=\"Frame rate\"]')"), str(cv))
     cp = outline('captions', True)
     check('Captions: what they do (where, align, arrives), then Position and spacing, each role’s type, Kerning and accent, Fonts',
-          cp[:5] == ['Captions', 'Where', 'Align', 'Arrives', 'Over'] and [x for x in cp if x.startswith('▸')] == ['▸ Position and spacing', '▸ Title', '▸ Line', '▸ Tags', '▸ Kerning and accent', '▸ Fonts'], str(cp))
+          cp[:4] == ['Where', 'Align', 'Arrives', 'Over'] and [x for x in cp if x.startswith('▸')] == ['▸ Position and spacing', '▸ Title', '▸ Line', '▸ Tags', '▸ Kerning and accent', '▸ Fonts'], str(cp))
     check('Captions: the space, the line gap and the nudge sit together in Position and spacing; the accent and kerning together in Kerning and accent',
           group(cp, 'Position and spacing') == ['Space', 'Between lines', 'Across', 'Up and down'] and group(cp, 'Kerning and accent') == ['Accent', 'Font kerning', 'Kerning pairs'], f"{group(cp, 'Position and spacing')} {group(cp, 'Kerning and accent')}")
     ov = outline('overlay', True)
-    check('Overlay: what goes over, its Type, Position (the pad, margin and nudge together), then Blend and opacity',
-          ov[:3] == ['Over the top', 'What', 'Text'] and [x for x in ov if x.startswith('▸')] == ['▸ Type', '▸ Position', '▸ Blend and opacity']
+    check('Overlay: what goes over, its Type, Position (the pad, margin and nudge together), then Blend and opacity – on and off by the box in its head (0.10)',
+          ov[:2] == ['What', 'Text'] and [x for x in ov if x.startswith('▸')] == ['▸ Type', '▸ Position', '▸ Blend and opacity']
           and group(ov, 'Position') == ['Place', 'Margin', 'Across', 'Up and down'] and group(ov, 'Blend and opacity') == ['Blend', 'Opacity'], str(ov))
     pg.evaluate("segue.set('ovOn',false);segue.set('capOn',false)")
     mo = outline('motion')
@@ -828,6 +833,81 @@ with sync_playwright() as p:
     check('Presets that can’t be seen when the sheet opens put a note on the panel (for Safari) – and none when they show', not ok_note and 'Presets didn’t show' in bad_note, f'{ok_note} {bad_note[:160]!r}')
     pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false)")
 
+    # ---- 0.10: projects, duplicating a piece, the top bar (undo, zoom, guides), on and off in a section's head ----
+    pg.evaluate("()=>{segue.applyPreset('Push and drift');segue.items.forEach(it=>Object.assign(it,{join:'own',blend:'normal'}));segue.refresh();}"); time.sleep(1.2)
+    pj0 = pg.evaluate("""async()=>{await segue.projects.save(true);const c=segue.projects.current,l=await segue.projects.list(),r=l.find(x=>x.id===c.id);
+      return {id:c.id,name:c.name,n:l.length,saved:!!r,items:r?r.items.map(i=>i.name):[],preset:r&&r.preset.current,thumb:!!(r&&r.thumb&&r.thumb.startsWith('data:image/jpeg')),label:document.querySelector('#projName').textContent};}""")
+    names0 = pg.evaluate("segue.items.map(i=>i.name)")
+    check('Projects: what’s open is a project, saved in the browser as you work – its media in order, its preset, a small picture, its name at the top of the panel',
+          pj0['saved'] and pj0['items'] == names0 and pj0['preset'] == 'Push and drift' and pj0['thumb'] and pj0['label'] == pj0['name'], str(pj0))
+    pg.locator('#projBtn').click(); time.sleep(.6)
+    pg.locator('#projPop .proj-field').fill('Check reel'); pg.keyboard.press('Enter'); time.sleep(.6)
+    renamed = pg.evaluate("async()=>{const l=await segue.projects.list();return [segue.projects.current.name,document.querySelector('#projName').textContent,l.find(r=>r.id===segue.projects.current.id).name,document.title]}")
+    pg.get_by_role('button', name='New').click(); time.sleep(1.5)
+    fresh = pg.evaluate("[segue.projects.current.name,segue.items.length,segue.ui.preset,segue.ui.undoSteps]")
+    pg.locator('#projBtn').click(); time.sleep(.6)
+    rows = pg.evaluate("[...document.querySelectorAll('#projPop .proj-row .slot-name')].map(e=>e.textContent)")
+    pg.locator('#projPop .proj-row .slot-main', has_text='Check reel').click(); time.sleep(2.5)
+    back = pg.evaluate("[segue.projects.current.name,segue.items.map(i=>i.name),segue.ui.preset,segue.S.layout]")
+    check('Rename it in Projects; New starts an empty one and keeps the last in the list; opening it again brings back its media, order and preset',
+          renamed[:3] == ['Check reel'] * 3 and renamed[3].startswith('Check reel') and fresh[1] == 0 and fresh[2] == '' and fresh[3] == 0 and 'Check reel' in rows and back[0] == 'Check reel' and back[1] == names0 and back[2] == 'Push and drift',
+          f'{renamed} {fresh} {rows} {back}')
+    # the file: a zip with project.json and the files, opened as a new project with the same media and settings
+    fl = pg.evaluate("""async()=>{const z=await segue.projects.file(),m=await segue.projects.readZip(z),j=JSON.parse(await m.get('project.json').text());
+      const before=await segue.projects.list();await segue.projects.openFile(new File([z],'Check reel.segue'));await new Promise(r=>setTimeout(r,1500));
+      const after=await segue.projects.list();return {size:z.size,entries:[...m.keys()].length,media:Object.keys(j.media).length,name:segue.projects.current.name,
+        items:segue.items.map(i=>i.name),hold:segue.S.hold,count:[before.length,after.length],ver:j.segue};}""")
+    check('Save as file packs the project, files and all, into a .segue file (a zip); Open file brings it back as a new project, the same',
+          fl['entries'] >= fl['media'] + 1 and fl['media'] == len(set(names0)) and fl['name'] == 'Check reel 2' and fl['items'] == names0 and fl['count'][1] == fl['count'][0] + 1, str(fl))
+    rm = pg.evaluate("""async()=>{const id=segue.projects.current.id;await segue.projects.remove(id);const l1=(await segue.projects.list()).map(r=>r.name);await segue.ui.undo();const l2=(await segue.projects.list()).map(r=>r.name);
+      const r=l2.length;await segue.projects.remove((await segue.projects.list()).find(x=>x.name==='Check reel 2').id);return [l1.includes('Check reel 2'),l2.includes('Check reel 2'),segue.projects.current.name,r];}""")
+    check('Remove a project – Undo puts it back; removing the open one opens the next', rm[0] is False and rm[1] is True and rm[2] != 'Check reel 2', str(rm))
+    pg.evaluate("ensembleUI&&ensembleUI.close&&ensembleUI.close()"); pg.keyboard.press('Escape'); time.sleep(.2)
+    if pg.evaluate("segue.projects.current.name") != 'Check reel':
+        pg.evaluate("async()=>{const l=await segue.projects.list();await segue.projects.open(l.find(r=>r.name==='Check reel').id);}"); time.sleep(2.5)
+    gc = pg.evaluate("""async()=>{const r=indexedDB.open('segue',2);const d=await new Promise(res=>{r.onsuccess=()=>res(r.result);});
+      await new Promise(res=>{const t=d.transaction('media','readwrite');t.objectStore('media').put(new Blob(['x']),'orphan');t.oncomplete=res;});
+      await segue.projects.gc();const keys=await new Promise(res=>{const q=d.transaction('media').objectStore('media').getAllKeys();q.onsuccess=()=>res(q.result);});
+      return [keys.includes('orphan'),segue.items.every(i=>keys.includes(i.ref||i.id))];}""")
+    check('A stored file nothing uses is cleared at start-up; every file a project uses stays', gc == [False, True], str(gc))
+    # duplicate a piece: straight after it (after a slide's layers), the same file, its own settings; one Undo takes it away
+    dp = pg.evaluate("""async()=>{segue.applyPreset('Straight cuts');const it=segue.items;for(const x of it)Object.assign(x,{join:'own'});it[1].join='on';it[1].blend='multiply';segue.refresh();
+      await segue.duplicate(it[0].id);const a=segue.items.map(i=>i.name),c=segue.items[2],same=c.ref===segue.items[0].ref||c.ref===segue.items[0].id;
+      await segue.duplicate(segue.items[1].id);const b=segue.items.map(i=>i.name),lc=segue.items[2];
+      await segue.ui.undo();await segue.ui.undo();const u=segue.items.map(i=>i.name);segue.items[1].join='own';segue.items[1].blend='normal';segue.refresh();
+      return {a,same,b,layerCopy:[lc.join,lc.blend],u};}""")
+    check('Duplicate a piece: the copy comes after it (after a slide’s layers), with the same file and its own settings – a layer’s copy is another layer; Undo takes it away',
+          dp['a'][2].endswith('copy.png') and dp['same'] and dp['layerCopy'] == ['on', 'multiply'] and dp['u'] == names0, str(dp))
+    # on and off in a section's head
+    pg.evaluate("segue.set('capOn',false)"); time.sleep(.2)
+    pg.locator('section.card[data-id=captions] .head-sw').click(); time.sleep(.5)
+    hs = pg.evaluate("[segue.S.capOn,!document.querySelector('section.card[data-id=captions]').classList.contains('collapsed'),document.querySelector('section.card[data-id=captions] .head-sw').getAttribute('aria-checked')]")
+    pg.locator('section.card[data-id=captions] .head-sw').click(); time.sleep(.5)
+    hs2 = pg.evaluate("[segue.S.capOn,document.querySelector('section.card[data-id=captions]').classList.contains('collapsed')]")
+    check('Captions and Overlay switch on and off by the box beside their name – on opens the section, off shuts it; no repeated “Captions” or “Over the top” row',
+          hs == [True, True, 'true'] and hs2 == [False, True] and not pg.evaluate("[...document.querySelectorAll('#panel .toggle-row .toggle')].some(t=>/^(Captions|Over the top)$/.test(t.getAttribute('aria-label')))"), f'{hs} {hs2}')
+    # the top bar: undo and redo, zoom, guides
+    pg.evaluate("segue.set('hold',2.2)"); time.sleep(.3)
+    pg.locator('#undoBtn').click(); time.sleep(.3); u1 = pg.evaluate("[segue.S.hold,document.querySelector('#redoBtn').disabled]")
+    pg.locator('#redoBtn').click(); time.sleep(.3); u2 = pg.evaluate("segue.S.hold")
+    check('Undo and redo are buttons in the top bar too', u1[1] is False and abs(u2 - 2.2) < 1e-9 and abs(u1[0] - 2.2) > 1e-9, f'{u1} {u2}')
+    pg.locator('#zoomVal').click(); time.sleep(.4)
+    z1 = pg.evaluate("[document.querySelector('#zoomVal').textContent,parseFloat(document.querySelector('#cv').style.width),segue.E.canvasSize(segue.S)[0],document.querySelector('#view').classList.contains('zoomed')]")
+    pg.locator('#zoomIn').click(); time.sleep(.3); z2 = pg.evaluate("document.querySelector('#zoomVal').textContent")
+    pg.keyboard.press('Control+0'); time.sleep(.3); z3 = pg.evaluate("[segue.zoom,document.querySelector('#view').classList.contains('zoomed')]")
+    check('Zoom in the top bar: the value goes to 100% (one canvas px a screen px) and back to fit, + and − step, ⌘0 fits',
+          z1[0] == '100%' and z1[1] == z1[2] and z1[3] and z2 == '125%' and z3 == [None, False], f'{z1} {z2} {z3}')
+    pg.evaluate("segue.set('guides',false)"); pg.locator('#guidesBtn').click(); time.sleep(.2); g1 = pg.evaluate("segue.S.guides")
+    pg.locator('#guidesBtn').click(); time.sleep(.2)
+    pg.locator('#guidesMore').click(); time.sleep(.4)
+    gl = pg.evaluate("[...document.querySelectorAll('#guidePop .ctl-head label,#guidePop .toggle')].filter(e=>e.offsetParent).map(e=>e.textContent||e.getAttribute('aria-label'))")
+    pg.evaluate("segue.set('guM',80)"); time.sleep(.2); g2 = pg.evaluate("segue.S.guides")
+    pg.keyboard.press('Escape'); time.sleep(.2); g3 = pg.evaluate("document.querySelector('#guidePop').hidden")
+    pg.keyboard.press('Control+;'); time.sleep(.2); g4 = pg.evaluate("segue.S.guides")
+    check('Guides in the top bar: the button shows and hides them; its arrow opens Margin, Columns, Rows, Snap – changing one shows them; Esc shuts it; ⌘; too',
+          g1 is True and 'Margin' in gl and 'Columns' in gl and g2 is True and g3 and g4 is False and not pg.evaluate("!!document.querySelector('#panel section[data-id=canvas] .fold-head span')&&[...document.querySelectorAll('#panel section[data-id=canvas] .fold-head span')].some(e=>e.textContent==='Guides')"), f'{g1} {gl} {g2} {g3} {g4}')
+    pg.evaluate("segue.set('guM',64);segue.set('guides',false);segue.applyPreset('Card stack');segue.set('ovOn',false)")
+
     # ---- exports ----
     pg.evaluate("for(const [k,v] of [['hold',.3],['dur',.3],['zOut',.3],['gHold',.3],['zIn',.3],['cSize','custom'],['cW',540],['cH',676],['bg','#F5F5F3'],['bgImgA',0],['name','Test reel']])segue.set(k,v)")
     L = pg.evaluate("segue.plan().L")
@@ -863,7 +943,7 @@ with sync_playwright() as p:
           f"PNG {im2.size}, MP4 {m2.get('width')}×{m2.get('height')}, {os.path.basename(got2['png'])}; shrunk back to 1×, {same:.1f} levels RMS from the 1× PNG")
 
     # ---- it all comes back ----
-    pg.reload(); time.sleep(2.5)
+    pg.reload(); time.sleep(2.5); pg.evaluate(OPEN_TIER); time.sleep(.3)
     back = pg.evaluate("[segue.items.length,segue.items[0].title,segue.S.cW,segue.S.name,!!segue.pics.bg,!!segue.pics.ov]")
     check('after a reload: the media, captions, settings and both images are back', back == [4, 'Title 1', 540, 'Test reel', True, True], str(back))
     check('no errors on the page', not errs, '; '.join(errs[:3]))

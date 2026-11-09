@@ -947,6 +947,86 @@
 .way.held button[aria-pressed="true"]{color:var(--muted)}
 .ctl.strip .stp-g .val{min-width:40px!important}
 .slot-meta .enl{color:var(--ink)}
+/* 0.10: an open row stays in the soft grey of a closed one (no keyline), so it reads as one box; inside it, what's
+   normally a grey fill turns white (a lighter grey in dark), and what holds a choice (segments, the way arrows) sits a
+   shade darker than the row with the chosen part white – the panel's own language, a step up */
+body{--det-ctl:#ffffff;--det-ctl-hover:#f7f7f7;--det-track:#e6e6e6;--det-hair:rgba(0,0,0,.1)}
+body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#282828;--det-hair:rgba(255,255,255,.1)}
+.media-list .slot.open{background:var(--k-fill);box-shadow:none}
+.media-list .slot.open:hover{background:var(--k-fill)}
+.media-list .slot.open>.slot-det{--k-fill:var(--det-ctl);--k-fill-hover:var(--det-ctl-hover);--hair:var(--det-hair)}
+.media-list .slot.open>.slot-det .seg,.media-list .slot.open>.slot-det .way{background:var(--det-track)}
+.media-list .slot.open>.slot-det .pill.small:not(.icon){background:var(--det-ctl);box-shadow:none}
+.media-list .slot.open>.slot-det .pill.small:hover{background:var(--det-ctl-hover)}
+.media-list .slot.open>.slot-det .pill.small.icon.arrow{background:var(--det-ctl)}
+/* its foot: Duplicate left, two small arrows bottom right */
+.det-end{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:6px 0 4px}
+.det-arrows{display:flex;gap:4px}
+.pill.small.icon.arrow{width:var(--h-sm);color:var(--ink)}
+.pill.small.icon.arrow svg{width:11px;height:11px}
+.pill.small.icon.arrow:disabled{opacity:.35;cursor:default}
+/* 0.10: Additionals – a quiet heading at the foot of the panel; open, the sections it holds sit under it as cards */
+.tier{display:flex;flex-direction:column;gap:8px;flex:none}
+.tier-head{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 16px;cursor:pointer;border-radius:var(--r-cardk,10px);
+  font-size:var(--fs-title);font-weight:700;letter-spacing:-0.012em;color:var(--muted);transition:color var(--t-snap),background var(--t-snap)}
+.tier-head:hover{color:var(--ink-strong);background:color-mix(in srgb,var(--k-card) 55%,transparent)}
+.tier-head:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.tier-head .sum{margin-left:auto;font-size:var(--fs-small);font-weight:400;color:var(--muted);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tier-head .sum:empty+.chev,.tier-head .sum:empty{margin-left:auto}
+.tier-head .chev{width:12px;height:12px;flex:none;transition:transform var(--t-smooth) var(--e-smooth);transform:rotate(-90deg)}
+.tier.open>.tier-head .chev{transform:none}
+.tier.open>.tier-head .sum{display:none}
+.tier-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--k-dot);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+.tier.chg:not(.open)>.tier-head .cdot{transform:scale(1)}
+.tier-body{display:flex;flex-direction:column;gap:8px}
+.tier-body[hidden]{display:none}
+/* a section's on and off: the box beside its name, in its head */
+.card.has-sw>h2>.card-toggle{padding-left:42px}
+.card>h2>.head-sw{position:absolute;left:16px;top:50%;margin-top:-8px;width:16px;height:16px;padding:0;min-height:0;z-index:1}
+.card>h2>.head-sw .box{margin:0}
+.card.off>h2>.card-toggle>span:first-child{color:var(--muted)}
+/* 0.10: zoom – the view scrolls when the canvas is bigger than it; the canvas centred when it's smaller */
+#cv{margin:auto;flex:none}
+.view.zoomed{overflow:auto;justify-content:flex-start;align-items:flex-start;scrollbar-width:thin}
+.view.grabbing,.view.grabbing #cv{cursor:grabbing}
+/* the top bar's groups: undo and redo, zoom, guides – each a keyline group like the theme's */
+.topbar .tools button:disabled{opacity:.35;cursor:default;background:transparent}
+#zoomTools .zval{width:auto;min-width:44px;padding:0 6px;border-radius:var(--r-in);font-size:var(--fs-small);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0}
+#zoomTools .zval[aria-pressed="true"]{background:transparent;color:var(--ink-strong)}
+#zoomTools .zval:hover{background:var(--btn-hover)}
+#guideTools{position:relative}
+#guideTools .more{width:18px}
+#guideTools .more svg{width:12px;height:12px}
+#guideTools .more[aria-expanded="true"]{color:var(--ink);background:var(--btn-hover)}
+/* a small panel under its button: the panel's own surface and rows */
+.pop{position:absolute;top:calc(100% + 8px);right:0;width:300px;z-index:20;padding:14px calc(12px + var(--gutter)) 10px 14px;border-radius:var(--r-surface);
+  background:var(--k-card);box-shadow:0 0 0 1px var(--keyline);color:var(--ink);text-align:left;--lc:96px}
+.pop[hidden]{display:none}
+.pop-title{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);margin:0 0 12px}
+.pop .hint{margin:8px 0 2px}
+@media (max-width:860px){#zoomTools,#historyTools{display:none}}
+/* 0.10: the project, at the top of the panel – its name in a white field, how it's saved, and its panel below */
+.proj{position:relative;flex:none;padding:0 8px 8px}
+.proj-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;height:36px;padding:0 12px 0 14px;border-radius:var(--r-cardk,10px);background:var(--k-card);cursor:pointer;transition:background var(--t-snap)}
+.proj-btn:hover{background:color-mix(in srgb,var(--k-card) 94%,var(--ink))}
+.proj-btn:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.proj-name{flex:1;min-width:0;font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-state{flex:none;font-size:var(--fs-small);color:var(--muted)}
+.proj-btn .chev{flex:none;width:12px;height:12px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
+.proj-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.pop.proj-pop{left:8px;right:8px;width:auto;top:calc(100% - 2px);padding:14px 14px 12px;max-height:min(70vh,640px);overflow-y:auto}
+.proj-field{width:100%;box-sizing:border-box;font-weight:500}
+.proj-acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 14px}
+.proj-acts>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);justify-content:center;font-size:12.5px}
+.proj-pop .sub-head{margin:2px 0 8px;padding-top:12px;border-top:1px solid var(--hair)}
+.proj-list{display:flex;flex-direction:column;gap:6px}
+.proj-row .slot-top{display:flex;align-items:center;gap:10px}
+.proj-row .slot-main{cursor:pointer}
+.proj-thumb{flex:none;width:36px;height:45px;border-radius:var(--r-sw,4px);background:var(--well,#e6e6e6);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.proj-thumb img{display:block;max-width:100%;max-height:100%}
+.proj-row.on{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
+.proj-row .tag{flex:none;font-size:11.5px;color:var(--muted)}
+.proj-pop .hint{margin:12px 0 0}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.js"></script>
 </head>
@@ -959,8 +1039,13 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.9</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.10</span></div>
       <div class="bline caps">By ENSEMBLE</div>
+    </div>
+    <!-- 0.10: the project – its name, and everything to do with keeping it -->
+    <div class="proj" id="projBox">
+      <button class="proj-btn" id="projBtn" type="button" aria-expanded="false" aria-controls="projPop" aria-haspopup="dialog"><span class="proj-name" id="projName">Untitled</span><span class="proj-state" id="projState"></span><svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="m3.2 4.6 2.8 2.8 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="pop proj-pop" id="projPop" hidden role="dialog" aria-label="Projects"></div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
     <div class="resizer" id="resizer" aria-hidden="true"></div>
@@ -968,6 +1053,21 @@
   <button class="panel-btn" id="panelBtn" type="button" aria-expanded="false" aria-controls="panelBox" aria-label="Show the panel"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="2.5" width="10.4" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg></button>
   <div class="topbar">
     <div class="stage-foot"><span id="dims"></span><span id="loopChip"></span><span id="countChip"></span></div>
+    <!-- 0.10: undo, zoom and guides, beside the info and the theme -->
+    <div class="tools" id="historyTools">
+      <button id="undoBtn" type="button" aria-label="Undo – ⌘Z" data-tip="Undo – ⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M5.2 3.3 2.6 5.9l2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.9h5.6a2.9 2.9 0 0 1 0 5.8H6.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button id="redoBtn" type="button" aria-label="Redo – ⇧⌘Z" data-tip="Redo – ⇧⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="m8.8 3.3 2.6 2.6-2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 5.9H5.4a2.9 2.9 0 0 0 0 5.8h2.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="tools" id="zoomTools">
+      <button id="zoomOut" type="button" aria-label="Zoom out – ⌘−" data-tip="Zoom out – ⌘−"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button id="zoomVal" class="zval" type="button" aria-label="Zoom – click for 100% or to fit" data-tip="Click for 100%, again to fit – ⌘0 fits">Fit</button>
+      <button id="zoomIn" type="button" aria-label="Zoom in – ⌘+" data-tip="Zoom in – ⌘+"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7M7 3.5v7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="tools" id="guideTools">
+      <button id="guidesBtn" type="button" aria-pressed="false" aria-label="Guides – ⌘;" data-tip="Guides – ⌘;"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="1.8" width="10.4" height="10.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5.3 2v10M8.7 2v10M2 7h10" stroke="currentColor" stroke-width="1" stroke-dasharray="1.4 1.2"/></svg></button>
+      <button id="guidesMore" class="more" type="button" aria-expanded="false" aria-controls="guidePop" aria-label="Guide settings" data-tip="Margin, columns, rows, gutter, snap"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="m4.2 5.6 2.8 2.8 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="pop" id="guidePop" hidden role="dialog" aria-label="Guides"></div>
+    </div>
     <div class="tools" id="appearance">
       <button id="previewBtn" type="button" aria-pressed="false" aria-label="Preview – fill the window – F"></button>
       <button id="themeBtn" type="button" aria-label="Light or dark"><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.8a5.2 5.2 0 0 1 0 10.4z" fill="currentColor"/></svg></button>
@@ -995,6 +1095,7 @@
 <input type="file" id="fontfile" accept=".otf,.ttf,.woff,.woff2,font/otf,font/ttf,font/woff,font/woff2" multiple class="vh" tabindex="-1">
 <input type="file" id="bgfile" accept="image/*" class="vh" tabindex="-1">
 <input type="file" id="ovfile" accept="image/*" class="vh" tabindex="-1">
+<input type="file" id="projfile" accept=".segue,.zip,application/zip" class="vh" tabindex="-1">
 <input type="file" id="presetfile" accept=".json,application/json" class="vh" tabindex="-1">
 <script id="segue-engine">
 /* Segue – engine. Given the settings, the media and a moment in the loop, it works out
@@ -3694,7 +3795,7 @@ function refreshSummaries(){document.querySelectorAll('section.card[data-id]').f
   let t='';try{t=SUMMARY[sec.dataset.id]?SUMMARY[sec.dataset.id](S):autoSummary(sec.dataset.id);}catch(e){}if(sm.textContent!==(t||''))sm.textContent=t||'';});
   document.querySelectorAll('.fold-head').forEach(hd=>{const body=hd.nextElementSibling;if(!body)return;let sm=hd.querySelector('.sum');
     if(!sm){sm=el('span','sum');hd.insertBefore(sm,hd.querySelector('.chev'));}let t='';try{t=hd._sum?hd._sum(S):autoSummary(null,body);}catch(e){}if(sm.textContent!==t)sm.textContent=t;});
-  let n=0;panel.querySelectorAll(':scope>section.card').forEach(sec=>{const nm=sec.querySelector(':scope>h2 .num');if(nm&&!sec.hidden){const v=String(++n);if(nm.textContent!==v)nm.textContent=v;}});}
+  let n=0;panel.querySelectorAll('section.card').forEach(sec=>{const nm=sec.querySelector(':scope>h2 .num');if(nm&&!sec.hidden){const v=String(++n);if(nm.textContent!==v)nm.textContent=v;}});}
 /* ---------------- sheets, island, Presets, Preview ---------------- */
 const SHEETS={};
 const sheetObs=new MutationObserver(ms=>{for(const m of ms){const n=m.target;if(!n.hidden)for(const k in SHEETS)if(SHEETS[k].el!==n)SHEETS[k].el.hidden=true;}syncSheets();});
@@ -3813,7 +3914,8 @@ function resetCard(sec,title){const list=controls.filter(c=>c.cx&&sec.contains(c
   group(`${title} put back`,()=>list.forEach(resetKeys));easeAll(sec);refreshAll();toastUndo(`${title} put back`);}
 function paintChanges(){
   for(const c of controls){if(!c.cx)continue;const ch=!c.w.closest('.sheet')&&ctlMoved(c);if(c.w.classList.contains('chg')!==ch)c.w.classList.toggle('chg',ch);}
-  panel.querySelectorAll(':scope>section.card').forEach(sec=>{const ch=controls.some(c=>c.cx&&sec.contains(c.w)&&c.w.classList.contains('chg')&&shownIn(c,sec));sec.classList.toggle('chg',ch);});
+  panel.querySelectorAll('section.card').forEach(sec=>{const ch=controls.some(c=>c.cx&&sec.contains(c.w)&&c.w.classList.contains('chg')&&shownIn(c,sec));sec.classList.toggle('chg',ch);});
+  panel.querySelectorAll('.tier').forEach(t=>t.classList.toggle('chg',!!t.querySelector('section.card.chg')));
   panel.querySelectorAll('.fold-head').forEach(hd=>{const body=hd.nextElementSibling;const ch=!!body&&controls.some(c=>c.cx&&body.contains(c.w)&&c.w.classList.contains('chg')&&shownIn(c,body));hd.classList.toggle('chg',ch);});}
 const roundTo=(v,st)=>{const d=(String(st).split('.')[1]||'').length;return +(Math.round(v/st)*st).toFixed(d);};
 /* Type a value: click (or Tab to and press Enter on) the number on any slider, type it, Enter.
@@ -4001,7 +4103,7 @@ const LOOK=Object.keys(D).filter(k=>!NOT_LOOK.includes(k));
 const PX=['gap','radius','edgeW','nudgeX','nudgeY','gGap','capSpace','capX','capY','capMargin','capGapL','TS','LS','GS','mat','matR','OS','ovM','ovX','ovY'];
 function sanitise(o){const r={};if(!o||typeof o!=='object')return r;for(const k in D)if(k in o&&typeof o[k]===typeof D[k])r[k]=o[k];return r;}
 function loadSettings(){return Object.assign({},D,sanitise(LS.get('settings')));}
-function saveSettings(){LS.set('settings',S);}
+function saveSettings(){LS.set('settings',S);if(typeof projTouch==='function')projTouch();}
 const S=loadSettings();
 /* ---------------- fonts ---------------- */
 const FONTS={
@@ -4030,16 +4132,17 @@ async function addFont(file,id,save){
 const ownFontIds=()=>Object.keys(FONTS).filter(k=>FONTS[k].own);
 async function removeFont(id){delete FONTS[id];try{await DB.del('fonts',id);}catch(e){}LS.set('fonts',ownFontIds());for(const r of ['T','L','G'])if(S[r+'F']===id)S[r+'F']=D[r+'F'];fontsSettled();refreshAll();}
 /* ---------------- storage for media and fonts (IndexedDB – stays on this computer) ---------------- */
-const DB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=indexedDB.open('segue',1);r.onupgradeneeded=()=>{const d=r.result;for(const n of ['media','fonts'])if(!d.objectStoreNames.contains(n))d.createObjectStore(n);};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));
+const DB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=indexedDB.open('segue',2);r.onupgradeneeded=()=>{const d=r.result;for(const n of ['media','fonts','projects'])if(!d.objectStoreNames.contains(n))d.createObjectStore(n);};r.onsuccess=()=>{const d=r.result;d.onversionchange=()=>{d.close();p=null;};res(d);};r.onerror=()=>rej(r.error);r.onblocked=()=>toast('Segue is open in another tab – close it to finish updating',true);}));
   const tx=async(st,mode,fn)=>{const d=await open();return new Promise((res,rej)=>{const t=d.transaction(st,mode),s=t.objectStore(st),r=fn(s);t.oncomplete=()=>res(r&&r.result);t.onerror=()=>rej(t.error);t.onabort=()=>rej(t.error);});};
-  return{put:(st,k,v)=>tx(st,'readwrite',s=>s.put(v,k)),get:(st,k)=>tx(st,'readonly',s=>s.get(k)),del:(st,k)=>tx(st,'readwrite',s=>s.delete(k))};})();
+  return{put:(st,k,v)=>tx(st,'readwrite',s=>s.put(v,k)),get:(st,k)=>tx(st,'readonly',s=>s.get(k)),del:(st,k)=>tx(st,'readwrite',s=>s.delete(k)),
+    all:st=>tx(st,'readonly',s=>s.getAll()),keys:st=>tx(st,'readonly',s=>s.getAllKeys())};})();
 /* ---------------- media ---------------- */
 let items=[];
-const META=['id','name','kind','w','h','dur','start','end','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','ox','oy','join','place','lfit','blend','opa','lin','lafter','lover'];
-function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));itemSteps();}
+const META=['id','ref','name','kind','w','h','dur','start','end','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','ox','oy','join','place','lfit','blend','opa','lin','lafter','lover'];
+function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));itemSteps();if(typeof projTouch==='function')projTouch();}
 /* undo for a piece's own settings (0.9): each save is compared with the one before, and what changed becomes a step –
    the same piece and setting within 0.8 s, or in one drag, join up. Adding, removing and reordering have their own. */
-const ITEM_KEYS=META.filter(k=>!['id','name','kind','w','h','dur','fixed'].includes(k));
+const ITEM_KEYS=META.filter(k=>!['id','ref','name','kind','w','h','dur','fixed'].includes(k));
 const ITEM_LABEL={blend:'Blend',opa:'Opacity',px:'Crop',py:'Crop',zm:'Size',ox:'Position',oy:'Position',start:'Start at',end:'End at',hold:'On screen',arrive:'Arrives by',moves:'Moves',
   join:'Sits',place:'Order',lfit:'Fit',title:'Title',line:'Line',tags:'Tags',levels:'Lift washed-out colours',lin:'Arrives',lafter:'After',lover:'Over'};
 let itemSnap=null,itemReplay=false;
@@ -4096,20 +4199,32 @@ async function addFiles(files){
   if(n){saveItems();mediaChanged();toast(n===1?'Added 1 file':`Added ${n} files`);}}
 async function restoreMedia(){
   const list=LS.get('items')||[];if(!list.length)return;let lost=0;
-  for(const m of list){try{const blob=await DB.get('media',m.id);if(!blob){lost++;continue;}items.push(await mediaFrom(blob,Object.assign({},m)));}catch(e){lost++;}}
+  for(const m of list){try{const blob=await DB.get('media',m.ref||m.id);if(!blob){lost++;continue;}items.push(await mediaFrom(blob,Object.assign({},m)));}catch(e){lost++;}}
   if(lost)toast(lost===1?'One file couldn’t be found again – add it back':`${lost} files couldn’t be found again – add them back`);
   saveItems();mediaChanged();}
 async function restoreFonts(){for(const id of (LS.get('fonts')||[])){try{const r=await DB.get('fonts',id);if(r)await addFont(new File([r.data],r.name,{type:r.type||''}),id,false);}catch(e){}}refreshAll();}
-function removeItem(id){for(const k of [...crCache.keys()])if(k.startsWith(id+'|'))crCache.delete(k);const i=items.findIndex(x=>x.id===id);if(i<0)return;const it=items[i];if(it.el){it.el.pause();URL.revokeObjectURL(it.el.src);}items.splice(i,1);DB.del('media',id).catch(()=>{});openRows.delete(id);saveItems();mediaChanged();}
+function removeItem(id){for(const k of [...crCache.keys()])if(k.startsWith(id+'|'))crCache.delete(k);const i=items.findIndex(x=>x.id===id);if(i<0)return;const it=items[i];if(it.el){it.el.pause();URL.revokeObjectURL(it.el.src);}items.splice(i,1);openRows.delete(id);if(selId===id)selId=null;saveItems();mediaChanged();}
 async function removeItems(ids,label){
-  const saved=[];for(const id of ids){const i=items.findIndex(x=>x.id===id);if(i<0)continue;let blob=null;try{blob=await DB.get('media',id);}catch(e){}
+  const saved=[];for(const id of ids){const i=items.findIndex(x=>x.id===id);if(i<0)continue;let blob=null;try{blob=await DB.get('media',items[i].ref||id);}catch(e){}
     saved.push({i,meta:Object.fromEntries(META.map(k=>[k,items[i][k]])),blob});}
   for(const id of ids)removeItem(id);if(!saved.length)return;
   const back=saved.filter(x=>x.blob);if(!back.length){toast(label);return;}
   pushUndo({label,fn:async w=>{if(w){for(const x of back)removeItem(x.meta.id);return;}
-    for(const x of back.slice().sort((a,b)=>a.i-b.i)){try{const it=await mediaFrom(x.blob,Object.assign({},x.meta));items.splice(Math.min(x.i,items.length),0,it);await DB.put('media',x.meta.id,x.blob);}catch(e){}}
+    for(const x of back.slice().sort((a,b)=>a.i-b.i)){try{const it=await mediaFrom(x.blob,Object.assign({},x.meta));items.splice(Math.min(x.i,items.length),0,it);await DB.put('media',x.meta.ref||x.meta.id,x.blob);}catch(e){}}
     saveItems();mediaChanged();}});
   toastUndo(label);}
+/* a copy of a piece (0.10): its own settings, the same file. It goes straight after the piece – after a slide's layers,
+   so they stay on their slide; a layer's copy is another layer on the same slide. */
+const newId=()=>'m'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+function copyName(n){const m=/^(.*?)(?: copy(?: (\d+))?)?(\.[^.]*)?$/.exec(n)||[n,n,'',''],base=m[1],ext=m[3]||'',taken=new Set(items.map(i=>i.name));
+  for(let k=1;k<99;k++){const c=`${base} copy${k>1?' '+k:''}${ext}`;if(!taken.has(c))return c;}return base+' copy'+ext;}
+async function duplicateItem(id){const i=items.findIndex(x=>x.id===id);if(i<0||busy)return;const it=items[i],ref=it.ref||it.id;let blob=null;try{blob=await DB.get('media',ref);}catch(e){}
+  if(!blob){toast('Couldn’t find its file to copy – add it again');return;}
+  const meta=Object.fromEntries(META.map(k=>[k,it[k]]));Object.assign(meta,{id:newId(),ref,name:copyName(it.name)});
+  let at=i+1;if(!isLayer(it,i))while(at<items.length&&isLayer(items[at],at))at++;
+  const put=async()=>{const c=await mediaFrom(blob,Object.assign({},meta));items.splice(Math.min(at,items.length),0,c);openRows.add(c.id);selId=c.id;saveItems();mediaChanged();};
+  try{await put();}catch(e){toast(`Couldn’t copy ${it.name}`);return;}
+  const label=`Copied ${it.name}`;pushUndo({label,fn:async w=>{if(w)await put();else removeItem(meta.id);}});toastUndo(label);}
 function moveItem(id,to){const i=items.findIndex(x=>x.id===id);if(i<0)return;to=clamp(to,0,items.length-1);if(to===i)return;const [it]=items.splice(i,1);items.splice(to,0,it);saveItems();mediaChanged();}
 function mediaChanged(){E.resetMeasure();dirty=true;paintMedia();refreshAll();}
 /* ---------------- the background and overlay images: one of each, kept like the media ---------------- */
@@ -4117,15 +4232,15 @@ const PICS={bg:null,ov:null};
 const picOf=(im,name)=>({src:im,w:im.width||im.naturalWidth,h:im.height||im.naturalHeight,name});
 async function setPic(which,file){
   if(!file||!isImage(file)){toast(file?`${file.name} isn’t an image`:'No image');return;}
-  try{PICS[which]=picOf(await loadImage(file),file.name);try{await DB.put('media','pic:'+which,file);}catch(e){}LS.set('pic:'+which,{name:file.name});
+  try{PICS[which]=picOf(await loadImage(file),file.name);const ref='pic:'+newId();try{await DB.put('media',ref,file);}catch(e){}LS.set('pic:'+which,{name:file.name,ref});projTouch();
     if(which==='ov'){S.ovOn=true;S.ovKind='image';saveSettings();}dirty=true;refreshAll();toast(which==='bg'?'Background image added':'Overlay image added');}
   catch(e){toast(`Couldn’t open ${file.name}`);}}
-async function removePic(which){let blob=null;try{blob=await DB.get('media','pic:'+which);}catch(e){}const was=PICS[which],ovOn=S.ovOn,ovKind=S.ovKind;clearPic(which);
+async function removePic(which){let blob=null;try{const m=LS.get('pic:'+which);blob=await DB.get('media',m&&m.ref||'pic:'+which);}catch(e){}const was=PICS[which],ovOn=S.ovOn,ovKind=S.ovKind;clearPic(which);
   const label=which==='bg'?'Background image removed':'Overlay image removed';if(!blob||!was){toast(label);return;}
   pushUndo({label,fn:async w=>{if(w){clearPic(which);return;}await setPic(which,blob);S.ovOn=ovOn;S.ovKind=ovKind;saveSettings();refreshAll();}});toastUndo(label);}
-function clearPic(which){PICS[which]=null;DB.del('media','pic:'+which).catch(()=>{});LS.set('pic:'+which,null);dirty=true;refreshAll();}
+function clearPic(which){PICS[which]=null;LS.set('pic:'+which,null);projTouch();dirty=true;refreshAll();}
 async function restorePics(){for(const w of ['bg','ov']){const m=LS.get('pic:'+w);if(!m)continue;
-    try{const b=await DB.get('media','pic:'+w);if(b)PICS[w]=picOf(await loadImage(b),m.name);}catch(e){}}dirty=true;refreshAll();}
+    try{const b=await DB.get('media',m.ref||'pic:'+w);if(b)PICS[w]=picOf(await loadImage(b),m.name);}catch(e){}}dirty=true;refreshAll();}
 /* drawing media into a shape: centred, filling it (cropped) or fitting inside it */
 const lvCanvas=document.createElement('canvas'),lvCtx=lvCanvas.getContext('2d',{willReadFrequently:true});
 const LV=new Uint8ClampedArray(256).map((_,i)=>Math.round((i-16)*255/219));
@@ -4203,10 +4318,26 @@ function crispOf(src,sw,sh,tw,th,levels,key){
 const cv=$('#cv'),ctx=cv.getContext('2d');
 let playing=true,clock=0,lastT=0,busy=false,cur=null;
 const size=()=>E.canvasSize(S);
+/* zoom (0.10): Fit, or a set size – screen px for each canvas px (100% is actual size). Bigger than the view, it scrolls;
+   Space and drag, or a scroll, moves round it; pinch or ⌘ and scroll zooms where the pointer is. */
+let viewZoom=null;
+const ZOOMS=[.1,.125,.167,.25,.333,.5,.667,.75,1,1.25,1.5,2,3,4];
+function fitScale(){const [W,H]=size(),v=$('#view'),cs=getComputedStyle(v);
+  const aw=v.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=v.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);return Math.max(.01,Math.min(aw/W,ah/H));}
+const zoomNow=()=>viewZoom==null||$('.app').classList.contains('preview')?fitScale():viewZoom;
+function setZoom(z,at){const v=$('#view'),r=cv.getBoundingClientRect(),z0=zoomNow(),fit=fitScale();
+  if(z!=null&&(z<=fit*1.001&&z>=fit*.999))z=null;viewZoom=z==null?null:clamp(z,.05,8);
+  /* keep the point under the pointer (or the middle) where it is */
+  const vr=v.getBoundingClientRect(),px=at?at[0]:vr.left+vr.width/2,py=at?at[1]:vr.top+vr.height/2,fx=(px-r.left)/r.width,fy=(py-r.top)/r.height;
+  fitCanvas();if(viewZoom!=null){const r2=cv.getBoundingClientRect();v.scrollLeft+=(r2.left+fx*r2.width)-px;v.scrollTop+=(r2.top+fy*r2.height)-py;}
+  paintZoom();dirty=true;}
+function zoomStep(dir,at){const z=zoomNow();let n=dir>0?ZOOMS.find(q=>q>z*1.02):[...ZOOMS].reverse().find(q=>q<z/1.02);if(n==null)n=dir>0?ZOOMS[ZOOMS.length-1]:ZOOMS[0];
+  if(dir<0&&n<fitScale()&&z>fitScale()*1.001)n=null;setZoom(n,at);}
+function paintZoom(){const b=$('#zoomVal');if(!b)return;const t=`${Math.round(zoomNow()*100)}%`;if(b.textContent!==t)b.textContent=t;b.setAttribute('aria-pressed',viewZoom!=null);
+  b.setAttribute('aria-label',`Zoom ${t}${viewZoom==null?', fitted':''} – click for 100% or to fit`);}
 function fitCanvas(){
-  const [W,H]=size(),v=$('#view'),cs=getComputedStyle(v);
-  const aw=v.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=v.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
-  const s=Math.max(.01,Math.min(aw/W,ah/H)),cw=Math.floor(W*s),ch=Math.floor(H*s);cv.style.width=cw+'px';cv.style.height=ch+'px';
+  const [W,H]=size(),v=$('#view'),s=zoomNow(),cw=Math.max(1,Math.floor(W*s)),ch=Math.max(1,Math.floor(H*s));cv.style.width=cw+'px';cv.style.height=ch+'px';
+  v.classList.toggle('zoomed',viewZoom!=null&&!$('.app').classList.contains('preview'));paintZoom();
   /* the preview draws at the size it shows (sharp on a retina screen), never above the real size */
   const k=Math.min(1,cw*(devicePixelRatio||1)/W),bw=Math.max(1,Math.round(W*k)),bh=Math.max(1,Math.round(H*k));
   if(cv.width!==bw||cv.height!==bh){cv.width=bw;cv.height=bh;}
@@ -4312,7 +4443,7 @@ cv.addEventListener('pointermove',e=>{const [x,y]=canvasPt(e);
 const letGo=()=>{if(!grab)return;const g=grab;grab=null;cv.classList.remove('grabbing');if(g.moved&&g.mode!=='click')saveItems();selectItem(g.it.id,true);};
 cv.addEventListener('pointerup',letGo);cv.addEventListener('pointercancel',letGo);cv.addEventListener('pointerleave',()=>{if(!grab)setHover(null);});
 cv.addEventListener('dblclick',e=>{const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;const it=o.item;for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMedia();toast('Position reset');});
-cv.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.altKey))return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;e.preventDefault();setPlaying(false);
+cv.addEventListener('wheel',e=>{if(!e.altKey)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;e.preventDefault();setPlaying(false);
   const it=o.item,[lo,hi]=zRange(o);it.zm=+clamp((+it.zm||100)*Math.exp(-e.deltaY*.0025),lo,hi).toFixed(1);selId=it.id;dirty=true;
   clearTimeout(zoomT);zoomT=setTimeout(()=>{saveItems();openRows.add(it.id);paintMedia();},250);},{passive:false});
 /* the arrow keys nudge the selected piece (0.9): a px at a time, ten with Shift – a cropped piece moves its picture inside its frame */
@@ -4323,6 +4454,38 @@ document.addEventListener('keydown',e=>{if(!selId||busy||!/^Arrow/.test(e.key)||
   else{const [sx,sy]=spare(o);if(sx>.5)it.px=clamp((+it.px||0)+dx*100/sx,-100,100);if(sy>.5)it.py=clamp((+it.py||0)+dy*100/sy,-100,100);}
   saveItems();dirty=true;clearTimeout(nudgeT);nudgeT=setTimeout(paintMediaKeepFocus,300);});
 let nudgeT=0;
+/* the view: pinch, or ⌘/Ctrl and scroll, zooms where the pointer is; zoomed in, a scroll (or a drag with the middle
+   button) moves round it. Space stays play and pause. */
+{const v=$('#view');let pan=null;
+  v.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey)return;e.preventDefault();const z=zoomNow()*Math.exp(-e.deltaY*.006);setZoom(z,[e.clientX,e.clientY]);},{passive:false});
+  const typing=()=>{const a=document.activeElement;return a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable);};
+  document.addEventListener('keydown',e=>{if(!(e.metaKey||e.ctrlKey)||e.altKey||typing())return;
+    if(e.key==='='||e.key==='+'){e.preventDefault();zoomStep(1);}else if(e.key==='-'||e.key==='_'){e.preventDefault();zoomStep(-1);}else if(e.key==='0'){e.preventDefault();setZoom(null);}
+    else if(e.key===';'){e.preventDefault();set('guides',!S.guides);}});
+  v.addEventListener('pointerdown',e=>{if(e.button!==1||viewZoom==null)return;e.preventDefault();e.stopPropagation();pan={x:e.clientX,y:e.clientY,l:v.scrollLeft,t:v.scrollTop};v.setPointerCapture(e.pointerId);v.classList.add('grabbing');},true);
+  v.addEventListener('pointermove',e=>{if(!pan)return;v.scrollLeft=pan.l-(e.clientX-pan.x);v.scrollTop=pan.t-(e.clientY-pan.y);});
+  const end=()=>{pan=null;v.classList.remove('grabbing');};v.addEventListener('pointerup',end);v.addEventListener('pointercancel',end);
+  $('#zoomIn').onclick=()=>zoomStep(1);$('#zoomOut').onclick=()=>zoomStep(-1);$('#zoomVal').onclick=()=>setZoom(viewZoom==null?1:null);}
+/* undo and redo, as buttons too (0.10) – off when there's nothing to undo or redo */
+{const u=$('#undoBtn'),r=$('#redoBtn');u.onclick=()=>undo();r.onclick=()=>redo();let nu=-1,nr=-1;
+  (function look(){if(UNDO.length!==nu||REDO.length!==nr){nu=UNDO.length;nr=REDO.length;u.disabled=!nu;r.disabled=!nr;
+    u.dataset.tip=nu?`Undo ${UNDO[nu-1].label} – ⌘Z`:'Nothing to undo';r.dataset.tip=nr?`Redo ${REDO[nr-1].label} – ⇧⌘Z`:'Nothing to redo';}setTimeout(look,250);})();}
+/* guides (0.10, from Canvas): the button shows or hides them; its arrow opens their settings – changing one shows them */
+{const pop=$('#guidePop'),more=$('#guidesMore'),btn=$('#guidesBtn');
+  pop.append(el('div','pop-title','Guides'));
+  build(pop,[{t:'range',k:'guM',label:'Margin',min:0,max:400,step:1,unit:' px'},
+    {t:'range',k:'guC',label:'Columns',min:0,max:24,step:1},
+    {t:'range',k:'guR',label:'Rows',min:0,max:24,step:1},
+    {t:'range',k:'guG',label:'Gutter',min:0,max:200,step:1,unit:' px',show:s=>Math.round(s.guC)>1||Math.round(s.guR)>1},
+    {t:'toggle',k:'guSnap',label:'Snap to guides'}]);
+  addHint(pop,'On the preview only – nothing of them goes into an export. Hold Alt as you drag to place a piece freely.');
+  const show=o=>{pop.hidden=!o;more.setAttribute('aria-expanded',o);if(o){refreshAll();requestAnimationFrame(()=>syncRanges(pop));}};
+  btn.onclick=()=>set('guides',!S.guides);more.onclick=e=>{e.stopPropagation();show(pop.hidden);};
+  document.addEventListener('pointerdown',e=>{if(!pop.hidden&&!pop.contains(e.target)&&!more.contains(e.target))show(false);},true);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pop.hidden){show(false);more.focus();}});
+  controls.push({d:{},w:btn,update(){btn.setAttribute('aria-pressed',!!S.guides);}});}
+document.addEventListener('keydown',e=>{if(!(e.metaKey||e.ctrlKey)||e.key.toLowerCase()!=='d'||e.shiftKey||e.altKey)return;const a=document.activeElement;
+  if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;if(!selId)return;e.preventDefault();duplicateItem(selId);});
 document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!selId||busy)return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;selId=null;dirty=true;});
 /* the moment a piece is best seen: in Slides, as its slide has arrived; otherwise when it's
    biggest and nearest the middle of the canvas */
@@ -4337,7 +4500,7 @@ function seekTo(it){const t=momentOf(it);if(t==null)return;setPlaying(false);clo
 function setPlaying(v){playing=v;const b=$('#play');b.textContent=v?'Pause':'Play';b.setAttribute('aria-label',v?'Pause':'Play');dirty=true;}
 $('#play').onclick=()=>setPlaying(!playing);
 $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();clock=$('#scrub').value/1000*P.L;dirty=true;});
-function onSet(k){if(/^gu/.test(k)||k==='guides')dirty=true;if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
+function onSet(k){if(/^gu/.test(k)||k==='guides')dirty=true;if(/^gu[MCRG]$/.test(k)&&!S.guides)set('guides',true,true);if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
 /* the loop's length, typed (0.9): click the chip and type a length – every time in the loop (rests, moves, each shape,
    the pull back, lags, each slide's own time) is scaled by the same amount, so it lasts that long and still joins up.
    Video plays at its own speed, as ever. One step to undo. */
@@ -4539,8 +4702,13 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
       inp.oninput=()=>{it[key]=inp.value;E.resetMeasure();dirty=true;saveItems();};inp.onchange=()=>{paintMediaKeepFocus();refreshAll();};hd.append(lb);w.append(hd,inp);cur.append(w);};
     txt('Title','title',true,'A title – Enter for a new line');txt('Line','line',true,'A line under it');txt('Tags','tags',false,'Tags, split with commas');}
   groups.forEach(g=>g._mark());
-  const r=el('div','btn-row pairs det-end'),up=el('button','pill small','Move up'),dn=el('button','pill small','Move down');up.type=dn.type='button';up.disabled=i===0;dn.disabled=i===items.length-1;
-  up.onclick=()=>moveItem(it.id,i-1);dn.onclick=()=>moveItem(it.id,i+1);r.append(up,dn);det.append(r);
+  /* its foot (0.10): Duplicate on the left; Move up and down as two small arrows, bottom right */
+  const r=el('div','det-end'),dup=el('button','pill small'),up=el('button','pill small icon arrow'),dn=el('button','pill small icon arrow');dup.type=up.type=dn.type='button';
+  dup.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="3.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M4 1.5h5a1.5 1.5 0 0 1 1.5 1.5v5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg><span>Duplicate</span>';
+  dup.dataset.tip='A copy, settings and all, straight after it – ⌘D on the canvas';dup.setAttribute('aria-label','Duplicate '+it.name);dup.onclick=()=>duplicateItem(it.id);
+  up.innerHTML=ARROW['-1'];dn.innerHTML=ARROW['1'];up.setAttribute('aria-label','Move up');dn.setAttribute('aria-label','Move down');up.dataset.tip='Move up';dn.dataset.tip='Move down';
+  up.disabled=i===0;dn.disabled=i===items.length-1;up.onclick=()=>moveItem(it.id,i-1);dn.onclick=()=>moveItem(it.id,i+1);
+  const arr=el('div','det-arrows');arr.append(up,dn);r.append(dup,arr);det.append(r);
   return det;}
 /* A clip's In and Out (0.6): a bar the length of the clip with its frames along it, the part that
    plays lit; drag either end, or the lit part to slide both. The frames at In and Out show under
@@ -4587,14 +4755,6 @@ function paintMediaKeepFocus(){const a=document.activeElement,id=a&&a.id;paintMe
   build(bf,[{t:'colour',k:'bg',label:'Colour'}]);picRow(bf,'bg',null,'Image');
   build(bf,[{t:'seg',k:'bgFit',label:'Image fit',opts:[['fill','Fill the canvas'],['fit','Fit inside']],show:()=>!!PICS.bg},
     {t:'range',k:'bgImgA',label:'Image strength',min:0,max:100,step:1,unit:'%',show:()=>!!PICS.bg}]);
-  /* guides (0.6): margins, columns and rows to line things up by – on the preview only */
-  const gf=fold(b,'guides','Guides',null,true,s=>s.guides?[`${Math.round(s.guM)} px margin`,Math.round(s.guC)>0?`${Math.round(s.guC)} columns`:'',Math.round(s.guR)>0?`${Math.round(s.guR)} rows`:''].filter(Boolean).join(' · '):'Off');
-  build(gf,[{t:'toggle',k:'guides',label:'Show guides'},
-    {t:'range',k:'guM',label:'Margin',min:0,max:400,step:1,unit:' px',show:s=>s.guides},
-    {t:'range',k:'guC',label:'Columns',min:0,max:24,step:1,show:s=>s.guides},
-    {t:'range',k:'guR',label:'Rows',min:0,max:24,step:1,show:s=>s.guides},
-    {t:'range',k:'guG',label:'Gutter',min:0,max:200,step:1,unit:' px',show:s=>s.guides&&(Math.round(s.guC)>1||Math.round(s.guR)>1)},
-    {t:'toggle',k:'guSnap',label:'Snap to guides',show:s=>s.guides}]);
   SUMMARY.canvas=s=>{const [W,H]=E.canvasSize(s);return `${W} × ${H}`+(PICS.bg?' · image':'');};}
 /* Motion: the kind first, then only what that kind uses */
 const KINDS=[['one','Slides','A slide at a time – full bleed, as it is or in a shape, with a transition and a little movement in each'],['line','Line','A row or a column of shapes, moving along'],['grid','Grid','Rows of shapes, moving together'],
@@ -4839,17 +4999,28 @@ const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
   const f=fold(b,'border','Border and edge',null,true,s=>[s.mat>0?`${Math.round(s.mat)} px border`:'',s.edge?`${s.edgeW} px edge`:''].filter(Boolean).join(' · ')||'Off');
   build(f,[{t:'range',k:'mat',label:'Border',min:0,max:120,step:1,unit:' px'},{t:'colour',k:'matC',label:'Border colour',show:s=>s.mat>0},{t:'range',k:'matR',label:'Inner corners',min:0,max:120,step:1,unit:' px',show:s=>s.mat>0},
     {t:'toggle',k:'edge',label:'Edge'},{t:'colour',k:'edgeC',label:'Edge colour',show:s=>s.edge},{t:'range',k:'edgeW',label:'Edge width',min:.5,max:12,step:.5,unit:' px',show:s=>s.edge}]);
-  const g=fold(b,'nudge','Position',s=>!isK('float')(s),true,s=>(+s.nudgeX||+s.nudgeY)?`${Math.round(s.nudgeX)}, ${Math.round(s.nudgeY)} px`:'Centred');
-  build(g,[{t:'range',k:'nudgeX',label:'Across',min:-600,max:600,step:1,unit:' px',tip:'Move every shape left or right'},{t:'range',k:'nudgeY',label:'Up and down',min:-600,max:600,step:1,unit:' px',tip:'Move every shape up or down'}]);
   SUMMARY.shapes=s=>[ownFit(s)?'Their own':s.ratio==='custom'?`${s.rW}:${s.rH}`:s.ratio==='media'?'Media’s own':({a4p:'A4 portrait',a4l:'A4 landscape'}[s.ratio]||s.ratio),s.radius?`${s.radius} px corners`:'Square corners',s.mat>0?'Border':''].filter(Boolean).join(' · ');}
 /* Captions, with the fonts they're set in */
 const WHERE=[['under','Under'],['above','Above'],['over','On it'],['fixed','Fixed']];
 let fontBox;
 /* Captions (0.7): what they do (where, which side, how they arrive), then Position and spacing, then the type
    of each role, then what applies to all text (accent, kerning), then the fonts. */
-{const b=card('captions','Captions');
-  build(b,[{t:'toggle',k:'capOn',label:'Captions'},
-    {t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','rows','frames','float','wall'].includes(S.layout)?WHERE.slice(0,3):S.layout==='one'&&S.oneFit==='bleed'?WHERE.slice(2):WHERE,show:s=>s.capOn},
+/* Additionals (0.10): what's useful now and then – Captions, Overlay and the shapes' Position – at the bottom of the
+   panel under one heading, shut until wanted; Captions and Overlay switch on and off by the box beside their name */
+const tierBox=el('div','tier'),tierBody=el('div','tier-body');
+{const hd=el('button','tier-head'),ch=el('span','chev'),sm=el('span','sum');hd.type='button';ch.innerHTML=CHEV;hd.append(el('span',null,'Additionals'),el('span','cdot'),sm,ch);
+  const paint=o=>{tierBody.hidden=!o;hd.setAttribute('aria-expanded',o);tierBox.classList.toggle('open',o);if(o)requestAnimationFrame(()=>{syncRanges(tierBody);tierBody.querySelectorAll('.seg').forEach(fitSeg);});};
+  paint(collapsed.additionals===false);hd.onclick=()=>{const o=tierBody.hidden;collapsed.additionals=!o;LS.set('collapsed',collapsed);paint(o);};
+  tierBox.append(hd,tierBody);
+  controls.push({d:{},w:hd,update(){const t=[S.capOn?'Captions':'',S.ovOn?'Overlay':'',(+S.nudgeX||+S.nudgeY)?'Moved':''].filter(Boolean).join(' · ');if(sm.textContent!==t)sm.textContent=t;}});}
+/* a section's on and off, in its head: the box beside its name */
+function headSwitch(body,k,label){const sec=body.closest('section'),h=sec.querySelector(':scope>h2'),b=el('button','toggle head-sw');b.type='button';b.setAttribute('role','switch');
+  b.setAttribute('aria-label',label);b.dataset.tip=`${label} on or off`;b.append(el('span','box'));h.prepend(b);sec.classList.add('has-sw');
+  b.onclick=e=>{e.stopPropagation();const on=!S[k];set(k,on);const t=h.querySelector('.card-toggle');if(on===sec.classList.contains('collapsed'))t.click();};
+  controls.push({d:{k,label,head:true},w:b,update(){b.setAttribute('aria-checked',!!S[k]);sec.classList.toggle('off',!S[k]);}});}
+{const b=card('captions','Captions');headSwitch(b,'capOn','Captions');
+  addHint(b,'Off – tick the box beside Captions to add them.',s=>!s.capOn);
+  build(b,[{t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','rows','frames','float','wall'].includes(S.layout)?WHERE.slice(0,3):S.layout==='one'&&S.oneFit==='bleed'?WHERE.slice(2):WHERE,show:s=>s.capOn},
     {t:'seg',k:'capV',label:'Sits',opts:[['top','Top'],['bottom','Bottom']],show:s=>s.capOn&&E.capWhereOf(s)==='fixed'},
     {t:'seg',k:'capAlign',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],show:s=>s.capOn},
     {t:'seg',k:'capReveal',label:'Arrives',opts:[['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],show:s=>s.capOn&&!isK('columns','rows','float','wall')(s)},
@@ -4888,9 +5059,9 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
   w.append(hd,g);parent.append(w);controls.push({d:{show},w,update(){bs.forEach(([v,b])=>b.setAttribute('aria-pressed',S.ovPos===v));}});}
 /* Overlay (0.7): what goes over (text or an image), its type, Position – the pad, the margin and the nudge
    together, as Captions has – and Blend and opacity. */
-{const b=card('overlay','Overlay');const on=s=>s.ovOn,txt=s=>s.ovOn&&s.ovKind==='text',img=s=>s.ovOn&&s.ovKind==='image';
-  build(b,[{t:'toggle',k:'ovOn',label:'Over the top'},
-    {t:'seg',k:'ovKind',label:'What',opts:[['text','Text'],['image','Image']],show:on},
+{const b=card('overlay','Overlay');const on=s=>s.ovOn,txt=s=>s.ovOn&&s.ovKind==='text',img=s=>s.ovOn&&s.ovKind==='image';headSwitch(b,'ovOn','Overlay');
+  addHint(b,'Off – tick the box beside Overlay to put text or an image over everything.',s=>!s.ovOn);
+  build(b,[{t:'seg',k:'ovKind',label:'What',opts:[['text','Text'],['image','Image']],show:on},
     {t:'text',k:'ovText',label:'Text',multi:true,rows:2,placeholder:'Type here – Enter for a new line',show:txt}]);
   picRow(b,'ov',img,'Image');
   build(b,[{t:'range',k:'ovW',label:'Width',min:2,max:150,step:.5,unit:'%',show:img}]);
@@ -4909,6 +5080,11 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
     {t:'range',k:'ovA',label:'Opacity',min:0,max:100,step:1,unit:'%'}]);
   SUMMARY.overlay=s=>!s.ovOn?'Off':[s.ovKind==='image'?(PICS.ov?'Image':'Image – none yet'):(String(s.ovText||'').trim()?`“${String(s.ovText).split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,'').slice(0,18)}”`:'Text – none yet'),
     optLabel(PLACES,s.ovPos),s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):''].filter(Boolean).join(' · ');}
+/* the shapes' Position (from Shapes, 0.10): every shape moved together */
+{const b=card('position','Position',s=>!isK('float')(s));
+  build(b,[{t:'range',k:'nudgeX',label:'Across',min:-600,max:600,step:1,unit:' px',tip:'Move every shape left or right'},{t:'range',k:'nudgeY',label:'Up and down',min:-600,max:600,step:1,unit:' px',tip:'Move every shape up or down'}]);
+  SUMMARY.position=s=>(+s.nudgeX||+s.nudgeY)?`${Math.round(s.nudgeX)}, ${Math.round(s.nudgeY)} px`:'Centred';}
+panel.append(tierBox);for(const id of ['captions','overlay','position'])tierBody.append(panel.querySelector(`:scope>section.card[data-id=${id}]`));
 
 /* ---------------- presets ---------------- */
 /* Built in, grouped by kind, named for what they do. The first five are for showcase GIFs and
@@ -4991,6 +5167,140 @@ function paintPresets(){presetBox.textContent='';
 $('#presetfile').onchange=async e=>{const f=e.target.files[0];e.target.value='';if(!f)return;
   try{const j=JSON.parse(await f.text()),list=(j.presets||[]).filter(p=>p&&p.name&&p.s);let n=0;for(const p of list){p.s=sanitise(p.s);mine=mine.filter(x=>x.name!==p.name);mine.push({name:String(p.name).slice(0,60),s:p.s});n++;}
     LS.set('presets',mine);paintPresets();toast(n===1?'Loaded 1 preset':`Loaded ${n} presets`);}catch(err){toast('That isn’t a Segue presets file');}};
+/* ---------------- projects (0.10) ----------------
+   A project is everything you've set up: the settings, the media in order with each piece's own settings, the
+   background and overlay pictures, and the preset it came from. The open one is saved as you work (a moment after each
+   change) into the browser's own storage, with a small picture of the frame for the list; any number can be kept,
+   opened, copied, renamed and removed. Save as file packs one – files and all – into a .segue file (a plain zip:
+   project.json and the files), to keep or to open in another browser; Open a file adds it as a new project.
+   The files themselves are shared: a copied piece or a copied project points at the same stored file, and a stored
+   file is cleared only at start-up, when nothing – the open project or any saved one – uses it. */
+var PROJ=null,projReady=false,projT=0,projThumbT=0,projSaving=false;
+const newPid=()=>'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const SEGUE_VER=($('.brand .ver')||{}).textContent||'';
+function projTouch(){if(!projReady||!PROJ)return;clearTimeout(projT);paintProjState('Saving…');projT=setTimeout(()=>saveProject(),700);}
+function projThumb(){try{const [W,H]=size(),k=Math.min(96/W,120/H),c=document.createElement('canvas');c.width=Math.max(1,Math.round(W*k));c.height=Math.max(1,Math.round(H*k));
+  const x=c.getContext('2d'),P=planNow(),t=((clock%P.L)+P.L)%P.L,sc=E.scene(S,items,x,FONTS,W,H,t);E.paint(x,sc,S,FONTS,{scale:k,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});return c.toDataURL('image/jpeg',.78);}catch(e){return null;}}
+function projRecord(thumb){return{id:PROJ.id,name:PROJ.name,created:PROJ.created||Date.now(),updated:Date.now(),ver:SEGUE_VER,
+  settings:Object.assign({},S),items:items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))),pics:{bg:LS.get('pic:bg'),ov:LS.get('pic:ov')},
+  preset:{current,edited},thumb:thumb||PROJ.thumb||null,n:items.length,L:+planNow().L.toFixed(2)};}
+async function saveProject(force){clearTimeout(projT);if(!PROJ)return;projSaving=true;
+  if(force||!PROJ.thumb||performance.now()-projThumbT>4000){const t=projThumb();if(t){PROJ.thumb=t;projThumbT=performance.now();}}
+  try{await DB.put('projects',PROJ.id,projRecord());paintProjState('Saved');}catch(e){paintProjState('Not saved');toast('Couldn’t save the project – the browser’s storage may be full');}
+  projSaving=false;}
+function paintProjState(t){const s=$('#projState');if(s&&s.textContent!==t)s.textContent=t;}
+function paintProject(){if(!PROJ)return;$('#projName').textContent=PROJ.name;$('#projBtn').setAttribute('aria-label',`Project: ${PROJ.name} – projects`);document.title=`${PROJ.name} – Segue`;}
+async function allProjects(){try{return (await DB.all('projects')).filter(r=>r&&r.id).sort((a,b)=>(b.updated||0)-(a.updated||0));}catch(e){return [];}}
+function untitled(list){const taken=new Set(list.map(r=>r.name));if(!taken.has('Untitled'))return 'Untitled';for(let k=2;k<999;k++)if(!taken.has('Untitled '+k))return 'Untitled '+k;return 'Untitled';}
+/* bring a saved project in as the one that's open */
+async function loadProject(rec){
+  for(const it of items){if(it.el){try{it.el.pause();URL.revokeObjectURL(it.el.src);}catch(e){}}}items.splice(0);openRows.clear();selId=null;hoverOp=null;crCache.clear();
+  for(const k of Object.keys(S))delete S[k];Object.assign(S,D,sanitise(rec.settings));LS.set('settings',S);
+  LS.set('items',Array.isArray(rec.items)?rec.items:[]);LS.set('pic:bg',rec.pics&&rec.pics.bg||null);LS.set('pic:ov',rec.pics&&rec.pics.ov||null);PICS.bg=PICS.ov=null;
+  current=rec.preset&&rec.preset.current||'';edited=!!(rec.preset&&rec.preset.edited);LS.set('preset',current);LS.set('presetEdited',edited);
+  PROJ={id:rec.id,name:rec.name||'Untitled',created:rec.created||Date.now(),thumb:rec.thumb||null};LS.set('project',PROJ.id);
+  UNDO.length=0;REDO.length=0;itemSnap=null;clock=0;viewZoom=null;E.resetMeasure();
+  await restoreMedia();await restorePics();paintMedia();paintPresets();refreshAll();fitCanvas();paintProject();dirty=true;}
+async function openProject(id){if(busy){toast('Wait for the export to finish');return;}if(PROJ&&id===PROJ.id){closeProjPop();return;}
+  let rec=null;try{rec=await DB.get('projects',id);}catch(e){}if(!rec){toast('Couldn’t find that project');return;}
+  projReady=false;await saveProject(true);try{await loadProject(rec);}finally{projReady=true;}await saveProject(true);closeProjPop();toast(`Opened ${PROJ.name}`);}
+async function newProject(){if(busy){toast('Wait for the export to finish');return;}projReady=false;await saveProject(true);
+  const name=untitled(await allProjects());
+  try{await loadProject({id:newPid(),name,created:Date.now(),settings:{},items:[],pics:{},preset:{current:'',edited:false}});}finally{projReady=true;}
+  await saveProject(true);closeProjPop();toast(`New project – ${name}. The last one is in Projects.`);}
+async function duplicateProject(){await saveProject(true);const r=projRecord(PROJ.thumb),list=await allProjects(),taken=new Set(list.map(x=>x.name));
+  let name=`${PROJ.name} copy`;for(let k=2;taken.has(name);k++)name=`${PROJ.name} copy ${k}`;
+  Object.assign(r,{id:newPid(),name,created:Date.now(),updated:Date.now()});await DB.put('projects',r.id,r);paintProjPop();toast(`Copied as ${name}`);}
+async function renameProject(n){n=String(n||'').trim().slice(0,80);if(!n||!PROJ||n===PROJ.name)return;PROJ.name=n;paintProject();await saveProject();}
+async function removeProject(id){if(PROJ&&id===PROJ.id){const others=(await allProjects()).filter(r=>r.id!==id);if(!others.length){toast('It’s the only project – start a new one first');return;}
+    const was=projRecord(PROJ.thumb);await openProject(others[0].id);await DB.del('projects',id);undoProject(was);}
+  else{let was=null;try{was=await DB.get('projects',id);}catch(e){}await DB.del('projects',id);if(was)undoProject(was);}
+  paintProjPop();}
+function undoProject(was){const label=`Removed ${was.name}`;pushUndo({label,fn:async w=>{if(w)await DB.del('projects',was.id);else await DB.put('projects',was.id,was);paintProjPop();}});toastUndo(label);}
+/* start-up: the work in the browser becomes (or stays) the open project; files nothing uses are cleared */
+async function projectsStart(){let rec=null;const id=LS.get('project');try{if(id)rec=await DB.get('projects',id);}catch(e){}
+  if(rec)PROJ={id:rec.id,name:rec.name||'Untitled',created:rec.created,thumb:rec.thumb||null};
+  else{const list=await allProjects();PROJ={id:id||newPid(),name:untitled(list),created:Date.now(),thumb:null};LS.set('project',PROJ.id);}
+  paintProject();projReady=true;await saveProject(true);gcFiles();}
+async function gcFiles(){try{const used=new Set(),add=list=>{for(const m of list||[])if(m&&(m.ref||m.id))used.add(m.ref||m.id);},pic=m=>{if(m)used.add(m.ref||'');};
+    add(LS.get('items'));pic(LS.get('pic:bg'));for(const w of ['bg','ov'])if(LS.get('pic:'+w)&&!LS.get('pic:'+w).ref)used.add('pic:'+w);pic(LS.get('pic:ov'));
+    const list=await DB.all('projects');for(const r of list){add(r.items);if(r.pics){for(const w of ['bg','ov']){const m=r.pics[w];if(m)used.add(m.ref||'pic:'+w);}}}
+    for(const k of await DB.keys('media'))if(!used.has(k))await DB.del('media',k);}catch(e){}}
+/* the Projects panel: the name, what you can do, and every project kept in this browser */
+const ICON_DUP='<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="3.5" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M4 1.5h5a1.5 1.5 0 0 1 1.5 1.5v5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>',
+  ICON_DOWN='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 1.8v6.4M3.4 5.6 6 8.2l2.6-2.6M2 10.2h8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  ICON_UP='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 8.2V1.8M3.4 4.4 6 1.8l2.6 2.6M2 10.2h8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const when=t=>{if(!t)return '';const d=new Date(t),now=new Date(),hm=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  if(d.toDateString()===now.toDateString())return `Today ${hm}`;const y=new Date(now);y.setDate(now.getDate()-1);if(d.toDateString()===y.toDateString())return `Yesterday ${hm}`;
+  return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+hm;};
+async function paintProjPop(){const pop=$('#projPop');if(pop.hidden)return;await saveProject();const list=await allProjects();pop.textContent='';
+  const nm=el('input','proj-field');nm.type='text';nm.value=PROJ.name;nm.spellcheck=false;nm.setAttribute('aria-label','Project name');nm.maxLength=80;
+  nm.onchange=()=>renameProject(nm.value);nm.onkeydown=e=>{if(e.key==='Enter')nm.blur();if(e.key==='Escape'){nm.value=PROJ.name;nm.blur();}};
+  const acts=el('div','proj-acts'),act=(label,icon,fn,tip)=>{const b=el('button','pill small');b.type='button';b.innerHTML=icon+`<span>${label}</span>`;b.dataset.tip=tip;b.onclick=fn;acts.append(b);};
+  act('New',ICON.plus,newProject,'Start a new project – this one stays in the list');
+  act('Duplicate',ICON_DUP,duplicateProject,'A copy of this project in the list – this one stays open');
+  act('Save as file',ICON_DOWN,saveProjectFile,'Download it, files and all, as a .segue file – to keep, or to open in another browser');
+  act('Open file',ICON_UP,()=>$('#projfile').click(),'Open a .segue file as a new project');
+  pop.append(el('div','pop-title','Project'),nm,acts,el('div','sub-head','In this browser'));
+  const box=el('div','proj-list');
+  for(const r of list){const row=el('div','slot proj-row'+(r.id===PROJ.id?' on':'')),top=el('div','slot-top'),th=el('span','proj-thumb'),main=el('div','slot-main'),name=el('div','slot-name',r.name||'Untitled'),
+      meta=el('div','slot-meta',[`${r.n||0} ${r.n===1?'piece':'pieces'}`,r.L?`${(+r.L).toFixed(1)} s`:'',when(r.updated)].filter(Boolean).join(' · '));
+    if(r.thumb){const im=el('img');im.alt='';im.src=r.thumb;th.append(im);}main.append(name,meta);main.setAttribute('role','button');main.tabIndex=0;
+    main.setAttribute('aria-label',r.id===PROJ.id?`${r.name} – open now`:`Open ${r.name}`);main.onclick=()=>openProject(r.id);main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openProject(r.id);}};
+    top.append(th,main);if(r.id===PROJ.id)top.append(el('span','tag','Open'));
+    const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+    rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+r.name);rm.onclick=e=>{e.stopPropagation();removeProject(r.id);};top.append(rm);row.append(top);box.append(row);}
+  pop.append(box,el('p','hint','Kept in this browser as you work. Save as file to keep a copy anywhere or open it in another browser – Chrome and Safari keep their own.'));}
+function openProjPop(){const pop=$('#projPop');pop.hidden=false;$('#projBtn').setAttribute('aria-expanded',true);paintProjPop();}
+function closeProjPop(){const pop=$('#projPop');if(pop.hidden)return;pop.hidden=true;$('#projBtn').setAttribute('aria-expanded',false);}
+$('#projBtn').onclick=()=>{$('#projPop').hidden?openProjPop():closeProjPop();};
+document.addEventListener('pointerdown',e=>{const pop=$('#projPop');if(!pop.hidden&&!pop.contains(e.target)&&!$('#projBtn').contains(e.target)&&!(e.target.closest&&e.target.closest('#toast')))closeProjPop();},true);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#projPop').hidden&&document.activeElement.tagName!=='INPUT'){closeProjPop();$('#projBtn').focus();}});
+/* a project as a file: a zip, its files stored as they are (nothing to gain compressing video), with project.json */
+const CRC_T=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}return t;})();
+function crc32(u){let c=0xFFFFFFFF;for(let i=0;i<u.length;i++)c=CRC_T[(c^u[i])&255]^(c>>>8);return (c^0xFFFFFFFF)>>>0;}
+async function makeZip(files){const enc=new TextEncoder(),parts=[],cd=[];let off=0;
+  for(const f of files){const nm=enc.encode(f.name),buf=new Uint8Array(await f.blob.arrayBuffer()),crc=crc32(buf),n=buf.length;
+    const h=new DataView(new ArrayBuffer(30));h.setUint32(0,0x04034b50,true);h.setUint16(4,20,true);h.setUint16(6,0x0800,true);h.setUint16(12,0x21,true);h.setUint32(14,crc,true);h.setUint32(18,n,true);h.setUint32(22,n,true);h.setUint16(26,nm.length,true);
+    const c=new DataView(new ArrayBuffer(46));c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);c.setUint16(8,0x0800,true);c.setUint16(14,0x21,true);c.setUint32(16,crc,true);c.setUint32(20,n,true);c.setUint32(24,n,true);c.setUint16(28,nm.length,true);c.setUint32(42,off,true);
+    parts.push(h.buffer,nm,f.blob);cd.push(c.buffer,nm);off+=30+nm.length+n;}
+  const size=cd.reduce((a,b)=>a+b.byteLength,0),e=new DataView(new ArrayBuffer(22));e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,size,true);e.setUint32(16,off,true);
+  return new Blob([...parts,...cd,e.buffer],{type:'application/zip'});}
+async function readZip(file){const n=file.size,tb=new DataView(await file.slice(Math.max(0,n-65558)).arrayBuffer());let e=-1;for(let i=tb.byteLength-22;i>=0;i--)if(tb.getUint32(i,true)===0x06054b50){e=i;break;}
+  if(e<0)throw new Error('not a zip');const cnt=tb.getUint16(e+10,true),cdSize=tb.getUint32(e+12,true),cdOff=tb.getUint32(e+16,true),cd=new DataView(await file.slice(cdOff,cdOff+cdSize).arrayBuffer()),dec=new TextDecoder(),out=new Map();let p=0;
+  for(let i=0;i<cnt&&p+46<=cd.byteLength;i++){if(cd.getUint32(p,true)!==0x02014b50)break;const how=cd.getUint16(p+10,true),cs=cd.getUint32(p+20,true),nl=cd.getUint16(p+28,true),xl=cd.getUint16(p+30,true),cl=cd.getUint16(p+32,true),lo=cd.getUint32(p+42,true);
+    const name=dec.decode(new Uint8Array(cd.buffer,cd.byteOffset+p+46,nl));p+=46+nl+xl+cl;
+    const lh=new DataView(await file.slice(lo,lo+30).arrayBuffer()),at=lo+30+lh.getUint16(26,true)+lh.getUint16(28,true);let b=file.slice(at,at+cs);
+    if(how===8){if(typeof DecompressionStream!=='function')continue;b=await new Response(b.stream().pipeThrough(new DecompressionStream('deflate-raw'))).blob();}else if(how!==0)continue;
+    out.set(name,b);}
+  return out;}
+const safeName=n=>String(n||'file').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'-').slice(0,120)||'file';
+async function projectFile(){await saveProject(true);const r=projRecord(PROJ.thumb),files=[],seen=new Set(),media={},pics={},fonts=[];
+  for(const m of r.items){const ref=m.ref||m.id;if(seen.has(ref))continue;seen.add(ref);let b=null;try{b=await DB.get('media',ref);}catch(e){}if(!b)continue;
+    const path=`media/${ref}/${safeName(m.name)}`;media[ref]={path,type:b.type||''};files.push({name:path,blob:b});}
+  for(const w of ['bg','ov']){const m=r.pics[w];if(!m)continue;const ref=m.ref||'pic:'+w;let b=null;try{b=await DB.get('media',ref);}catch(e){}if(!b)continue;
+    const path=`pictures/${w}/${safeName(m.name)}`;pics[w]={path,type:b.type||''};files.push({name:path,blob:b});}
+  for(const k of ['TF','LF','GF','OF']){const id=S[k],f=FONTS[id];if(!f||!f.own||fonts.some(x=>x.id===id))continue;let rec=null;try{rec=await DB.get('fonts',id);}catch(e){}if(!rec)continue;
+    const path=`fonts/${safeName(rec.name)}`;fonts.push({id,name:rec.name,type:rec.type||'',path});files.push({name:path,blob:new Blob([rec.data],{type:rec.type||''})});}
+  delete r.thumb;const json={segue:SEGUE_VER,format:1,project:r,media,pics,fonts};
+  files.unshift({name:'project.json',blob:new Blob([JSON.stringify(json,null,1)],{type:'application/json'})});
+  return makeZip(files);}
+async function saveProjectFile(){if(busy)return;toast('Packing the project…',true);
+  try{const z=await projectFile();await saveFile(`${safeName(PROJ.name)}.segue`,z);}catch(e){toast('Couldn’t make the file – '+(e&&e.message||'something went wrong'));}}
+async function openProjectFile(file){if(busy){toast('Wait for the export to finish');return;}toast(`Opening ${file.name}…`,true);
+  try{const z=await readZip(file),j=JSON.parse(await (z.get('project.json')||new Blob(['{}'])).text()),r=j.project;if(!r||!Array.isArray(r.items))throw new Error('no project');
+    const remap={};
+    for(const [ref,m] of Object.entries(j.media||{})){const b=z.get(m.path);if(!b)continue;let use=ref,have=null;try{have=await DB.get('media',ref);}catch(e){}
+      if(have&&have.size!==b.size)use=newId();if(!have||use!==ref)await DB.put('media',use,new File([b],m.path.split('/').pop(),{type:m.type||b.type||''}));remap[ref]=use;}
+    r.items=r.items.map(m=>{const ref=m.ref||m.id,o=Object.assign({},m);if(remap[ref])o.ref=remap[ref];else o.ref=ref;return o;});
+    const pics={};for(const w of ['bg','ov']){const m=(j.pics||{})[w],meta=(r.pics||{})[w];if(!m||!meta)continue;const b=z.get(m.path);if(!b)continue;const ref='pic:'+newId();
+      await DB.put('media',ref,new File([b],meta.name||'picture',{type:m.type||''}));pics[w]={name:meta.name,ref};}
+    for(const f of j.fonts||[]){if(FONTS[f.id])continue;const b=z.get(f.path);if(b)try{await addFont(new File([b],f.name,{type:f.type||''}),f.id);}catch(e){}}
+    const list=await allProjects(),taken=new Set(list.map(x=>x.name));let name=r.name||file.name.replace(/\.(segue|zip)$/i,'');if(taken.has(name)){let k=2;while(taken.has(`${name} ${k}`))k++;name=`${name} ${k}`;}
+    const rec=Object.assign({},r,{id:newPid(),name,pics,created:r.created||Date.now(),updated:Date.now()});await DB.put('projects',rec.id,rec);paintFonts();
+    projReady=false;await saveProject(true);try{await loadProject(rec);}finally{projReady=true;}await saveProject(true);closeProjPop();toast(`Opened ${name}`);}
+  catch(e){toast(`${file.name} isn’t a Segue project file`);}}
+$('#projfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)openProjectFile(f);};
 /* Segue – exports. Every frame is drawn at full size at its exact moment: each video is
    seeked to the frame the loop wants before the frame is drawn, so the file is the loop,
    frame for frame, however fast or slow the computer is. */
@@ -5312,8 +5622,9 @@ $('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs
   window.addEventListener('dragenter',e=>{if(!dragId&&e.dataTransfer&&[...e.dataTransfer.types].includes('Files')){depth++;drop.classList.add('on');}});
   window.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)drop.classList.remove('on');});
   window.addEventListener('dragover',e=>e.preventDefault());
-  window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(fs.length)addFiles(fs).then(paintFonts);});}
+  window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');let fs=[...(e.dataTransfer?e.dataTransfer.files:[])];const pj=fs.find(f=>/\.segue$/i.test(f.name));if(pj){openProjectFile(pj);fs=fs.filter(f=>f!==pj);}if(fs.length)addFiles(fs).then(paintFonts);});}
 window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
+  projects:{list:allProjects,get current(){return PROJ;},open:openProject,make:newProject,duplicate:duplicateProject,remove:removeProject,rename:renameProject,save:saveProject,file:projectFile,openFile:openProjectFile,readZip,gc:gcFiles},duplicate:duplicateItem,setZoom,get zoom(){return viewZoom;},
   setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;},get sel(){return selId;},momentOf,seekTo,guideLines,get clock(){return clock;},get playing(){return playing;},
   /* the interface, for the checks: every control, the undo history, where each setting started */
   ui:{controls,undo,redo,get undoSteps(){return UNDO.length;},get redoSteps(){return REDO.length;},base,moved,get preset(){return current;},get edited(){return edited;}}};
@@ -5321,7 +5632,7 @@ window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts
    Presets and Export above all – and says what went wrong where it can be seen */
 for(const [n,f] of [['frame',frameStart],['media',paintMedia],['fonts',paintFonts],['presets',paintPresets],['refresh',refreshAll],['canvas',fitCanvas],['layout',layoutUI]]){try{f();}catch(e){reportError(e,'start-up: '+n);}}
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
-loadBuiltinFonts();restoreFonts().then(paintFonts);restoreMedia();restorePics();
+loadBuiltinFonts();restoreFonts().then(paintFonts);Promise.all([restoreMedia(),restorePics()]).then(projectsStart).catch(e=>reportError(e,'start-up: projects'));
 requestAnimationFrame(tick);
 })();
 </script>

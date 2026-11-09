@@ -319,8 +319,9 @@ $('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs
   window.addEventListener('dragenter',e=>{if(!dragId&&e.dataTransfer&&[...e.dataTransfer.types].includes('Files')){depth++;drop.classList.add('on');}});
   window.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)drop.classList.remove('on');});
   window.addEventListener('dragover',e=>e.preventDefault());
-  window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');const fs=[...(e.dataTransfer?e.dataTransfer.files:[])];if(fs.length)addFiles(fs).then(paintFonts);});}
+  window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');let fs=[...(e.dataTransfer?e.dataTransfer.files:[])];const pj=fs.find(f=>/\.segue$/i.test(f.name));if(pj){openProjectFile(pj);fs=fs.filter(f=>f!==pj);}if(fs.length)addFiles(fs).then(paintFonts);});}
 window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
+  projects:{list:allProjects,get current(){return PROJ;},open:openProject,make:newProject,duplicate:duplicateProject,remove:removeProject,rename:renameProject,save:saveProject,file:projectFile,openFile:openProjectFile,readZip,gc:gcFiles},duplicate:duplicateItem,setZoom,get zoom(){return viewZoom;},
   setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;},get sel(){return selId;},momentOf,seekTo,guideLines,get clock(){return clock;},get playing(){return playing;},
   /* the interface, for the checks: every control, the undo history, where each setting started */
   ui:{controls,undo,redo,get undoSteps(){return UNDO.length;},get redoSteps(){return REDO.length;},base,moved,get preset(){return current;},get edited(){return edited;}}};
@@ -328,5 +329,5 @@ window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts
    Presets and Export above all – and says what went wrong where it can be seen */
 for(const [n,f] of [['frame',frameStart],['media',paintMedia],['fonts',paintFonts],['presets',paintPresets],['refresh',refreshAll],['canvas',fitCanvas],['layout',layoutUI]]){try{f();}catch(e){reportError(e,'start-up: '+n);}}
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
-loadBuiltinFonts();restoreFonts().then(paintFonts);restoreMedia();restorePics();
+loadBuiltinFonts();restoreFonts().then(paintFonts);Promise.all([restoreMedia(),restorePics()]).then(projectsStart).catch(e=>reportError(e,'start-up: projects'));
 requestAnimationFrame(tick);

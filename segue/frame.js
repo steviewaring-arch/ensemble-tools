@@ -93,7 +93,7 @@ function refreshSummaries(){document.querySelectorAll('section.card[data-id]').f
   let t='';try{t=SUMMARY[sec.dataset.id]?SUMMARY[sec.dataset.id](S):autoSummary(sec.dataset.id);}catch(e){}if(sm.textContent!==(t||''))sm.textContent=t||'';});
   document.querySelectorAll('.fold-head').forEach(hd=>{const body=hd.nextElementSibling;if(!body)return;let sm=hd.querySelector('.sum');
     if(!sm){sm=el('span','sum');hd.insertBefore(sm,hd.querySelector('.chev'));}let t='';try{t=hd._sum?hd._sum(S):autoSummary(null,body);}catch(e){}if(sm.textContent!==t)sm.textContent=t;});
-  let n=0;panel.querySelectorAll(':scope>section.card').forEach(sec=>{const nm=sec.querySelector(':scope>h2 .num');if(nm&&!sec.hidden){const v=String(++n);if(nm.textContent!==v)nm.textContent=v;}});}
+  let n=0;panel.querySelectorAll('section.card').forEach(sec=>{const nm=sec.querySelector(':scope>h2 .num');if(nm&&!sec.hidden){const v=String(++n);if(nm.textContent!==v)nm.textContent=v;}});}
 /* ---------------- sheets, island, Presets, Preview ---------------- */
 const SHEETS={};
 const sheetObs=new MutationObserver(ms=>{for(const m of ms){const n=m.target;if(!n.hidden)for(const k in SHEETS)if(SHEETS[k].el!==n)SHEETS[k].el.hidden=true;}syncSheets();});
@@ -212,7 +212,8 @@ function resetCard(sec,title){const list=controls.filter(c=>c.cx&&sec.contains(c
   group(`${title} put back`,()=>list.forEach(resetKeys));easeAll(sec);refreshAll();toastUndo(`${title} put back`);}
 function paintChanges(){
   for(const c of controls){if(!c.cx)continue;const ch=!c.w.closest('.sheet')&&ctlMoved(c);if(c.w.classList.contains('chg')!==ch)c.w.classList.toggle('chg',ch);}
-  panel.querySelectorAll(':scope>section.card').forEach(sec=>{const ch=controls.some(c=>c.cx&&sec.contains(c.w)&&c.w.classList.contains('chg')&&shownIn(c,sec));sec.classList.toggle('chg',ch);});
+  panel.querySelectorAll('section.card').forEach(sec=>{const ch=controls.some(c=>c.cx&&sec.contains(c.w)&&c.w.classList.contains('chg')&&shownIn(c,sec));sec.classList.toggle('chg',ch);});
+  panel.querySelectorAll('.tier').forEach(t=>t.classList.toggle('chg',!!t.querySelector('section.card.chg')));
   panel.querySelectorAll('.fold-head').forEach(hd=>{const body=hd.nextElementSibling;const ch=!!body&&controls.some(c=>c.cx&&body.contains(c.w)&&c.w.classList.contains('chg')&&shownIn(c,body));hd.classList.toggle('chg',ch);});}
 const roundTo=(v,st)=>{const d=(String(st).split('.')[1]||'').length;return +(Math.round(v/st)*st).toFixed(d);};
 /* Type a value: click (or Tab to and press Enter on) the number on any slider, type it, Enter.

@@ -7,7 +7,7 @@ disagree, the tool is wrong.
 
 Settled with Steve over rounds 1–4 (October–November 2026). The kit lives in
 `shared/kit.css`; the mock-ups and reasoning are at `ui/review/` (round 4 at
-`ui/review/round4/`). Last revised 7 November 2026 (Segue 0.9, Tempo 0.12,
+`ui/review/round4/`). Last revised 9 November 2026 (Segue 0.10, Tempo 0.12,
 Rubato 1.2, Tutti 6.2).
 
 ## Principles
@@ -61,7 +61,15 @@ Every part of the panel is one of four levels. Each level looks one way only.
    note sits under what it explains. When a detail has groups of its own (a piece's
    Timing, Look, Caption…), they are groups in the level-2 style – a rule, a 13 Bold
    title, a chevron – never sub-heads that read like labels; what's rarely used
-   starts shut (Segue 0.9).
+   starts shut (Segue 0.9). An open row keeps the soft grey of a closed one, with no
+   keyline (Segue 0.10): inside it, fills go white (a lighter grey in dark) and
+   segment tracks a shade darker than the row, the chosen part white. Its foot: a
+   keyline chip on the left (Duplicate), small arrow buttons bottom right.
+
+**Additionals** (Segue 0.10): sections used now and then (Captions, Overlay, Position)
+sit at the foot of the panel under one quiet heading – 14 Bold in grey, no card – shut
+until wanted, its summary saying what's on. A section that's on or off has the box
+beside its name, in its head – never a first row repeating its name.
 
 Sheets speak the same language: the sheet's title is set as a section title
 (14 Bold), its groups as labels (13 Medium) with one rule between groups.
@@ -110,6 +118,13 @@ Sheets speak the same language: the sheet's title is set as a section title
   drawing of itself – all on one white ground in the interface's greys, the piece in
   focus dark, each kind drawn one way, no arrows or colour (Segue 0.9); what a preset
   does goes in its tooltip; "In use" as a tag.
+- **The top bar** (Segue 0.10): top right, in keyline groups – the info chips, then
+  Undo and Redo, zoom (−, the value, +), Guides (on and off, an arrow to its
+  settings), Preview and light or dark. A setting that belongs to the view, not the
+  work, lives here. Its settings open in a small panel under the button – the panel's
+  own surface and rows, shut by a click outside or Esc.
+- **The project** (Segue 0.10): its name at the top of the panel, in a white field
+  with how it's saved; its panel lists every project with a picture.
 - **Scrollbars:** thin – 6 px, a soft grey thumb that darkens under the pointer, no
   track (`kit.css`, every tool). Chrome ignores `::-webkit-scrollbar` wherever
   `scrollbar-width` is set, so the kit sets it back to `auto` there; Firefox keeps thin.

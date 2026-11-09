@@ -38,7 +38,7 @@ MOD = 'Meta' if sys.platform == 'darwin' else 'Control'
 
 # ---------------- page helpers ----------------
 LIST = """()=>{const P=document.querySelector('#panel');let n=0;const out=[];document.querySelectorAll('[data-tid]').forEach(e=>delete e.dataset.tid);
-  for(const c of segue.ui.controls){const d=c.d;if(!d||!c.w||!P.contains(c.w)||!c.w.isConnected)continue;if(!(d.k||d.keys))continue;
+  for(const c of segue.ui.controls){const d=c.d;if(!d||!c.w||!P.contains(c.w)||!c.w.isConnected)continue;if(!(d.k||d.keys)||d.head)continue;
     if(!c.w.offsetParent||!c.w.getClientRects().length)continue;
     const w=c.w;w.dataset.tid=++n;let t=null;
     if(w.querySelector(':scope>.rng-box,:scope>.ctl-head>input[type=range]')||w.querySelector(':scope input[type=range]'))t='rng';
@@ -61,7 +61,8 @@ def close(a, b, tol=1e-6):
     try: return abs(float(a) - float(b)) <= tol * max(1, abs(float(a)), abs(float(b)))
     except Exception: return a == b
 def open_all(pg):
-    pg.evaluate("""()=>{document.querySelectorAll('#panel section.card.collapsed>h2 .card-toggle').forEach(b=>b.click());
+    pg.evaluate("""()=>{const t=document.querySelector('.tier');if(t&&!t.classList.contains('open'))t.querySelector('.tier-head').click();
+      document.querySelectorAll('#panel section.card.collapsed>h2 .card-toggle').forEach(b=>b.click());
       document.querySelectorAll('#panel .fold-head[aria-expanded=false]').forEach(b=>b.click());}"""); time.sleep(.5)
 def loc(pg, tid, sel=''): return pg.locator(f'[data-tid="{tid}"] {sel}'.strip()).first
 def into_view(pg, tid): pg.evaluate("t=>document.querySelector(`[data-tid='${t}']`).scrollIntoView({block:'center'})", tid); time.sleep(.05)
@@ -258,10 +259,10 @@ with sync_playwright() as p:
           [look['panel'], look['island'], look['pcap']] == ['12px'] * 3 and look['card'] == '10px' and [look['rng'], look['seg'], look['pill'], look['sel'], look['kind'], look['chipTop']] == ['8px'] * 6 and look['hl'] == '6px' and look['chip'] == '6px', json.dumps(look))
     check('weights: section titles Bold, labels and the chosen option Medium, values Regular', look['title'] == '700' and look['chosen'] == '500' and look['body'] == '500' and look['val'] == '400', f"{look['title']} {look['chosen']} {look['body']} {look['val']}")
     check('no drop shadows – hairlines only', not look['shadows'], '; '.join(look['shadows'][:3]))
-    nums = pg.evaluate("[...document.querySelectorAll('#panel>section.card:not([hidden])>h2 .num')].map(e=>e.textContent)")
+    nums = pg.evaluate("[...document.querySelectorAll('#panel section.card:not([hidden])>h2 .num')].map(e=>e.textContent)")
     titles = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .card-toggle>span:first-child')].map(e=>e.textContent)")
-    shown_nums = pg.evaluate("[...document.querySelectorAll('#panel>section.card>h2 .num')].filter(e=>e.offsetWidth).length")
-    check('sections: titles as they were, no numbers shown', shown_nums == 0 and titles == ['Media', 'Canvas', 'Motion', 'Shapes', 'Captions', 'Overlay'], f'{shown_nums} numbers showing, {titles}')
+    shown_nums = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .num')].filter(e=>e.offsetWidth).length")
+    check('sections: titles as they were (Captions, Overlay and Position under Additionals), no numbers shown', shown_nums == 0 and titles == ['Media', 'Canvas', 'Motion', 'Shapes', 'Captions', 'Overlay', 'Position'], f'{shown_nums} numbers showing, {titles}')
 
     # ---- sections open and shut, smoothly, and stay as left ----
     sec = pg.locator('#panel section.card[data-id=shapes]')
@@ -374,7 +375,8 @@ with sync_playwright() as p:
     pg.evaluate("segue.applyPreset('Straight cuts')"); time.sleep(.3); open_all(pg)
     pg.evaluate("document.querySelector('#panel section[data-id=media]').scrollIntoView()")
     pg.locator('.media-list .slot-main').first.click(); time.sleep(.3)
-    check('a row opens, raised white', pg.evaluate("document.querySelector('.media-list .slot').classList.contains('open')&&!!document.querySelector('.media-list .slot-det')"))
+    op = pg.evaluate("(()=>{const r=document.querySelector('.media-list .slot.open'),c=document.querySelector('.media-list .slot:not(.open)'),k=r&&r.querySelector('.slot-det .rng-box');return r?[getComputedStyle(r).backgroundColor,c?getComputedStyle(c).backgroundColor:null,getComputedStyle(r).boxShadow,k?getComputedStyle(k).backgroundColor:null]:null})()")
+    check('a row opens in the soft grey of a closed one, no keyline – its controls white inside it (0.10)', op and op[0] == op[1] and op[2] == 'none' and op[3] == 'rgb(255, 255, 255)', str(op))
     det = pg.locator('.media-list .slot.open .ctl', has=pg.locator('label', has_text='On screen')).first
     det.locator('.val').click(); pg.keyboard.press(f'{MOD}+A'); pg.keyboard.type('2.5'); pg.keyboard.press('Enter'); time.sleep(.2)
     det = pg.locator('.media-list .slot.open .ctl', has=pg.locator('label', has_text='On screen')).first

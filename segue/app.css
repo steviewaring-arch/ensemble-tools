@@ -131,3 +131,83 @@
 .way.held button[aria-pressed="true"]{color:var(--muted)}
 .ctl.strip .stp-g .val{min-width:40px!important}
 .slot-meta .enl{color:var(--ink)}
+/* 0.10: an open row stays in the soft grey of a closed one (no keyline), so it reads as one box; inside it, what's
+   normally a grey fill turns white (a lighter grey in dark), and what holds a choice (segments, the way arrows) sits a
+   shade darker than the row with the chosen part white – the panel's own language, a step up */
+body{--det-ctl:#ffffff;--det-ctl-hover:#f7f7f7;--det-track:#e6e6e6;--det-hair:rgba(0,0,0,.1)}
+body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#282828;--det-hair:rgba(255,255,255,.1)}
+.media-list .slot.open{background:var(--k-fill);box-shadow:none}
+.media-list .slot.open:hover{background:var(--k-fill)}
+.media-list .slot.open>.slot-det{--k-fill:var(--det-ctl);--k-fill-hover:var(--det-ctl-hover);--hair:var(--det-hair)}
+.media-list .slot.open>.slot-det .seg,.media-list .slot.open>.slot-det .way{background:var(--det-track)}
+.media-list .slot.open>.slot-det .pill.small:not(.icon){background:var(--det-ctl);box-shadow:none}
+.media-list .slot.open>.slot-det .pill.small:hover{background:var(--det-ctl-hover)}
+.media-list .slot.open>.slot-det .pill.small.icon.arrow{background:var(--det-ctl)}
+/* its foot: Duplicate left, two small arrows bottom right */
+.det-end{display:flex;align-items:center;justify-content:space-between;gap:6px;margin:6px 0 4px}
+.det-arrows{display:flex;gap:4px}
+.pill.small.icon.arrow{width:var(--h-sm);color:var(--ink)}
+.pill.small.icon.arrow svg{width:11px;height:11px}
+.pill.small.icon.arrow:disabled{opacity:.35;cursor:default}
+/* 0.10: Additionals – a quiet heading at the foot of the panel; open, the sections it holds sit under it as cards */
+.tier{display:flex;flex-direction:column;gap:8px;flex:none}
+.tier-head{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 16px;cursor:pointer;border-radius:var(--r-cardk,10px);
+  font-size:var(--fs-title);font-weight:700;letter-spacing:-0.012em;color:var(--muted);transition:color var(--t-snap),background var(--t-snap)}
+.tier-head:hover{color:var(--ink-strong);background:color-mix(in srgb,var(--k-card) 55%,transparent)}
+.tier-head:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.tier-head .sum{margin-left:auto;font-size:var(--fs-small);font-weight:400;color:var(--muted);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.tier-head .sum:empty+.chev,.tier-head .sum:empty{margin-left:auto}
+.tier-head .chev{width:12px;height:12px;flex:none;transition:transform var(--t-smooth) var(--e-smooth);transform:rotate(-90deg)}
+.tier.open>.tier-head .chev{transform:none}
+.tier.open>.tier-head .sum{display:none}
+.tier-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--k-dot);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+.tier.chg:not(.open)>.tier-head .cdot{transform:scale(1)}
+.tier-body{display:flex;flex-direction:column;gap:8px}
+.tier-body[hidden]{display:none}
+/* a section's on and off: the box beside its name, in its head */
+.card.has-sw>h2>.card-toggle{padding-left:42px}
+.card>h2>.head-sw{position:absolute;left:16px;top:50%;margin-top:-8px;width:16px;height:16px;padding:0;min-height:0;z-index:1}
+.card>h2>.head-sw .box{margin:0}
+.card.off>h2>.card-toggle>span:first-child{color:var(--muted)}
+/* 0.10: zoom – the view scrolls when the canvas is bigger than it; the canvas centred when it's smaller */
+#cv{margin:auto;flex:none}
+.view.zoomed{overflow:auto;justify-content:flex-start;align-items:flex-start;scrollbar-width:thin}
+.view.grabbing,.view.grabbing #cv{cursor:grabbing}
+/* the top bar's groups: undo and redo, zoom, guides – each a keyline group like the theme's */
+.topbar .tools button:disabled{opacity:.35;cursor:default;background:transparent}
+#zoomTools .zval{width:auto;min-width:44px;padding:0 6px;border-radius:var(--r-in);font-size:var(--fs-small);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0}
+#zoomTools .zval[aria-pressed="true"]{background:transparent;color:var(--ink-strong)}
+#zoomTools .zval:hover{background:var(--btn-hover)}
+#guideTools{position:relative}
+#guideTools .more{width:18px}
+#guideTools .more svg{width:12px;height:12px}
+#guideTools .more[aria-expanded="true"]{color:var(--ink);background:var(--btn-hover)}
+/* a small panel under its button: the panel's own surface and rows */
+.pop{position:absolute;top:calc(100% + 8px);right:0;width:300px;z-index:20;padding:14px calc(12px + var(--gutter)) 10px 14px;border-radius:var(--r-surface);
+  background:var(--k-card);box-shadow:0 0 0 1px var(--keyline);color:var(--ink);text-align:left;--lc:96px}
+.pop[hidden]{display:none}
+.pop-title{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);margin:0 0 12px}
+.pop .hint{margin:8px 0 2px}
+@media (max-width:860px){#zoomTools,#historyTools{display:none}}
+/* 0.10: the project, at the top of the panel – its name in a white field, how it's saved, and its panel below */
+.proj{position:relative;flex:none;padding:0 8px 8px}
+.proj-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;height:36px;padding:0 12px 0 14px;border-radius:var(--r-cardk,10px);background:var(--k-card);cursor:pointer;transition:background var(--t-snap)}
+.proj-btn:hover{background:color-mix(in srgb,var(--k-card) 94%,var(--ink))}
+.proj-btn:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
+.proj-name{flex:1;min-width:0;font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.proj-state{flex:none;font-size:var(--fs-small);color:var(--muted)}
+.proj-btn .chev{flex:none;width:12px;height:12px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
+.proj-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.pop.proj-pop{left:8px;right:8px;width:auto;top:calc(100% - 2px);padding:14px 14px 12px;max-height:min(70vh,640px);overflow-y:auto}
+.proj-field{width:100%;box-sizing:border-box;font-weight:500}
+.proj-acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 14px}
+.proj-acts>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);justify-content:center;font-size:12.5px}
+.proj-pop .sub-head{margin:2px 0 8px;padding-top:12px;border-top:1px solid var(--hair)}
+.proj-list{display:flex;flex-direction:column;gap:6px}
+.proj-row .slot-top{display:flex;align-items:center;gap:10px}
+.proj-row .slot-main{cursor:pointer}
+.proj-thumb{flex:none;width:36px;height:45px;border-radius:var(--r-sw,4px);background:var(--well,#e6e6e6);overflow:hidden;display:flex;align-items:center;justify-content:center}
+.proj-thumb img{display:block;max-width:100%;max-height:100%}
+.proj-row.on{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
+.proj-row .tag{flex:none;font-size:11.5px;color:var(--muted)}
+.proj-pop .hint{margin:12px 0 0}
