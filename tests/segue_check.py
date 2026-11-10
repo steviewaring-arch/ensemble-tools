@@ -991,13 +991,13 @@ with sync_playwright() as p:
       const vis=t=>sc(t).ops.filter(o=>o.item&&!o.layer&&o.alpha>.01&&o.rect.x<W&&o.rect.x+o.rect.w>0&&o.rect.y<H&&o.rect.y+o.rect.h>0).map(o=>({i:o.i,x:o.rect.x,y:o.rect.y,w:o.rect.w,h:o.rect.h,a:o.alpha,r:o.rot||0}));
       const same=(a,b)=>a.length===b.length&&a.every((o,j)=>o.i===b[j].i&&Math.abs(o.x-b[j].x)<.5&&Math.abs(o.y-b[j].y)<.5&&Math.abs(o.w-b[j].w)<.5&&Math.abs(o.a-b[j].a)<.02&&Math.abs(o.r-b[j].r)<1e-3);
       const P=segue.plan(),n=P.stops,h=P.segs.filter(g=>g.k==='hold');out.n=n;out.pile=P.pile;
-      out.built=h.map(g=>vis((g.t0+g.t1)/2).length);out.full=vis((h[n-1].t0+h[n-1].t1)/2).every(o=>o.a===1);out.turned=vis(h[n-1].t0+.01).some(o=>Math.abs(o.r)>.005);
+      out.built=h.map(g=>vis((g.t0+g.t1)/2).length);out.full=vis((h[n-1].t0+h[n-1].t1)/2).every(o=>o.a===1);{const v=vis(h[n-1].t0+.01);out.turned=new Set(v.map(o=>Math.round(o.x+o.w/2))).size>1&&v.every(o=>!o.r);}
       out.loops={};for(const e of ['clear','cover','unbuild']){segue.set('pileEnd',e);const L=segue.plan().L;out.loops[e]=same(vis(0),vis(L-1e-5))&&same(vis(L*.25),vis(L*1.25));}
       segue.set('pileBack',1);const L1=segue.plan().L;segue.set('pileBack',4);const L4=segue.plan().L;const un=segue.plan().segs.filter(g=>g.k==='unmove').map(g=>g.s);
       out.faster=L4<L1;out.order=un.join(',');segue.set('pileEnd','clear');segue.set('pileKeep',2);const P2=segue.plan(),h2=P2.segs.filter(g=>g.k==='hold');out.keep=vis((h2[n-1].t0+h2[n-1].t1)/2).length;
       segue.set('pileKeep',0);segue.set('pileScatter',0);out.flat=vis(segue.plan().segs.find(g=>g.k==='hold'&&g.s===n-1).t0+.01).every(o=>o.r===0);segue.set('pileScatter',40);
       segue.set('pile',false);const P0=segue.plan();out.off=!P0.pile&&!P0.segs.some(g=>g.k==='unmove');segue.applyPreset('Build up');return out;}""")
-    check('Build up (0.12): each slide lands on the last and stays – 1, 2, 3… on screen, none dimmed, scattered a little', pl['pile'] == 'clear' and pl['built'] == list(range(1, pl['n'] + 1)) and pl['full'] and pl['turned'], str(pl))
+    check('Build up (0.12): each slide lands on the last and stays – 1, 2, 3… on screen, none dimmed, scattered a little and kept straight (0.13)', pl['pile'] == 'clear' and pl['built'] == list(range(1, pl['n'] + 1)) and pl['full'] and pl['turned'], str(pl))
     check('…and comes back round seamlessly whichever way – Clear, Cover or Unbuild', all(pl['loops'].values()), str(pl['loops']))
     check('Unbuild goes last first, and Unbuild speed shortens it; Keep holds the pile to so many; Scatter 0 leaves them straight; Pile up off is Slides as before',
           pl['faster'] and pl['order'] == ','.join(str(i) for i in range(pl['n'] - 1, 0, -1)) and pl['keep'] == 2 and pl['flat'] and pl['off'], str(pl))
@@ -1006,6 +1006,22 @@ with sync_playwright() as p:
       segue.set('pile',false);o.off=[sh('pile'),sh('pileKeep'),sh('pileEnd'),sh('after')];segue.set('layout','grid');o.grid=sh('pile');segue.applyPreset('Build up');return o;}""")
     check('In the panel: Pile up sits with Slides’ transition (Keep and Scatter when it’s on); After the last offers Cover, Clear, Unbuild (and Unbuild speed) in place of Carry on and Pull back',
           pu['on'] == [True, True, True, True, False, False] and pu['un'] and pu['off'] == [True, False, False, True] and not pu['grid'], str(pu))
+
+    # ---- 0.13: In a shape – the shape itself moves and sizes on the canvas; Alt moves the picture inside it ----
+    pg.keyboard.press('Escape'); time.sleep(.2)
+    pg.evaluate("()=>{segue.applyPreset('Straight cuts');segue.set('oneFit','shape');segue.set('ratio','4:5');segue.set('size',60);segue.set('fit','fill');segue.items.forEach(i=>{i.join='own';i.zm=100;i.fz=100;i.ox=0;i.oy=0;i.px=0;i.py=0;});segue.refresh();segue.setPlaying(false);segue.setClock(segue.momentOf(segue.items[0]));}"); time.sleep(.5)
+    cvb = pg.locator('#cv').bounding_box(); mx, my = cvb['x'] + cvb['width'] / 2, cvb['y'] + cvb['height'] / 2
+    pg.mouse.move(mx, my); pg.mouse.down(); pg.mouse.move(mx + 40, my + 25, steps=6); pg.mouse.up(); time.sleep(.3)
+    s1 = pg.evaluate("(()=>{const i=segue.items[0];return {ox:i.ox,oy:i.oy,px:i.px||0,py:i.py||0,fz:i.fz||100,zm:i.zm||100}})()")
+    rr = pg.evaluate("(()=>{const c=document.createElement('canvas').getContext('2d'),[W,H]=segue.E.canvasSize(segue.S),o=segue.E.scene(segue.S,segue.items,c,segue.fonts,W,H,segue.clock).ops.find(o=>o.item&&o.item.id===segue.items[0].id),b=document.querySelector('#cv').getBoundingClientRect(),k=b.width/segue.E.canvasSize(segue.S)[0];return {x:b.x+(o.rect.x+o.rect.w)*k,y:b.y+(o.rect.y+o.rect.h)*k,cx:b.x+(o.rect.x+o.rect.w/2)*k,cy:b.y+(o.rect.y+o.rect.h/2)*k}})()")
+    pg.mouse.move(rr['x'], rr['y']); pg.mouse.down(); pg.mouse.move(rr['x'] + 30, rr['y'] + 30, steps=6); pg.mouse.up(); time.sleep(.3)
+    s2 = pg.evaluate("(()=>{const i=segue.items[0];return {fz:i.fz||100,zm:i.zm||100}})()")
+    pg.keyboard.down('Alt'); pg.mouse.move(rr['cx'], rr['cy']); pg.mouse.down(); pg.mouse.move(rr['cx'] + 30, rr['cy'] + 20, steps=6); pg.mouse.up(); pg.keyboard.up('Alt'); time.sleep(.3)
+    s3 = pg.evaluate("(()=>{const i=segue.items[0];return {ox:i.ox,px:i.px||0,py:i.py||0}})()")
+    grp = pg.evaluate("[...document.querySelectorAll('.media-list .slot.open .slot-det .sub-h, .media-list .slot.open .slot-det .grp-h, .media-list .slot.open .slot-det h4')].map(e=>e.textContent.trim())")
+    check('In a shape (0.13): dragging a slide moves its shape, a corner sizes it, and Alt-drag moves the picture inside – its row has Position as well as Crop',
+          s1['ox'] > 0 and s1['oy'] > 0 and s1['px'] == 0 and s1['py'] == 0 and s2['fz'] > 100 and s2['zm'] == 100 and s3['ox'] == s1['ox'] and (s3['px'] != 0 or s3['py'] != 0), f'{s1} {s2} {s3} {grp}')
+    pg.evaluate("()=>{segue.items.forEach(i=>{i.fz=100;i.ox=0;i.oy=0;i.px=0;i.py=0;});segue.refresh();}")
     pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false);segue.set('capOn',false)")
 
     # ---- exports ----

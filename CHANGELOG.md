@@ -1,5 +1,14 @@
 # Changelog
 
+## 10 November 2026 – Segue 0.13: shapes you can move and size; Scatter kept straight
+
+Steve (with Slides, In a shape, Pile up on): "I cannot resize a shape (on the canvas), or move its position, only move the artwork in the bounding box. can you adapt this … on the Scatter tool … dont put images on angles, keep straight." Also asked for a full review of the UI – sent as a list of proposals, not built.
+
+- **In a shape:** dragging a slide on the canvas now moves its shape, and its corners size it (each slide's own Position and Size, in its row too). Hold **Alt** and drag to move the picture inside the shape, as a plain drag did before; Alt and scroll still zooms the crop. Double-click puts all of it back. Full bleed is unchanged (it fills the frame); other kinds are unchanged (their shapes are placed by the layout).
+- **Scatter** no longer tilts – it only nudges each slide off the last. Build up's drawing is straight too.
+- Pile up, Keep and Scatter now sit below Direction, so Direction stays with the Transition it belongs to. The Media hint says "Layer on the piece above" (it still described the old Sits menu).
+- Tests: `tests/segue_check.py` – 1 new (shape drag, corner, Alt-drag), 1 updated (Scatter straight).
+
 ## 10 November 2026 – Segue 0.12: Pile up
 
 Steve: "how would I 'build' so starting with 'slides' have each build on top of each other (I can move, but ultimately keeping the previous media layers visible behind the latest one?) … A way to cleanly transition round would be good so the media loops … without complicating?" Then: "no dim … have as a preset. On the loop, build all 3 in. ability to speed up the unbuild would be good."

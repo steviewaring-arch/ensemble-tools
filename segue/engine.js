@@ -376,7 +376,7 @@ function pileScene(S,G,P,cam,N,push){
     else if(g.k==='move'&&g.end){how[stops]=g.how;e[stops]=tt>=g.t0?ease(g.how==='clear'?S.oneMove:g.how,q(g)):0;}}
   for(const g of P.segs)if(g.k==='unmove'&&tt>=g.t0)e[g.s]=tt>=g.t1?0:ease(g.how,1-q(g));
   const keep=Math.max(0,Math.round(+S.pileKeep||0)),sc=clamp(+S.pileScatter||0,0,100)/100,end=P.pile,eEnd=e[stops];
-  const scat=i=>{if(!sc)return[0,0,0];const m=Math.min(G.sw,G.sh);return[(hash(i*7+1,29)-.5)*.5*m*sc,(hash(i*11+3,31)-.5)*.5*m*sc,(hash(i*13+5,37)-.5)*.28*sc];};
+  const scat=i=>{if(!sc)return[0,0,0];const m=Math.min(G.sw,G.sh);return[(hash(i*7+1,29)-.5)*.5*m*sc,(hash(i*11+3,31)-.5)*.5*m*sc,0];};   /* no tilt (0.13 – Steve: 'keep straight') */
   const D=G.pitch*1.2,hz=G.hz,sg=G.sgn;
   let top=-1;for(let s=0;s<stops;s++)if(e[s]>0)top=s;
   const put=(k,ek,hw,o)=>{const i=mod(k,N),[dx,dy,rot]=scat(i);o=Object.assign({k,rot},o);let x=dx,y=dy,scl=1,a=o.alpha==null?1:o.alpha;
@@ -415,6 +415,8 @@ function oneFinish(S,G,P,cam,ops){
       const y=where==='under'&&S.capOn?r.y+r.h-h:where==='above'&&S.capOn?r.y:r.y+(r.h-h)/2;r={x:r.x+(r.w-w)/2,y,w,h};}
     /* As it is: this slide's own size and position, set in Media or by dragging it on the canvas */
     if(own){const z=clamp((+o.item.zm||100)/100,.2,4),w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2+(+o.item.ox||0)*G.u,y:r.y-(h-r.h)/2+(+o.item.oy||0)*G.u,w,h};o.whole=true;}
+    /* In a shape (0.13): the shape itself can be moved and sized for this slide too – its own Position and Size (fz); the crop keeps px, py, zm */
+    else if(S.oneFit==='shape'){const z=clamp((+o.item.fz||100)/100,.2,4),w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2+(+o.item.ox||0)*G.u,y:r.y-(h-r.h)/2+(+o.item.oy||0)*G.u,w,h};o.frame=true;}
     const m=moveKind(S,o.item,o.i),pre=r;
     if(m!=='none'&&amt>0){const u=uOf(P,cam,o.k),off=(m==='back'?-sg:sg)*(u-.5)*amt;
       if(m==='in'||m==='out'){const z=1+amt*(m==='in'?u:1-u);if(own){const w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2,y:r.y-(h-r.h)/2,w,h};}else o.inner={s:z,x:0,y:0};}

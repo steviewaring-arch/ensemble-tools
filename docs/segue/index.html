@@ -1066,7 +1066,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.12</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.13</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -1503,7 +1503,7 @@ function pileScene(S,G,P,cam,N,push){
     else if(g.k==='move'&&g.end){how[stops]=g.how;e[stops]=tt>=g.t0?ease(g.how==='clear'?S.oneMove:g.how,q(g)):0;}}
   for(const g of P.segs)if(g.k==='unmove'&&tt>=g.t0)e[g.s]=tt>=g.t1?0:ease(g.how,1-q(g));
   const keep=Math.max(0,Math.round(+S.pileKeep||0)),sc=clamp(+S.pileScatter||0,0,100)/100,end=P.pile,eEnd=e[stops];
-  const scat=i=>{if(!sc)return[0,0,0];const m=Math.min(G.sw,G.sh);return[(hash(i*7+1,29)-.5)*.5*m*sc,(hash(i*11+3,31)-.5)*.5*m*sc,(hash(i*13+5,37)-.5)*.28*sc];};
+  const scat=i=>{if(!sc)return[0,0,0];const m=Math.min(G.sw,G.sh);return[(hash(i*7+1,29)-.5)*.5*m*sc,(hash(i*11+3,31)-.5)*.5*m*sc,0];};   /* no tilt (0.13 – Steve: 'keep straight') */
   const D=G.pitch*1.2,hz=G.hz,sg=G.sgn;
   let top=-1;for(let s=0;s<stops;s++)if(e[s]>0)top=s;
   const put=(k,ek,hw,o)=>{const i=mod(k,N),[dx,dy,rot]=scat(i);o=Object.assign({k,rot},o);let x=dx,y=dy,scl=1,a=o.alpha==null?1:o.alpha;
@@ -1542,6 +1542,8 @@ function oneFinish(S,G,P,cam,ops){
       const y=where==='under'&&S.capOn?r.y+r.h-h:where==='above'&&S.capOn?r.y:r.y+(r.h-h)/2;r={x:r.x+(r.w-w)/2,y,w,h};}
     /* As it is: this slide's own size and position, set in Media or by dragging it on the canvas */
     if(own){const z=clamp((+o.item.zm||100)/100,.2,4),w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2+(+o.item.ox||0)*G.u,y:r.y-(h-r.h)/2+(+o.item.oy||0)*G.u,w,h};o.whole=true;}
+    /* In a shape (0.13): the shape itself can be moved and sized for this slide too – its own Position and Size (fz); the crop keeps px, py, zm */
+    else if(S.oneFit==='shape'){const z=clamp((+o.item.fz||100)/100,.2,4),w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2+(+o.item.ox||0)*G.u,y:r.y-(h-r.h)/2+(+o.item.oy||0)*G.u,w,h};o.frame=true;}
     const m=moveKind(S,o.item,o.i),pre=r;
     if(m!=='none'&&amt>0){const u=uOf(P,cam,o.k),off=(m==='back'?-sg:sg)*(u-.5)*amt;
       if(m==='in'||m==='out'){const z=1+amt*(m==='in'?u:1-u);if(own){const w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2,y:r.y-(h-r.h)/2,w,h};}else o.inner={s:z,x:0,y:0};}
@@ -4247,12 +4249,12 @@ const DB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=i
     all:st=>tx(st,'readonly',s=>s.getAll()),keys:st=>tx(st,'readonly',s=>s.getAllKeys())};})();
 /* ---------------- media ---------------- */
 let items=[];
-const META=['id','ref','name','kind','w','h','dur','start','end','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','ox','oy','join','place','lfit','blend','opa','lin','lafter','lover'];
+const META=['id','ref','name','kind','w','h','dur','start','end','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','fz','ox','oy','join','place','lfit','blend','opa','lin','lafter','lover'];
 function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));itemSteps();if(typeof projTouch==='function')projTouch();}
 /* undo for a piece's own settings (0.9): each save is compared with the one before, and what changed becomes a step –
    the same piece and setting within 0.8 s, or in one drag, join up. Adding, removing and reordering have their own. */
 const ITEM_KEYS=META.filter(k=>!['id','ref','name','kind','w','h','dur','fixed'].includes(k));
-const ITEM_LABEL={blend:'Blend',opa:'Opacity',px:'Crop',py:'Crop',zm:'Size',ox:'Position',oy:'Position',start:'Start at',end:'End at',hold:'On screen',arrive:'Arrives by',moves:'Moves',
+const ITEM_LABEL={blend:'Blend',opa:'Opacity',px:'Crop',py:'Crop',zm:'Size',fz:'Size',ox:'Position',oy:'Position',start:'Start at',end:'End at',hold:'On screen',arrive:'Arrives by',moves:'Moves',
   join:'Layer',place:'Order',lfit:'Fit',title:'Title',line:'Line',tags:'Tags',levels:'Lift washed-out colours',lin:'Arrives',lafter:'After',lover:'Over'};
 let itemSnap=null,itemReplay=false,itemFold=false;   /* itemFold: what follows is part of the step just taken */
 const snapItems=()=>new Map(items.map(it=>[it.id,Object.fromEntries(ITEM_KEYS.map(k=>[k,it[k]]))]));
@@ -4492,7 +4494,7 @@ const zRange=o=>o.layer?[5,400]:o.whole?[20,400]:[100,400];
 let grab=null,zoomT=0,selId=null,hoverOp=null,hoverRow=null;
 const opOf=id=>cur&&id?cur.ops.find(o=>o.item&&o.item.id===id&&o.rect&&o.alpha>.05):null;
 const cornersOf=r=>[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]];
-function handleAt(x,y){const o=opOf(selId);if(!o||!o.whole)return null;const tol=9/scrPx();
+function handleAt(x,y){const o=opOf(selId);if(!o||!(o.whole||o.frame))return null;const tol=9/scrPx();
   for(const [i,[cx,cy]] of cornersOf(o.rect).entries())if(Math.abs(x-cx)<=tol&&Math.abs(y-cy)<=tol)return{o,i};return null;}
 const rowOf=id=>mediaBox&&id?mediaBox.querySelector(`.slot[data-id="${id}"]`):null;
 function setHover(o){const id=o&&o.item?o.item.id:null,was=hoverOp&&hoverOp.item?hoverOp.item.id:null;hoverOp=o;if(id===was)return;
@@ -4531,37 +4533,39 @@ function drawUI(){if($('.app').classList.contains('preview'))return;const [W,H]=
     ctx.restore();}
   const so=opOf(selId),hid=hoverOp&&hoverOp.item?hoverOp.item.id:hoverRow,ho=hid&&hid!==selId?opOf(hid):null;
   if(ho)box(ho.rect,false);
-  if(so){if(grab&&grab.moved&&!so.whole&&so.item.src&&(so.item.kind!=='video'||so.item.src.readyState>=2)){const g=cropBox(so);ctx.save();ctx.globalAlpha=.32;try{ctx.drawImage(so.item.src,g.x,g.y,g.w,g.h);}catch(e){}ctx.restore();ctx.save();ctx.setLineDash([4*lw,3*lw]);box(g,false);ctx.restore();}
+  if(so){if(grab&&grab.moved&&grab.mode==='move'&&!grab.whole&&so.item.src&&(so.item.kind!=='video'||so.item.src.readyState>=2)){const g=cropBox(so);ctx.save();ctx.globalAlpha=.32;try{ctx.drawImage(so.item.src,g.x,g.y,g.w,g.h);}catch(e){}ctx.restore();ctx.save();ctx.setLineDash([4*lw,3*lw]);box(g,false);ctx.restore();}
     box(so.rect,true);
-    if(so.whole){const hs=7*lw;for(const [cx,cy] of cornersOf(so.rect)){ctx.fillStyle='#FFFFFF';ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs);}}}
+    if(so.whole||so.frame){const hs=7*lw;for(const [cx,cy] of cornersOf(so.rect)){ctx.fillStyle='#FFFFFF';ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs);}}}
   ctx.restore();}
 cv.addEventListener('pointerdown',e=>{if(busy||e.button!==0)return;const [x,y]=canvasPt(e),h=handleAt(x,y);
-  if(h){e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);const o=h.o,[lo,hi]=zRange(o),cx=o.rect.x+o.rect.w/2,cy=o.rect.y+o.rect.h/2;
-    grab={mode:'scale',it:o.item,o,zm0:+o.item.zm||100,cx,cy,d0:Math.max(1e-6,Math.hypot(x-cx,y-cy)),lo,hi,x0:x,y0:y,moved:false};return;}
+  if(h){e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);const o=h.o,zk=o.frame?'fz':'zm',[lo,hi]=o.frame?[20,400]:zRange(o),cx=o.rect.x+o.rect.w/2,cy=o.rect.y+o.rect.h/2;
+    grab={mode:'scale',it:o.item,o,zk,zm0:+o.item[zk]||100,cx,cy,d0:Math.max(1e-6,Math.hypot(x-cx,y-cy)),lo,hi,x0:x,y0:y,moved:false};return;}
   const o=hitAt(x,y);if(!o){if(selId){selId=null;dirty=true;}return;}
   e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);selId=o.item.id;dirty=true;
-  if(!croppable(o)){grab={mode:'click',it:o.item,x0:x,y0:y,moved:false};return;}
-  const it=o.item,[sx,sy]=o.whole?[0,0]:spare(o);
-  grab={mode:'move',it,o,whole:!!o.whole,x0:x,y0:y,px:+it.px||0,py:+it.py||0,ox:+it.ox||0,oy:+it.oy||0,sx,sy,k:o.whole?unitK(o):1,r0:Object.assign({},o.rect),moved:false,snap:null};cv.classList.add('grabbing');});
+  /* a shape in Slides (0.13): a drag moves the shape; with Alt, the picture inside it */
+  const asWhole=!!o.whole||(!!o.frame&&!(e.altKey&&croppable(o)));
+  if(!asWhole&&!croppable(o)){grab={mode:'click',it:o.item,x0:x,y0:y,moved:false};return;}
+  const it=o.item,[sx,sy]=asWhole?[0,0]:spare(o);
+  grab={mode:'move',it,o,whole:asWhole,x0:x,y0:y,px:+it.px||0,py:+it.py||0,ox:+it.ox||0,oy:+it.oy||0,sx,sy,k:asWhole?unitK(o):1,r0:Object.assign({},o.rect),moved:false,snap:null};cv.classList.add('grabbing');});
 cv.addEventListener('pointermove',e=>{const [x,y]=canvasPt(e);
   if(!grab){if(e.buttons)return;const h=handleAt(x,y);if(h){cv.style.cursor=h.i%2===0?'nwse-resize':'nesw-resize';cv.classList.remove('grab');setHover(h.o);return;}
-    cv.style.cursor='';const o=hitAt(x,y);cv.classList.toggle('grab',!!(o&&croppable(o)));setHover(o);return;}
+    cv.style.cursor='';const o=hitAt(x,y);cv.classList.toggle('grab',!!(o&&(o.frame||croppable(o))));setHover(o);return;}
   const g=grab,it=g.it,dx=x-g.x0,dy=y-g.y0;if(!g.moved&&Math.hypot(dx,dy)*scrPx()<3)return;g.moved=true;if(g.mode==='click')return;
-  if(g.mode==='scale'){it.zm=+clamp(g.zm0*Math.hypot(x-g.cx,y-g.cy)/g.d0,g.lo,g.hi).toFixed(1);dirty=true;return;}
+  if(g.mode==='scale'){it[g.zk]=+clamp(g.zm0*Math.hypot(x-g.cx,y-g.cy)/g.d0,g.lo,g.hi).toFixed(1);dirty=true;return;}
   if(g.whole){const [sdx,sdy,lx,ly]=snapMove(g.r0,dx,dy,e.altKey);g.snap=[lx,ly];it.ox=+(g.ox+sdx/g.k).toFixed(1);it.oy=+(g.oy+sdy/g.k).toFixed(1);}
   else{if(g.sx>.5)it.px=+clamp(g.px+dx/g.sx*100,-100,100).toFixed(1);if(g.sy>.5)it.py=+clamp(g.py+dy/g.sy*100,-100,100).toFixed(1);}
   dirty=true;});
 const letGo=()=>{if(!grab)return;const g=grab;grab=null;cv.classList.remove('grabbing');if(g.moved&&g.mode!=='click')saveItems();selectItem(g.it.id,true);};
 cv.addEventListener('pointerup',letGo);cv.addEventListener('pointercancel',letGo);cv.addEventListener('pointerleave',()=>{if(!grab)setHover(null);});
-cv.addEventListener('dblclick',e=>{const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;const it=o.item;for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMedia();toast('Position reset');});
+cv.addEventListener('dblclick',e=>{const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!(o.frame||croppable(o)))return;const it=o.item;for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;it.fz=100;saveItems();dirty=true;paintMedia();toast('Position reset');});
 cv.addEventListener('wheel',e=>{if(!e.altKey)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;e.preventDefault();setPlaying(false);
   const it=o.item,[lo,hi]=zRange(o);it.zm=+clamp((+it.zm||100)*Math.exp(-e.deltaY*.0025),lo,hi).toFixed(1);selId=it.id;dirty=true;
   clearTimeout(zoomT);zoomT=setTimeout(()=>{saveItems();openRows.add(it.id);paintMedia();},250);},{passive:false});
 /* the arrow keys nudge the selected piece (0.9): a px at a time, ten with Shift – a cropped piece moves its picture inside its frame */
 document.addEventListener('keydown',e=>{if(!selId||busy||!/^Arrow/.test(e.key)||e.metaKey||e.ctrlKey||e.altKey)return;const a=document.activeElement;
   if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable||(a.closest&&a.closest('.ctl,.seg,.kinds,.way,.stp-g,.trim'))))return;
-  const o=opOf(selId);if(!o||!croppable(o))return;e.preventDefault();const it=o.item,n=e.shiftKey?10:1,dx=e.key==='ArrowLeft'?-n:e.key==='ArrowRight'?n:0,dy=e.key==='ArrowUp'?-n:e.key==='ArrowDown'?n:0;
-  if(o.whole){it.ox=Math.round((+it.ox||0)+dx);it.oy=Math.round((+it.oy||0)+dy);}
+  const o=opOf(selId);if(!o||!(o.frame||croppable(o)))return;e.preventDefault();const it=o.item,n=e.shiftKey?10:1,dx=e.key==='ArrowLeft'?-n:e.key==='ArrowRight'?n:0,dy=e.key==='ArrowUp'?-n:e.key==='ArrowDown'?n:0;
+  if(o.whole||o.frame){it.ox=Math.round((+it.ox||0)+dx);it.oy=Math.round((+it.oy||0)+dy);}
   else{const [sx,sy]=spare(o);if(sx>.5)it.px=clamp((+it.px||0)+dx*100/sx,-100,100);if(sy>.5)it.py=clamp((+it.py||0)+dy*100/sy,-100,100);}
   saveItems();dirty=true;clearTimeout(nudgeT);nudgeT=setTimeout(paintMediaKeepFocus,300);});
 let nudgeT=0;
@@ -4689,7 +4693,7 @@ const openRows=new Set();let mediaBox;
   const r=el('div','ctl btn-row'),add=el('button','pill','+ Add images or video');add.type='button';add.onclick=()=>$('#mediafile').click();r.append(add);
   const clr=el('button','pill small','Clear all');clr.type='button';clr.onclick=()=>{if(!items.length)return;removeItems(items.map(it=>it.id),items.length===1?'Cleared 1 file':`Cleared ${items.length} files`);};r.append(clr);b.append(r);
   addHint(b,'Drag a row to change the order. Video plays from its start point as its shape arrives.',()=>items.length>1);
-  addHint(b,'Open a row to give that slide its own time, transition or movement – or set it on the one before, to layer it over (or under) that slide.',s=>s.layout==='one'&&items.length>0);
+  addHint(b,'Open a row to give that slide its own time, transition or movement – or switch on Layer on the piece above, to sit it over (or under) that slide.',s=>s.layout==='one'&&items.length>0);
   SUMMARY.media=()=>!items.length?'No media yet':`${items.length} · `+(()=>{const v=items.filter(i=>i.kind==='video').length,i=items.length-v;return [v?`${v} video`:'',i?`${i} image${i>1?'s':''}`:''].filter(Boolean).join(', ');})();}
 function thumbOf(it){const c=el('canvas');c.width=88;c.height=64;const x=c.getContext('2d');x.fillStyle='#ddd';x.fillRect(0,0,88,64);
   try{if(it.src&&(it.kind!=='video'||it.src.readyState>=2)){const s=Math.max(88/it.w,64/it.h);x.drawImage(it.src,(88-it.w*s)/2,(64-it.h*s)/2,it.w*s,it.h*s);}}catch(e){}return c;}
@@ -4764,8 +4768,8 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
     const cx=el('button','cx');cx.type='button';cx.dataset.tip='Changed – click to put it back';cx.setAttribute('aria-label',`${label} – changed; put it back`);cx.onclick=e=>{e.stopPropagation();s.value=def;s.onchange();};
     hd.append(lb);qm(hd,label,tip);w.append(hd,s,cx);cur.append(w);mark();return s;};
   const hint=t=>{const p=el('p','hint',t);cur.append(p);return p;};
-  const moved=()=>(+it.px||0)!==0||(+it.py||0)!==0||(+it.ox||0)!==0||(+it.oy||0)!==0||(it.zm!=null&&+it.zm!==100);
-  const resetRow=()=>{if(!moved())return;const row=el('div','btn-row'),rs=el('button','pill small','Reset');rs.type='button';rs.dataset.tip='Put it back where it was';rs.onclick=()=>{for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMediaKeepFocus();};row.append(rs);cur.append(row);};
+  const moved=()=>(+it.px||0)!==0||(+it.py||0)!==0||(+it.ox||0)!==0||(+it.oy||0)!==0||(it.zm!=null&&+it.zm!==100)||(it.fz!=null&&+it.fz!==100);
+  const resetRow=()=>{if(!moved())return;const row=el('div','btn-row'),rs=el('button','pill small','Reset');rs.type='button';rs.dataset.tip='Put it back where it was';rs.onclick=()=>{for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;it.fz=100;saveItems();dirty=true;paintMediaKeepFocus();};row.append(rs);cur.append(row);};
   const base=()=>{for(let j=i-1;j>=0;j--)if(!isLayer(items[j],j))return items[j];return null;};
   /* Slides: is it a slide of its own, or on the one before? – first, because everything else follows from it */
   /* Slides: a piece is a slide, or a layer on the piece above it in the list (0.11: a switch in plain words – it was
@@ -4796,7 +4800,12 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
       pick('Arrives by','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.map(o=>[o[0],o[1]])),'default',null,()=>refreshAll());
       pick('Moves','moves',[['default',`As set · ${optLabel(KB,S.kb)}`]].concat(KB.filter(o=>o[0]!=='vary'&&!(S.oneFit==='bleed'&&o[0]==='parallax')).map(o=>[o[0],o[1]])),'default',null,()=>refreshAll());}
     /* where it sits: As it is moves the slide itself; anything cropped moves the picture inside its frame */
-    const own=one&&S.oneFit==='own',crop=!own&&(S.fit!=='fit'||(one&&S.oneFit==='bleed'));
+    const own=one&&S.oneFit==='own',shp=one&&S.oneFit==='shape',crop=!own&&(S.fit!=='fit'||(one&&S.oneFit==='bleed'));
+    /* In a shape (0.13): the shape itself – where it sits and how big, for this slide */
+    if(shp){G('position','Position');
+      itemRange(cur,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(cur,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
+      itemRange(cur,it,{label:'Size',key:'fz',min:20,max:400,step:1,def:100,unit:'%',tip:'This slide’s shape bigger or smaller than the rest'});
+      hint('Or drag the shape on the canvas – its corners size it; the arrow keys nudge it.');if(!crop)resetRow();}
     if(own||crop){G(own?'position':'crop',own?'Position':'Crop');const again=()=>paintMediaKeepFocus();
       if(own){itemRange(cur,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(cur,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
         itemRange(cur,it,{label:'Size',key:'zm',min:20,max:400,step:1,def:100,unit:'%',tip:'This slide bigger or smaller than the rest'});
@@ -4805,7 +4814,7 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
         if(zoomed||wide)itemRange(cur,it,{label:'Across',key:'px',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows across: −100% the right edge, 100% the left'});
         if(zoomed||tall)itemRange(cur,it,{label:'Up and down',key:'py',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows up and down: −100% the bottom, 100% the top'});
         itemRange(cur,it,{label:'Zoom',key:'zm',min:100,max:400,step:1,def:100,unit:'%',change:again,tip:'Crop in tighter. Zoomed in, it can move both ways.'});
-        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it.':'Or drag it on the canvas to move it in its frame; Alt and scroll zooms it; the arrow keys nudge it.');}
+        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it.':shp?'Or hold Alt and drag on the canvas to move the picture in its shape; Alt and scroll zooms it.':'Or drag it on the canvas to move it in its frame; Alt and scroll zooms it; the arrow keys nudge it.');}
       resetRow();}}
   /* its own blend and opacity – and, once it blends, what it blends with */
   G('look','Look');
@@ -5018,7 +5027,7 @@ function presetPic(p){
   const R=(x,y,w,h,on,r)=>`<rect x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="${r==null?1.2:r}" class="${on?'pd-a':'pd-b'}"/>`;
   const Fr=(x,y,w,h)=>`<rect x="${f1(x+.5)}" y="${f1(y+.5)}" width="${f1(w-1)}" height="${f1(h-1)}" rx="1" class="pd-f"/>`;
   let g='';
-  if(k==='one'&&s.pile){const w=14,h=17;for(const [x,y,a,on] of [[10,6,-8,0],[22,8,6,0],[15,8,-2,1]])g+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.2" class="${on?'pd-a':'pd-b'}" transform="rotate(${a} ${x+w/2} ${y+h/2})"/>`;}
+  if(k==='one'&&s.pile){const w=14,h=17;for(const [x,y,a,on] of [[9,5,0,0],[21,8,0,0],[15,7,0,1]])g+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.2" class="${on?'pd-a':'pd-b'}" transform="rotate(${a} ${x+w/2} ${y+h/2})"/>`;}
   else if(k==='one'){const e=transMid(s.oneMove,.5,W-8,H-8,s.dir,s.oneFit==='bleed');
     g=`<svg x="4" y="4" width="${W-8}" height="${H-8}">`+e.map(t=>t.c==='o'?`<rect x="${f1(t.x)}" y="${f1(t.y)}" width="${f1(t.w)}" height="${f1(t.h)}" rx="1.2" class="pd-o"/>`:R(t.x,t.y,t.w,t.h,t.c==='b',t.r?1.2:0).replace('/>',t.o<.99?` fill-opacity="${f1(Math.max(.2,t.o))}"/>`:'/>')).join('')+'</svg>';}
   else if(k==='line'){const hz=s.layout==='row'||u[1]===0;
@@ -5054,14 +5063,14 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
     {t:'seg',k:'oneMove',label:'Transition',opts:MOVES_ONE,show:isK('one')}]);
   svgPic(b,isK('one'),'trans-pic','0 0 120 44',transDraw);
   build(b,[
-    /* Pile up (0.12): each slide lands on the last and stays – the frame builds up */
-    {t:'toggle',k:'pile',label:'Pile up',show:isK('one'),tip:'Each slide lands on the last and they stay, so the frame builds up. How it comes back round is in After the last.'},
-    {t:'range',k:'pileKeep',label:'Keep',min:0,max:12,step:1,fmt:v=>+v?String(Math.round(+v)):'All',show:s=>isK('one')(s)&&s.pile,tip:'How many stay in the pile – the oldest fades as the next lands. All keeps every one.'},
-    {t:'range',k:'pileScatter',label:'Scatter',min:0,max:100,step:1,unit:'%',show:s=>isK('one')(s)&&s.pile,tip:'Nudges and tilts each slide a little, like dropped prints – the same for a slide every time round. 0 leaves each where you put it.'},
     {t:'seg',k:'trackMove',label:'Move',opts:MOVES_TRACK,show:isK('line','grid','columns','rows','float','wall')},
     {t:'seg',k:'wPath',label:'Path',opts:PATHS,show:s=>isK('wall')(s)&&mv(s)!=='still'},
     {t:'seg',k:'fMove',label:'Change',opts:MOVES_FRAME,show:s=>isK('frames')(s)&&!framesStatic(s)},
     {t:'seg',k:'dir',label:'Direction',optsFn:dirOpts,pick:pickDir,show:showDir},
+    /* Pile up (0.12): each slide lands on the last and stays – the frame builds up */
+    {t:'toggle',k:'pile',label:'Pile up',show:isK('one'),tip:'Each slide lands on the last and they stay, so the frame builds up. How it comes back round is in After the last.'},
+    {t:'range',k:'pileKeep',label:'Keep',min:0,max:12,step:1,fmt:v=>+v?String(Math.round(+v)):'All',show:s=>isK('one')(s)&&s.pile,tip:'How many stay in the pile – the oldest fades as the next lands. All keeps every one.'},
+    {t:'range',k:'pileScatter',label:'Scatter',min:0,max:100,step:1,unit:'%',show:s=>isK('one')(s)&&s.pile,tip:'Nudges each slide a little off the last, like dropped prints, kept straight – the same for a slide every time round. 0 leaves each where you put it.'},
     {t:'range',k:'wStep',label:'Distance',min:1,max:4,step:1,show:s=>isK('wall')(s)&&mv(s)!=='still'},
     {t:'seg',k:'colDir',label:'Directions',optsFn:dirsOpts,pick:v=>stripsOwn('colDir',v,'sd',c=>E.stripWay(S,c)),show:s=>isK('columns','rows')(s)&&mv(s)!=='still'},
     {t:'seg',k:'colSpeed',label:'Speeds',optsFn:speedsOpts,val:s=>s.colSpeed==='varied'&&mv(s)!=='drift'?'same':s.colSpeed,pick:v=>stripsOwn('colSpeed',v,'ss',c=>E.stripSpeed(S,c)),show:s=>isK('columns','rows')(s)&&mv(s)!=='still',tip:'Same: every one at one speed. Varied: two, three and four times round a loop. Each its own: set each one below – 0 holds it still.'},
