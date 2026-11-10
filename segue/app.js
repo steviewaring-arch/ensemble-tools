@@ -9,6 +9,7 @@ const D={
   mat:0,matC:'#FFFFFF',matR:0,
   oneFit:'shape',ownScale:'fit',kb:'none',kbAmt:6,inMove:'none',inAmt:5,
   oneMove:'slide',trackMove:'step',dir:'up',feel:'snap',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',gStag:40,gFloat:30,
+  pile:false,pileKeep:0,pileScatter:0,pileEnd:'cover',pileBack:2,
   colDir:'alt',colSpeed:'same',colLag:.4,colOff:50,
   sd0:1,sd1:-1,sd2:1,sd3:-1,sd4:1,sd5:-1,sd6:1,sd7:-1,ss0:1,ss1:1,ss2:1,ss3:1,ss4:1,ss5:1,ss6:1,ss7:1,
   fCols:3,fRows:1,fMove:'push',fLag:.15,
@@ -836,7 +837,8 @@ function presetPic(p){
   const R=(x,y,w,h,on,r)=>`<rect x="${f1(x)}" y="${f1(y)}" width="${f1(w)}" height="${f1(h)}" rx="${r==null?1.2:r}" class="${on?'pd-a':'pd-b'}"/>`;
   const Fr=(x,y,w,h)=>`<rect x="${f1(x+.5)}" y="${f1(y+.5)}" width="${f1(w-1)}" height="${f1(h-1)}" rx="1" class="pd-f"/>`;
   let g='';
-  if(k==='one'){const e=transMid(s.oneMove,.5,W-8,H-8,s.dir,s.oneFit==='bleed');
+  if(k==='one'&&s.pile){const w=14,h=17;for(const [x,y,a,on] of [[10,6,-8,0],[22,8,6,0],[15,8,-2,1]])g+=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="1.2" class="${on?'pd-a':'pd-b'}" transform="rotate(${a} ${x+w/2} ${y+h/2})"/>`;}
+  else if(k==='one'){const e=transMid(s.oneMove,.5,W-8,H-8,s.dir,s.oneFit==='bleed');
     g=`<svg x="4" y="4" width="${W-8}" height="${H-8}">`+e.map(t=>t.c==='o'?`<rect x="${f1(t.x)}" y="${f1(t.y)}" width="${f1(t.w)}" height="${f1(t.h)}" rx="1.2" class="pd-o"/>`:R(t.x,t.y,t.w,t.h,t.c==='b',t.r?1.2:0).replace('/>',t.o<.99?` fill-opacity="${f1(Math.max(.2,t.o))}"/>`:'/>')).join('')+'</svg>';}
   else if(k==='line'){const hz=s.layout==='row'||u[1]===0;
     if(hz){const h=14,w=Math.min(15,h*q);for(let i=-2;i<=2;i++)g+=R(W/2-w/2+i*(w+3),(H-h)/2,w,h,!i);}
@@ -871,6 +873,10 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
     {t:'seg',k:'oneMove',label:'Transition',opts:MOVES_ONE,show:isK('one')}]);
   svgPic(b,isK('one'),'trans-pic','0 0 120 44',transDraw);
   build(b,[
+    /* Pile up (0.12): each slide lands on the last and stays – the frame builds up */
+    {t:'toggle',k:'pile',label:'Pile up',show:isK('one'),tip:'Each slide lands on the last and they stay, so the frame builds up. How it comes back round is in After the last.'},
+    {t:'range',k:'pileKeep',label:'Keep',min:0,max:12,step:1,fmt:v=>+v?String(Math.round(+v)):'All',show:s=>isK('one')(s)&&s.pile,tip:'How many stay in the pile – the oldest fades as the next lands. All keeps every one.'},
+    {t:'range',k:'pileScatter',label:'Scatter',min:0,max:100,step:1,unit:'%',show:s=>isK('one')(s)&&s.pile,tip:'Nudges and tilts each slide a little, like dropped prints – the same for a slide every time round. 0 leaves each where you put it.'},
     {t:'seg',k:'trackMove',label:'Move',opts:MOVES_TRACK,show:isK('line','grid','columns','rows','float','wall')},
     {t:'seg',k:'wPath',label:'Path',opts:PATHS,show:s=>isK('wall')(s)&&mv(s)!=='still'},
     {t:'seg',k:'fMove',label:'Change',opts:MOVES_FRAME,show:s=>isK('frames')(s)&&!framesStatic(s)},
@@ -917,9 +923,13 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
   build(ch,[FEELROW]);feelPic(ch,'feel',FEELROW.show);build(ch,CHAR);
   /* After the last: how the loop ends – straight on round, or pulled back to show them all (its settings, a group of their own) */
   const ends=s=>stepping(s)&&isK('one','line')(s),pulled=s=>s.after==='pull';
-  const af=fold(b,'after','After the last',ends,false,s=>pulled(s)?'Pull back':'Carry on round');
-  build(af,[{t:'seg',k:'after',label:'Then',opts:[['carry','Carry on round'],['pull','Pull back to them all']]}]);
-  const pb=fold(b,'pull','Pull back',s=>ends(s)&&pulled(s),true,s=>`${Math.round(s.gCols)} across · ${(+s.zOut+ +s.gHold+ +s.zIn).toFixed(1)} s`);
+  const PILE_END=[['cover','Cover','The first lands over the pile, and the pile goes'],['clear','Clear','The pile is pushed off as the first comes in'],['unbuild','Unbuild','They leave last first, back down to the first']];
+  const piled=s=>isK('one')(s)&&s.pile;
+  const af=fold(b,'after','After the last',ends,false,s=>piled(s)?optLabel(PILE_END,s.pileEnd)+(s.pileEnd==='unbuild'?` · ${+(+s.pileBack).toFixed(1)}×`:''):pulled(s)?'Pull back':'Carry on round');
+  build(af,[{t:'seg',k:'after',label:'Then',opts:[['carry','Carry on round'],['pull','Pull back to them all']],show:s=>!piled(s)},
+    {t:'seg',k:'pileEnd',id:'pileEnd',label:'Then',opts:PILE_END,show:piled},
+    {t:'range',k:'pileBack',label:'Unbuild speed',min:1,max:8,step:.5,unit:'×',show:s=>piled(s)&&s.pileEnd==='unbuild',tip:'How much faster than they built up they leave – and the rests between, too'}]);
+  const pb=fold(b,'pull','Pull back',s=>ends(s)&&pulled(s)&&!piled(s),true,s=>`${Math.round(s.gCols)} across · ${(+s.zOut+ +s.gHold+ +s.zIn).toFixed(1)} s`);
   build(pb,[{t:'range',k:'gCols',label:'Columns',min:1,max:8,step:1},{t:'range',k:'gGap',label:'Gap',min:0,max:240,step:1,unit:' px'},{t:'range',k:'gSize',label:'Fills',min:30,max:100,step:1,unit:'%'},
     {t:'range',k:'zOut',label:'Out',min:.2,max:4,step:.05,unit:' s',tip:'How long the pull back takes'},{t:'range',k:'gHold',label:'All in view',min:0,max:8,step:.05,unit:' s'},{t:'range',k:'zIn',label:'In',min:.2,max:4,step:.05,unit:' s',tip:'How long it takes to come back in to the first'},
     {t:'seg',k:'zFeel',label:'Pull feel',opts:FEELS}]);
@@ -1046,6 +1056,7 @@ const BUILTIN=[
   {name:'Zoom through',tip:'Full bleed and fast – each slide comes up from a small card as the last carries on past',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'through',hold:.15,dur:.38,kb:'in',kbAmt:22,after:'carry',capOn:false,bg:'#111111'}},
   {name:'Flick across',tip:'Slides in a shape, flicked across one at a time',s:{layout:'one',oneFit:'shape',ratio:'16:9',size:88,radius:8,oneMove:'slide',dir:'left',feel:'inertia',hold:1.4,dur:.8,after:'carry',capOn:false,bg:'#ECECE9'}},
   {name:'Spring up',tip:'Each one springs up over the last',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:82,radius:16,oneMove:'stack',dir:'up',feel:'spring',hold:1.2,dur:.75,after:'carry',capOn:false,bg:'#141414',shapeBg:'#222222'}},
+  {name:'Build up',tip:'Each one lands on the last and stays, scattered a little like dropped prints – then the pile clears and it starts again',s:{layout:'one',oneFit:'own',ownScale:'fit',size:62,radius:0,oneMove:'stack',dir:'up',feel:'snap',hold:.9,dur:.6,after:'carry',capOn:false,bg:'#EDEBE6',pile:true,pileScatter:40,pileEnd:'clear'}},
   {name:'Fade with caption',tip:'One into the next, with a caption fixed in the corner',s:{layout:'one',oneFit:'shape',ratio:'4:5',size:78,radius:6,oneMove:'fade',hold:1.6,dur:.6,after:'carry',capOn:true,capWhere:'fixed',capV:'bottom',capAlign:'left',capMargin:64,capReveal:'rise',TF:'inter6',TS:40,TTr:-10,TCase:'as'}},
   {name:'Snap along',tip:'Cards in a row, moving as one rigid piece: a long rest, a slow start, a fast throw across, a long settle – drifting a touch all the while',s:{layout:'row',ratio:'4:5',size:64,gap:36,radius:6,trackMove:'step',dir:'left',feel:'snap',hold:2.4,dur:.9,lag:0,creep:15,after:'carry',capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
   {name:'Snap up',tip:'A column of cards with captions, thrown up one at a time on the same snap, drifting a touch while they rest',s:{layout:'column',ratio:'16:10',size:78,gap:56,radius:8,trackMove:'step',dir:'up',feel:'snap',hold:2.2,dur:.9,creep:12,after:'carry',capOn:true,capWhere:'under',capReveal:'fade'}},

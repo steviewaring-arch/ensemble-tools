@@ -1,5 +1,14 @@
 # Changelog
 
+## 10 November 2026 – Segue 0.12: Pile up
+
+Steve: "how would I 'build' so starting with 'slides' have each build on top of each other (I can move, but ultimately keeping the previous media layers visible behind the latest one?) … A way to cleanly transition round would be good so the media loops … without complicating?" Then: "no dim … have as a preset. On the loop, build all 3 in. ability to speed up the unbuild would be good."
+
+- **Pile up** – a switch in Slides, under the transition: each slide lands on the last by its own transition and they stay. Nothing's dimmed. **Keep** (All, or 1–12) lets the oldest fade as the next lands; **Scatter** nudges and tilts each slide a little, like dropped prints – the same for a slide every time round (0 leaves each where you put it; As it is still lets you drag and size each one).
+- **Back round, three ways** – After the last › Then, in place of Carry on round / Pull back while Pile up is on: **Cover** (the first lands again over the pile, which fades beneath it), **Clear** (the whole pile is pushed off as the first comes in) and **Unbuild** (they leave last first, each going back the way it came). **Unbuild speed** (1–8×) shortens the leaving and the rests between. All three loop exactly.
+- **Build up** – a new preset: As it is at 62%, Cover moves from below, Snap, Scatter 40%, Clear.
+- Tests: `tests/segue_check.py` – 4 new (building 1, 2, 3… undimmed and scattered; seamless loops for all three endings; Unbuild order and speed, Keep, Scatter 0, Pile up off; the panel).
+
 ## 10 November 2026 – Segue 0.11: a blend that just works, the project chip top left, movement in every kind, a cleaner canvas
 
 Steve, 9 Nov: "The left hand side modules dont align on the right… the bar sometimes moves when a module is expanded. Add more space both sides of the scrollbar. On media, the multiply is not intuitive. an image blend should automatically just interact with the layer below it. No idea what the 'sits on its own slide' etc is. Add subtle / sparse dots around the canvas… Sometimes when dragging a slider it grabs the whole section… when clicking on a media, the main canvas should automatically take me to that section… the 'movement' in slides… implement in other 'kinds'… the play bar… longer with vertical subtle keylines to show the amount of slides… The top module (including saved and export) should probably sit out of this – aligned to the zoom etc, but top left. Grids and columns is good – remove the need for columns though – just grids and margins… remove features that are redundant / do not work when some parameters are set." 10 Nov, his Safari note: "Presets didn't show – … sheets 0px … Version/17.6 Safari".

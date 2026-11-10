@@ -984,6 +984,28 @@ with sync_playwright() as p:
     shut = pg.evaluate("Math.round(document.querySelector('#pcap .sheets').getBoundingClientRect().height)")
     pg.evaluate("()=>{document.querySelector('#stuck').remove();document.documentElement.classList.remove('flat-sheets');}")
     check('Sheets whose slide never runs (Safari 17) open flat instead – the presets are there to pick, and shut again', fl['flat'] and fl['h'] > 300 and fl['rows'] >= 3 and shut == 0, f'{fl} {shut}')
+
+    # ---- 0.12: Pile up – each slide lands on the last and stays; back round by Cover, Clear or Unbuild ----
+    pl = pg.evaluate("""()=>{const c=document.createElement('canvas').getContext('2d'),[W,H]=segue.E.canvasSize(segue.S),out={};
+      segue.applyPreset('Build up');const sc=t=>segue.E.scene(segue.S,segue.items,c,segue.fonts,W,H,t);
+      const vis=t=>sc(t).ops.filter(o=>o.item&&!o.layer&&o.alpha>.01&&o.rect.x<W&&o.rect.x+o.rect.w>0&&o.rect.y<H&&o.rect.y+o.rect.h>0).map(o=>({i:o.i,x:o.rect.x,y:o.rect.y,w:o.rect.w,h:o.rect.h,a:o.alpha,r:o.rot||0}));
+      const same=(a,b)=>a.length===b.length&&a.every((o,j)=>o.i===b[j].i&&Math.abs(o.x-b[j].x)<.5&&Math.abs(o.y-b[j].y)<.5&&Math.abs(o.w-b[j].w)<.5&&Math.abs(o.a-b[j].a)<.02&&Math.abs(o.r-b[j].r)<1e-3);
+      const P=segue.plan(),n=P.stops,h=P.segs.filter(g=>g.k==='hold');out.n=n;out.pile=P.pile;
+      out.built=h.map(g=>vis((g.t0+g.t1)/2).length);out.full=vis((h[n-1].t0+h[n-1].t1)/2).every(o=>o.a===1);out.turned=vis(h[n-1].t0+.01).some(o=>Math.abs(o.r)>.005);
+      out.loops={};for(const e of ['clear','cover','unbuild']){segue.set('pileEnd',e);const L=segue.plan().L;out.loops[e]=same(vis(0),vis(L-1e-5))&&same(vis(L*.25),vis(L*1.25));}
+      segue.set('pileBack',1);const L1=segue.plan().L;segue.set('pileBack',4);const L4=segue.plan().L;const un=segue.plan().segs.filter(g=>g.k==='unmove').map(g=>g.s);
+      out.faster=L4<L1;out.order=un.join(',');segue.set('pileEnd','clear');segue.set('pileKeep',2);const P2=segue.plan(),h2=P2.segs.filter(g=>g.k==='hold');out.keep=vis((h2[n-1].t0+h2[n-1].t1)/2).length;
+      segue.set('pileKeep',0);segue.set('pileScatter',0);out.flat=vis(segue.plan().segs.find(g=>g.k==='hold'&&g.s===n-1).t0+.01).every(o=>o.r===0);segue.set('pileScatter',40);
+      segue.set('pile',false);const P0=segue.plan();out.off=!P0.pile&&!P0.segs.some(g=>g.k==='unmove');segue.applyPreset('Build up');return out;}""")
+    check('Build up (0.12): each slide lands on the last and stays – 1, 2, 3… on screen, none dimmed, scattered a little', pl['pile'] == 'clear' and pl['built'] == list(range(1, pl['n'] + 1)) and pl['full'] and pl['turned'], str(pl))
+    check('…and comes back round seamlessly whichever way – Clear, Cover or Unbuild', all(pl['loops'].values()), str(pl['loops']))
+    check('Unbuild goes last first, and Unbuild speed shortens it; Keep holds the pile to so many; Scatter 0 leaves them straight; Pile up off is Slides as before',
+          pl['faster'] and pl['order'] == ','.join(str(i) for i in range(pl['n'] - 1, 0, -1)) and pl['keep'] == 2 and pl['flat'] and pl['off'], str(pl))
+    pu = pg.evaluate("""()=>{const sh=k=>segue.ui.controls.some(x=>x.d.k===k&&x.w&&x.w.isConnected&&!x.w.hidden&&!x.w.closest('[hidden]'));const o={};
+      o.on=[sh('pile'),sh('pileKeep'),sh('pileScatter'),sh('pileEnd'),sh('after'),sh('pileBack')];segue.set('pileEnd','unbuild');o.un=sh('pileBack');
+      segue.set('pile',false);o.off=[sh('pile'),sh('pileKeep'),sh('pileEnd'),sh('after')];segue.set('layout','grid');o.grid=sh('pile');segue.applyPreset('Build up');return o;}""")
+    check('In the panel: Pile up sits with Slides’ transition (Keep and Scatter when it’s on); After the last offers Cover, Clear, Unbuild (and Unbuild speed) in place of Carry on and Pull back',
+          pu['on'] == [True, True, True, True, False, False] and pu['un'] and pu['off'] == [True, False, False, True] and not pu['grid'], str(pu))
     pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false);segue.set('capOn',false)")
 
     # ---- exports ----

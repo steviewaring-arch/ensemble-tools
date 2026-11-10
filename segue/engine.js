@@ -183,6 +183,7 @@ function plan(S,items){
   /* a single slide has nothing to change to: it just stays, its movement going in and back out */
   if(lay==='one'&&items.length===1&&!items[0].placeholder){const it=items[0],h=+it.hold>0?+it.hold:hold;return{kind:'still',L:Math.max(.5,h+dur),stops,N};}
   if(mv==='drift')return{kind:'drift',L:Math.max(.2,stops*(+S.spsh||2.5)),stops,N};
+  if(lay==='one'&&S.pile&&stops>1)return pilePlan(S,items,stops,hold,dur);
   const pull=S.after==='pull'&&S.layout!=='grid'&&N>1;
   const segs=[];let t=0;
   const moveLen=s=>arrivalOf(S,items,s)==='cut'?0:dur;
@@ -199,6 +200,24 @@ function plan(S,items){
   /* …and when it's finished leaving: a slide's movement runs from one to the other */
   const gone=new Array(stops).fill(t);for(const g of segs)if(g.k==='move'||g.k==='out')gone[g.s]=g.t1;
   return{kind:'step',L:t,segs,stops,N,pull,arrive,gone,hold,dur};}
+/* Pile up (0.12): each slide lands on the last and they stay. The loop comes back to the first one of three ways –
+   Cover: the first lands again over the pile, which fades out beneath it; Clear: the whole pile is pushed off as the first
+   comes in; Unbuild: they leave last first, each going back the way it came, faster by Unbuild speed, with a short rest
+   between (a rest is 'rest', so the play bar's ticks are only the slides building). */
+function pilePlan(S,items,stops,hold,dur){
+  const N=items.length,holdOf=s=>{const it=items[mod(s,N)];return it&&+it.hold>0?+it.hold:hold;},moveLen=s=>arrivalOf(S,items,s)==='cut'?0:dur;
+  const end=['cover','clear','unbuild'].includes(S.pileEnd)?S.pileEnd:'cover',segs=[];let t=0;
+  for(let s=0;s<stops;s++){const hs=holdOf(s),h={k:'hold',s,t0:t,t1:t+hs};segs.push(h);t+=hs;
+    if(s<stops-1){const d=moveLen(s+1);h.next=true;segs.push({k:'move',s,to:s+1,how:arrivalOf(S,items,s+1),t0:t,t1:t+d,i0:h.t0});t+=d;}}
+  const arrive=new Array(stops).fill(0),gone=new Array(stops).fill(0);
+  if(end==='unbuild'){const sp=clamp(+S.pileBack||2,1,12);
+    for(let s=stops-1;s>=1;s--){const d=moveLen(s)/sp;segs.push({k:'unmove',s,how:arrivalOf(S,items,s),t0:t,t1:t+d});t+=d;
+      if(s>1){const r=holdOf(s-1)/sp;segs.push({k:'rest',s:s-1,t0:t,t1:t+r});t+=r;}}}
+  else{const d=end==='clear'?Math.max(.3,dur):moveLen(0);segs[segs.length-1].next=true;segs.push({k:'move',s:stops-1,to:stops,how:end==='clear'?'clear':arrivalOf(S,items,0),end,t0:t,t1:t+d,i0:segs[segs.length-1].t0});t+=d;}
+  if(t<=0)t=1;
+  for(const g of segs){if(g.k==='move'&&g.to<stops)arrive[g.to]=g.t0;if(g.k==='unmove')gone[g.s]=g.t1;}
+  if(end==='unbuild')gone[0]=t;else{const g=segs[segs.length-1];arrive[0]=g.t0-t;gone.fill(t);}
+  return{kind:'step',L:t,segs,stops,N,pull:false,pile:end,arrive,gone,hold,dur};}
 /* a segment-based plan: the segment at loop time tt */
 function segAt(P,tt){let g=P.segs[P.segs.length-1];for(const x of P.segs)if(tt>=x.t0&&tt<x.t1){g=x;break;}return g;}
 const glides=S=>S.layout==='row'||S.layout==='column'||S.layout==='grid';
@@ -219,6 +238,7 @@ function cameraAt(P,S,t){
   const k=g.t1>g.t0?clamp((tt-g.t0)/(g.t1-g.t0),0,1):1;
   const cr=glides(S)?creepOf(S):0;
   if(g.k==='hold'){const p=cr?(1-cr)*g.s+cr*linAt(P,g,tt):g.s;return{tt,p,z:0,k:0,seg:g};}
+  if(g.k==='unmove'||g.k==='rest')return{tt,p:g.k==='rest'?g.s:g.s,z:0,k,seg:g};
   if(g.k==='move'){const how=g.how,e=(how==='fade'||how==='dip'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(k);let p=(S.layout==='one'&&how!=='slide')?g.s:g.s+e;if(cr)p=(1-cr)*p+cr*linAt(P,g,tt);return{tt,p,z:0,k,e,seg:g,how};}
   const ez=feel(S.zFeel||'soft');
   if(g.k==='out')return{tt,p:g.s,z:ez(k),k,seg:g};
@@ -287,6 +307,7 @@ function scene(S,items,ctx,fonts,W,H,t){
   else if(S.layout==='frames')framesScene(S,P,cam,list,ctx,fonts,W,H,push);
   else if(S.layout==='float')floatScene(S,P,cam,list,W,H,push,ops);
   else if(S.layout==='wall')wallScene(S,P,cam,list,ctx,fonts,W,H,push);
+  else if(S.layout==='one'&&P.pile)pileScene(S,G,P,cam,N,push);
   else if(cam.z>0&&P.kind==='step'&&S.layout!=='grid')pullScene(S,G,P,cam,N,push);
   else if(S.layout==='grid')gridScene(S,G,P,cam,N,push);
   else if(S.layout==='one'&&cam.seg&&cam.seg.k==='move'&&cam.how!=='slide')oneMove(S,G,cam,N,push);
@@ -342,6 +363,40 @@ function oneMove(S,G,cam,N,push){
   if(how==='zoom'){push(a,at(1+.06*e),{scale:1+.06*e,capAlpha:1-e,alpha:bleed?1:1-smooth(e),k:ka});push(b,at(.9+.1*e),{alpha:smooth(e*1.15),scale:.9+.1*e,k:kb});return;}
   /* stack: the next one slides in over this one */
   const off=(1-e)*G.pitch*G.sgn;push(a,at(1-.04*e),{scale:1-.04*e,capAlpha:1-e,alpha:own?1-smooth(e):1,k:ka});push(b,at(1,G.hz?off:0,G.hz?0:off),{k:kb});}
+/* Pile up (0.12): every slide that has landed, oldest at the bottom, each where it was put (and scattered a little, if
+   Scatter's up – the same for a slide every time it comes round); the newest arrives by its own transition. Keep: only
+   so many – the one dropping off fades as the next lands on it. No dimming. */
+function pileScene(S,G,P,cam,N,push){
+  const tt=cam.tt,stops=P.stops,ease=(how,q)=>(how==='fade'||how==='dip'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(clamp(q,0,1));
+  const q=g=>g.t1>g.t0?(tt-g.t0)/(g.t1-g.t0):1;
+  /* each slide's progress, 0 (not here) to 1 (landed), and how it came or goes */
+  const e=new Array(stops+1).fill(0),how=new Array(stops+1).fill('cut');e[0]=1;
+  for(const g of P.segs){
+    if(g.k==='move'&&!g.end){how[g.to]=g.how;e[g.to]=tt>=g.t1?1:tt>=g.t0?ease(g.how,q(g)):0;}
+    else if(g.k==='move'&&g.end){how[stops]=g.how;e[stops]=tt>=g.t0?ease(g.how==='clear'?S.oneMove:g.how,q(g)):0;}}
+  for(const g of P.segs)if(g.k==='unmove'&&tt>=g.t0)e[g.s]=tt>=g.t1?0:ease(g.how,1-q(g));
+  const keep=Math.max(0,Math.round(+S.pileKeep||0)),sc=clamp(+S.pileScatter||0,0,100)/100,end=P.pile,eEnd=e[stops];
+  const scat=i=>{if(!sc)return[0,0,0];const m=Math.min(G.sw,G.sh);return[(hash(i*7+1,29)-.5)*.5*m*sc,(hash(i*11+3,31)-.5)*.5*m*sc,(hash(i*13+5,37)-.5)*.28*sc];};
+  const D=G.pitch*1.2,hz=G.hz,sg=G.sgn;
+  let top=-1;for(let s=0;s<stops;s++)if(e[s]>0)top=s;
+  const put=(k,ek,hw,o)=>{const i=mod(k,N),[dx,dy,rot]=scat(i);o=Object.assign({k,rot},o);let x=dx,y=dy,scl=1,a=o.alpha==null?1:o.alpha;
+    if(hw==='slide'||hw==='stack'){const off=(1-ek)*G.pitch*sg;if(hz)x+=off;else y+=off;}
+    else if(hw==='fade'||hw==='dip')a*=ek;
+    else if(hw==='zoom'){scl=.9+.1*ek;a*=smooth(ek*1.15);}
+    else if(hw==='through')scl=Math.pow(.12,1-ek);
+    else if(hw==='wipe'){const W=G.W,H=G.H,d=G.dir,cx=d==='left'?W*(1-ek):W*ek,cy=d==='up'?H*(1-ek):H*ek;
+      o.clip=d==='left'?{x:cx,y:0,w:W-cx,h:H}:d==='right'?{x:0,y:0,w:cx,h:H}:d==='up'?{x:0,y:cy,w:W,h:H-cy}:{x:0,y:0,w:W,h:cy};}
+    else if(hw==='open'){const w=G.W*ek,h=G.H*ek;o.clip={x:(G.W-w)/2,y:(G.H-h)/2,w,h};}
+    if(o.shift){if(hz)x+=o.shift;else y+=o.shift;}
+    const r=shapeIn(G,S,G.cx+x,G.cy+y,scl);o.alpha=a;o.scale=scl;push(i,r,o);};
+  /* the pile: pushed off together when it clears; fading beneath the first when it's covered */
+  const out=end==='clear'?-eEnd*D*sg:0,under=end==='cover'?1-smooth(eEnd):1;
+  for(let s=0;s<stops;s++){if(e[s]<=0)continue;
+    let a=under;if(keep&&s+keep<stops)a*=1-e[s+keep];if(a<=0)continue;
+    const landed=s<top||(e[s]>=1&&s===top),hw=landed?'cut':how[s];
+    put(s,landed?1:e[s],hw,{alpha:a,capAlpha:s===top?1:s===top-1?1-e[top]:0,shift:out});}
+  /* the first again, coming round */
+  if(eEnd>0){if(end==='clear')put(stops,1,'cut',{shift:(1-eEnd)*D*sg});else put(stops,eEnd,how[stops],{});}}
 /* One, last of all: slides that keep their own shape are fitted into their space, and each
    slide gets its movement – a zoom, a drift or parallax that runs evenly from the moment it
    starts arriving to the moment it's gone, so it never stops on screen. As it is moves the
@@ -351,7 +406,7 @@ const KB_VARY=['in','drift','out','back'];
 function moveKind(S,it,i){let m=it&&it.moves&&it.moves!=='default'?it.moves:(S.kb||'none');if(m==='vary')m=KB_VARY[mod(i,4)];if(m==='parallax'&&bleedOf(S))m='drift';return m;}
 function uOf(P,cam,k){
   if(P.kind==='still')return(1-Math.cos(2*Math.PI*cam.tt/P.L))/2;   /* in and back out, so it joins up */
-  if(P.kind!=='step'||!P.gone)return 0;const s=mod(k,P.stops),A=P.arrive[s]+P.L*Math.floor(k/P.stops);
+  if(P.kind!=='step'||!P.gone)return 0;if(P.pile==='unbuild'&&mod(k,P.stops)===0)return(1-Math.cos(2*Math.PI*cam.tt/P.L))/2;const s=mod(k,P.stops),A=P.arrive[s]+P.L*Math.floor(k/P.stops);
   return clamp((cam.tt-A)/Math.max(1e-6,P.gone[s]-P.arrive[s]),0,1);}
 function oneFinish(S,G,P,cam,ops){
   const own=S.oneFit==='own',amt=clamp((+S.kbAmt||0)/100,0,.5),where=capWhereOf(S),d=G.dir,hz=horiz(d),sg=sgnOf(d)*-1;
@@ -369,7 +424,7 @@ function oneFinish(S,G,P,cam,ops){
     let ms=r.w/Math.max(1e-6,pre.w),tx=(r.x+r.w/2)-(pre.x+pre.w/2),ty=(r.y+r.h/2)-(pre.y+pre.h/2);
     if(o.inner&&m!=='parallax'){ms*=o.inner.s;tx+=o.inner.x*r.w;ty+=o.inner.y*r.h;}
     o.mv={s:ms,cx:pre.x+pre.w/2,cy:pre.y+pre.h/2,tx,ty};
-    o.rect=r;}}
+    o.rect=r;if(o.rot)o.rotC={x:r.x+r.w/2,y:r.y+r.h/2};}}
 /* each slide's layers, placed on its space: fitted inside it (or filling it), at their own size and
    offset (px at a 1080 short side, scaling with the slide), then moved with the slide's movement.
    Behind ones are drawn first; in a frame (full bleed, In a shape) they're clipped to it. */
@@ -562,6 +617,7 @@ function paint(ctx,SC,S,fonts,opt){
     const inn=m>0?{x:r.x+m,y:r.y+m,w:r.w-2*m,h:r.h-2*m}:r,iR=m>0?matR*sc:rad*sc;
     const mr=o.slide?{x:inn.x+o.slide[0]*inn.w,y:inn.y+o.slide[1]*inn.h,w:inn.w,h:inn.h}:inn;
     ctx.save();if(o.clip){const c=o.clip;ctx.beginPath();if(c.out){ctx.rect(0,0,W,H);ctx.rect(c.x,c.y,c.w,c.h);ctx.clip('evenodd');}else{ctx.rect(c.x,c.y,c.w,c.h);ctx.clip();}}
+    if(o.rot)turn(ctx,o,r);
     ctx.save();ctx.globalAlpha=clamp(o.alpha,0,1);
     if(m>0&&o.frame!==false){rr(ctx,r.x,r.y,r.w,r.h,rad*sc);ctx.fillStyle=S.matC||'#FFFFFF';ctx.fill();}
     rr(ctx,inn.x,inn.y,inn.w,inn.h,iR);ctx.save();ctx.clip();
@@ -580,10 +636,13 @@ function paint(ctx,SC,S,fonts,opt){
   if(SC.fixed&&SC.fixed.alpha>0){const it=SC.list[SC.fixed.i],b=capBlock(ctx,S,it,fonts);if(b)drawFixed(ctx,S,b,SC.fixed,SC);}
   if(!ovDone)drawOverlay(ctx,S,SC,fonts,opt);
   ctx.restore();}
+/* a piece turned (Pile up's Scatter), about its slide's centre – so its layers and caption turn with it */
+function turn(ctx,o,r){const c=o.rotC||{x:r.x+r.w/2,y:r.y+r.h/2};ctx.translate(c.x,c.y);ctx.rotate(o.rot);ctx.translate(-c.x,-c.y);}
 /* a layer on a slide: clipped to the slide's frame (not As it is), to its own box if it fills it,
    in its own blend and opacity */
 function drawLayer(ctx,o,opt,W,H){const it=o.item;if(!opt.media||it.placeholder)return;
   ctx.save();if(o.clip){const c=o.clip;ctx.beginPath();if(c.out){ctx.rect(0,0,W,H);ctx.rect(c.x,c.y,c.w,c.h);ctx.clip('evenodd');}else{ctx.rect(c.x,c.y,c.w,c.h);ctx.clip();}}
+  if(o.rot)turn(ctx,o,o.rect);
   const f=o.lclip;if(f){rr(ctx,f.x,f.y,f.w,f.h,f.r);ctx.clip();}
   if(o.lfill){ctx.beginPath();ctx.rect(o.rect.x,o.rect.y,o.rect.w,o.rect.h);ctx.clip();}
   ctx.globalAlpha=clamp(o.alpha*opaOf(it),0,1);ctx.globalCompositeOperation=BLEND[it.blend]||'source-over';
