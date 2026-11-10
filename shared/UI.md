@@ -7,7 +7,7 @@ disagree, the tool is wrong.
 
 Settled with Steve over rounds 1–4 (October–November 2026). The kit lives in
 `shared/kit.css`; the mock-ups and reasoning are at `ui/review/` (round 4 at
-`ui/review/round4/`). Last revised 9 November 2026 (Segue 0.10, Tempo 0.12,
+`ui/review/round4/`). Last revised 10 November 2026 (Segue 0.11, Tempo 0.12,
 Rubato 1.2, Tutti 6.2).
 
 ## Principles
@@ -123,11 +123,27 @@ Sheets speak the same language: the sheet's title is set as a section title
   settings), Preview and light or dark. A setting that belongs to the view, not the
   work, lives here. Its settings open in a small panel under the button – the panel's
   own surface and rows, shut by a click outside or Esc.
-- **The project** (Segue 0.10): its name at the top of the panel, in a white field
-  with how it's saved; its panel lists every project with a picture.
-- **Scrollbars:** thin – 6 px, a soft grey thumb that darkens under the pointer, no
-  track (`kit.css`, every tool). Chrome ignores `::-webkit-scrollbar` wherever
+- **The project** (Segue 0.11): a chip top left over the canvas, in line with the top
+  bar – its name and how it's saved; its panel lists every project with a picture.
+  The project is the work, not a setting, so it sits out of the panel. Where the top
+  line is tight, the info chips step aside first, then "Saved".
+- **The pasteboard** (Segue 0.11): sparse faint dots (24 px apart) round the canvas, so
+  the canvas reads as the canvas; none in Preview.
+- **The play bar** (Segue 0.11): long enough to aim at (300 px, less on a narrow
+  window), with a fine tick where each slide or step starts.
+- **Guides** are a margin and a grid (cells across, rows dividing evenly) – no columns.
+- **Scrollbars:** a 6 px soft grey thumb that darkens under the pointer, no track, in a
+  16 px lane that's always kept (`overflow-y:scroll`, `scrollbar-gutter:stable`), so
+  nothing shifts when a section opens and every section ends at the same right edge
+  (`kit.css`, every tool, from 0.11). Chrome ignores `::-webkit-scrollbar` wherever
   `scrollbar-width` is set, so the kit sets it back to `auto` there; Firefox keeps thin.
+- **Nothing drags by accident:** a list row picks up only from its top line, never from
+  a control inside it; panel labels and pictures don't select or drag (inputs do).
+- **Settings that would do nothing aren't shown** – and nor are handles: a piece that
+  fills its frame has no corners to scale (Segue 0.11).
+- **A switch says what it does in words** ("Layer on the piece above"), never a menu of
+  states that need explaining; and where a choice only works with another, it brings
+  that one with it and says so (a blend makes its slide a layer, Segue 0.11).
 
 ## What's changed, and undo
 

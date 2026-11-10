@@ -218,14 +218,14 @@ with sync_playwright() as p:
     kinds = pg.evaluate("[...document.querySelectorAll('.kinds .kind')].map(b=>b.textContent)")
     check('Motion opens on eight kinds – the ones a camera moves across first, then the ones with a clock each (Rows beside Columns, 0.9)', kinds == ['Slides', 'Line', 'Grid', 'Wall', 'Columns', 'Rows', 'Frames', 'Float'], str(kinds))
     want = {
-        'Line': (['Kind', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting', '▸ After the last', 'Then'], {'trackMove': 'step'}),
+        'Line': (['Kind', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting', '▸ After the last', 'Then'], {'trackMove': 'step'}),
         'Slides': (['Kind', 'Each slide', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', '▸ After the last', 'Then'], {'oneMove': 'slide', 'oneFit': 'shape', 'kb': 'none'}),
-        'Grid': (['Kind', 'Columns', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
-        'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Speeds', 'Offset', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag', 'Keep drifting'], {'trackMove': 'step', 'colDir': 'alt', 'colSpeed': 'same'}),
-        'Rows': (['Kind', 'Rows', 'Move', 'Directions', 'Speeds', 'Offset', '▸ Each row', 'Row 1', 'Row 2', 'Row 3', '▸ Timing', 'Each shape'], {'trackMove': 'drift', 'cols': 3, 'colDir': 'own', 'colSpeed': 'same'}),
-        'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
-        'Float': (['Kind', 'Move', 'Direction', 'Depth', 'Spread', 'Shuffle', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Keep drifting'], {'trackMove': 'step'}),
-        'Wall': (['Kind', 'Columns', 'Rows', 'Offset', 'Move', 'Path', 'Direction', 'Distance', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Keep drifting'], {'trackMove': 'step', 'wPath': 'across', 'wOff': 0})}
+        'Grid': (['Kind', 'Columns', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
+        'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Speeds', 'Offset', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting'], {'trackMove': 'step', 'colDir': 'alt', 'colSpeed': 'same'}),
+        'Rows': (['Kind', 'Rows', 'Move', 'Directions', 'Speeds', 'Offset', '▸ Each row', 'Row 1', 'Row 2', 'Row 3', '▸ Timing', 'Each shape', '▸ Character', 'Movement'], {'trackMove': 'drift', 'cols': 3, 'colDir': 'own', 'colSpeed': 'same'}),
+        'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
+        'Float': (['Kind', 'Move', 'Direction', 'Depth', 'Spread', 'Shuffle', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting'], {'trackMove': 'step'}),
+        'Wall': (['Kind', 'Columns', 'Rows', 'Offset', 'Move', 'Path', 'Direction', 'Distance', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting'], {'trackMove': 'step', 'wPath': 'across', 'wOff': 0})}
     seen = {}
     for name, (labels, setup) in want.items():
         pg.locator('.kinds .kind', has_text=name).click(); time.sleep(.15)
@@ -496,14 +496,14 @@ with sync_playwright() as p:
         row = pg.locator('.media-list .slot').nth(idx)
         if 'open' not in (row.get_attribute('class') or ''): row.locator('.slot-main').click(); time.sleep(.3)
         h = row.evaluate("e=>[...e.querySelectorAll('.slot-det>.fold>.fold-head>span:first-child')].map(x=>x.textContent+(x.parentElement.getAttribute('aria-expanded')==='false'?' (shut)':''))")
-        h = ['Sits'] * bool(row.evaluate("e=>!!e.querySelector('.slot-det>.ctl select[id^=i_join_]')")) + h
+        h = ['Layer switch'] * bool(row.evaluate("e=>!!e.querySelector('.slot-det>.layer-sw button.toggle[role=switch]')")) + h
         row.locator('.slot-main').click(); time.sleep(.2)
         return h
     first_sh, second_sh, clip_sh = subheads(0), subheads(1), subheads(3)
     pg.evaluate("segue.items[2].join='on'"); layer_sh = subheads(2); pg.evaluate("segue.items[2].join='own'")
-    check('a piece’s detail (0.9): Sits first (from the second slide on), then groups – Timing, Crop, Look, (Plays), and the Caption shut; a layer’s: Sits, Layer, Position, Look',
-          first_sh == ['Timing', 'Crop', 'Look', 'Caption (shut)'] and second_sh == ['Sits', 'Timing', 'Crop', 'Look', 'Caption (shut)'] and clip_sh == ['Sits', 'Timing', 'Crop', 'Look', 'Plays', 'Caption (shut)']
-          and layer_sh == ['Sits', 'Layer', 'Position', 'Look'], f'{first_sh} {second_sh} {clip_sh} {layer_sh}')
+    check('a piece’s detail (0.11): the “Layer on the piece above” switch first (from the second slide on), then groups – Timing, Crop, Look, (Plays), and the Caption shut; a layer’s: the switch, Layer, Position, Look',
+          first_sh == ['Timing', 'Crop', 'Look', 'Caption (shut)'] and second_sh == ['Layer switch', 'Timing', 'Crop', 'Look', 'Caption (shut)'] and clip_sh == ['Layer switch', 'Timing', 'Crop', 'Look', 'Plays', 'Caption (shut)']
+          and layer_sh == ['Layer switch', 'Layer', 'Position', 'Look'], f'{first_sh} {second_sh} {clip_sh} {layer_sh}')
     pg.evaluate("segue.set('capOn',false)")
 
     # ---- 0.4: type a value; drag a piece; a looser pull back ----
@@ -804,7 +804,7 @@ with sync_playwright() as p:
     u1 = pg.evaluate("segue.items[1].blend||'normal'")
     pg.keyboard.press('Control+Shift+z'); time.sleep(.4)
     u2 = pg.evaluate("segue.items[1].blend")
-    check('A piece’s own settings undo and redo (0.9) – and once it blends, its row says what with', u1 == 'normal' and u2 == 'multiply' and 'Over the background' in note, f'{u1} {u2} {note!r}')
+    check('A piece’s own settings undo and redo (0.9) – and once it blends, its row says what with (0.11: it’s a layer now, so its slide; one Undo takes back both)', u1 == 'normal' and u2 == 'multiply' and 'Mixes with' in note and pg.evaluate("segue.items[1].join") == 'on', f'{u1} {u2} {note!r}')
     pg.evaluate("()=>{segue.items[1].blend='normal';segue.set('oneFit','own');segue.refresh();segue.setPlaying(false);segue.setClock(segue.momentOf(segue.items[1]));}"); time.sleep(.4)
     cvb = pg.locator('#cv').bounding_box(); pg.mouse.click(cvb['x'] + cvb['width'] / 2, cvb['y'] + cvb['height'] / 2); time.sleep(.4)
     pg.keyboard.press('ArrowRight'); pg.keyboard.press('Shift+ArrowDown'); time.sleep(.3)
@@ -904,9 +904,87 @@ with sync_playwright() as p:
     pg.evaluate("segue.set('guM',80)"); time.sleep(.2); g2 = pg.evaluate("segue.S.guides")
     pg.keyboard.press('Escape'); time.sleep(.2); g3 = pg.evaluate("document.querySelector('#guidePop').hidden")
     pg.keyboard.press('Control+;'); time.sleep(.2); g4 = pg.evaluate("segue.S.guides")
-    check('Guides in the top bar: the button shows and hides them; its arrow opens Margin, Columns, Rows, Snap – changing one shows them; Esc shuts it; ⌘; too',
-          g1 is True and 'Margin' in gl and 'Columns' in gl and g2 is True and g3 and g4 is False and not pg.evaluate("!!document.querySelector('#panel section[data-id=canvas] .fold-head span')&&[...document.querySelectorAll('#panel section[data-id=canvas] .fold-head span')].some(e=>e.textContent==='Guides')"), f'{g1} {gl} {g2} {g3} {g4}')
+    check('Guides in the top bar: the button shows and hides them; its arrow opens Margin, Grid, Snap (0.11 – no columns) – changing one shows them; Esc shuts it; ⌘; too',
+          g1 is True and 'Margin' in gl and 'Grid' in gl and 'Columns' not in gl and 'Gutter' not in gl and g2 is True and g3 and g4 is False and not pg.evaluate("!!document.querySelector('#panel section[data-id=canvas] .fold-head span')&&[...document.querySelectorAll('#panel section[data-id=canvas] .fold-head span')].some(e=>e.textContent==='Guides')"), f'{g1} {gl} {g2} {g3} {g4}')
     pg.evaluate("segue.set('guM',64);segue.set('guides',false);segue.applyPreset('Card stack');segue.set('ovOn',false)")
+
+    # ---- 0.11: a blend makes a layer, the play bar's ticks, movement in other kinds, guides as margin and grid, ----
+    # ---- handles only where they work, the project chip top left, the panel's edges and stray drags ----
+    pg.keyboard.press('Escape'); time.sleep(.2)
+    pg.evaluate("()=>{segue.applyPreset('Straight cuts');segue.items.forEach(i=>{i.join='own';i.blend='normal';});segue.refresh();const c=document.querySelector('section.card[data-id=media]');if(c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();document.querySelectorAll('.media-list .slot.open .slot-main').forEach(e=>e.click());}"); time.sleep(.5)
+    pg.locator('#panel .media-list .slot').nth(1).locator('.slot-main').click(); time.sleep(.5)
+    bid = pg.evaluate("segue.items[1].id")
+    pg.select_option(f'#i_blend_{bid}', 'multiply'); time.sleep(.6)
+    bl = pg.evaluate("()=>({join:segue.items[1].join,lfit:segue.items[1].lfit,toast:document.querySelector('#toast').textContent,sw:document.querySelector('.slot.open .layer-sw button.toggle').getAttribute('aria-checked'),clock:segue.clock,want:segue.momentOf(segue.items[1])})")
+    check('A blend on a slide of its own makes it a layer on the piece above, so it has something to mix with – and says so; the switch shows it',
+          bl['join'] == 'on' and bl['lfit'] in ('fill', 'own') and 'is now a layer on' in bl['toast'] and bl['sw'] == 'true' and abs(bl['clock'] - bl['want']) < .06, str(bl))
+    pg.locator('.slot.open .layer-sw button.toggle').click(); time.sleep(.4)
+    check('…and the switch turns it back into a slide of its own', pg.evaluate("segue.items[1].join") == 'own')
+    pg.evaluate("()=>{segue.items[1].blend='normal';segue.refresh();}"); time.sleep(.3)
+    tk = pg.evaluate("""()=>{const P=segue.plan(),hs=P.segs.filter(g=>g.k==='hold'),ts=[...document.querySelectorAll('#ticks i')].map(e=>parseFloat(e.style.left));
+      const w=document.querySelector('#scrub').getBoundingClientRect().width;return {n:ts.length,slides:hs.length,ts,want:hs.map(h=>h.t0/P.L*100),w};}""")
+    check('The play bar is longer and marks each slide with a fine tick where it starts', tk['n'] == tk['slides'] and tk['n'] >= 3 and tk['w'] >= 250
+          and all(abs(a - b) < 1 for a, b in zip(tk['ts'], tk['want'])), str(tk))
+    mv = pg.evaluate("""()=>{const c=document.createElement('canvas').getContext('2d'),out={};segue.applyPreset('Masonry drift');
+      const shown=()=>segue.ui.controls.filter(x=>x.w&&x.w.isConnected&&!x.w.hidden&&!x.w.closest('[hidden]')).map(x=>x.d.k);out.before=shown().includes('inMove');out.off=segue.S.inMove;
+      segue.set('inMove','zoom');segue.set('inAmt',8);const P=segue.plan(),sc=t=>segue.E.scene(segue.S,segue.items,c,segue.fonts,1080,1350,t).ops.filter(o=>o.item&&!o.layer);
+      const a=sc(0),b=sc(P.L*.5),z=sc(P.L-1e-6);out.inner=a.filter(o=>o.inner).length;out.n=a.length;
+      out.moves=a.some((o,i)=>b[i]&&o.inner&&b[i].inner&&Math.abs(o.inner.s-b[i].inner.s)>1e-3);
+      out.loop=a.every((o,i)=>!o.inner||(z[i]&&z[i].inner&&Math.abs(o.inner.s-z[i].inner.s)<1e-3));
+      out.most=Math.max(...a.map(o=>o.inner?o.inner.s:1));
+      segue.set('layout','one');out.slides=shown().includes('inMove');segue.applyPreset('Masonry drift');return out;}""")
+    check('Movement in the other kinds (0.11): a gentle zoom or drift inside each picture, off by default, loop-exact – Slides keeps its own',
+          mv['before'] is True and mv['off'] == 'none' and mv['inner'] == mv['n'] and mv['moves'] and mv['loop'] and mv['most'] <= 1.081 and not mv['slides'], str(mv))
+    gd = pg.evaluate("""()=>{segue.set('guM',64);segue.set('guN',6);const L=segue.guideLines(),inner=L.W-2*L.m,ih=L.H-2*L.m,d=L.gy.map((y,i)=>(i?y-L.gy[i-1]:y-L.m));
+      segue.set('guN',0);const L0=segue.guideLines();segue.set('guN',6);
+      return {gx:L.gx.length,cell:inner/6,rowsEven:d.every(v=>Math.abs(v-d[0])<1e-6),rowH:d[0],gy:L.gy.length,none:L0.gx.length+L0.gy.length};}""")
+    check('Guides are a margin and a grid: 6 across means 5 lines, rows divide the space evenly into near-square cells; 0 is none',
+          gd['gx'] == 5 and gd['rowsEven'] and abs(gd['rowH'] / gd['cell'] - 1) < .2 and gd['none'] == 0, str(gd))
+    pg.keyboard.press('Escape'); time.sleep(.2)
+    pg.evaluate("()=>{segue.applyPreset('Straight cuts');segue.set('oneFit','bleed');segue.items.forEach(i=>{i.join='own';i.zm=100;});segue.refresh();segue.setPlaying(false);segue.setClock(segue.momentOf(segue.items[0]));}"); time.sleep(.4)
+    cvb = pg.locator('#cv').bounding_box(); k6 = cvb['width'] / pg.evaluate("segue.E.canvasSize(segue.S)[0]")
+    pg.mouse.click(cvb['x'] + cvb['width'] / 2, cvb['y'] + cvb['height'] / 2); time.sleep(.3)
+    pg.mouse.move(cvb['x'] + cvb['width'] - 2, cvb['y'] + cvb['height'] - 2); pg.mouse.down(); pg.mouse.move(cvb['x'] + cvb['width'] - 40, cvb['y'] + cvb['height'] - 30, steps=6); pg.mouse.up(); time.sleep(.3)
+    hd = pg.evaluate("()=>({zm:segue.items[0].zm,sel:segue.sel===segue.items[0].id,pos:!document.querySelector('section.card[data-id=position]').hidden})")
+    check('A full-bleed slide has no corner handles to scale it (it fills its frame – crop zoom does that), and no Position section', hd['zm'] == 100 and hd['sel'] and not hd['pos'], str(hd))
+    pj = pg.evaluate("""()=>{const r=e=>document.querySelector(e).getBoundingClientRect();const p=r('#projBox'),v=r('#view'),t=r('.topbar'),pn=r('#panelBox');
+      return {left:Math.round(p.left-v.left),top:Math.round(p.top-t.top),inPanel:!!document.querySelector('#panelBox #projBox'),clear:p.right<=t.left,h:Math.round(p.height-t.height)};}""")
+    check('The project chip sits out of the panel, top left over the canvas, in line with the top bar', pj['left'] == 0 and pj['top'] == 0 and not pj['inPanel'] and pj['clear'] and abs(pj['h']) <= 1, str(pj))
+    pg.locator('#panel .media-list .slot').nth(0).locator('.slot-main').click(); time.sleep(.4)
+    dg = pg.evaluate("""()=>{const row=document.querySelector('.media-list .slot.open'),rng=row.querySelector('.slot-det input[type=range]'),top=row.querySelector('.slot-top .slot-name')||row.querySelector('.slot-top');
+      const pd=e=>e.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));const a=row.draggable;pd(rng);const b=row.draggable;pd(top);const c=row.draggable;
+      const img=[...document.querySelectorAll('.panel img')].every(i=>getComputedStyle(i).webkitUserDrag==='none'||getComputedStyle(i).getPropertyValue('-webkit-user-drag')==='none');
+      return {a,b,c,img,sel:getComputedStyle(document.querySelector('.panel')).userSelect};}""")
+    check('Dragging a slider in an open piece can’t pick up the row (only its top line moves it), and nothing in the panel drags out of the browser',
+          dg['a'] is False and dg['b'] is False and dg['c'] is True and dg['img'] and dg['sel'] == 'none', str(dg))
+    pg.evaluate("document.querySelectorAll('.media-list .slot.open .slot-main').forEach(e=>e.click())"); time.sleep(.2)
+    ed = pg.evaluate("""async()=>{const sc=document.querySelector('#panelBox .scroll'),cs=getComputedStyle(sc),rights=()=>[...document.querySelectorAll('#panelBox .card')].filter(c=>c.offsetParent).map(c=>Math.round(c.getBoundingClientRect().right));
+      const cards=[...document.querySelectorAll('#panelBox .card')];const shut=cards.map(c=>c.classList.contains('collapsed'));
+      cards.forEach(c=>{if(!c.classList.contains('collapsed'))c.querySelector('.card-toggle')&&c.querySelector('.card-toggle').click();});await new Promise(r=>setTimeout(r,300));const a=rights();
+      cards.forEach(c=>{if(c.classList.contains('collapsed'))c.querySelector('.card-toggle')&&c.querySelector('.card-toggle').click();});await new Promise(r=>setTimeout(r,300));const b=rights();
+      cards.forEach((c,i)=>{if(c.classList.contains('collapsed')!==shut[i])c.querySelector('.card-toggle')&&c.querySelector('.card-toggle').click();});
+      const pr=document.querySelector('#panelBox').getBoundingClientRect().right,cr=b[0];
+      return {gutter:cs.scrollbarGutter,ov:cs.overflowY,a,b,lane:Math.round(pr-cr)};}""")
+    check('The panel keeps its scrollbar lane whether it scrolls or not: every section ends at the same right edge, shut or open, with room either side of the bar',
+          ed['gutter'].startswith('stable') and ed['ov'] == 'scroll' and len(set(ed['a'] + ed['b'])) == 1 and ed['lane'] >= 14, str(ed))
+    dots = pg.evaluate("()=>{const v=getComputedStyle(document.querySelector('#view')).backgroundImage;return v;}")
+    check('Sparse dots round the canvas mark the pasteboard', 'radial-gradient' in dots, dots[:80])
+    fo = pg.evaluate("""()=>{const vis=()=>[...document.querySelectorAll('#panel .fold-head span:first-child')].filter(e=>!e.closest('[hidden]')).map(e=>e.textContent);
+      segue.set('capOn',false);segue.set('ovOn',false);const off=vis().includes('Fonts');segue.set('capOn',true);const on=vis().includes('Fonts');segue.set('capOn',false);
+      segue.set('layout','grid');segue.set('ratio','media');const sh=k=>segue.ui.controls.some(x=>x.d.k===k&&x.w&&x.w.isConnected&&!x.w.hidden&&!x.w.closest('[hidden]'));const fit=sh('fit');segue.set('ratio','4:5');const fit2=sh('fit');
+      return {off,on,fit,fit2};}""")
+    check('Settings that would do nothing step aside: Fonts only with captions or overlay type; Media fit only when shapes aren’t the media’s own',
+          fo['off'] is False and fo['on'] is True and fo['fit'] is False and fo['fit2'] is True, str(fo))
+    # Safari 17.6 (Steve's note): the sheets' 0fr-to-1fr row stayed shut. A stuck row is caught and sheets open flat
+    pg.keyboard.press('Escape'); time.sleep(.3)
+    pg.evaluate("()=>{const st=document.createElement('style');st.id='stuck';st.textContent='.sheets{grid-template-rows:0fr!important}';document.head.append(st);}")
+    pg.locator('#pcap .pc-row').first.click(); time.sleep(1)
+    fl = pg.evaluate("()=>{const r=document.querySelector('#pcap .sheet').getBoundingClientRect();return {flat:document.documentElement.classList.contains('flat-sheets'),h:Math.round(r.height),top:Math.round(r.top),rows:[...document.querySelectorAll('#pcap .preset-row')].filter(e=>{const q=e.getBoundingClientRect();return q.height>10&&q.top>=r.top&&q.bottom<=r.bottom+1;}).length,note:!!document.querySelector('.err-note:not([hidden]),#errNote:not([hidden])')};}")
+    pg.keyboard.press('Escape'); time.sleep(.4)
+    shut = pg.evaluate("Math.round(document.querySelector('#pcap .sheets').getBoundingClientRect().height)")
+    pg.evaluate("()=>{document.querySelector('#stuck').remove();document.documentElement.classList.remove('flat-sheets');}")
+    check('Sheets whose slide never runs (Safari 17) open flat instead – the presets are there to pick, and shut again', fl['flat'] and fl['h'] > 300 and fl['rows'] >= 3 and shut == 0, f'{fl} {shut}')
+    pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false);segue.set('capOn',false)")
 
     # ---- exports ----
     pg.evaluate("for(const [k,v] of [['hold',.3],['dur',.3],['zOut',.3],['gHold',.3],['zIn',.3],['cSize','custom'],['cW',540],['cH',676],['bg','#F5F5F3'],['bgImgA',0],['name','Test reel']])segue.set(k,v)")

@@ -409,10 +409,15 @@ with sync_playwright() as p:
     pg.get_by_role('button', name='Remove the background image').click(); time.sleep(.5)
     off = pg.evaluate("!segue.pics.bg"); pg.locator('#toast .undo').click(); time.sleep(.8)
     check('background image: in, out, and back with Undo', had and off and pg.evaluate("!!segue.pics.bg"))
+    # 0.11: Fonts shows only while captions or overlay type are on
+    pg.evaluate("""()=>{segue.set('capOn',true);const t=document.querySelector('.tier');if(t&&!t.classList.contains('open'))t.querySelector('.tier-head').click();
+      const c=document.querySelector('#panel section.card[data-id=captions]');if(c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();
+      const f=[...c.querySelectorAll('.fold-head')].find(h=>h.textContent.startsWith('Fonts'));if(f&&f.getAttribute('aria-expanded')==='false')f.click();}"""); time.sleep(.5)
     pg.set_input_files('#fontfile', FONT); time.sleep(1.2)
     fonts = pg.evaluate("Object.values(segue.fonts).filter(f=>f.own).map(f=>f.label)")
     if fonts: pg.get_by_role('button', name=f'Remove {fonts[0]}').click(); time.sleep(.4)
     check('a font of your own: added to every Font menu, and removed', len(fonts) == 1 and pg.evaluate("Object.values(segue.fonts).filter(f=>f.own).length") == 0, str(fonts))
+    pg.evaluate("segue.set('capOn',false)")
 
     # ---- the frame: Preview, the panel, its width, light and dark ----
     pg.mouse.click(900, 450); pg.keyboard.press('f'); time.sleep(.7)

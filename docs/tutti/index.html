@@ -804,13 +804,22 @@
   /* thin scrollbars on every tool (Steve, 7 Nov): 6 px, a soft grey thumb that darkens under the pointer, no track.
      Chrome and Safari draw them from the ::-webkit-scrollbar rules – which Chrome ignores wherever scrollbar-width
      is set, so that's put back to auto there; Firefox, which has no such rules, keeps its own thin one. */
-  ::-webkit-scrollbar{width:6px;height:6px}
+  /* the thumb is 6 px, in a 16 px lane – 5 px clear either side of it (Steve, 9 Nov: "more space both sides of the
+     scrollbar"); the panel keeps that lane whether or not there's anything to scroll, so nothing moves when a section
+     opens and the scrollbar appears, and the sections' right edges stay put */
+  ::-webkit-scrollbar{width:16px;height:16px}
   ::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
-  ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink) 20%,transparent);border-radius:3px}
-  ::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--ink) 40%,transparent)}
+  ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink) 20%,transparent);background-clip:padding-box;border:5px solid transparent;border-radius:8px;min-height:40px}
+  ::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--ink) 40%,transparent)}
+  .scroll{overflow-y:scroll;scrollbar-gutter:stable;padding-right:0}
   @supports selector(::-webkit-scrollbar){.scroll,.sheet{scrollbar-width:auto}}
   @supports not selector(::-webkit-scrollbar){.scroll,.sheet,body{scrollbar-width:thin}}
   #islandMain::-webkit-scrollbar,.island-row::-webkit-scrollbar{display:none}
+
+  /* a drag on a control never drags text, a row or a section out of the browser (Steve, 9 Nov) */
+  .panel,.island,.pcap,.topbar,.pop{-webkit-user-select:none;user-select:none}
+  .panel input,.panel textarea,.panel [contenteditable],.pop input,.island input{-webkit-user-select:text;user-select:text}
+  .panel img,.panel svg,.panel canvas{-webkit-user-drag:none}
   /* Tutti on the Ensemble tool system (UI stream, October 2026): the shared tokens and
      components come first (shared/tokens.css, shared/components.css); these are Tutti's own parts. */
   .view{flex-direction:column}

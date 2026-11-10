@@ -292,12 +292,22 @@ function scene(S,items,ctx,fonts,W,H,t){
   else if(S.layout==='one'&&cam.seg&&cam.seg.k==='move'&&cam.how!=='slide')oneMove(S,G,cam,N,push);
   else trackScene(S,G,P,cam,N,push);
   if(S.layout==='one'){oneFinish(S,G,P,cam,ops);if(layers){const lo=layerOps(S,G,ops,layers);ops.length=0;ops.push(...lo);}}
+  else innerMove(S,ops,cam.tt!=null?cam.tt:t,P.L);
   /* a caption fixed on the canvas: the current shape's, handing over during a move */
   let fixed=null;
   if(S.capOn&&capWhereOf(S)==='fixed'&&real&&!OWN.has(S.layout)){const cur=mod(Math.round(cam.p),N);
     if(cam.seg&&cam.seg.k==='move'){const a=mod(cam.seg.s,N),b=mod(cam.seg.to,N),k=cam.k;fixed=k<.5?{i:a,alpha:1-k*2,rev:1}:{i:b,alpha:1,rev:reveal(b)};}
     else fixed={i:cur,alpha:1-cam.z,rev:reveal(cur)};}
   return{W,H,G,P,cam,ops,fixed,list,real,S,mid:ops.mid};}
+/* movement inside the shapes, for the kinds that aren't Slides (0.11): the picture in every shape zooms in a little and
+   back, or drifts round, once over the loop – each shape at its own point in the cycle (from its key), so they don't
+   move in step, and the loop still joins up exactly. Only where the picture fills its shape. */
+function innerMove(S,ops,t,L){const m=S.inMove||'none';if(m==='none'||!(L>0)||(S.fit==='fit'&&S.ratio!=='media'))return;const a=clamp(+S.inAmt||0,0,40)/100;if(!a)return;
+  const n=Math.max(1,Math.round(L/8));   /* a breath of about 8 s, a whole number of them in the loop; each picture its own phase */
+  for(const o of ops){if(!o.item||o.inner||o.layer)continue;let h=2166136261;for(const ch of String(o.key||o.i)){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}h^=h>>>15;h=Math.imul(h,2246822519);h^=h>>>13;
+    const th=2*Math.PI*(n*t/L+(h>>>0)/4294967296);
+    if(m==='zoom')o.inner={s:1+a*(.5-.5*Math.cos(th)),x:0,y:0};
+    else if(m==='drift')o.inner={s:1+a,x:a*.48*Math.sin(th),y:a*.32*Math.cos(th)};}}
 function placeholders(n,S){return Array.from({length:n},(_,i)=>({placeholder:true,n:i+1,kind:'image'}));}
 function trackScene(S,G,P,cam,N,push){
   const ext=G.hz?G.W:G.H,slot=G.hz?G.slotW:G.slotH,span=Math.ceil((ext/2+slot)/G.pitch)+1,p=cam.p;

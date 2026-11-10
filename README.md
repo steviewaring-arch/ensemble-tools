@@ -10,7 +10,7 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
-**Segue** 0.10 is also in here, unlisted and internal for now: framed loops of images and video for case studies, reels and decks – shapes on a canvas that snap, step, drift, fade or pull back to show the lot, columns and rows each running their own way, with captions, out as MP4, GIF or PNG. https://steviewaring-arch.github.io/ensemble-tools/segue/ – see `segue/HANDOVER.md`.
+**Segue** 0.11 is also in here, unlisted and internal for now: framed loops of images and video for case studies, reels and decks – shapes on a canvas that snap, step, drift, fade or pull back to show the lot, columns and rows each running their own way, with captions, out as MP4, GIF or PNG. https://steviewaring-arch.github.io/ensemble-tools/segue/ – see `segue/HANDOVER.md`.
 
 **Decentish** 0.4 is also in here, unlisted: a prototype website that gives you a plan for where you are – now, soon or tomorrow, on the doorstep, nearby or further afield, with the way there and back – in a voice you set with a dial. Greater Manchester first. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
 

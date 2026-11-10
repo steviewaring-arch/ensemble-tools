@@ -189,16 +189,20 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .pop-title{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);margin:0 0 12px}
 .pop .hint{margin:8px 0 2px}
 @media (max-width:860px){#zoomTools,#historyTools{display:none}}
-/* 0.10: the project, at the top of the panel – its name in a white field, how it's saved, and its panel below */
-.proj{position:relative;flex:none;padding:0 8px 8px}
-.proj-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;height:36px;padding:0 12px 0 14px;border-radius:var(--r-cardk,10px);background:var(--k-card);cursor:pointer;transition:background var(--t-snap)}
-.proj-btn:hover{background:color-mix(in srgb,var(--k-card) 94%,var(--ink))}
-.proj-btn:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
-.proj-name{flex:1;min-width:0;font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* the project (0.11): top left of the stage, in line with the top bar – a chip with its name and how it's saved */
+.projbar{position:absolute;left:calc(var(--gap)*2 + var(--pw));top:var(--gap);z-index:7;max-width:calc(100% - var(--pw) - var(--gap)*4 - 560px);min-width:160px}
+.proj-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;max-width:100%;height:var(--h-chip);padding:0 8px 0 12px;border-radius:var(--r-ctl);cursor:pointer;
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline);transition:background var(--t-snap)}
+.proj-btn:hover{background:var(--btn-hover)}
+.proj-btn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+.proj-name{min-width:0;font-size:var(--fs-small);font-weight:500;color:var(--ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .proj-state{flex:none;font-size:var(--fs-small);color:var(--muted)}
+.proj-state:not(:empty)::before{content:'·';margin-right:8px;color:var(--muted)}
 .proj-btn .chev{flex:none;width:12px;height:12px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
 .proj-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
-.pop.proj-pop{left:8px;right:8px;width:auto;top:calc(100% - 2px);padding:14px 14px 12px;max-height:min(70vh,640px);overflow-y:auto}
+.app.preview .projbar{display:none}
+@media (max-width:860px){.projbar{left:var(--gap);max-width:46%;min-width:0}}
+.pop.proj-pop{left:0;right:auto;width:320px;top:calc(100% + 8px);padding:14px 14px 12px;max-height:min(70vh,640px);overflow-y:auto}
 .proj-field{width:100%;box-sizing:border-box;font-weight:500}
 .proj-acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 14px}
 .proj-acts>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);justify-content:center;font-size:12.5px}
@@ -211,3 +215,17 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .proj-row.on{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
 .proj-row .tag{flex:none;font-size:11.5px;color:var(--muted)}
 .proj-pop .hint{margin:12px 0 0}
+/* 0.11: the pasteboard – very sparse, very faint dots round the canvas, so it's plain what's canvas and what isn't */
+.view{background-image:radial-gradient(circle,color-mix(in srgb,var(--ink) 15%,transparent) 0 .75px,transparent 1.05px);background-size:24px 24px;background-position:center}
+.app.preview .view{background-image:none}
+.layer-sw{margin-bottom:12px}
+/* the play bar (0.11): longer, with a faint tick where each slide begins */
+.scrubw{position:relative;display:inline-flex;align-items:center;flex:none}
+@media (min-width:861px){.island #scrub{width:clamp(100px,calc(100vw - var(--pw,360px) - 640px),300px)}}
+.app.tight .topbar .stage-foot,.app.tighter .proj-state{display:none}
+.ticks{position:absolute;left:10px;right:10px;top:50%;height:10px;margin-top:-5px;pointer-events:none}
+.ticks i{position:absolute;top:0;width:1px;height:10px;margin-left:-.5px;background:color-mix(in srgb,var(--ink) 24%,transparent)}
+
+/* sheets that open flat, without the slide (Safari 17 – see syncSheets) */
+.flat-sheets .sheets{display:block;transition:none}
+.flat-sheets .island:not(.open)>.sheets,.flat-sheets .pcap:not(.open)>.sheets{display:none}

@@ -310,7 +310,7 @@ function exportInfo(){if(!xInfo)return;const [W,H]=S.xFormat==='gif'?size():outS
   if(lastSize[f])chips.push([`Last ${mb(lastSize[f])}`,'The size of the last one you made']);
   xInfo.textContent='';for(const [t,tip] of chips){const c=el('span','chip',t);if(tip)c.dataset.tip=tip;xInfo.append(c);}}
 /* ---------------- start ---------------- */
-{const _r=appRefresh;appRefresh=function(){_r();exportInfo();};}
+{const _r=appRefresh;appRefresh=function(){_r();exportInfo();topFit();};}
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};
 $('#bgfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)setPic('bg',f);};
 $('#ovfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)setPic('ov',f);};

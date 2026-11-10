@@ -7,7 +7,7 @@ const D={
   cSize:'4:5',cW:1080,cH:1350,bg:'#F5F5F3',bgFit:'fill',bgImgA:100,fps:30,
   layout:'column',ratio:'16:10',rW:16,rH:10,size:86,cols:3,gap:64,radius:12,fit:'fill',shapeBg:'#E6E6E3',edge:false,edgeC:'#111111',edgeW:2,nudgeX:0,nudgeY:0,
   mat:0,matC:'#FFFFFF',matR:0,
-  oneFit:'shape',ownScale:'fit',kb:'none',kbAmt:6,
+  oneFit:'shape',ownScale:'fit',kb:'none',kbAmt:6,inMove:'none',inAmt:5,
   oneMove:'slide',trackMove:'step',dir:'up',feel:'snap',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',gStag:40,gFloat:30,
   colDir:'alt',colSpeed:'same',colLag:.4,colOff:50,
   sd0:1,sd1:-1,sd2:1,sd3:-1,sd4:1,sd5:-1,sd6:1,sd7:-1,ss0:1,ss1:1,ss2:1,ss3:1,ss4:1,ss5:1,ss6:1,ss7:1,
@@ -21,10 +21,10 @@ const D={
   GF:'plex',GS:13,GTr:20,GLd:1.2,GC:'#111111',GCase:'as',
   ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',
   name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false,xCrisp:true,xQ:'high',xScale:1,
-  guides:false,guM:64,guC:4,guR:0,guG:24,guSnap:true};
+  guides:false,guM:64,guN:6,guSnap:true};
 /* the look: what a preset carries. Size, frame rate, the file name and what's over the top
    (it's content, like the captions) stay as they are. */
-const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','xDither','xCrisp','xQ','ovOn','ovKind','ovText','guides','guM','guC','guR','guG','guSnap'];
+const NOT_LOOK=['cSize','cW','cH','fps','name','xFormat','xLoops','xGifScale','xGifFps','xDither','xCrisp','xQ','ovOn','ovKind','ovText','guides','guM','guN','guSnap'];
 const LOOK=Object.keys(D).filter(k=>!NOT_LOOK.includes(k));
 /* px values: presets keep them for a 1080 short side and scale them to the canvas they land on */
 const PX=['gap','radius','edgeW','nudgeX','nudgeY','gGap','capSpace','capX','capY','capMargin','capGapL','TS','LS','GS','mat','matR','OS','ovM','ovX','ovY'];
@@ -71,14 +71,15 @@ function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=
    the same piece and setting within 0.8 s, or in one drag, join up. Adding, removing and reordering have their own. */
 const ITEM_KEYS=META.filter(k=>!['id','ref','name','kind','w','h','dur','fixed'].includes(k));
 const ITEM_LABEL={blend:'Blend',opa:'Opacity',px:'Crop',py:'Crop',zm:'Size',ox:'Position',oy:'Position',start:'Start at',end:'End at',hold:'On screen',arrive:'Arrives by',moves:'Moves',
-  join:'Sits',place:'Order',lfit:'Fit',title:'Title',line:'Line',tags:'Tags',levels:'Lift washed-out colours',lin:'Arrives',lafter:'After',lover:'Over'};
-let itemSnap=null,itemReplay=false;
+  join:'Layer',place:'Order',lfit:'Fit',title:'Title',line:'Line',tags:'Tags',levels:'Lift washed-out colours',lin:'Arrives',lafter:'After',lover:'Over'};
+let itemSnap=null,itemReplay=false,itemFold=false;   /* itemFold: what follows is part of the step just taken */
 const snapItems=()=>new Map(items.map(it=>[it.id,Object.fromEntries(ITEM_KEYS.map(k=>[k,it[k]]))]));
 const sameV=(a,b)=>{const na=a==null||a==='',nb=b==null||b==='';if(na||nb)return na&&nb;if(typeof a!==typeof b&&!isNaN(+a)&&!isNaN(+b))return same(+a,+b);return same(a,b);};
 function itemSteps(){const next=snapItems();
   if(itemSnap&&!itemReplay){const ch=[];for(const [id,o] of next){const p=itemSnap.get(id);if(!p)continue;for(const k of ITEM_KEYS)if(!sameV(p[k],o[k]))ch.push([id,k,p[k],o[k]]);}if(ch.length)itemStep(ch);}
   itemSnap=next;}
 function itemStep(ch){const now=performance.now(),top=UNDO[UNDO.length-1],sig=ch.map(c=>c[0]+'.'+c[1]).sort().join();
+  if(itemFold&&top&&top.items){for(const c of ch){const q=top.items.find(x=>x[0]===c[0]&&x[1]===c[1]);if(q)q[3]=c[3];else top.items.push(c);}top.sig=top.items.map(c=>c[0]+'.'+c[1]).sort().join();top.t=now;return;}
   if(top&&top.items&&top.sig===sig&&((gesture&&top.g===gesture)||now-top.t<800)){for(const c of ch){const q=top.items.find(x=>x[0]===c[0]&&x[1]===c[1]);if(q)q[3]=c[3];}top.t=now;
     if(top.items.every(x=>sameV(x[2],x[3])))UNDO.pop();return;}
   const it=items.find(x=>x.id===ch[0][0]),label=`${ITEM_LABEL[ch[0][1]]||'Change'}${it?' – '+it.name:''}`;
@@ -309,7 +310,7 @@ const zRange=o=>o.layer?[5,400]:o.whole?[20,400]:[100,400];
 let grab=null,zoomT=0,selId=null,hoverOp=null,hoverRow=null;
 const opOf=id=>cur&&id?cur.ops.find(o=>o.item&&o.item.id===id&&o.rect&&o.alpha>.05):null;
 const cornersOf=r=>[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]];
-function handleAt(x,y){const o=opOf(selId);if(!o||!croppable(o))return null;const tol=9/scrPx();
+function handleAt(x,y){const o=opOf(selId);if(!o||!o.whole)return null;const tol=9/scrPx();
   for(const [i,[cx,cy]] of cornersOf(o.rect).entries())if(Math.abs(x-cx)<=tol&&Math.abs(y-cy)<=tol)return{o,i};return null;}
 const rowOf=id=>mediaBox&&id?mediaBox.querySelector(`.slot[data-id="${id}"]`):null;
 function setHover(o){const id=o&&o.item?o.item.id:null,was=hoverOp&&hoverOp.item?hoverOp.item.id:null;hoverOp=o;if(id===was)return;
@@ -319,11 +320,12 @@ function selectItem(id,open){selId=id;dirty=true;if(!id||!open)return;openRows.a
   const c=document.querySelector('section.card[data-id="media"]');if(c&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();
   const r=rowOf(id);if(r)requestAnimationFrame(()=>r.scrollIntoView({block:'nearest',behavior:reduceMotion.matches?'auto':'smooth'}));}
 /* the guides: margins, columns and rows between them, and the centre */
-function guideLines(){const [W,H]=size(),m=clamp(+S.guM||0,0,Math.min(W,H)/2-1),C=Math.round(+S.guC||0),R=Math.round(+S.guR||0),g=Math.max(0,+S.guG||0);
-  const xs=[0,W/2,W],ys=[0,H/2,H],cols=[],rows=[];if(m>0){xs.push(m,W-m);ys.push(m,H-m);}
-  if(C>1||(C===1&&m>0)){const cw=(W-2*m-(C-1)*g)/C;if(cw>0)for(let c=0;c<C;c++){const x0=m+c*(cw+g);cols.push([x0,cw]);xs.push(x0,x0+cw);}}
-  if(R>1||(R===1&&m>0)){const rh=(H-2*m-(R-1)*g)/R;if(rh>0)for(let r=0;r<R;r++){const y0=m+r*(rh+g);rows.push([y0,rh]);ys.push(y0,y0+rh);}}
-  return{xs,ys,cols,rows,m,W,H};}
+/* guides (0.11): the margin and a grid of square cells inside it – Grid is how many across; the rows are as many as
+   fit, centred. No columns, rows or gutters (Steve: "just grids and margins"). The middle lines are always there. */
+function guideLines(){const [W,H]=size(),m=clamp(+S.guM||0,0,Math.min(W,H)/2-1),N=Math.round(+S.guN||0);
+  const xs=[0,W/2,W],ys=[0,H/2,H],gx=[],gy=[];if(m>0){xs.push(m,W-m);ys.push(m,H-m);}
+  if(N>1){const c=(W-2*m)/N,R=Math.max(1,Math.round((H-2*m)/c)),r=(H-2*m)/R;if(c>2){for(let i=1;i<N;i++)gx.push(m+i*c);for(let j=1;j<R;j++)gy.push(m+j*r);}}
+  xs.push(...gx);ys.push(...gy);return{xs,ys,gx,gy,m,W,H};}
 function snapMove(r,dx,dy,free){if(free||!S.guides||S.guSnap===false)return[dx,dy,null,null];const L=guideLines(),tol=7/scrPx();
   const best=(edges,lines)=>{let b=null;for(const e of edges)for(const l of lines){const d=l-e;if(Math.abs(d)<=tol&&(!b||Math.abs(d)<Math.abs(b.d)))b={d,l};}return b;};
   const bx=best([r.x+dx,r.x+dx+r.w/2,r.x+dx+r.w],L.xs),by=best([r.y+dy,r.y+dy+r.h/2,r.y+dy+r.h],L.ys);
@@ -340,8 +342,8 @@ function drawUI(){if($('.app').classList.contains('preview'))return;const [W,H]=
   ctx.save();ctx.setTransform(k,0,0,k,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
   const box=(r,thick)=>{ctx.lineWidth=3*lw;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.lineWidth=(thick?1.5:1)*lw;ctx.strokeStyle='#111111';ctx.strokeRect(r.x,r.y,r.w,r.h);};
   if(S.guides){const L=guideLines();ctx.save();ctx.globalCompositeOperation='difference';ctx.fillStyle='rgba(255,255,255,.07)';
-    for(const [x0,w] of L.cols)ctx.fillRect(x0,L.m,w,H-2*L.m);for(const [y0,h] of L.rows)ctx.fillRect(L.m,y0,W-2*L.m,h);
-    ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=lw;if(L.m>0)ctx.strokeRect(L.m,L.m,W-2*L.m,H-2*L.m);
+    ctx.strokeStyle='rgba(255,255,255,.32)';ctx.lineWidth=lw;ctx.beginPath();for(const x of L.gx){ctx.moveTo(x,L.m);ctx.lineTo(x,H-L.m);}for(const y of L.gy){ctx.moveTo(L.m,y);ctx.lineTo(W-L.m,y);}ctx.stroke();
+    ctx.strokeStyle='rgba(255,255,255,.6)';if(L.m>0)ctx.strokeRect(L.m,L.m,W-2*L.m,H-2*L.m);
     ctx.setLineDash([4*lw,4*lw]);ctx.beginPath();ctx.moveTo(W/2,0);ctx.lineTo(W/2,H);ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.setLineDash([]);
     if(grab&&grab.snap){ctx.strokeStyle='rgba(255,255,255,1)';ctx.lineWidth=1.5*lw;ctx.beginPath();if(grab.snap[0]!=null){ctx.moveTo(grab.snap[0],0);ctx.lineTo(grab.snap[0],H);}if(grab.snap[1]!=null){ctx.moveTo(0,grab.snap[1]);ctx.lineTo(W,grab.snap[1]);}ctx.stroke();}
     ctx.restore();}
@@ -349,7 +351,7 @@ function drawUI(){if($('.app').classList.contains('preview'))return;const [W,H]=
   if(ho)box(ho.rect,false);
   if(so){if(grab&&grab.moved&&!so.whole&&so.item.src&&(so.item.kind!=='video'||so.item.src.readyState>=2)){const g=cropBox(so);ctx.save();ctx.globalAlpha=.32;try{ctx.drawImage(so.item.src,g.x,g.y,g.w,g.h);}catch(e){}ctx.restore();ctx.save();ctx.setLineDash([4*lw,3*lw]);box(g,false);ctx.restore();}
     box(so.rect,true);
-    if(croppable(so)){const hs=7*lw;for(const [cx,cy] of cornersOf(so.rect)){ctx.fillStyle='#FFFFFF';ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs);}}}
+    if(so.whole){const hs=7*lw;for(const [cx,cy] of cornersOf(so.rect)){ctx.fillStyle='#FFFFFF';ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs);}}}
   ctx.restore();}
 cv.addEventListener('pointerdown',e=>{if(busy||e.button!==0)return;const [x,y]=canvasPt(e),h=handleAt(x,y);
   if(h){e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);const o=h.o,[lo,hi]=zRange(o),cx=o.rect.x+o.rect.w/2,cy=o.rect.y+o.rect.h/2;
@@ -401,9 +403,7 @@ let nudgeT=0;
 {const pop=$('#guidePop'),more=$('#guidesMore'),btn=$('#guidesBtn');
   pop.append(el('div','pop-title','Guides'));
   build(pop,[{t:'range',k:'guM',label:'Margin',min:0,max:400,step:1,unit:' px'},
-    {t:'range',k:'guC',label:'Columns',min:0,max:24,step:1},
-    {t:'range',k:'guR',label:'Rows',min:0,max:24,step:1},
-    {t:'range',k:'guG',label:'Gutter',min:0,max:200,step:1,unit:' px',show:s=>Math.round(s.guC)>1||Math.round(s.guR)>1},
+    {t:'range',k:'guN',label:'Grid',min:0,max:24,step:1,tip:'This many cells across inside the margin, with rows to keep them near square – 0 for none'},
     {t:'toggle',k:'guSnap',label:'Snap to guides'}]);
   addHint(pop,'On the preview only – nothing of them goes into an export. Hold Alt as you drag to place a piece freely.');
   const show=o=>{pop.hidden=!o;more.setAttribute('aria-expanded',o);if(o){refreshAll();requestAnimationFrame(()=>syncRanges(pop));}};
@@ -427,7 +427,7 @@ function seekTo(it){const t=momentOf(it);if(t==null)return;setPlaying(false);clo
 function setPlaying(v){playing=v;const b=$('#play');b.textContent=v?'Pause':'Play';b.setAttribute('aria-label',v?'Pause':'Play');dirty=true;}
 $('#play').onclick=()=>setPlaying(!playing);
 $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();clock=$('#scrub').value/1000*P.L;dirty=true;});
-function onSet(k){if(/^gu/.test(k)||k==='guides')dirty=true;if(/^gu[MCRG]$/.test(k)&&!S.guides)set('guides',true,true);if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
+function onSet(k){if(/^gu/.test(k)||k==='guides')dirty=true;if(/^gu[MN]$/.test(k)&&!S.guides)set('guides',true,true);if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
 /* the loop's length, typed (0.9): click the chip and type a length – every time in the loop (rests, moves, each shape,
    the pull back, lags, each slide's own time) is scaled by the same amount, so it lasts that long and still joins up.
    Video plays at its own speed, as ever. One step to undo. */
@@ -442,7 +442,12 @@ function fitLoop(T){T=clamp(+T||0,.5,600);const L0=planNow().L;if(!(L0>0)||Math.
   E.resetMeasure();dirty=true;paintMedia();refreshAll();toastUndo(`Loop ${planNow().L.toFixed(2)} s`);}
 {const c=$('#loopChip');typable(c,{label:'Loop length in seconds',get:()=>+planNow().L.toFixed(2),put:fitLoop,min:.5,max:600,show:()=>`${planNow().L.toFixed(1)} s loop`});
   c.dataset.tip='Click to set how long the loop lasts – every time in it is scaled to fit';}
-function appRefresh(){const P=planNow(),lc=$('#loopChip');if(!lc.classList.contains('editing'))lc.textContent=`${P.L.toFixed(1)} s loop`;
+/* the play bar (0.11): a faint tick where each slide (or stop) begins its time on screen */
+let tickSig='';
+function paintTicks(P){const box=$('#ticks');if(!box)return;const at=(P.segs||[]).filter(g=>g.k==='hold'||g.k==='grid').map(g=>g.t0/P.L).filter(x=>x>=0&&x<1);
+  const sig=P.L.toFixed(3)+':'+at.map(x=>x.toFixed(4)).join();if(sig===tickSig)return;tickSig=sig;box.textContent='';if(at.length<2||at.length>80)return;
+  for(const x of at){const i=el('i');i.style.left=(x*100).toFixed(3)+'%';box.append(i);}}
+function appRefresh(){const P=planNow(),lc=$('#loopChip');paintTicks(P);if(!lc.classList.contains('editing'))lc.textContent=`${P.L.toFixed(1)} s loop`;
   const g6=S.layout==='one'?E.slidesOf(items):null;
   $('#countChip').textContent=!items.length?'No media yet':g6&&g6.layers.size?`${items.length} pieces · ${g6.bases.length} slides`:(items.length===1?'1 shape':`${items.length} shapes`);
   if(current&&BUILTIN.concat(mine).some(x=>x.name===current)){const e=LOOK.some(moved);if(e!==edited){edited=e;LS.set('presetEdited',e);}}
@@ -453,7 +458,7 @@ function appRefresh(){const P=planNow(),lc=$('#loopChip');if(!lc.classList.conta
    shape, captions and what goes over the top. Each kind shows only its own controls, in the
    same order – how many, what moves and which way, timing, the feel, then its character. */
 Object.assign(TIPS,{
-  guides:'Lines over the canvas to line things up by – margins, columns, rows and the centre. They’re only on the preview: nothing of them goes into an export.',guM:'Space in from each edge',guC:'Columns between the margins',guR:'Rows between the margins',guG:'Space between the columns and rows',guSnap:'Pieces you move catch on the guides and the centre. Hold Alt as you drag to place one freely.',
+  guides:'Lines over the canvas to line things up by – the margin, a grid and the centre. They’re only on the preview: nothing of them goes into an export.',guM:'Space in from each edge',guSnap:'Pieces you move catch on the guides and the centre. Hold Alt as you drag to place one freely.',
   cSize:'The size of what comes out. Presets keep to it – they scale to fit.',bg:'The colour behind everything',fps:'Frames a second in the MP4. 30 suits most social video; 60 is smoother, with twice the frames to encode.',
   bgFit:'Fill crops the image to the canvas; Fit shows all of it, on the background colour',bgImgA:'How strongly the background image shows',
   ratio:'The shape each piece of media sits in. It’s cropped to fill it, or fitted inside. The media’s own: in Columns and Float each shape takes its own media’s shape.',
@@ -525,15 +530,19 @@ function paintMedia(){
   items.forEach((it,i)=>{
     const row=el('div','slot'),top=el('div','slot-top'),th=el('span','mthumb'),main=el('div','slot-main'),nm=el('div','slot-name',it.title?it.title.split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,''):it.name),meta=el('div','slot-meta');
     const lay=isLayer(it,i),trimmed=it.kind==='video'&&(+it.start>0||+it.end>0);
-    th.append(thumbOf(it));meta.textContent=(lay?'On the one before'+(it.place==='behind'?', behind':'')+' · ':'')+(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(trimmed?` · plays ${(+it.start||0).toFixed(1)}–${(+it.end>(+it.start||0)?+it.end:+it.dur||0).toFixed(1)} s`:'')+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(it.blend&&it.blend!=='normal'?` · ${optLabel(BLENDS,it.blend)}`:'')+(it.opa!=null&&+it.opa<100?` · ${Math.round(+it.opa)}%`:'')+(!lay&&S.layout==='one'&&+it.hold>0?` · on for ${+(+it.hold).toFixed(2)} s`:'')+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
+    th.append(thumbOf(it));meta.textContent=(lay?'Layer'+(it.place==='behind'?', behind':'')+' · ':'')+(it.kind==='video'?`Video · ${(+it.dur||0).toFixed(1)} s`+(trimmed?` · plays ${(+it.start||0).toFixed(1)}–${(+it.end>(+it.start||0)?+it.end:+it.dur||0).toFixed(1)} s`:'')+(it.fixed?' · range put right':''):`Image · ${it.w} × ${it.h}`)+(it.blend&&it.blend!=='normal'?` · ${optLabel(BLENDS,it.blend)}`:'')+(it.opa!=null&&+it.opa<100?` · ${Math.round(+it.opa)}%`:'')+(!lay&&S.layout==='one'&&+it.hold>0?` · on for ${+(+it.hold).toFixed(2)} s`:'')+(it.title?` · ${it.name}`:'');if(it.fixed)meta.title='Its stream said full range while the file said video range – Segue made them agree, so the colours come out as they should';
     {const k=enlargeMap().get(it);if(k>1.08){const e=el('span','enl',` · shown at ${Math.round(k*100)}%`);e.dataset.tip=`Drawn bigger than its own pixels – up to ${k.toFixed(2)}× – so it can’t be fully crisp. For a crisp export it would need ${Math.ceil(it.w*k)} × ${Math.ceil(it.h*k)} px.`;meta.append(e);}}
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-expanded',openRows.has(it.id));main.setAttribute('aria-label',`${i+1}. ${it.name} – details`);
     /* opening a row selects the piece and takes the playhead to it (0.6) */
-    const tog=()=>{if(openRows.has(it.id)){openRows.delete(it.id);if(selId===it.id)selId=null;}else{openRows.add(it.id);selId=it.id;seekTo(it);}paintMedia();dirty=true;};main.onclick=tog;main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
+    const tog=()=>{if(openRows.has(it.id)){openRows.delete(it.id);if(selId===it.id)selId=null;}else{openRows.add(it.id);selId=it.id;}seekTo(it);paintMedia();dirty=true;};main.onclick=tog;
+    th.style.cursor='pointer';th.onclick=()=>{selId=it.id;seekTo(it);paintMedia();dirty=true;};main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
     const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+it.name);rm.onclick=e=>{e.stopPropagation();removeItems([it.id],`Removed ${it.name}`);};
     const grip=el('span','grip');grip.innerHTML=ICON.grip;grip.setAttribute('aria-hidden','true');top.append(grip,th,main,rm);row.append(top);if(openRows.has(it.id))row.classList.add('open');row.dataset.id=it.id;if(lay)row.classList.add('layer');if(hoverOp&&hoverOp.item===it)row.classList.add('hover');
     row.onmouseenter=()=>{hoverRow=it.id;dirty=true;};row.onmouseleave=()=>{if(hoverRow===it.id){hoverRow=null;dirty=true;}};
-    row.draggable=true;row.ondragstart=e=>{dragId=it.id;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',it.id);};
+    /* only the row's own bar starts a drag – never a slider or anything in its detail – and what's dragged means
+       nothing outside Segue, so it can't be dropped on the desktop (0.11) */
+    row.draggable=false;row.addEventListener('pointerdown',e=>{row.draggable=!!(e.target.closest('.slot-top')&&!e.target.closest('button,input,select,textarea,.rng-box'));});
+    row.ondragstart=e=>{if(!row.draggable||e.target!==row){e.preventDefault();return;}dragId=it.id;row.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('application/x-segue-piece',it.id);};
     row.ondragend=()=>{dragId=null;row.classList.remove('dragging');};
     row.ondragover=e=>{if(!dragId)return;e.preventDefault();e.stopPropagation();row.classList.add('over');};row.ondragleave=()=>row.classList.remove('over');
     row.ondrop=e=>{if(!dragId)return;e.preventDefault();e.stopPropagation();row.classList.remove('over');moveItem(dragId,i);};
@@ -577,7 +586,12 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
   const resetRow=()=>{if(!moved())return;const row=el('div','btn-row'),rs=el('button','pill small','Reset');rs.type='button';rs.dataset.tip='Put it back where it was';rs.onclick=()=>{for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;saveItems();dirty=true;paintMediaKeepFocus();};row.append(rs);cur.append(row);};
   const base=()=>{for(let j=i-1;j>=0;j--)if(!isLayer(items[j],j))return items[j];return null;};
   /* Slides: is it a slide of its own, or on the one before? – first, because everything else follows from it */
-  if(one&&i>0)pick('Sits','join',[['own','Its own slide'],['on','On the one before']],'own','Its own slide comes and goes in its turn. On the one before puts it on the slide above it in the list – in front or behind, placed and sized anywhere, blended with it – and it comes and goes with that slide.');
+  /* Slides: a piece is a slide, or a layer on the piece above it in the list (0.11: a switch in plain words – it was
+     'Sits: Its own slide / On the one before'). A blend turns it into a layer by itself, so the blend has something to work on. */
+  if(one&&i>0){const above=base(),tr=el('div','toggle-row layer-sw'),tb=el('button','toggle');tb.type='button';tb.setAttribute('role','switch');tb.setAttribute('aria-checked',it.join==='on');
+    tb.setAttribute('aria-label','Layer on the piece above');tb.append(el('span','box'),el('span',null,'Layer on the piece above'));
+    tb.onclick=()=>{it.join=it.join==='on'?'own':'on';saveItems();dirty=true;paintMediaKeepFocus();refreshAll();};tr.append(tb);
+    qm(tr,'Layer on the piece above',`Off: it’s a slide of its own, in its turn. On: it sits on ${above?above.name:'the piece above'} – in front or behind, placed and sized anywhere, blended with it – and comes and goes with it.`);det.append(tr);}
   if(layer){
     G('layer','Layer');
     pick('Order','place',[['front','In front'],['behind','Behind']],'front','In front of the slide, or behind it – behind shows where the slide is see-through or blended');
@@ -609,14 +623,16 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
         if(zoomed||wide)itemRange(cur,it,{label:'Across',key:'px',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows across: −100% the right edge, 100% the left'});
         if(zoomed||tall)itemRange(cur,it,{label:'Up and down',key:'py',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows up and down: −100% the bottom, 100% the top'});
         itemRange(cur,it,{label:'Zoom',key:'zm',min:100,max:400,step:1,def:100,unit:'%',change:again,tip:'Crop in tighter. Zoomed in, it can move both ways.'});
-        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it, or drag on the canvas.':'Or drag it on the canvas – its corners zoom it; the arrow keys nudge it.');}
+        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it.':'Or drag it on the canvas to move it in its frame; Alt and scroll zooms it; the arrow keys nudge it.');}
       resetRow();}}
   /* its own blend and opacity – and, once it blends, what it blends with */
   G('look','Look');
-  pick('Blend','blend',BLENDS,'normal','How it mixes with what’s beneath. Multiply darkens – white goes clear, so a scan or a texture sits into what’s under it. Screen lightens – black goes clear. Overlay deepens contrast; Difference flips colours.',()=>paintMediaKeepFocus());
+  pick('Blend','blend',BLENDS,'normal','How it mixes with what’s beneath. Multiply darkens – white goes clear, so a scan or a texture sits into what’s under it. Screen lightens – black goes clear. Overlay deepens contrast; Difference flips colours.',()=>{
+    /* Slides: a blend works on the piece above by itself – it becomes a layer on it, filling it (0.11) */
+    if(one&&i>0&&!layer&&it.blend&&it.blend!=='normal'){const b=base();it.join='on';if(!it.lfit)it.lfit='fill';itemFold=true;try{saveItems();}finally{itemFold=false;}dirty=true;toast(`${it.name} is now a layer on ${b?b.name:'the piece above'}, so the blend works on it`);refreshAll();seekTo(it);}
+    paintMediaKeepFocus();});
   if(it.blend&&it.blend!=='normal'){const b=layer?base():null;
-    hint(layer?(it.place==='behind'?`Behind ${b?b.name:'its slide'} – it shows where that’s see-through or blended.`:`Mixes with ${b?b.name:'its slide'}, beneath it.`)
-      :one&&i>0?'Over the background – set Sits to On the one before to blend it with that slide.':'Over the background.');}
+    hint(layer?(it.place==='behind'?`Behind ${b?b.name:'its slide'} – it shows where that’s see-through or blended.`:`Mixes with ${b?b.name:'its slide'}, beneath it.`):'Mixes with the background.');}
   itemRange(cur,it,{label:'Opacity',key:'opa',min:0,max:100,step:1,def:100,unit:'%',change:()=>paintMediaKeepFocus()});
   /* video: where it plays from and to, seen as frames (0.6) – and how its colours are read */
   if(it.kind==='video'){G('plays','Plays');trimBlock(cur,it);
@@ -890,11 +906,14 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
   const CHAR=[
     {t:'seg',k:'kb',label:'Movement',optsFn:()=>S.oneFit==='bleed'?KB.filter(o=>o[0]!=='parallax'):KB,val:s=>s.oneFit==='bleed'&&s.kb==='parallax'?'drift':s.kb,show:isK('one')},
     {t:'range',k:'kbAmt',label:'Amount',min:1,max:30,step:.5,unit:'%',show:s=>isK('one')(s)&&kbOn(s)},
+    /* the other kinds (0.11): the picture moves a little inside each shape – where it fills its shape */
+    {t:'seg',k:'inMove',label:'Movement',opts:[['none','None'],['zoom','Zoom','Each picture zooms in a touch and back, once over the loop'],['drift','Drift','Each picture drifts round inside its shape, once over the loop']],show:s=>!isK('one')(s)&&(s.fit!=='fit'||s.ratio==='media')},
+    {t:'range',k:'inAmt',label:'Amount',min:1,max:20,step:.5,unit:'%',show:s=>!isK('one')(s)&&(s.fit!=='fit'||s.ratio==='media')&&s.inMove!=='none'},
     {t:'range',k:'lag',label:'Lag',min:0,max:.3,step:.005,unit:' s',show:s=>isK('line','grid')(s)&&stepping(s)},
     {t:'range',k:'colLag',label:'Lag',min:0,max:3,step:.05,unit:' s',show:s=>isK('columns','rows')(s)&&stepping(s)},
     {t:'range',k:'fLag',id:'flag',label:'Lag',min:0,max:2,step:.01,unit:' s',show:s=>isK('frames')(s)&&stepping(s)},
     {t:'range',k:'creep',label:'Keep drifting',min:0,max:60,step:1,unit:'%',show:s=>isK('line','grid','columns','rows','float','wall')(s)&&stepping(s)}];
-  const ch=fold(b,'character','Character',groupShow(CHAR.concat(FEELROW)),false,s=>[FEELROW.show(s)?optLabel(FEELS,s.feel):'',isK('one')(s)&&s.kb!=='none'?optLabel(KB,s.kb):'',+s.creep>0&&CHAR[5].show(s)?`drifting ${Math.round(s.creep)}%`:''].filter(Boolean).join(' · '));
+  const ch=fold(b,'character','Character',groupShow(CHAR.concat(FEELROW)),false,s=>[FEELROW.show(s)?optLabel(FEELS,s.feel):'',isK('one')(s)&&s.kb!=='none'?optLabel(KB,s.kb):'',!isK('one')(s)&&s.inMove&&s.inMove!=='none'?(s.inMove==='zoom'?'Zoom':'Drift'):'',+s.creep>0&&CHAR.find(c=>c.k==='creep').show(s)?`drifting ${Math.round(s.creep)}%`:''].filter(Boolean).join(' · '));
   build(ch,[FEELROW]);feelPic(ch,'feel',FEELROW.show);build(ch,CHAR);
   /* After the last: how the loop ends – straight on round, or pulled back to show them all (its settings, a group of their own) */
   const ends=s=>stepping(s)&&isK('one','line')(s),pulled=s=>s.after==='pull';
@@ -921,8 +940,9 @@ const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
     {t:'range',k:'flSize',label:'Size',min:5,max:80,step:.5,unit:'%',show:isK('float'),tip:'How wide the nearest shapes are, against the canvas'},
     {t:'range',k:'gap',label:'Gap',min:0,max:240,step:1,unit:' px',show:isK('line','grid','columns','rows','frames','wall')},
     {t:'range',k:'radius',label:'Corners',min:0,max:120,step:1,unit:' px'},
-    {t:'seg',k:'fit',label:'Media fit',opts:[['fill','Fill the shape'],['fit','Fit inside']],show:s=>!ownFit(s)},
-    {t:'colour',k:'shapeBg',label:'Behind the media',show:s=>!ownFit(s)}]);
+    /* each shape the media's own shape: nothing to fill or fit, nothing behind (0.11) */
+    {t:'seg',k:'fit',label:'Media fit',opts:[['fill','Fill the shape'],['fit','Fit inside']],show:s=>!ownFit(s)&&s.ratio!=='media'},
+    {t:'colour',k:'shapeBg',label:'Behind the media',show:s=>!ownFit(s)&&s.ratio!=='media'&&s.fit==='fit',tip:'The colour round a picture that fits inside its shape'}]);
   const f=fold(b,'border','Border and edge',null,true,s=>[s.mat>0?`${Math.round(s.mat)} px border`:'',s.edge?`${s.edgeW} px edge`:''].filter(Boolean).join(' · ')||'Off');
   build(f,[{t:'range',k:'mat',label:'Border',min:0,max:120,step:1,unit:' px'},{t:'colour',k:'matC',label:'Border colour',show:s=>s.mat>0},{t:'range',k:'matR',label:'Inner corners',min:0,max:120,step:1,unit:' px',show:s=>s.mat>0},
     {t:'toggle',k:'edge',label:'Edge'},{t:'colour',k:'edgeC',label:'Edge colour',show:s=>s.edge},{t:'range',k:'edgeW',label:'Edge width',min:.5,max:12,step:.5,unit:' px',show:s=>s.edge}]);
@@ -968,7 +988,7 @@ function headSwitch(body,k,label){const sec=body.closest('section'),h=sec.queryS
   addHint(k,'In a caption, *stars* round words colour them with the accent; {#FF5A00:words} gives them any colour. The overlay’s text takes the accent and the kerning too.');
   build(k,[{t:'toggle',k:'kern',label:'Font kerning'},{t:'text',k:'pairs',label:'Kerning pairs',placeholder:'AV -40, To -30'}]);
   /* the fonts live here: captions are where they're used (and the overlay's text, below) */
-  const fo=fold(b,'fonts','Fonts',null,true,()=>{const n=ownFontIds().length;return n?`${n} of your own`:'Built in';});fontBox=el('div','font-list');addCustom(fo,null,fontBox);
+  const fo=fold(b,'fonts','Fonts',s=>s.capOn||(s.ovOn&&s.ovKind==='text'),true,()=>{const n=ownFontIds().length;return n?`${n} of your own`:'Built in';});fontBox=el('div','font-list');addCustom(fo,null,fontBox);
   const r=el('div','ctl btn-row'),add=el('button','pill small','+ Add font');add.type='button';add.onclick=()=>$('#fontfile').click();r.append(add);addCustom(fo,null,r);
   addHint(fo,'OTF, TTF or WOFF. Fonts you add stay on this computer, in this browser, and show in every Font menu – the overlay’s too.');
   SUMMARY.captions=s=>s.capOn?[optLabel(WHERE,E.capWhereOf(s)),(FONTS[s.TF]||FONTS.default).label,isK('columns','rows','float','wall')(s)?'':optLabel([['none','As it is'],['fade','Fade'],['rise','Rise'],['scramble','Scramble']],s.capReveal)].filter(Boolean).join(' · '):'Off';}
@@ -1008,7 +1028,7 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
   SUMMARY.overlay=s=>!s.ovOn?'Off':[s.ovKind==='image'?(PICS.ov?'Image':'Image – none yet'):(String(s.ovText||'').trim()?`“${String(s.ovText).split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,'').slice(0,18)}”`:'Text – none yet'),
     optLabel(PLACES,s.ovPos),s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):''].filter(Boolean).join(' · ');}
 /* the shapes' Position (from Shapes, 0.10): every shape moved together */
-{const b=card('position','Position',s=>!isK('float')(s));
+{const b=card('position','Position',s=>!isK('float')(s)&&!(isK('one')(s)&&s.oneFit==='bleed'));
   build(b,[{t:'range',k:'nudgeX',label:'Across',min:-600,max:600,step:1,unit:' px',tip:'Move every shape left or right'},{t:'range',k:'nudgeY',label:'Up and down',min:-600,max:600,step:1,unit:' px',tip:'Move every shape up or down'}]);
   SUMMARY.position=s=>(+s.nudgeX||+s.nudgeY)?`${Math.round(s.nudgeX)}, ${Math.round(s.nudgeY)} px`:'Centred';}
 panel.append(tierBox);for(const id of ['captions','overlay','position'])tierBody.append(panel.querySelector(`:scope>section.card[data-id=${id}]`));

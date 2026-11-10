@@ -113,15 +113,27 @@ function syncSheets(){
   const open={island:false,pcap:false};
   for(const k in SHEETS){const s=SHEETS[k],o=!s.el.hidden;open[k==='presets'?'pcap':'island']||=o;if(s.opener)s.opener.setAttribute('aria-expanded',o);}
   $('#island').classList.toggle('open',open.island);$('#pcap').classList.toggle('open',open.pcap);layoutUI();
-  if(open.island||open.pcap)requestAnimationFrame(()=>{syncRanges(document);layoutUI();});}
+  if(open.island||open.pcap){requestAnimationFrame(()=>{syncRanges(document);layoutUI();});
+    /* Safari 17 (Steve's 17.6, 0.11) can leave the sheets' row at 0 – the 0fr-to-1fr slide never runs, so a sheet opens unseen.
+       If the row is still shut once the slide should be over, sheets open flat from then on, without the slide */
+    clearTimeout(syncSheets.t);syncSheets.t=setTimeout(()=>{const root=document.documentElement;if(root.classList.contains('flat-sheets'))return;
+      for(const c of [$('#island'),$('#pcap')]){const sh=c&&c.classList.contains('open')&&c.querySelector(':scope>.sheets');
+        if(sh&&sh.getBoundingClientRect().height<2){root.classList.add('flat-sheets');layoutUI();return;}}},400);}}
+/* Safari before 18 opens sheets flat from the start */
+{const m=/Version\/(\d+)[.\d]* Safari/.exec(navigator.userAgent);if(m&&+m[1]<18&&!/Chrome|Chromium|Edg/.test(navigator.userAgent))document.documentElement.classList.add('flat-sheets');}
 function islMore(){const m=$('#islandMain');if(m)m.classList.toggle('more',innerWidth<=860&&m.scrollLeft+m.clientWidth<m.scrollWidth-1);}
 function layoutUI(){
-  const app=$('.app'),isl=$('#island'),pc=$('#pcap');if(!app||!isl)return;
+  const app=$('.app'),isl=$('#island'),pc=$('#pcap');if(!app||!isl)return;topFit();
   if(innerWidth<=860){isl.style.left='';islMore();return;}
   const g=12,W=app.clientWidth,away=app.classList.contains('preview')&&!app.classList.contains('peek'),pw=away?0:$('#panelBox').offsetWidth;
   const L=away?g:g*2+pw,R=W-g;let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
   iw=Math.min(iw,R-L);let limit=R;if(pc&&!pc.hidden){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
   let x=(L+R)/2;if(x+iw/2>limit)x=limit-iw/2;if(x-iw/2<L)x=L+iw/2;isl.style.left=Math.round(x)+'px';}
+/* the project chip top left and the chips top right share one line: where it's tight the info chips
+   (size, loop, pieces) step aside first, then the saved state – never the name or the tools */
+function topFit(){const app=$('.app'),pb=$('#projBox'),tb=$('.topbar');if(!app||!pb||!tb)return;app.classList.remove('tight','tighter');
+  if(app.classList.contains('preview'))return;const over=()=>pb.getBoundingClientRect().right+12>tb.getBoundingClientRect().left;
+  if(over())app.classList.add('tight');if(over())app.classList.add('tighter');}
 const ICON_EXPAND='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M11.5 2.5 7.8 6.2M5.5 11.5h-3v-3M2.5 11.5l3.7-3.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.5 5.5h-3v-3M8.5 5.5l3.3-3.3M2.5 8.5h3v3M5.5 8.5l-3.3 3.3" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function setPanel(open){const app=$('.app');app.classList.toggle('peek',!!open);const p=$('#panelBtn');if(p){p.setAttribute('aria-expanded',!!open);const t=open?'Hide the panel':'Show the panel';p.dataset.tip=t;p.setAttribute('aria-label',t);}layoutUI();}
@@ -360,7 +372,7 @@ function frameStart(){
     if(e.key===' '&&!(tg&&tg.tagName==='BUTTON')){e.preventDefault();setPlaying(!playing);}},true);
   $('#islandMain').addEventListener('scroll',islMore,{passive:true});
   let refitT=0;const refit=()=>{cancelAnimationFrame(refitT);refitT=requestAnimationFrame(()=>document.querySelectorAll('.seg').forEach(fitSeg));};
-  const ro=new ResizeObserver(()=>{layoutUI();fitCanvas();refit();});ro.observe($('.island-in'));ro.observe($('#panelBox'));ro.observe($('#view'));ro.observe($('#pcap .pc-row'));
+  const ro=new ResizeObserver(()=>{layoutUI();fitCanvas();refit();});ro.observe($('.island-in'));ro.observe($('#panelBox'));ro.observe($('#view'));ro.observe($('#pcap .pc-row'));if($('#projBox'))ro.observe($('#projBox'));
   if(document.fonts)document.fonts.ready.then(refit);
   requestAnimationFrame(()=>setTimeout(()=>document.body.classList.add('kit-live'),600));
   window.addEventListener('resize',layoutUI);
