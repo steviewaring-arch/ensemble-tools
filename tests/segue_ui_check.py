@@ -62,7 +62,7 @@ def close(a, b, tol=1e-6):
     except Exception: return a == b
 def open_all(pg):
     pg.evaluate("""()=>{const t=document.querySelector('.tier');if(t&&!t.classList.contains('open'))t.querySelector('.tier-head').click();
-      document.querySelectorAll('#panel section.card.collapsed>h2 .card-toggle').forEach(b=>b.click());
+      document.querySelectorAll('#panel section.card.collapsed:not(.has-sw)>h2 .card-toggle').forEach(b=>b.click());
       document.querySelectorAll('#panel .fold-head[aria-expanded=false]').forEach(b=>b.click());}"""); time.sleep(.5)
 def loc(pg, tid, sel=''): return pg.locator(f'[data-tid="{tid}"] {sel}'.strip()).first
 def into_view(pg, tid): pg.evaluate("t=>document.querySelector(`[data-tid='${t}']`).scrollIntoView({block:'center'})", tid); time.sleep(.05)
@@ -426,9 +426,9 @@ with sync_playwright() as p:
     pg.locator('#panelBtn').click(); time.sleep(.6); peek = pg.evaluate("getComputedStyle(document.querySelector('.panel')).visibility")
     pg.keyboard.press('Escape'); time.sleep(.6)
     check('Preview hides the panel; the panel button brings it back; Esc leaves', pv == [True, 'hidden'] and peek == 'visible' and not pg.evaluate("document.querySelector('.app').classList.contains('preview')"), f'{pv} {peek}')
-    rz = pg.locator('#resizer').bounding_box(); pg.mouse.move(rz['x'] + 4, rz['y'] + 300); pg.mouse.down(); pg.mouse.move(rz['x'] + 200, rz['y'] + 300, steps=8); pg.mouse.up(); time.sleep(.5)
+    rz = pg.locator('#resizer').bounding_box(); pg.mouse.move(rz['x'] + 2, rz['y'] + 300); pg.mouse.down(); pg.mouse.move(rz['x'] + 200, rz['y'] + 300, steps=8); pg.mouse.up(); time.sleep(.5)
     wide = pg.evaluate("[document.querySelector('#panelBox').offsetWidth,document.querySelector('#c_cSize')?0:0,[...document.querySelectorAll('#panel .ctl')].find(w=>w.querySelector('.seg[aria-label=Format]')).classList.contains('as-menu')]")
-    rz = pg.locator('#resizer').bounding_box(); pg.mouse.move(rz['x'] + 4, rz['y'] + 300); pg.mouse.down(); pg.mouse.move(rz['x'] - 260, rz['y'] + 300, steps=8); pg.mouse.up(); time.sleep(.5)
+    rz = pg.locator('#resizer').bounding_box(); pg.mouse.move(rz['x'] + 2, rz['y'] + 300); pg.mouse.down(); pg.mouse.move(rz['x'] - 260, rz['y'] + 300, steps=8); pg.mouse.up(); time.sleep(.5)
     narrow = pg.evaluate("[document.querySelector('#panelBox').offsetWidth,[...document.querySelectorAll('#panel .ctl')].find(w=>w.querySelector('.seg[aria-label=Format]')).classList.contains('as-menu')]")
     check('the panel’s width drags (280–480), and choices re-fit: a row when there’s room, a menu when not', wide[0] == 480 and wide[2] is False and narrow[0] == 280 and narrow[1] is True, f'{wide} {narrow}')
     pg.locator('#themeBtn').click(); time.sleep(.3)

@@ -1020,10 +1020,22 @@ with sync_playwright() as p:
     rr = pg.evaluate("(()=>{const c=document.createElement('canvas').getContext('2d'),[W,H]=segue.E.canvasSize(segue.S),o=segue.E.scene(segue.S,segue.items,c,segue.fonts,W,H,segue.clock).ops.find(o=>o.item&&o.item.id===segue.items[0].id),b=document.querySelector('#cv').getBoundingClientRect(),k=b.width/segue.E.canvasSize(segue.S)[0];return {x:b.x+(o.rect.x+o.rect.w)*k,y:b.y+(o.rect.y+o.rect.h)*k,cx:b.x+(o.rect.x+o.rect.w/2)*k,cy:b.y+(o.rect.y+o.rect.h/2)*k}})()")
     pg.mouse.move(rr['x'], rr['y']); pg.mouse.down(); pg.mouse.move(rr['x'] + 30, rr['y'] + 30, steps=6); pg.mouse.up(); time.sleep(.3)
     s2 = pg.evaluate("(()=>{const i=segue.items[0];return {fz:i.fz||100,zm:i.zm||100}})()")
-    pg.keyboard.down('Alt'); pg.mouse.move(rr['cx'], rr['cy']); pg.mouse.down(); pg.mouse.move(rr['cx'] + 30, rr['cy'] + 20, steps=6); pg.mouse.up(); pg.keyboard.up('Alt'); time.sleep(.3)
+    # 0.15: no Alt – the ring at the shape's centre moves the picture inside; a double-click goes in to crop (drag, corners zoom), Esc comes out
+    rr = pg.evaluate("(()=>{const c=document.createElement('canvas').getContext('2d'),[W,H]=segue.E.canvasSize(segue.S),o=segue.E.scene(segue.S,segue.items,c,segue.fonts,W,H,segue.clock).ops.find(o=>o.item&&o.item.id===segue.items[0].id),b=document.querySelector('#cv').getBoundingClientRect(),k=b.width/W;return {x:b.x+(o.rect.x+o.rect.w)*k,y:b.y+(o.rect.y+o.rect.h)*k,cx:b.x+(o.rect.x+o.rect.w/2)*k,cy:b.y+(o.rect.y+o.rect.h/2)*k,w:o.rect.w*k,h:o.rect.h*k}})()")
+    pg.evaluate("()=>{segue.items[0].zm=150;segue.refresh();}"); time.sleep(.3)
+    pg.mouse.move(rr['cx'], rr['cy']); pg.mouse.down(); pg.mouse.move(rr['cx'] + 30, rr['cy'] + 20, steps=6); pg.mouse.up(); time.sleep(.3)
     s3 = pg.evaluate("(()=>{const i=segue.items[0];return {ox:i.ox,px:i.px||0,py:i.py||0}})()")
+    pg.mouse.dblclick(rr['cx'] - rr['w'] / 4, rr['cy'] - rr['h'] / 4); time.sleep(.4)
+    hint15 = pg.evaluate("document.querySelector('#selHint').textContent")
+    pg.mouse.move(rr['cx'] - rr['w'] / 4, rr['cy'] + rr['h'] / 4); pg.mouse.down(); pg.mouse.move(rr['cx'] - rr['w'] / 4 - 25, rr['cy'] + rr['h'] / 4, steps=6); pg.mouse.up(); time.sleep(.3)
+    s4 = pg.evaluate("(()=>{const i=segue.items[0];return {ox:i.ox,px:i.px||0}})()")
+    pg.keyboard.press('Escape'); time.sleep(.2)
+    pg.mouse.move(rr['cx'] - rr['w'] / 4, rr['cy'] + rr['h'] / 4); pg.mouse.down(); pg.mouse.move(rr['cx'] - rr['w'] / 4 + 20, rr['cy'] + rr['h'] / 4, steps=6); pg.mouse.up(); time.sleep(.3)
+    s5 = pg.evaluate("(()=>{const i=segue.items[0];return {ox:i.ox,px:i.px||0}})()")
+    check('Cropping without Alt (0.15): double-click a shape and a drag moves the picture inside it; Esc, and a drag moves the shape again',
+          'corners zoom' in hint15 and s4['px'] != s3['px'] and s4['ox'] == s3['ox'] and s5['px'] == s4['px'] and s5['ox'] != s4['ox'], f'{hint15} {s3} {s4} {s5}')
     grp = pg.evaluate("[...document.querySelectorAll('.media-list .slot.open .slot-det .sub-h, .media-list .slot.open .slot-det .grp-h, .media-list .slot.open .slot-det h4')].map(e=>e.textContent.trim())")
-    check('In a shape (0.13): dragging a slide moves its shape, a corner sizes it, and Alt-drag moves the picture inside – its row has Position as well as Crop',
+    check('In a shape (0.13): dragging a slide moves its shape, a corner sizes it, and the ring at its centre moves the picture inside (0.15) – its row has Position as well as Crop',
           s1['ox'] > 0 and s1['oy'] > 0 and s1['px'] == 0 and s1['py'] == 0 and s2['fz'] > 100 and s2['zm'] == 100 and s3['ox'] == s1['ox'] and (s3['px'] != 0 or s3['py'] != 0), f'{s1} {s2} {s3} {grp}')
     pg.evaluate("()=>{segue.items.forEach(i=>{i.fz=100;i.ox=0;i.oy=0;i.px=0;i.py=0;});segue.refresh();}")
 
@@ -1048,7 +1060,7 @@ with sync_playwright() as p:
       sums:[...d.querySelectorAll('.det-fold .fold-head')].map(h=>h.querySelector('span').textContent+':'+h.querySelector('.sum').textContent),hint:document.querySelector('#selHint').textContent,hidden:document.querySelector('#selHint').hidden};}""")
     check('A piece’s row speaks the panel’s words – Transition and Movement, “Layer on above” – its groups say what they hold, and the canvas says what a drag does',
           'Transition' in pr['labels'] and 'Movement' in pr['labels'] and 'Arrives by' not in pr['labels'] and pr['sw'] == 'Layer on above' and 'Timing:As set' in pr['sums'] and 'Look:Normal' in pr['sums']
-          and pr['hint'].startswith('Drag to move') and 'Alt-drag' in pr['hint'] and pr['hidden'] is False, str(pr))
+          and pr['hint'].startswith('Drag to move') and 'Alt' not in pr['hint'] and pr['hidden'] is False, str(pr))
     ctx2 = b.new_context(viewport={'width': 1440, 'height': 900}); p2 = ctx2.new_page(); p2.goto(url); time.sleep(1.2); p2.set_input_files('#mediafile', IMGS[:2]); time.sleep(1.5)
     p2.evaluate("segue.applyPreset('Straight cuts')"); p2.locator('#panel .media-list .slot').nth(0).locator('.slot-main').click(); time.sleep(.6)
     op = p2.evaluate("[...document.querySelectorAll('.media-list .slot.open .det-fold .fold-head')].map(h=>h.querySelector('span').textContent+':'+h.getAttribute('aria-expanded'))"); ctx2.close()

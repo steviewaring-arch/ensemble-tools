@@ -241,3 +241,6 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .slot .layer-sw .toggle{display:flex;gap:8px;align-items:center;min-height:var(--h-ctl)}
 .slot .layer-sw .toggle>span:last-child{order:0}
 .slot .layer-sw>.q{position:static;margin:0 0 0 4px}
+
+/* 0.15 – Captions and Overlay: the box (or the name) turns it on and opens it; no arrow */
+.card.has-sw>h2 .chev{display:none}

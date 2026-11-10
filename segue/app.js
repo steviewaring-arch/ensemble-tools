@@ -308,7 +308,13 @@ function spare(o){const S2=cur.S||S,r=o.rect,m=Math.min(Math.max(0,+S2.mat||0)*o
   return[(it.w*k-w)/2,(it.h*k-h)/2];}
 const croppable=o=>o.whole||(cur.S||S).fit!=='fit';
 const zRange=o=>o.layer?[5,400]:o.whole?[20,400]:[100,400];
-let grab=null,zoomT=0,selId=null,hoverOp=null,hoverRow=null;
+let grab=null,zoomT=0,selId=null,hoverOp=null,hoverRow=null,cropId=null;
+/* Cropping (0.15): double-click a picture that's cropped by its shape and it's the picture you're working on – all of it
+   shows faintly, a drag moves it, its corners zoom it; click away, Esc or Enter to finish. A selected shape in Slides
+   also has a ring at its centre: drag that to move the picture inside without going in. No Alt key anywhere. */
+const canCrop=o=>!!o&&!o.whole&&!!o.item&&!!o.item.w&&croppable(o);
+const ringAt=(o,x,y)=>!!o&&o.frame&&canCrop(o)&&Math.hypot(x-(o.rect.x+o.rect.w/2),y-(o.rect.y+o.rect.h/2))<=11/scrPx();
+function panGrab(o,x,y){const it=o.item,[sx,sy]=spare(o);grab={mode:'move',it,o,whole:false,x0:x,y0:y,px:+it.px||0,py:+it.py||0,ox:0,oy:0,sx,sy,k:1,r0:Object.assign({},o.rect),moved:false,snap:null};cv.classList.add('grabbing');}
 const opOf=id=>cur&&id?cur.ops.find(o=>o.item&&o.item.id===id&&o.rect&&o.alpha>.05):null;
 const cornersOf=r=>[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]];
 function handleAt(x,y){const o=opOf(selId);if(!o||!(o.whole||o.frame))return null;const tol=9/scrPx();
@@ -341,7 +347,8 @@ function cropBox(o){const S2=cur.S||S,r=o.rect,m=Math.min(Math.max(0,+S2.mat||0)
   return{x:mr.x-sx+clamp(+it.px||0,-100,100)/100*sx,y:mr.y-sy+clamp(+it.py||0,-100,100)/100*sy,w:dw,h:dh};}
 function drawUI(){if($('.app').classList.contains('preview'))return;const [W,H]=size(),k=cv.width/W,lw=1/scrPx();
   ctx.save();ctx.setTransform(k,0,0,k,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';
-  const box=(r,thick)=>{ctx.lineWidth=3*lw;ctx.strokeStyle='rgba(255,255,255,.9)';ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.lineWidth=(thick?1.5:1)*lw;ctx.strokeStyle='#111111';ctx.strokeRect(r.x,r.y,r.w,r.h);};
+  /* one line, not two (0.15): white through 'difference', so it shows on anything */
+  const box=(r,thick)=>{ctx.save();ctx.globalCompositeOperation='difference';ctx.lineWidth=(thick?1.5:1)*lw;ctx.strokeStyle=thick?'#FFFFFF':'rgba(255,255,255,.55)';ctx.strokeRect(r.x,r.y,r.w,r.h);ctx.restore();};
   if(S.guides){const L=guideLines();ctx.save();ctx.globalCompositeOperation='difference';ctx.fillStyle='rgba(255,255,255,.07)';
     ctx.strokeStyle='rgba(255,255,255,.32)';ctx.lineWidth=lw;ctx.beginPath();for(const x of L.gx){ctx.moveTo(x,L.m);ctx.lineTo(x,H-L.m);}for(const y of L.gy){ctx.moveTo(L.m,y);ctx.lineTo(W-L.m,y);}ctx.stroke();
     ctx.strokeStyle='rgba(255,255,255,.6)';if(L.m>0)ctx.strokeRect(L.m,L.m,W-2*L.m,H-2*L.m);
@@ -349,25 +356,39 @@ function drawUI(){if($('.app').classList.contains('preview'))return;const [W,H]=
     if(grab&&grab.snap){ctx.strokeStyle='rgba(255,255,255,1)';ctx.lineWidth=1.5*lw;ctx.beginPath();if(grab.snap[0]!=null){ctx.moveTo(grab.snap[0],0);ctx.lineTo(grab.snap[0],H);}if(grab.snap[1]!=null){ctx.moveTo(0,grab.snap[1]);ctx.lineTo(W,grab.snap[1]);}ctx.stroke();}
     ctx.restore();}
   const so=opOf(selId),hid=hoverOp&&hoverOp.item?hoverOp.item.id:hoverRow,ho=hid&&hid!==selId?opOf(hid):null;
-  {const t=!so?'':so.layer||so.whole?'Drag to move · corners to size':so.frame?(croppable(so)?'Drag to move · corners to size · Alt-drag moves the picture inside':'Drag to move · corners to size'):croppable(so)?'Drag to move the picture in its frame · Alt-scroll zooms it':'';
+  if(cropId&&(cropId!==selId||!so||!canCrop(so)))cropId=null;
+  {const t=!so?'':cropId?'Drag the picture to move it · its corners zoom it · click away when it’s right':so.layer||so.whole?'Drag to move · corners to size':so.frame?(canCrop(so)?'Drag to move · corners to size · the ring, or a double-click, moves the picture inside':'Drag to move · corners to size'):canCrop(so)?'Drag to move the picture in its frame · double-click to zoom it':'';
     const sh=$('#selHint');if(sh&&sh.textContent!==t){sh.textContent=t;topFit();}}
   if(ho)box(ho.rect,false);
-  if(so){if(grab&&grab.moved&&grab.mode==='move'&&!grab.whole&&so.item.src&&(so.item.kind!=='video'||so.item.src.readyState>=2)){const g=cropBox(so);ctx.save();ctx.globalAlpha=.32;try{ctx.drawImage(so.item.src,g.x,g.y,g.w,g.h);}catch(e){}ctx.restore();ctx.save();ctx.setLineDash([4*lw,3*lw]);box(g,false);ctx.restore();}
+  if(so){const ready=so.item.src&&(so.item.kind!=='video'||so.item.src.readyState>=2),inCrop=cropId===so.item.id,sq=(cx,cy)=>{const hs=7*lw;ctx.fillStyle='#FFFFFF';ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs);};
+    /* the whole picture, faintly – while cropping, or while it's being moved inside its frame */
+    if(ready&&canCrop(so)&&(inCrop||(grab&&grab.moved&&grab.mode==='move'&&!grab.whole))){const g=cropBox(so);ctx.save();ctx.globalAlpha=.32;try{ctx.drawImage(so.item.src,g.x,g.y,g.w,g.h);}catch(e){}ctx.restore();
+      ctx.save();ctx.setLineDash([4*lw,3*lw]);box(g,false);ctx.restore();if(inCrop)for(const [cx,cy] of cornersOf(g))sq(cx,cy);}
     box(so.rect,true);
-    if(so.whole||so.frame){const hs=7*lw;for(const [cx,cy] of cornersOf(so.rect)){ctx.fillStyle='#FFFFFF';ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs);}}}
+    if(!inCrop&&(so.whole||so.frame))for(const [cx,cy] of cornersOf(so.rect))sq(cx,cy);
+    /* the ring: the picture inside a shape you can also move */
+    if(!inCrop&&so.frame&&canCrop(so)&&!(grab&&grab.whole)){const cx=so.rect.x+so.rect.w/2,cy=so.rect.y+so.rect.h/2;ctx.beginPath();ctx.arc(cx,cy,8*lw,0,7);ctx.fillStyle='rgba(255,255,255,.92)';ctx.fill();ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,2.5*lw,0,7);ctx.fillStyle='#111111';ctx.fill();}}
   ctx.restore();}
-cv.addEventListener('pointerdown',e=>{if(busy||e.button!==0)return;const [x,y]=canvasPt(e),h=handleAt(x,y);
+cv.addEventListener('pointerdown',e=>{if(busy||e.button!==0)return;const [x,y]=canvasPt(e);
+  const take=()=>{e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);};
+  /* cropping: the picture's corners zoom it, a drag anywhere on it moves it, a click away finishes */
+  if(cropId){const co=opOf(cropId);if(co&&canCrop(co)){const g=cropBox(co),tol=9/scrPx(),cx=g.x+g.w/2,cy=g.y+g.h/2;
+      if(cornersOf(g).some(([px,py])=>Math.abs(x-px)<=tol&&Math.abs(y-py)<=tol)){take();grab={mode:'scale',it:co.item,o:co,zk:'zm',zm0:+co.item.zm||100,cx,cy,d0:Math.max(1e-6,Math.hypot(x-cx,y-cy)),lo:100,hi:400,x0:x,y0:y,moved:false};return;}
+      const r=co.rect;if((x>=g.x&&x<=g.x+g.w&&y>=g.y&&y<=g.y+g.h)||(x>=r.x&&x<=r.x+r.w&&y>=r.y&&y<=r.y+r.h)){take();panGrab(co,x,y);return;}}
+    cropId=null;dirty=true;}
+  {const so=opOf(selId);if(ringAt(so,x,y)){take();panGrab(so,x,y);return;}}
+  const h=handleAt(x,y);
   if(h){e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);const o=h.o,zk=o.frame?'fz':'zm',[lo,hi]=o.frame?[20,400]:zRange(o),cx=o.rect.x+o.rect.w/2,cy=o.rect.y+o.rect.h/2;
     grab={mode:'scale',it:o.item,o,zk,zm0:+o.item[zk]||100,cx,cy,d0:Math.max(1e-6,Math.hypot(x-cx,y-cy)),lo,hi,x0:x,y0:y,moved:false};return;}
   const o=hitAt(x,y);if(!o){if(selId){selId=null;dirty=true;}return;}
   e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);selId=o.item.id;dirty=true;
-  /* a shape in Slides (0.13): a drag moves the shape; with Alt, the picture inside it */
-  const asWhole=!!o.whole||(!!o.frame&&!(e.altKey&&croppable(o)));
+  /* a shape in Slides (0.13): a drag moves the shape; the ring at its centre, or a double-click, is for the picture inside (0.15) */
+  const asWhole=!!o.whole||!!o.frame;
   if(!asWhole&&!croppable(o)){grab={mode:'click',it:o.item,x0:x,y0:y,moved:false};return;}
   const it=o.item,[sx,sy]=asWhole?[0,0]:spare(o);
   grab={mode:'move',it,o,whole:asWhole,x0:x,y0:y,px:+it.px||0,py:+it.py||0,ox:+it.ox||0,oy:+it.oy||0,sx,sy,k:asWhole?unitK(o):1,r0:Object.assign({},o.rect),moved:false,snap:null};cv.classList.add('grabbing');});
 cv.addEventListener('pointermove',e=>{const [x,y]=canvasPt(e);
-  if(!grab){if(e.buttons)return;const h=handleAt(x,y);if(h){cv.style.cursor=h.i%2===0?'nwse-resize':'nesw-resize';cv.classList.remove('grab');setHover(h.o);return;}
+  if(!grab){if(e.buttons)return;if(!cropId&&ringAt(opOf(selId),x,y)){cv.style.cursor='move';return;}const h=cropId?null:handleAt(x,y);if(h){cv.style.cursor=h.i%2===0?'nwse-resize':'nesw-resize';cv.classList.remove('grab');setHover(h.o);return;}
     cv.style.cursor='';const o=hitAt(x,y);cv.classList.toggle('grab',!!(o&&(o.frame||croppable(o))));setHover(o);return;}
   const g=grab,it=g.it,dx=x-g.x0,dy=y-g.y0;if(!g.moved&&Math.hypot(dx,dy)*scrPx()<3)return;g.moved=true;if(g.mode==='click')return;
   if(g.mode==='scale'){it[g.zk]=+clamp(g.zm0*Math.hypot(x-g.cx,y-g.cy)/g.d0,g.lo,g.hi).toFixed(1);dirty=true;return;}
@@ -376,7 +397,8 @@ cv.addEventListener('pointermove',e=>{const [x,y]=canvasPt(e);
   dirty=true;});
 const letGo=()=>{if(!grab)return;const g=grab;grab=null;cv.classList.remove('grabbing');if(g.moved&&g.mode!=='click')saveItems();selectItem(g.it.id,true);};
 cv.addEventListener('pointerup',letGo);cv.addEventListener('pointercancel',letGo);cv.addEventListener('pointerleave',()=>{if(!grab)setHover(null);});
-cv.addEventListener('dblclick',e=>{const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!(o.frame||croppable(o)))return;const it=o.item;for(const k of ['px','py','ox','oy'])it[k]=0;it.zm=100;it.fz=100;saveItems();dirty=true;paintMedia();toast('Position reset');});
+cv.addEventListener('dblclick',e=>{if(busy)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!canCrop(o)){return;}selId=o.item.id;cropId=o.item.id;setPlaying(false);dirty=true;});
+document.addEventListener('keydown',e=>{if(cropId&&(e.key==='Escape'||e.key==='Enter')){cropId=null;dirty=true;}});
 cv.addEventListener('wheel',e=>{if(!e.altKey)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;e.preventDefault();setPlaying(false);
   const it=o.item,[lo,hi]=zRange(o);it.zm=+clamp((+it.zm||100)*Math.exp(-e.deltaY*.0025),lo,hi).toFixed(1);selId=it.id;dirty=true;
   clearTimeout(zoomT);zoomT=setTimeout(()=>{saveItems();openRows.add(it.id);paintMedia();},250);},{passive:false});
@@ -633,7 +655,7 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
         if(zoomed||wide)itemRange(cur,it,{label:'Across',key:'px',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows across: −100% the right edge, 100% the left'});
         if(zoomed||tall)itemRange(cur,it,{label:'Up and down',key:'py',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows up and down: −100% the bottom, 100% the top'});
         itemRange(cur,it,{label:'Zoom',key:'zm',min:100,max:400,step:1,def:100,unit:'%',change:again,tip:'Crop in tighter. Zoomed in, it can move both ways.'});
-        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it.':shp?'Or hold Alt and drag on the canvas to move the picture in its shape; Alt and scroll zooms it.':'Or drag it on the canvas to move it in its frame; Alt and scroll zooms it; the arrow keys nudge it.');}
+        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it.':shp?'Or on the canvas: drag the ring at its centre to move the picture in its shape – double-click to zoom it too.':'Or drag it on the canvas to move it in its frame – double-click to zoom it too; the arrow keys nudge it.');}
       resetRow();}}
   /* its own blend and opacity – and, once it blends, what it blends with */
   G('look','Look',null,()=>[it.blend&&it.blend!=='normal'?optLabel(BLENDS,it.blend):'',it.opa!=null&&+it.opa<100?`${Math.round(+it.opa)}%`:''].filter(Boolean).join(' · ')||'Normal');
@@ -986,10 +1008,10 @@ const tierBox=el('div','tier'),tierBody=el('div','tier-body');
 /* a section's on and off, in its head: the box beside its name */
 function headSwitch(body,k,label){const sec=body.closest('section'),h=sec.querySelector(':scope>h2'),b=el('button','toggle head-sw');b.type='button';b.setAttribute('role','switch');
   b.setAttribute('aria-label',label);b.dataset.tip=`${label} on or off`;b.append(el('span','box'));h.prepend(b);sec.classList.add('has-sw');
-  b.onclick=e=>{e.stopPropagation();const on=!S[k];set(k,on);const t=h.querySelector('.card-toggle');if(on===sec.classList.contains('collapsed'))t.click();};
-  controls.push({d:{k,label,head:true},w:b,update(){b.setAttribute('aria-checked',!!S[k]);sec.classList.toggle('off',!S[k]);}});}
+  const t=h.querySelector('.card-toggle'),flip=e=>{e.stopPropagation();e.preventDefault();const on=!S[k];set(k,on);if(on===sec.classList.contains('collapsed'))fold0();};const fold0=t.onclick;
+  b.onclick=flip;t.onclick=flip;   /* 0.15: no arrow – on is open, off is shut, and the name does what the box does */
+  controls.push({d:{k,label,head:true},w:b,update(){b.setAttribute('aria-checked',!!S[k]);sec.classList.toggle('off',!S[k]);if(!!S[k]===sec.classList.contains('collapsed'))fold0();}});}
 {const b=card('captions','Captions');headSwitch(b,'capOn','Captions');
-  addHint(b,'Off – tick the box beside Captions to add them.',s=>!s.capOn);
   build(b,[{t:'seg',k:'capWhere',label:'Where',val:s=>E.capWhereOf(s),optsFn:()=>['columns','rows','frames','float','wall'].includes(S.layout)?WHERE.slice(0,3):S.layout==='one'&&S.oneFit==='bleed'?WHERE.slice(2):WHERE,show:s=>s.capOn},
     {t:'seg',k:'capV',label:'Sits',opts:[['top','Top'],['bottom','Bottom']],show:s=>s.capOn&&E.capWhereOf(s)==='fixed'},
     {t:'seg',k:'capAlign',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],show:s=>s.capOn},
@@ -1030,7 +1052,6 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
 /* Overlay (0.7): what goes over (text or an image), its type, Position – the pad, the margin and the nudge
    together, as Captions has – and Blend and opacity. */
 {const b=card('overlay','Overlay');const on=s=>s.ovOn,txt=s=>s.ovOn&&s.ovKind==='text',img=s=>s.ovOn&&s.ovKind==='image';headSwitch(b,'ovOn','Overlay');
-  addHint(b,'Off – tick the box beside Overlay to put text or an image over everything.',s=>!s.ovOn);
   build(b,[{t:'seg',k:'ovKind',label:'What',opts:[['text','Text'],['image','Image']],show:on},
     {t:'text',k:'ovText',label:'Text',multi:true,rows:2,placeholder:'Type here – Enter for a new line',show:txt}]);
   picRow(b,'ov',img,'Image');

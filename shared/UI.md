@@ -141,6 +141,11 @@ Sheets speak the same language: the sheet's title is set as a section title
   a control inside it; panel labels and pictures don't select or drag (inputs do).
 - **Settings that would do nothing aren't shown** – and nor are handles: a piece that
   fills its frame has no corners to scale (Segue 0.11).
+- **On the canvas** (Segue 0.15): one outline, never two; no modifier keys for the main
+  things – a drag moves, corners size, a double-click goes inside to crop.
+- **A section with a switch** has no arrow: on is open, off is shut, and its name does
+  what its box does. No line of text explaining how to turn it on.
+- **The panel's edge** widens it with no mark – the resize pointer is the sign.
 - **Sections follow the order of work** (Segue 0.14): Media, Canvas, Layout (how it's
   arranged), Motion (how it moves), then Additionals. One word for one idea across the
   panel and a piece's row (Transition, Movement); no name used for two things.

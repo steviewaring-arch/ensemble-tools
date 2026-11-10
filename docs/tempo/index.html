@@ -94,9 +94,9 @@
   .tabs-host{flex:none;padding:0 8px 8px}
   .scroll{flex:1;overflow-y:auto;min-height:0;padding:0 8px 8px;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin;
     -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent 100%);mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent 100%)}
-  .resizer{position:absolute;top:0;bottom:0;right:0;width:8px;cursor:col-resize;z-index:3;touch-action:none}
-  .resizer::after{content:"";position:absolute;top:50%;right:3px;width:2px;height:36px;margin-top:-18px;border-radius:2px;background:var(--hair);opacity:0;transition:opacity .15s}
-  .panel:hover .resizer::after,.resizer:active::after{opacity:1}
+  /* the panel's edge drags to widen it. No mark (it sat over the scrollbar and looked clunky – Steve, Segue 0.15): the pointer
+     turning to a resize arrow is the sign, and the strip is thin enough to stay clear of the scrollbar's thumb */
+  .resizer{position:absolute;top:0;bottom:0;right:0;width:4px;cursor:col-resize;z-index:3;touch-action:none}
 
   /* section card (level 1) */
   .card{background:var(--card);border-radius:var(--r-card);flex:none}
@@ -939,7 +939,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.14</span></div>
+      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.15</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>

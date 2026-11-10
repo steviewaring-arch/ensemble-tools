@@ -1,5 +1,15 @@
 # Changelog
 
+## 10 November 2026 – Segue 0.15: cropping without a key, one outline, cleaner Additionals
+
+Steve: "There is a double keyline around the bounding box. I still cannot crop an image freely inside the shape set. needs to be intuitive without pressing an alt key, across the board, but particularly in 'slides' … in additionals, the radio arrow isnt needed. clicking the radio button should expand, no need to have the text explaining to click a radio button … the expansion line that shows you can expand the UI on the right hand side controls looks clunky over the scroller."
+
+- **Cropping, no Alt:** double-click any picture that its shape crops and you're working on the picture – all of it shows faintly, a drag moves it, its corners zoom it; click away, Esc or Enter to finish. In Slides › In a shape a selected shape also has a **ring at its centre**: drag it to move the picture inside straight away. A plain drag still moves the shape (Slides) or the picture in its frame (the other kinds, full bleed). Double-click no longer resets a piece – Reset is in its row.
+- **One outline:** the selection and hover boxes are a single line (white through "difference", so it shows on anything) instead of white with black on top.
+- **Additionals:** Captions and Overlay have no arrow and no "Off – tick the box…" line. The box – or the name – turns it on and opens it; off shuts it.
+- **The panel's edge:** the drag-to-widen mark is gone (it sat over the scrollbar); the pointer turning to a resize arrow is the sign, and the strip is 4 px so it can't be caught when using the scrollbar. Every tool on the house kit.
+- Tests: `tests/segue_check.py` – 1 new (double-click to crop, Esc out), 2 updated; `tests/segue_ui_check.py` – helpers only.
+
 ## 10 November 2026 – Segue 0.14: the review, built – Layout apart from Motion, one word each, the pile in one place
 
 Steve, on the six review points sent with 0.13: "action all these, good points. go."
