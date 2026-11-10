@@ -71,6 +71,8 @@ url = start() + 'docs/segue/'
 with sync_playwright() as p:
     b = p.chromium.launch()
     ctx = b.new_context(viewport={'width': 1440, 'height': 900}, accept_downloads=True)
+    # 0.14: a piece's Timing, Look and Plays are shut at first – the checks below work with them open
+    ctx.add_init_script("try{if(!localStorage.getItem('segue:folds'))localStorage.setItem('segue:folds',JSON.stringify({'piece:timing':true,'piece:look':true,'piece:plays':true}))}catch(e){}")
     pg = ctx.new_page(); errs = []
     pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
     pg.goto(url); time.sleep(1.2)
@@ -80,8 +82,8 @@ with sync_playwright() as p:
 
     # ---- the frame ----
     titles = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .card-toggle>span:first-child')].map(e=>e.textContent)")
-    check('the panel: Media, Canvas, Motion, Shapes – then Additionals, shut at first, holding Captions, Overlay and Position (0.10)',
-          titles == ['Media', 'Canvas', 'Motion', 'Shapes', 'Captions', 'Overlay', 'Position'] and tier_shut
+    check('the panel: Media, Canvas, Layout, Motion (0.14) – then Additionals, shut at first, holding Captions, Overlay and Shift everything',
+          titles == ['Media', 'Canvas', 'Layout', 'Motion', 'Captions', 'Overlay', 'Shift everything'] and tier_shut
           and pg.evaluate("[...document.querySelectorAll('.tier-body>section.card')].map(c=>c.dataset.id).join()") == 'captions,overlay,position', f'{titles} shut at first: {tier_shut}')
     check('Export and Presets are sheets', pg.evaluate("!!document.querySelector('#islandSheets [data-sheet=export]')&&!!document.querySelector('#pcapSheets [data-sheet=presets]')"))
     blank = pg.evaluate("(()=>{const c=document.querySelector('#cv'),x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height).data;const s=new Set();for(let i=0;i<d.length;i+=4*97)s.add(d[i]+','+d[i+1]+','+d[i+2]);return s.size;})()")
@@ -213,18 +215,20 @@ with sync_playwright() as p:
           const out=[],walk=box=>[...box.children].filter(e=>!e.hidden&&e.offsetParent).forEach(e=>{
             if(e.classList.contains('fold')){out.push('▸ '+e.querySelector(':scope>.fold-head>span').textContent);walk(e.querySelector(':scope>.fold-body'));}
             else{const l=lab(e);if(l)out.push(l);}});
+          /* 0.14: Layout's own rows (not its Shapes groups), then Motion */
+          [...document.querySelector('#panel section.card[data-id=layout] .card-body').children].filter(e=>!e.hidden&&e.offsetParent&&!e.classList.contains('fold')).forEach(e=>{const l=lab(e);if(l)out.push(l);});
           walk(document.querySelector('#panel section.card[data-id=motion] .card-body'));return out;})()""")
-    pg.evaluate("document.querySelectorAll('#panel section.card').forEach(c=>{if(c.dataset.id==='motion'&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();})")
+    pg.evaluate("document.querySelectorAll('#panel section.card').forEach(c=>{if((c.dataset.id==='motion'||c.dataset.id==='layout')&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();})")
     kinds = pg.evaluate("[...document.querySelectorAll('.kinds .kind')].map(b=>b.textContent)")
     check('Motion opens on eight kinds – the ones a camera moves across first, then the ones with a clock each (Rows beside Columns, 0.9)', kinds == ['Slides', 'Line', 'Grid', 'Wall', 'Columns', 'Rows', 'Frames', 'Float'], str(kinds))
     want = {
         'Line': (['Kind', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting', '▸ After the last', 'Then'], {'trackMove': 'step'}),
         'Slides': (['Kind', 'Each slide', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', '▸ After the last', 'Then'], {'oneMove': 'slide', 'oneFit': 'shape', 'kb': 'none'}),
         'Grid': (['Kind', 'Columns', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
-        'Columns': (['Kind', 'Columns', 'Move', 'Directions', 'Speeds', 'Offset', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting'], {'trackMove': 'step', 'colDir': 'alt', 'colSpeed': 'same'}),
-        'Rows': (['Kind', 'Rows', 'Move', 'Directions', 'Speeds', 'Offset', '▸ Each row', 'Row 1', 'Row 2', 'Row 3', '▸ Timing', 'Each shape', '▸ Character', 'Movement'], {'trackMove': 'drift', 'cols': 3, 'colDir': 'own', 'colSpeed': 'same'}),
+        'Columns': (['Kind', 'Columns', 'Offset', 'Move', 'Directions', 'Speeds', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting'], {'trackMove': 'step', 'colDir': 'alt', 'colSpeed': 'same'}),
+        'Rows': (['Kind', 'Rows', 'Offset', 'Move', 'Directions', 'Speeds', '▸ Each row', 'Row 1', 'Row 2', 'Row 3', '▸ Timing', 'Each shape', '▸ Character', 'Movement'], {'trackMove': 'drift', 'cols': 3, 'colDir': 'own', 'colSpeed': 'same'}),
         'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
-        'Float': (['Kind', 'Move', 'Direction', 'Depth', 'Spread', 'Shuffle', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting'], {'trackMove': 'step'}),
+        'Float': (['Kind', 'Depth', 'Spread', 'Shuffle', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting'], {'trackMove': 'step'}),
         'Wall': (['Kind', 'Columns', 'Rows', 'Offset', 'Move', 'Path', 'Direction', 'Distance', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting'], {'trackMove': 'step', 'wPath': 'across', 'wOff': 0})}
     seen = {}
     for name, (labels, setup) in want.items():
@@ -399,7 +403,7 @@ with sync_playwright() as p:
              'bleed, fade, zoom in': ['Kind', 'Each slide', 'Transition', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Movement', 'Amount', '▸ After the last', 'Then']}
     check('Slides shows only what each choice needs – no Feel for a cut or fade, no Direction unless something travels, Sizes only for As it is',
           all(lb[k] == want3[k] for k in want3), '; '.join(f'{k}: {lb[k]}' for k in want3 if lb[k] != want3[k]))
-    vis = pg.evaluate("""(()=>{const shapes=()=>!document.querySelector('#panel section[data-id=shapes]').hidden,where=()=>[...document.querySelectorAll('#panel section[data-id=captions] .seg[aria-label=Where] .pill')].map(b=>b.textContent);
+    vis = pg.evaluate("""(()=>{const shapes=()=>![...document.querySelectorAll('#panel section[data-id=layout] .fold')].find(f=>f.querySelector('.fold-head span').textContent==='Shapes').hidden,where=()=>[...document.querySelectorAll('#panel section[data-id=captions] .seg[aria-label=Where] .pill')].map(b=>b.textContent);
       segue.set('capOn',true);segue.set('oneFit','bleed');const a=[shapes(),where()];segue.set('oneFit','own');const b=[shapes(),[...document.querySelectorAll('#c_ratio')].map(e=>!!e.closest('.ctl').offsetParent)[0]];segue.set('oneFit','shape');const c=shapes();segue.set('capOn',false);return [a,b,c];})()""")
     check('Full bleed has no Shapes card and no room under or above; As it is has no shape to pick', vis[0][0] is False and vis[0][1] == ['On it', 'Fixed'] and vis[1][0] is True and vis[1][1] is False and vis[2] is True, str(vis))
     fit = pg.evaluate("""(()=>{const E=segue.E,its=[{kind:'image',w:1080,h:1350},{kind:'image',w:1080,h:1000},{kind:'image',w:2000,h:1000}];
@@ -460,7 +464,7 @@ with sync_playwright() as p:
     pg.evaluate("for(const [k,v] of [['cSize','4:5'],['layout','column'],['trackMove','step'],['after','carry'],['capOn',true],['ovOn',true],['ovKind','text']])segue.set(k,v)"); time.sleep(.3)
     cv = outline('canvas', True)
     check('Canvas: its Size, then Background (colour and image together) – Guides moved to the top bar (0.10), no frame rate here',
-          cv[0] == 'Size' and group(cv, 'Background')[:2] == ['Colour', 'Image'] and '▸ Guides' not in cv and 'Frame rate' not in cv and not pg.evaluate("!!document.querySelector('#panel .seg[aria-label=\"Frame rate\"]')"), str(cv))
+          cv[0] == 'Format' and group(cv, 'Background')[:2] == ['Colour', 'Image'] and '▸ Guides' not in cv and 'Frame rate' not in cv and not pg.evaluate("!!document.querySelector('#panel .seg[aria-label=\"Frame rate\"]')"), str(cv))
     cp = outline('captions', True)
     check('Captions: what they do (where, align, arrives), then Position and spacing, each role’s type, Kerning and accent, Fonts',
           cp[:4] == ['Where', 'Align', 'Arrives', 'Over'] and [x for x in cp if x.startswith('▸')] == ['▸ Position and spacing', '▸ Title', '▸ Line', '▸ Tags', '▸ Kerning and accent', '▸ Fonts'], str(cp))
@@ -1022,6 +1026,33 @@ with sync_playwright() as p:
     check('In a shape (0.13): dragging a slide moves its shape, a corner sizes it, and Alt-drag moves the picture inside – its row has Position as well as Crop',
           s1['ox'] > 0 and s1['oy'] > 0 and s1['px'] == 0 and s1['py'] == 0 and s2['fz'] > 100 and s2['zm'] == 100 and s3['ox'] == s1['ox'] and (s3['px'] != 0 or s3['py'] != 0), f'{s1} {s2} {s3} {grp}')
     pg.evaluate("()=>{segue.items.forEach(i=>{i.fz=100;i.ox=0;i.oy=0;i.px=0;i.py=0;});segue.refresh();}")
+
+    # ---- 0.14: the review – Layout apart from Motion, one word each, the pile in one place, quieter rows, a hint on the canvas ----
+    pg.keyboard.press('Escape'); time.sleep(.2)
+    rv = pg.evaluate("""()=>{const q=(c,sel)=>!!document.querySelector(`#panel section.card[data-id=${c}] ${sel}`),o={};segue.applyPreset('Build up');segue.set('oneFit','shape');
+      const folds=c=>[...document.querySelectorAll(`#panel section.card[data-id=${c}] .card-body>.fold`)].filter(f=>!f.hidden).map(f=>f.querySelector('.fold-head span').textContent);
+      o.layout=[q('layout','.kinds'),q('layout','.seg[aria-label="Each slide"]'),folds('layout').join()];o.motion=[q('motion','.kinds'),q('motion','.seg[aria-label="Each slide"]'),folds('motion').join()];
+      const m=document.querySelector('#panel section.card[data-id=motion] .card-body'),labs=[...m.children].filter(e=>!e.hidden&&!e.classList.contains('fold')).map(e=>(e.querySelector('.ctl-head label,.ctl-head span,.toggle span:last-child')||{}).textContent).filter(Boolean);
+      o.pile=labs.join();segue.set('pile',false);o.after=folds('motion').join();segue.set('pile',true);
+      o.format=!!document.querySelector('#panel section.card[data-id=canvas] .seg[aria-label=Format]');
+      o.shift=document.querySelector('#panel section.card[data-id=position] h2 .card-toggle>span').textContent;
+      const sh=[...document.querySelectorAll('#panel section.card[data-id=layout] .fold-head')].find(h=>h.getAttribute('aria-expanded')==='false');o.sum=sh?[sh.querySelector('.sum').textContent,getComputedStyle(sh.querySelector('.sum')).display]:null;return o;}""")
+    check('Layout holds the Kind, what each slide is and the Shapes; Motion holds only what moves – and the pile’s Then sits with Pile up, After the last only without it',
+          rv['layout'] == [True, True, 'Shapes,Border and edge'] and rv['motion'][:2] == [False, False] and rv['motion'][2] == 'Timing,Character'
+          and 'Pile up' in rv['pile'] and rv['pile'].index('Pile up') < rv['pile'].index('Then') and 'After the last' in rv['after'], str(rv))
+    check('Names that meant two things: the canvas has a Format, the whole layout is moved by Shift everything; a shut group says what it holds',
+          rv['format'] and rv['shift'] == 'Shift everything' and rv['sum'] and rv['sum'][0] and rv['sum'][1] != 'none', str(rv))
+    pg.evaluate("document.querySelectorAll('.media-list .slot.open .slot-main').forEach(e=>e.click())"); time.sleep(.2)
+    pg.locator('#panel .media-list .slot').nth(1).locator('.slot-main').click(); time.sleep(.6)
+    pr = pg.evaluate("""()=>{const d=document.querySelector('.media-list .slot.open .slot-det');return {labels:[...d.querySelectorAll('.ctl.sel label')].map(e=>e.textContent),sw:d.querySelector('.layer-sw .toggle span:last-child').textContent,
+      sums:[...d.querySelectorAll('.det-fold .fold-head')].map(h=>h.querySelector('span').textContent+':'+h.querySelector('.sum').textContent),hint:document.querySelector('#selHint').textContent,hidden:document.querySelector('#selHint').hidden};}""")
+    check('A piece’s row speaks the panel’s words – Transition and Movement, “Layer on above” – its groups say what they hold, and the canvas says what a drag does',
+          'Transition' in pr['labels'] and 'Movement' in pr['labels'] and 'Arrives by' not in pr['labels'] and pr['sw'] == 'Layer on above' and 'Timing:As set' in pr['sums'] and 'Look:Normal' in pr['sums']
+          and pr['hint'].startswith('Drag to move') and 'Alt-drag' in pr['hint'] and pr['hidden'] is False, str(pr))
+    ctx2 = b.new_context(viewport={'width': 1440, 'height': 900}); p2 = ctx2.new_page(); p2.goto(url); time.sleep(1.2); p2.set_input_files('#mediafile', IMGS[:2]); time.sleep(1.5)
+    p2.evaluate("segue.applyPreset('Straight cuts')"); p2.locator('#panel .media-list .slot').nth(0).locator('.slot-main').click(); time.sleep(.6)
+    op = p2.evaluate("[...document.querySelectorAll('.media-list .slot.open .det-fold .fold-head')].map(h=>h.querySelector('span').textContent+':'+h.getAttribute('aria-expanded'))"); ctx2.close()
+    check('…and opens on what you drag: Position and Crop open, Timing and Look shut until wanted', 'Timing:false' in op and 'Look:false' in op and any(x in op for x in ('Crop:true', 'Position:true')), str(op))
     pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false);segue.set('capOn',false)")
 
     # ---- exports ----

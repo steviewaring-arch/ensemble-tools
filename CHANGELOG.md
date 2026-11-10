@@ -1,5 +1,17 @@
 # Changelog
 
+## 10 November 2026 – Segue 0.14: the review, built – Layout apart from Motion, one word each, the pile in one place
+
+Steve, on the six review points sent with 0.13: "action all these, good points. go."
+
+1. **Layout** – a new section holding the Kind, Each slide (and Sizes), how many across and down (columns, rows, offsets, Frames' across and down, Float's depth, spread and Shuffle), then the **Shapes** group (shape, size, gap, corners, media fit) and Border and edge. **Motion** now holds only what moves: transition or move, direction, Pile up, each column's way and speed, Timing, Character, After the last. The Shapes section is gone. The panel reads Media → Canvas → Layout → Motion → Additionals.
+2. **One word each** – a slide's "Arrives by" is **Transition** and its "Moves" is **Movement**, as in Motion.
+3. **Names that meant two things** – Canvas "Size" is **Format**; the Additionals "Position" section is **Shift everything**.
+4. **The pile in one place** – Then (Cover, Clear, Unbuild) and Unbuild speed sit under Pile up, Keep and Scatter. After the last shows only when Pile up is off.
+5. **A slide's row** opens on what you drag – Position and Crop (and a layer's Layer); Timing, Look, Plays and Caption are shut, each saying what it holds ("As set", "Multiply · 60%", "0.0–6.0 s").
+6. **Refinements** – the layer switch is "Layer on above", its box first; every shut group in the panel says what it holds; a line in the top bar's gap says what a drag does to the selected piece ("Drag to move · corners to size · Alt-drag moves the picture inside"), where there's room.
+- Tests: `tests/segue_check.py` – 4 new, 6 updated (the panel's sections, each kind's controls now read Layout then Motion, Shapes as a group, Format); `tests/segue_ui_check.py` – section names; both start with a slide's groups open so the older checks reach them.
+
 ## 10 November 2026 – Segue 0.13: shapes you can move and size; Scatter kept straight
 
 Steve (with Slides, In a shape, Pile up on): "I cannot resize a shape (on the canvas), or move its position, only move the artwork in the bounding box. can you adapt this … on the Scatter tool … dont put images on angles, keep straight." Also asked for a full review of the UI – sent as a list of proposals, not built.

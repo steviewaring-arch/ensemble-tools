@@ -68,7 +68,7 @@ def loc(pg, tid, sel=''): return pg.locator(f'[data-tid="{tid}"] {sel}'.strip())
 def into_view(pg, tid): pg.evaluate("t=>document.querySelector(`[data-tid='${t}']`).scrollIntoView({block:'center'})", tid); time.sleep(.05)
 
 def pick_kind(pg, name):
-    pg.evaluate("""n=>{const c=document.querySelector('#panel section.card[data-id=motion]');if(c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();}""", name)
+    pg.evaluate("""n=>{for(const id of ['layout','motion']){const c=document.querySelector('#panel section.card[data-id='+id+']');if(c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();}}""", name)
     time.sleep(.3); pg.locator('.kinds .kind', has_text=name).click(); time.sleep(.3)
 
 # ---------------- each kind of control ----------------
@@ -246,6 +246,7 @@ def tk(route):
 with sync_playwright() as p:
     b = p.chromium.launch()
     ctx = b.new_context(viewport={'width': 1440, 'height': 900}, accept_downloads=True)
+    ctx.add_init_script("try{if(!localStorage.getItem('segue:folds'))localStorage.setItem('segue:folds',JSON.stringify({'piece:timing':true,'piece:look':true,'piece:plays':true}))}catch(e){}")
     pg = ctx.new_page(); pg.on('pageerror', lambda e: errs.append(str(e))); pg.set_default_timeout(4000)
     pg.route('https://use.typekit.net/**', tk); pg.route('https://p.typekit.net/**', lambda r: r.abort())
     pg.goto(base); time.sleep(1.5)
@@ -262,16 +263,16 @@ with sync_playwright() as p:
     nums = pg.evaluate("[...document.querySelectorAll('#panel section.card:not([hidden])>h2 .num')].map(e=>e.textContent)")
     titles = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .card-toggle>span:first-child')].map(e=>e.textContent)")
     shown_nums = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .num')].filter(e=>e.offsetWidth).length")
-    check('sections: titles as they were (Captions, Overlay and Position under Additionals), no numbers shown', shown_nums == 0 and titles == ['Media', 'Canvas', 'Motion', 'Shapes', 'Captions', 'Overlay', 'Position'], f'{shown_nums} numbers showing, {titles}')
+    check('sections: titles as they were (Captions, Overlay and Position under Additionals), no numbers shown', shown_nums == 0 and titles == ['Media', 'Canvas', 'Layout', 'Motion', 'Captions', 'Overlay', 'Shift everything'], f'{shown_nums} numbers showing, {titles}')
 
     # ---- sections open and shut, smoothly, and stay as left ----
-    sec = pg.locator('#panel section.card[data-id=shapes]')
+    sec = pg.locator('#panel section.card[data-id=layout]')
     if 'collapsed' not in (sec.get_attribute('class') or ''): sec.locator('.card-toggle').click(); time.sleep(.6)
-    shut = pg.evaluate("document.querySelector('#panel section.card[data-id=shapes] .card-anim').hidden")
+    shut = pg.evaluate("document.querySelector('#panel section.card[data-id=layout] .card-anim').hidden")
     sec.locator('.card-toggle').click(); time.sleep(.05)
-    mid = pg.evaluate("(()=>{const a=document.querySelector('#panel section.card[data-id=shapes] .card-anim');return [a.hidden,a.offsetHeight,a.scrollHeight]})()")
+    mid = pg.evaluate("(()=>{const a=document.querySelector('#panel section.card[data-id=layout] .card-anim');return [a.hidden,a.offsetHeight,a.scrollHeight]})()")
     time.sleep(.5)
-    end = pg.evaluate("(()=>{const a=document.querySelector('#panel section.card[data-id=shapes] .card-anim');return [a.hidden,a.offsetHeight]})()")
+    end = pg.evaluate("(()=>{const a=document.querySelector('#panel section.card[data-id=layout] .card-anim');return [a.hidden,a.offsetHeight]})()")
     check('a section opens with the Smooth curve and shuts out of the way', shut and not mid[0] and mid[1] < end[1] and end[1] > 100, f'shut hidden {shut}, part way {mid[1]} px, open {end[1]} px')
 
     # ---- media in ----
@@ -426,9 +427,9 @@ with sync_playwright() as p:
     pg.keyboard.press('Escape'); time.sleep(.6)
     check('Preview hides the panel; the panel button brings it back; Esc leaves', pv == [True, 'hidden'] and peek == 'visible' and not pg.evaluate("document.querySelector('.app').classList.contains('preview')"), f'{pv} {peek}')
     rz = pg.locator('#resizer').bounding_box(); pg.mouse.move(rz['x'] + 4, rz['y'] + 300); pg.mouse.down(); pg.mouse.move(rz['x'] + 200, rz['y'] + 300, steps=8); pg.mouse.up(); time.sleep(.5)
-    wide = pg.evaluate("[document.querySelector('#panelBox').offsetWidth,document.querySelector('#c_cSize')?0:0,[...document.querySelectorAll('#panel .ctl')].find(w=>w.querySelector('.seg[aria-label=Size]')).classList.contains('as-menu')]")
+    wide = pg.evaluate("[document.querySelector('#panelBox').offsetWidth,document.querySelector('#c_cSize')?0:0,[...document.querySelectorAll('#panel .ctl')].find(w=>w.querySelector('.seg[aria-label=Format]')).classList.contains('as-menu')]")
     rz = pg.locator('#resizer').bounding_box(); pg.mouse.move(rz['x'] + 4, rz['y'] + 300); pg.mouse.down(); pg.mouse.move(rz['x'] - 260, rz['y'] + 300, steps=8); pg.mouse.up(); time.sleep(.5)
-    narrow = pg.evaluate("[document.querySelector('#panelBox').offsetWidth,[...document.querySelectorAll('#panel .ctl')].find(w=>w.querySelector('.seg[aria-label=Size]')).classList.contains('as-menu')]")
+    narrow = pg.evaluate("[document.querySelector('#panelBox').offsetWidth,[...document.querySelectorAll('#panel .ctl')].find(w=>w.querySelector('.seg[aria-label=Format]')).classList.contains('as-menu')]")
     check('the panel’s width drags (280–480), and choices re-fit: a row when there’s room, a menu when not', wide[0] == 480 and wide[2] is False and narrow[0] == 280 and narrow[1] is True, f'{wide} {narrow}')
     pg.locator('#themeBtn').click(); time.sleep(.3)
     dark = pg.evaluate("[document.body.dataset.theme,localStorage.getItem('segue:mode')]")

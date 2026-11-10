@@ -141,6 +141,11 @@ Sheets speak the same language: the sheet's title is set as a section title
   a control inside it; panel labels and pictures don't select or drag (inputs do).
 - **Settings that would do nothing aren't shown** – and nor are handles: a piece that
   fills its frame has no corners to scale (Segue 0.11).
+- **Sections follow the order of work** (Segue 0.14): Media, Canvas, Layout (how it's
+  arranged), Motion (how it moves), then Additionals. One word for one idea across the
+  panel and a piece's row (Transition, Movement); no name used for two things.
+- **A shut group says what it holds** (Segue 0.14) – its value, quietly, beside the
+  chevron – so a row can open on the few groups that matter and keep the rest shut.
 - **A switch says what it does in words** ("Layer on the piece above"), never a menu of
   states that need explaining; and where a choice only works with another, it brings
   that one with it and says so (a blend makes its slide a layer, Segue 0.11).

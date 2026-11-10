@@ -132,8 +132,11 @@ function layoutUI(){
 /* the project chip top left and the chips top right share one line: where it's tight the info chips
    (size, loop, pieces) step aside first, then the saved state – never the name or the tools */
 function topFit(){const app=$('.app'),pb=$('#projBox'),tb=$('.topbar');if(!app||!pb||!tb)return;app.classList.remove('tight','tighter');
-  if(app.classList.contains('preview'))return;const over=()=>pb.getBoundingClientRect().right+12>tb.getBoundingClientRect().left;
-  if(over())app.classList.add('tight');if(over())app.classList.add('tighter');}
+  if(app.classList.contains('preview')){const h=$('#selHint');if(h)h.hidden=true;return;}const over=()=>pb.getBoundingClientRect().right+12>tb.getBoundingClientRect().left;
+  if(over())app.classList.add('tight');if(over())app.classList.add('tighter');
+  /* what a drag does to the selected piece – in the gap between the two, where there's room for it (0.14) */
+  const sh=$('#selHint');if(sh){const ab=app.getBoundingClientRect(),l=pb.getBoundingClientRect().right-ab.left+16,r=tb.getBoundingClientRect().left-ab.left-16,ok=!!sh.textContent&&r-l>=240&&!app.classList.contains('tight');
+    sh.hidden=!ok;if(ok){sh.style.left=Math.round(l)+'px';sh.style.width=Math.round(r-l)+'px';}}}
 const ICON_EXPAND='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M11.5 2.5 7.8 6.2M5.5 11.5h-3v-3M2.5 11.5l3.7-3.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.5 5.5h-3v-3M8.5 5.5l3.3-3.3M2.5 8.5h3v3M5.5 8.5l-3.3 3.3" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function setPanel(open){const app=$('.app');app.classList.toggle('peek',!!open);const p=$('#panelBtn');if(p){p.setAttribute('aria-expanded',!!open);const t=open?'Hide the panel':'Show the panel';p.dataset.tip=t;p.setAttribute('aria-label',t);}layoutUI();}
