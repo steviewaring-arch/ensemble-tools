@@ -77,14 +77,14 @@ with sync_playwright() as p:
     pg.on('pageerror', lambda e: errs.append(str(e))); pg.on('console', lambda m: errs.append(m.text) if m.type == 'error' else None)
     pg.goto(url); time.sleep(1.2)
     OPEN_TIER = "(()=>{const t=document.querySelector('.tier');if(t&&!t.classList.contains('open'))t.querySelector('.tier-head').click();})()"
-    tier_shut = pg.evaluate("!document.querySelector('.tier').classList.contains('open')&&document.querySelector('.tier-body').hidden")
+    tier_shut = pg.evaluate("!document.querySelector('.tier')&&[['captions','capOn'],['overlay','ovOn']].every(([id,k])=>document.querySelector(`#panel section.card[data-id=${id}]`).classList.contains('collapsed')===!segue.S[k])")
     pg.evaluate(OPEN_TIER); time.sleep(.3)
 
     # ---- the frame ----
     titles = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .card-toggle>span:first-child')].map(e=>e.textContent)")
-    check('the panel: Media, Canvas, Layout, Motion (0.14) – then Additionals, shut at first, holding Captions, Overlay and Shift everything',
-          titles == ['Media', 'Canvas', 'Layout', 'Motion', 'Captions', 'Overlay', 'Shift everything'] and tier_shut
-          and pg.evaluate("[...document.querySelectorAll('.tier-body>section.card')].map(c=>c.dataset.id).join()") == 'captions,overlay,position', f'{titles} shut at first: {tier_shut}')
+    check('the panel in the order of work (0.16): Canvas, Media, Layout, Motion, then Captions and Overlay – sections like the rest, each shut while it’s off; no Additionals tier',
+          titles == ['Canvas', 'Media', 'Layout', 'Motion', 'Captions', 'Overlay'] and tier_shut
+          and pg.evaluate("[...document.querySelectorAll('#panel>section.card')].map(c=>c.dataset.id).join()") == 'canvas,media,layout,motion,captions,overlay', f'{titles} shut at first: {tier_shut}')
     check('Export and Presets are sheets', pg.evaluate("!!document.querySelector('#islandSheets [data-sheet=export]')&&!!document.querySelector('#pcapSheets [data-sheet=presets]')"))
     blank = pg.evaluate("(()=>{const c=document.querySelector('#cv'),x=c.getContext('2d'),d=x.getImageData(0,0,c.width,c.height).data;const s=new Set();for(let i=0;i<d.length;i+=4*97)s.add(d[i]+','+d[i+1]+','+d[i+2]);return s.size;})()")
     check('with no media, the stage shows the layout with numbered placeholders', blank > 2, f'{blank} colours')
@@ -227,7 +227,7 @@ with sync_playwright() as p:
         'Grid': (['Kind', 'Columns', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
         'Columns': (['Kind', 'Columns', 'Offset', 'Move', 'Directions', 'Speeds', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting'], {'trackMove': 'step', 'colDir': 'alt', 'colSpeed': 'same'}),
         'Rows': (['Kind', 'Rows', 'Offset', 'Move', 'Directions', 'Speeds', '▸ Each row', 'Row 1', 'Row 2', 'Row 3', '▸ Timing', 'Each shape', '▸ Character', 'Movement'], {'trackMove': 'drift', 'cols': 3, 'colDir': 'own', 'colSpeed': 'same'}),
-        'Frames': (['Kind', 'Across', 'Down', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
+        'Frames': (['Kind', 'Across', 'Down', 'Each frame', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
         'Float': (['Kind', 'Depth', 'Spread', 'Shuffle', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting'], {'trackMove': 'step'}),
         'Wall': (['Kind', 'Columns', 'Rows', 'Offset', 'Move', 'Path', 'Direction', 'Distance', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting'], {'trackMove': 'step', 'wPath': 'across', 'wOff': 0})}
     seen = {}
@@ -473,7 +473,7 @@ with sync_playwright() as p:
     ov = outline('overlay', True)
     check('Overlay: what goes over, its Type, Position (the pad, margin and nudge together), then Blend and opacity – on and off by the box in its head (0.10)',
           ov[:2] == ['What', 'Text'] and [x for x in ov if x.startswith('▸')] == ['▸ Type', '▸ Position', '▸ Blend and opacity']
-          and group(ov, 'Position') == ['Place', 'Margin', 'Across', 'Up and down'] and group(ov, 'Blend and opacity') == ['Blend', 'Opacity'], str(ov))
+          and group(ov, 'Position') in (['Place', 'Margin', 'Across', 'Up and down'], ['Place', 'Across', 'Up and down']) and group(ov, 'Blend and opacity') == ['Blend', 'Opacity'], str(ov))
     pg.evaluate("segue.set('ovOn',false);segue.set('capOn',false)")
     mo = outline('motion')
     check('Motion: After the last holds the choice; Pull back, its settings, appears as a group of its own only when you pull back',
@@ -949,7 +949,7 @@ with sync_playwright() as p:
     cvb = pg.locator('#cv').bounding_box(); k6 = cvb['width'] / pg.evaluate("segue.E.canvasSize(segue.S)[0]")
     pg.mouse.click(cvb['x'] + cvb['width'] / 2, cvb['y'] + cvb['height'] / 2); time.sleep(.3)
     pg.mouse.move(cvb['x'] + cvb['width'] - 2, cvb['y'] + cvb['height'] - 2); pg.mouse.down(); pg.mouse.move(cvb['x'] + cvb['width'] - 40, cvb['y'] + cvb['height'] - 30, steps=6); pg.mouse.up(); time.sleep(.3)
-    hd = pg.evaluate("()=>({zm:segue.items[0].zm,sel:segue.sel===segue.items[0].id,pos:!document.querySelector('section.card[data-id=position]').hidden})")
+    hd = pg.evaluate("()=>({zm:segue.items[0].zm,sel:segue.sel===segue.items[0].id,pos:!segue.ui.controls.find(c=>c.d&&c.d.k==='nudgeX').w.closest('.fold').hidden})")
     check('A full-bleed slide has no corner handles to scale it (it fills its frame – crop zoom does that), and no Position section', hd['zm'] == 100 and hd['sel'] and not hd['pos'], str(hd))
     pj = pg.evaluate("""()=>{const r=e=>document.querySelector(e).getBoundingClientRect();const p=r('#projBox'),v=r('#view'),t=r('.topbar'),pn=r('#panelBox');
       return {left:Math.round(p.left-v.left),top:Math.round(p.top-t.top),inPanel:!!document.querySelector('#panelBox #projBox'),clear:p.right<=t.left,h:Math.round(p.height-t.height)};}""")
@@ -1047,13 +1047,13 @@ with sync_playwright() as p:
       const m=document.querySelector('#panel section.card[data-id=motion] .card-body'),labs=[...m.children].filter(e=>!e.hidden&&!e.classList.contains('fold')).map(e=>(e.querySelector('.ctl-head label,.ctl-head span,.toggle span:last-child')||{}).textContent).filter(Boolean);
       o.pile=labs.join();segue.set('pile',false);o.after=folds('motion').join();segue.set('pile',true);
       o.format=!!document.querySelector('#panel section.card[data-id=canvas] .seg[aria-label=Format]');
-      o.shift=document.querySelector('#panel section.card[data-id=position] h2 .card-toggle>span').textContent;
+      o.shift=segue.ui.controls.find(c=>c.d&&c.d.k==='nudgeX').w.closest('.fold').querySelector('.fold-head span').textContent+' in '+segue.ui.controls.find(c=>c.d&&c.d.k==='nudgeX').w.closest('section.card').dataset.id;
       const sh=[...document.querySelectorAll('#panel section.card[data-id=layout] .fold-head')].find(h=>h.getAttribute('aria-expanded')==='false');o.sum=sh?[sh.querySelector('.sum').textContent,getComputedStyle(sh.querySelector('.sum')).display]:null;return o;}""")
     check('Layout holds the Kind, what each slide is and the Shapes; Motion holds only what moves – and the pile’s Then sits with Pile up, After the last only without it',
-          rv['layout'] == [True, True, 'Shapes,Border and edge'] and rv['motion'][:2] == [False, False] and rv['motion'][2] == 'Timing,Character'
+          rv['layout'] == [True, True, 'Shapes,Placement'] and rv['motion'][:2] == [False, False] and rv['motion'][2] == 'Timing,Character'
           and 'Pile up' in rv['pile'] and rv['pile'].index('Pile up') < rv['pile'].index('Then') and 'After the last' in rv['after'], str(rv))
-    check('Names that meant two things: the canvas has a Format, the whole layout is moved by Shift everything; a shut group says what it holds',
-          rv['format'] and rv['shift'] == 'Shift everything' and rv['sum'] and rv['sum'][0] and rv['sum'][1] != 'none', str(rv))
+    check('Names that meant two things: the canvas has a Format, the whole layout is moved by Layout’s Placement (0.16); a shut group says what it holds',
+          rv['format'] and rv['shift'] == 'Placement in layout' and rv['sum'] and rv['sum'][0] and rv['sum'][1] != 'none', str(rv))
     pg.evaluate("document.querySelectorAll('.media-list .slot.open .slot-main').forEach(e=>e.click())"); time.sleep(.2)
     pg.locator('#panel .media-list .slot').nth(1).locator('.slot-main').click(); time.sleep(.6)
     pr = pg.evaluate("""()=>{const d=document.querySelector('.media-list .slot.open .slot-det');return {labels:[...d.querySelectorAll('.ctl.sel label')].map(e=>e.textContent),sw:d.querySelector('.layer-sw .toggle span:last-child').textContent,
@@ -1065,6 +1065,25 @@ with sync_playwright() as p:
     p2.evaluate("segue.applyPreset('Straight cuts')"); p2.locator('#panel .media-list .slot').nth(0).locator('.slot-main').click(); time.sleep(.6)
     op = p2.evaluate("[...document.querySelectorAll('.media-list .slot.open .det-fold .fold-head')].map(h=>h.querySelector('span').textContent+':'+h.getAttribute('aria-expanded'))"); ctx2.close()
     check('…and opens on what you drag: Position and Crop open, Timing and Look shut until wanted', 'Timing:false' in op and 'Look:false' in op and any(x in op for x in ('Crop:true', 'Position:true')), str(op))
+
+    # ---- 0.16: the audit – Frames that change whatever the count, a frame of a piece's own, one way to switch things on ----
+    pg.keyboard.press('Escape'); time.sleep(.2)
+    fr = pg.evaluate("""()=>{const o={},three=segue.items.slice(0,3),E=segue.E,S=segue.S;segue.applyPreset('Posters');
+      const P3=E.plan(S,three);o.three=[P3.kind,P3.n,JSON.stringify(P3.seqs)];
+      const all=segue.items,Pa=E.plan(S,all);o.share=Pa.seqs.map(q=>q.join('')).join(' ');segue.set('fFill','all');o.all=E.plan(S,all).seqs.map(q=>q.length).join();segue.set('fFill','share');
+      all.forEach(i=>delete i.slot);all[0].slot='2';all[1].slot='2';const Pp=E.plan(S,all);o.pin=JSON.stringify(Pp.seqs[1]);o.others=Pp.seqs[0].concat(Pp.seqs[2]).some(i=>i<2);
+      const c=document.createElement('canvas').getContext('2d'),[W,H]=E.canvasSize(S),ops=t=>E.scene(S,all,c,segue.fonts,W,H,t).ops.filter(q=>q.item).map(q=>q.i+':'+Math.round(q.rect.x)+','+Math.round(q.rect.y)+':'+(q.alpha==null?1:q.alpha).toFixed(2)).join('|');
+      o.loop=ops(0)===ops(Pp.L-1e-6)||ops(1e-4)===ops(Pp.L+1e-4);o.L=Pp.L;all.forEach(i=>delete i.slot);segue.refresh();return o;}""")
+    check('Frames (0.16): three pictures in three frames change places (they used to sit still); more media are dealt round, or every frame goes through them all',
+          fr['three'][0] == 'fstep' and fr['three'][1] == 3 and fr['three'][2] == '[[0,1,2],[1,2,0],[2,0,1]]' and len(set(fr['all'].split(','))) == 1, str(fr))
+    check('…and a piece can have a frame of its own: that frame shows only its pieces, the rest go round the others, and it still loops', fr['pin'] == '[0,1]' and not fr['others'] and fr['loop'], str(fr))
+    sw = pg.evaluate("""()=>{const o={},S=segue.S,row=k=>segue.ui.controls.find(c=>c.d&&c.d.k===k&&c.d.t==='toggle'),vis=(k,t)=>segue.ui.controls.some(c=>c.d&&c.d.k===k&&c.d.t===t&&!c.w.hidden&&!c.w.closest('[hidden]'));
+      segue.applyPreset('Posters');segue.set('mat',0);o.off=[vis('mat','range'),vis('matC','colour')];row('mat').w.querySelector('.toggle').click();o.on=[S.mat>0,vis('mat','range'),vis('matC','colour')];segue.set('mat',40);
+      row('mat').w.querySelector('.toggle').click();o.off2=S.mat;row('mat').w.querySelector('.toggle').click();o.back=S.mat;
+      o.grp=['mat','edge'].map(k=>row(k).w.classList.contains('sw-grp'));segue.applyPreset('Build up');o.pile=row('pile').w.classList.contains('sw-grp');
+      segue.set('oneFit','bleed');o.bleed=vis('pile','toggle');segue.applyPreset('Float with title');o.float=[S.ovOn,S.ovText];segue.applyPreset('Posters');return o;}""")
+    check('One way to switch a thing on (0.16): Border, Edge and Pile up each head their group with a box – Border’s width comes back as it was; Pile up isn’t offered for full bleed; Float with title shows a title',
+          sw['off'] == [False, False] and sw['on'] == [True, True, True] and sw['off2'] == 0 and sw['back'] == 40 and sw['grp'] == [True, True] and sw['pile'] and not sw['bleed'] and sw['float'][0] is True and sw['float'][1], str(sw))
     pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false);segue.set('capOn',false)")
 
     # ---- exports ----

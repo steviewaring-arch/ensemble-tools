@@ -171,7 +171,7 @@ def restore_choice(pg, c, v):
 def try_toggle(pg, c, tally):
     k, tid = c['k'], c['tid']; start_v = S(pg, k); b = base_of(pg, k); into_view(pg, tid); ok = {}
     loc(pg, tid, '.toggle').click(); time.sleep(.12)
-    ok['toggle flips'] = S(pg, k) == (not start_v)
+    ok['toggle flips'] = bool(S(pg, k)) == (not start_v)   # 0.16: Border's switch sets a width, not true
     if pg.locator(f'[data-tid="{tid}"]').is_visible():
         if S(pg, k) != b:
             ok['toggle dot'] = pg.evaluate("t=>document.querySelector(`[data-tid='${t}']`).classList.contains('chg')", tid)
@@ -223,6 +223,7 @@ def sweep(pg, setup, label, tally, seen):
         if not fn: tally.setdefault('every control is one of the kit’s', []).append((c['label'], False)); continue
         # the list can change as things are tried: only try what's still there
         if not pg.evaluate("t=>{const e=document.querySelector(`[data-tid='${t}']`);return !!(e&&e.offsetParent);}", c['tid']): continue
+        if c['t'] == 'rng' and c['k'] == 'mat' and not base_of(pg, 'mat'): continue   # 0.16: putting Border's Width back to a preset with no border turns Border off, and the row goes
         key = (c['t'], c['k'] or ','.join(c['keys'] or []))
         if key in seen: continue   # each control is tried once, in the first set-up that shows it
         t0 = time.time()
@@ -263,7 +264,7 @@ with sync_playwright() as p:
     nums = pg.evaluate("[...document.querySelectorAll('#panel section.card:not([hidden])>h2 .num')].map(e=>e.textContent)")
     titles = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .card-toggle>span:first-child')].map(e=>e.textContent)")
     shown_nums = pg.evaluate("[...document.querySelectorAll('#panel section.card>h2 .num')].filter(e=>e.offsetWidth).length")
-    check('sections: titles as they were (Captions, Overlay and Position under Additionals), no numbers shown', shown_nums == 0 and titles == ['Media', 'Canvas', 'Layout', 'Motion', 'Captions', 'Overlay', 'Shift everything'], f'{shown_nums} numbers showing, {titles}')
+    check('sections: titles as they were (Captions, Overlay and Position under Additionals), no numbers shown', shown_nums == 0 and titles == ['Canvas', 'Media', 'Layout', 'Motion', 'Captions', 'Overlay'], f'{shown_nums} numbers showing, {titles}')
 
     # ---- sections open and shut, smoothly, and stay as left ----
     sec = pg.locator('#panel section.card[data-id=layout]')

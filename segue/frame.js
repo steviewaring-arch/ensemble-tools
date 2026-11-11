@@ -57,7 +57,7 @@ document.addEventListener('animationend',e=>{if(e.target.classList&&e.target.cla
 function ease(box){box.classList.add('ease');clearTimeout(box._et);box._et=setTimeout(()=>box.classList.remove('ease'),reduceMotion.matches?0:420);}
 function easeAll(root){(root||document).querySelectorAll('.rng-box').forEach(ease);}
 /* ---------------- cards and folds ---------------- */
-const collapsed=LS.get('collapsed')||{canvas:true,motion:false,shapes:true,captions:true,overlay:true};
+const collapsed=LS.get('collapsed')||{canvas:false,motion:false,captions:true,overlay:true}   /* 0.16: the canvas is first and open – it's where a piece of work starts */;
 let curGroup='';
 const CHEV='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function card(id,title,show){curGroup=id;
@@ -284,8 +284,10 @@ function addSeg(parent,d){
 function addToggle(parent,d){
   const w=el('div','toggle-row'),b=el('button','toggle');b.type='button';b.setAttribute('role','switch');b.setAttribute('aria-label',d.label);d.group=d.group||curGroup;
   b.append(el('span','box'),el('span',null,d.label));w.append(b);const q=qMark(d);if(q)w.append(q);
-  b.onclick=()=>set(d.k,!S[d.k]);parent.append(w);
-  const c={d,w,update(){b.setAttribute('aria-checked',!!S[d.k]);}};controls.push(c);addCx(c,w);return c;}
+  /* grp: a switch that heads a group of its own settings (0.16) – one way to turn anything optional on: its box, then its name in the group weight, its settings beneath while it's on */
+  if(d.grp)w.classList.add('sw-grp');const on=()=>d.val?!!d.val(S):!!S[d.k];
+  b.onclick=()=>d.pick?d.pick(!on()):set(d.k,!S[d.k]);parent.append(w);
+  const c={d,w,update(){b.setAttribute('aria-checked',on());w.classList.toggle('on',on());}};controls.push(c);addCx(c,w);return c;}
 function addColour(parent,d){
   const w=el('div','colour-row'),lb=el('label',null,d.label),cw=el('div','cw'),hex=el('input'),sw=el('span','cswatch'),inp=el('input');
   hex.type='text';hex.className='hexin';hex.spellcheck=false;hex.setAttribute('aria-label',d.label+' – hex');

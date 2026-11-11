@@ -145,6 +145,22 @@ function slidesOf(items){const bases=[],layers=new Map();
 function clipTime(it,d){const st=+it.start||0,en=+it.end||0;if(en>st+.05)return st+mod(d,en-st);return st+d;}
 const opaOf=it=>it&&it.opa!=null&&it.opa!==''?clamp(+it.opa/100,0,1):1;
 function gcd(a,b){while(b){[a,b]=[b,a%b];}return a;}
+/* Frames: what each frame shows, in turn (0.16). A piece can be given a frame of its own (its `slot`, 1 up, reading
+   order) – a frame with pieces of its own shows just those. The rest are dealt round the frames left: each its share
+   (as before 0.16: the next F each time), or – Each frame shows › All of them, and always when there are no more media
+   than frames – every frame goes through them all, each starting somewhere different. So three pictures in three
+   frames change places, where they used to sit still. */
+function frameSeqs(S,items){const F=framesOf(S),N=items.length,pins=[],pool=[];for(let f=0;f<F;f++)pins.push([]);
+  items.forEach((it,i)=>{const sl=Math.round(+(it&&it.slot)||0);if(sl>=1&&sl<=F)pins[sl-1].push(i);else pool.push(i);});
+  const free=[];for(let f=0;f<F;f++)if(!pins[f].length)free.push(f);
+  const Fu=free.length,M=pool.length,all=S.fFill==='all'||M<=Fu,seqs=[];
+  for(let f=0;f<F;f++){if(pins[f].length){seqs.push(pins[f]);continue;}
+    const r=free.indexOf(f),q=[];
+    if(M&&all){const st=Math.max(1,Math.round(M/Fu));for(let k=0;k<M;k++)q.push(pool[mod(r*st+k,M)]);}
+    else if(M){const n=M/gcd(M,Fu)|0;for(let k=0;k<n;k++)q.push(pool[mod(r+Fu*k,M)]);}
+    seqs.push(q);}
+  let n=1;for(const q of seqs)if(q.length>1){n=n*q.length/gcd(n,q.length);if(n>720){n=720;break;}}
+  return{seqs,n};}
 function stopsOf(S,N){if(S.layout==='grid'){const C=colsOf(S);return N/gcd(N,C)|0||1;}return Math.max(1,N);}
 function arrivalOf(S,items,s){const it=items[mod(s,items.length)];const a=it&&it.arrive&&it.arrive!=='default'?it.arrive:null;return S.layout==='one'?(a||S.oneMove||'slide'):'slide';}
 /* Float: how many places each depth has along the way, so nothing shows twice and the far
@@ -171,9 +187,9 @@ function plan(S,items){
     if(mv==='still')return Object.assign(W,{kind:'wstill',L:still()});
     if(mv==='drift')return Object.assign(W,{kind:'wdrift',L:Math.max(.2,W.n*(+S.spsh||2.5))});
     return Object.assign(W,{kind:'wstep',L:cyc>0?W.n*cyc:1,hold,dur});}
-  if(lay==='frames'){const F=framesOf(S),n=N>F?N/gcd(N,F)|0:1;
-    if(mv==='still'||n<2)return{kind:'fstill',L:still(),n,F,N};
-    return{kind:'fstep',L:cyc>0?n*cyc:1,n,F,N,hold,dur};}
+  if(lay==='frames'){const F=framesOf(S),{seqs,n}=frameSeqs(S,items);
+    if(mv==='still'||n<2)return{kind:'fstill',L:still(),n,F,N,seqs};
+    return{kind:'fstep',L:cyc>0?n*cyc:1,n,F,N,hold,dur,seqs};}
   if(lay==='float'){const [W,H]=canvasSize(S),K=floatSetup(S,items,W,H).K;
     if(mv==='still')return{kind:'flstill',L:still(),K,N};
     if(mv==='drift')return{kind:'fldrift',L:Math.max(.2,K*(+S.spsh||2.5)),K,N};
@@ -183,7 +199,7 @@ function plan(S,items){
   /* a single slide has nothing to change to: it just stays, its movement going in and back out */
   if(lay==='one'&&items.length===1&&!items[0].placeholder){const it=items[0],h=+it.hold>0?+it.hold:hold;return{kind:'still',L:Math.max(.5,h+dur),stops,N};}
   if(mv==='drift')return{kind:'drift',L:Math.max(.2,stops*(+S.spsh||2.5)),stops,N};
-  if(lay==='one'&&S.pile&&stops>1)return pilePlan(S,items,stops,hold,dur);
+  if(lay==='one'&&S.pile&&S.oneFit!=='bleed'&&stops>1)return pilePlan(S,items,stops,hold,dur);
   const pull=S.after==='pull'&&S.layout!=='grid'&&N>1;
   const segs=[];let t=0;
   const moveLen=s=>arrivalOf(S,items,s)==='cut'?0:dur;
@@ -521,10 +537,11 @@ function framesScene(S,P,cam,list,ctx,fonts,W,H,push){
   const G=framesGeo(S,list,ctx,fonts,W,H),F=G.fc*G.fr,N=list.length,tt=cam.tt,how=S.fMove||'push';
   const d=S.dir||'up',ux=d==='left'?-1:d==='right'?1:0,uy=d==='up'?-1:d==='down'?1:0;
   const revOf=a=>!S.capOn||S.capReveal==='none'?1:clamp((a-P.dur*.45)/Math.max(.05,+S.capRevealDur||.8),0,1);
-  for(let f=0;f<F;f++){const r=G.rect(f);
-    if(P.kind!=='fstep'){push(mod(f,N),r,{time:vtime(list[mod(f,N)],tt),rev:1});continue;}
+  const seqs=P.seqs||frameSeqs(S,list).seqs;
+  for(let f=0;f<F;f++){const r=G.rect(f),q=seqs[f]||[];if(!q.length)continue;
+    if(P.kind!=='fstep'||q.length<2){push(q[0],r,{time:vtime(list[q[0]],tt),rev:1});continue;}
     const c=P.hold+P.dur,t=mod(tt-f*Math.max(0,+S.fLag||0),P.L),k=Math.floor(t/c),tau=t-k*c,n=P.n;
-    const ia=mod(f+F*mod(k,n),N),ib=mod(f+F*mod(k+1,n),N),sinceA=tau+P.dur,sinceB=tau-P.hold;
+    const ia=q[mod(k,q.length)],ib=q[mod(k+1,q.length)],sinceA=tau+P.dur,sinceB=tau-P.hold;
     if(tau<P.hold||how==='still'){push(ia,r,{time:vtime(list[ia],sinceA),rev:revOf(sinceA)});continue;}
     const e=P.dur>0?feel(S.feel)(clamp((tau-P.hold)/P.dur,0,1)):1,capA=1-smooth(e*2),capB=smooth(e*2-1);
     const tb=vtime(list[ib],sinceB),rb=revOf(sinceB);
@@ -692,5 +709,5 @@ function drawBlock(ctx,S,b,x0,y0,sc,alpha,rev,seed,tt){
       draw(c.glyphs,cx+c.padX*sc,by,st.colour);}});
   ctx.restore();}
 
-return{stripWay,stripSpeed,stripBase,stripsOf,FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
+return{frameSeqs,stripWay,stripSpeed,stripBase,stripsOf,FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
 })();

@@ -150,20 +150,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .pill.small.icon.arrow svg{width:11px;height:11px}
 .pill.small.icon.arrow:disabled{opacity:.35;cursor:default}
 /* 0.10: Additionals – a quiet heading at the foot of the panel; open, the sections it holds sit under it as cards */
-.tier{display:flex;flex-direction:column;gap:8px;flex:none}
-.tier-head{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;min-height:44px;padding:0 16px;cursor:pointer;border-radius:var(--r-cardk,10px);
-  font-size:var(--fs-title);font-weight:700;letter-spacing:-0.012em;color:var(--muted);transition:color var(--t-snap),background var(--t-snap)}
-.tier-head:hover{color:var(--ink-strong);background:color-mix(in srgb,var(--k-card) 55%,transparent)}
-.tier-head:focus-visible{outline:2px solid var(--focus);outline-offset:-2px}
-.tier-head .sum{margin-left:auto;font-size:var(--fs-small);font-weight:400;color:var(--muted);letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
-.tier-head .sum:empty+.chev,.tier-head .sum:empty{margin-left:auto}
-.tier-head .chev{width:12px;height:12px;flex:none;transition:transform var(--t-smooth) var(--e-smooth);transform:rotate(-90deg)}
-.tier.open>.tier-head .chev{transform:none}
-.tier.open>.tier-head .sum{display:none}
-.tier-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--k-dot);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
-.tier.chg:not(.open)>.tier-head .cdot{transform:scale(1)}
-.tier-body{display:flex;flex-direction:column;gap:8px}
-.tier-body[hidden]{display:none}
+
 /* a section's on and off: the box beside its name, in its head */
 .card.has-sw>h2>.card-toggle{padding-left:42px}
 .card>h2>.head-sw{position:absolute;left:16px;top:50%;margin-top:-8px;width:16px;height:16px;padding:0;min-height:0;z-index:1}
@@ -244,3 +231,11 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 
 /* 0.15 – Captions and Overlay: the box (or the name) turns it on and opens it; no arrow */
 .card.has-sw>h2 .chev{display:none}
+
+/* 0.16 – a switch that heads a group: the group's rule and weight, its box first. One way to turn anything optional on. */
+.toggle-row.sw-grp{border-top:1px solid var(--keyline);margin:20px 0 6px;padding-top:6px}
+.toggle-row.sw-grp .toggle{display:flex;gap:10px;align-items:center;min-height:38px;width:auto}
+.toggle-row.sw-grp .toggle>span:last-child{order:0;font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);letter-spacing:-0.008em}
+.toggle-row.sw-grp>.q{position:static;margin:0 0 0 2px}
+.toggle-row.sw-grp:not(.on){margin-bottom:0}
+.card-body>.toggle-row.sw-grp:first-child{border-top:0;margin-top:0;padding-top:0}

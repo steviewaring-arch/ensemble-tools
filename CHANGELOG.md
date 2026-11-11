@@ -1,5 +1,23 @@
 # Changelog
 
+## 11 November 2026 – Segue 0.16: the audit – every setting tested, Frames that change, one way to switch things on, no bolt-ons
+
+Steve, 10 Nov: "have we lost features and flex from earlier iterations? Ensure the previous examples shared are doable. For example in the frames parameter I cannot seem to see how we can transition through each card with a different design? This feels like it needs the ability to set what is in each card, or automate … is the logic better to set the canvas, the colour in background etc, then tackle media, then the motion … a full, thorough audit of all parameters, ensure all work, all have the required flex, all feel figma level intuitive … I want to stop iterating and use." And, with a picture of Border (a slider from 0) beside Edge (a tick): "sort this inconsistent UI out – same thing in essence, two ways to go about … weave in 'Additionals' in the appropriate place – or at least name so they feel less like bolt-ons."
+
+**The audit (by machine, not by eye).** Every preset (24) and eight further set-ups: each setting showing in the panel was changed to its other values and 14 frames of the loop compared with before – 100 settings, 700-odd trials. Each piece's own settings likewise, in ten set-ups. Result: every setting changes the picture somewhere; nothing is dead. What it did find, and what's now fixed:
+- **Frames sat still with as many media as frames** (three posters, three pictures: nothing changed, and only a line of text said why). Now every frame goes through the media whatever the count – three pictures in three frames change places. With more media than frames, **Each frame** chooses Its share (dealt round, as before) or All of them. And a piece can have **a frame of its own** (its row › Frame): that frame shows only its pieces, in turn. Change › Still is still there for frames that shouldn't change.
+- **Float with title showed no title** – the preset said "add it in Overlay". It now turns the title on ("Your title", unless you already have words there).
+- **Shown where it couldn't work:** Pile up with full-bleed slides (each covers the last); Overlay's Margin when it's placed in the middle. Both now step aside.
+- Two that do nothing in some cases and are right to: Sizes (Fit each / True to scale) when the media are all one size; Background colour behind full-bleed cuts.
+
+**The references:** phone swipe, columns (Each its own 3, 4, 7), posters (now changing with three), depth and zoom through all still have their presets and settings; the handover's table is unchanged.
+
+**One way to switch a thing on.** Border was a slider you raised from 0; Edge was a tick; Pile up a tick in a row; Captions and Overlay a box in their heading. Now anything optional is the same component at every level: **its box, then its name in the heading weight; its settings beneath while it's on.** Border (Width, Colour, Inner corners – the width comes back as you left it), Edge (Colour, Width) and Pile up are switch groups; Captions and Overlay are switch sections.
+
+**No Additionals.** The panel is the order of work: **Canvas, Media, Layout, Motion, Captions, Overlay** – Canvas first and open. Captions and Overlay are sections like the rest. The whole layout's position is **Layout › Placement** (it was a section called Position, then Shift everything).
+
+- Tests: `tests/segue_check.py` – 3 new (Frames changing and looping with a frame of a piece's own; the switch groups), 5 updated; `tests/segue_ui_check.py` – helpers. The audit scripts are described in `segue/HANDOVER.md` (they live outside the repo's test run – 25 minutes).
+
 ## 10 November 2026 – Segue 0.15: cropping without a key, one outline, cleaner Additionals
 
 Steve: "There is a double keyline around the bounding box. I still cannot crop an image freely inside the shape set. needs to be intuitive without pressing an alt key, across the board, but particularly in 'slides' … in additionals, the radio arrow isnt needed. clicking the radio button should expand, no need to have the text explaining to click a radio button … the expansion line that shows you can expand the UI on the right hand side controls looks clunky over the scroller."
