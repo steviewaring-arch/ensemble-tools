@@ -1,5 +1,12 @@
 # Changelog
 
+## 11 November 2026 – Segue 0.17.2: the Projects panel opens again
+
+Steve: "The bottom left 'saved' module does not open / expand in chrome or safari, even with a hard refresh."
+
+- When the project chip moved to the bottom line in 0.17, the rule that places its panel went with it by mistake. The panel was opening – below the foot of the page, where nothing could be seen. It opens upward from the chip again, 320 px, inside the window.
+- Tests: `tests/segue_check.py` – 1 new, which checks it opens above the chip and inside the window with the name, the actions and the list (180 of 180).
+
 ## 11 November 2026 – Segue 0.17.1: the Projects panel opened too early
 
 Steve sent the note the tool makes: `async = null is not an object (evaluating 'PROJ.name')` at `paintProjPop`, Safari 26.5.

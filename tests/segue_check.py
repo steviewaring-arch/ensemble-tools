@@ -954,6 +954,12 @@ with sync_playwright() as p:
     pj = pg.evaluate("""()=>{const r=e=>document.querySelector(e).getBoundingClientRect();const p=r('#projBox'),v=r('#view'),i=r('#island'),pc=r('#pcap'),h=r('#selHint');
       return {left:Math.round(p.left-v.left),bottom:Math.round(p.bottom-i.bottom),inPanel:!!document.querySelector('#panelBox #projBox'),clearIsl:Math.round(i.left-p.right),clearPc:Math.round(pc.left-i.right),
         hi:Math.round(h.left-v.left),hTop:Math.round(h.top-r('.topbar').top),same:Math.round(p.height-i.height)};}""")
+    pg.click('#projBtn'); time.sleep(.5)
+    pop = pg.evaluate("""()=>{const p=document.querySelector('#projPop'),b=document.querySelector('#projBtn'),r=p.getBoundingClientRect(),br=b.getBoundingClientRect();
+      return {hidden:p.hidden,above:Math.round(br.top-r.bottom),left:Math.round(r.left-br.left),inWin:r.top>=0&&r.bottom<=innerHeight,w:Math.round(r.width),name:!!p.querySelector('.proj-field'),rows:p.querySelectorAll('.proj-row').length};}""")
+    pg.keyboard.press('Escape'); time.sleep(.3)
+    check('…and it opens upward from the chip, inside the window, with the name, what you can do and every project',
+          pop['hidden'] is False and 0 <= pop['above'] <= 16 and pop['left'] == 0 and pop['inWin'] and pop['w'] >= 300 and pop['name'] and pop['rows'] >= 1, str(pop))
     check('The project sits on the bottom line with the play bar and the presets (0.17) – the same height, in that order, out of the panel; the guide has the top left to itself',
           pj['left'] == 0 and pj['bottom'] == 0 and not pj['inPanel'] and pj['clearIsl'] >= 0 and pj['clearPc'] >= 0 and pj['same'] == 0 and pj['hi'] == 0 and pj['hTop'] == 0, str(pj))
     pg.locator('#panel .media-list .slot').nth(0).locator('.slot-main').click(); time.sleep(.4)

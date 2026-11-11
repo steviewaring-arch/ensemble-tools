@@ -1028,6 +1028,9 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .proj-field{width:100%;box-sizing:border-box;font-weight:500}
 .proj-acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 14px}
 .proj-acts>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);justify-content:center;font-size:12.5px}
+/* the Projects panel opens upward from the chip on the bottom line, and stays inside the window (0.17.1 –
+   it was lost when the chip moved down, so it opened below the foot of the page) */
+.pop.proj-pop{left:0;right:auto;width:320px;top:auto;bottom:calc(100% + 8px);padding:14px 14px 12px;max-height:min(70vh,640px);overflow-y:auto}
 .proj-pop .sub-head{margin:2px 0 8px;padding-top:12px;border-top:1px solid var(--hair)}
 .proj-list{display:flex;flex-direction:column;gap:6px}
 .proj-row .slot-top{display:flex;align-items:center;gap:10px}
@@ -1174,7 +1177,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.17.1</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.17.2</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
