@@ -473,29 +473,30 @@ with sync_playwright() as p:
         with pg.expect_download(timeout=240000) as d:
             pg.locator('#islandSheets .btn-row .pill.primary').click()
             for i in range(30):
-                time.sleep(.15); st = pg.evaluate("[document.querySelector('#islandSheets .btn-row .pill.primary').disabled,document.querySelector('#islandSheets .progress>i').style.width,document.querySelector('#toast').textContent]")
+                # 0.17: the Download button is the progress – it carries .run and fills as it goes
+                time.sleep(.15); st = pg.evaluate("[document.querySelector('#islandSheets .xgo').classList.contains('run'),document.querySelector('#islandSheets .xgo').style.getPropertyValue('--p'),document.querySelector('#exportOpen').textContent.trim()]")
                 prog.append(st)
                 if not st[0]: break
         path = os.path.join(OUT, d.value.suggested_filename); d.value.save_as(path); got[fmt] = (d.value.suggested_filename, os.path.getsize(path))
-        time.sleep(.4); got[fmt] += (pg.locator('#toast').text_content(), any(s[0] for s in prog), pg.locator('#islandSheets .btn-row .pill.primary').is_disabled())
+        time.sleep(.4); got[fmt] += (pg.locator('#toast').text_content(), any(s[0] for s in prog), pg.evaluate("document.querySelector('#islandSheets .xgo').classList.contains('run')"))
     check('Download PNG, GIF and MP4: each saves, named from File name and size, and says so in the island',
           all(got[f][0] == f'Bar_test_270x338.{f}' and got[f][1] > 200 and 'Saved' in got[f][2] and not got[f][4] for f in got), json.dumps({k: v[:3] for k, v in got.items()}))
-    check('while one is being made the button waits and the island shows how far it’s got', got['gif'][3] or got['mp4'][3], json.dumps({k: v[3] for k, v in got.items()}))
+    check('while one is being made the button is the progress, and the island’s Export shows it too (0.17)', got['gif'][3] or got['mp4'][3], json.dumps({k: v[3] for k, v in got.items()}))
     gim = Image.open(os.path.join(OUT, got['gif'][0])); check('the GIF is the canvas size, the PNG too', gim.size == (270, 338) and Image.open(os.path.join(OUT, got['png'][0])).size == (270, 338), str(gim.size))
     # Stop
     pg.evaluate("segue.set('cSize','4:5');segue.applyPreset('Zoom through')"); time.sleep(.3)
     pg.evaluate("ensembleUI.open('export')"); time.sleep(.3)
     pg.locator('#islandSheets .seg[aria-label=Format] > button', has_text='GIF').click(); pg.locator('#islandSheets .seg[aria-label="GIF size"] > button', has_text='Full').click(); time.sleep(.1)
     pg.locator('#islandSheets .btn-row .pill.primary').click(); time.sleep(.8)
-    stop_shown = pg.locator('#islandSheets .btn-row .pill.small', has_text='Stop').is_visible()
+    stop_shown = pg.locator('#islandSheets .btn-row .xstop', has_text='Stop').is_visible()
     # a full-size GIF frame keeps the page busy for most of a second here, and a robot's click takes several round trips
-    t_stop = time.time(); pg.locator('#islandSheets .btn-row .pill.small', has_text='Stop').click(timeout=20000)
+    t_stop = time.time(); pg.locator('#islandSheets .btn-row .xstop', has_text='Stop').click(timeout=20000)
     for i in range(80):
         if not pg.evaluate("segue.busy"): break
         time.sleep(.25)
     t_stop = time.time() - t_stop
-    st = pg.evaluate("[segue.busy,document.querySelector('#islandSheets .btn-row .pill.primary').disabled,document.querySelector('#islandSheets .btn-row .pill.small').hidden,document.querySelector('#toast').textContent]")
-    check('Stop: shown while a GIF or MP4 is made, and it stops – the button is back', stop_shown and st[:3] == [False, False, True] and 'Stopped' in st[3] and t_stop < 6, f'{st}, stopped in {t_stop:.1f} s')
+    st = pg.evaluate("[segue.busy,document.querySelector('#islandSheets .xgo').classList.contains('run'),document.querySelector('#islandSheets .xstop').hidden,document.querySelector('#toast').textContent]")
+    check('Stop: shown while a GIF or MP4 is made, and it stops – the button is the download again', stop_shown and st[:3] == [False, False, True] and 'Stopped' in st[3] and t_stop < 6, f'{st}, stopped in {t_stop:.1f} s')
     pg.mouse.click(1380, 200); time.sleep(.5)
     check('a click on the work shuts the sheet', pg.evaluate("document.querySelector('[data-sheet=export]').hidden"))
     check('no errors on the page', not errs, '; '.join(errs[:3]))

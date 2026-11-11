@@ -270,7 +270,7 @@ function fitCanvas(){
   /* the preview draws at the size it shows (sharp on a retina screen), never above the real size */
   const k=Math.min(1,cw*(devicePixelRatio||1)/W),bw=Math.max(1,Math.round(W*k)),bh=Math.max(1,Math.round(H*k));
   if(cv.width!==bw||cv.height!==bh){cv.width=bw;cv.height=bh;}
-  $('#dims').textContent=`${W} × ${H}`;$('#dims').title=`The loop comes out at ${W} × ${H} pixels`;dirty=true;}
+  $('#dims').textContent=`${W} × ${H}`;dirty=true;}
 function planNow(){return E.plan(S,items.length?items:Array.from({length:6},()=>({})));}
 function render(){
   const [W,H]=size(),P=planNow(),t=((clock%P.L)+P.L)%P.L;
@@ -287,11 +287,11 @@ function syncVideos(sc){const want=new Map();for(const o of sc.ops)if(o.item.kin
   for(const it of items){if(it.kind!=='video'||!it.el)continue;const v=it.el,t=want.get(it);
     if(t==null){if(!v.paused)v.pause();continue;}
     const d=Math.max(.01,it.dur||v.duration||1),tt=((t%d)+d)%d;
-    if(playing&&!busy){if(v.paused)v.play().catch(()=>{});if(wrapD(v.currentTime,tt,d)>.25&&!v.seeking)v.currentTime=tt;}
+    if(playing){if(v.paused)v.play().catch(()=>{});if(wrapD(v.currentTime,tt,d)>.25&&!v.seeking)v.currentTime=tt;}
     else{if(!v.paused)v.pause();if(wrapD(v.currentTime,tt,d)>.02&&!v.seeking)v.currentTime=tt;}}}
 function tick(now){const dt=lastT?Math.min(100,now-lastT):0;lastT=now;
-  if(playing&&!busy){clock+=dt/1000;dirty=true;}
-  if(dirty&&!busy){dirty=false;try{render();}catch(e){console.error(e);}}
+  if(playing){clock+=dt/1000;dirty=true;}
+  if(dirty){dirty=false;try{render();}catch(e){console.error(e);}}
   requestAnimationFrame(tick);}
 /* The canvas (0.6). Hover a piece and it's outlined, and its row in Media lights up; click it to
    select it – its row opens – and drag it: inside its frame where it's cropped (the rest of the
@@ -369,7 +369,7 @@ function drawUI(){if($('.app').classList.contains('preview'))return;const [W,H]=
     /* the ring: the picture inside a shape you can also move */
     if(!inCrop&&so.frame&&canCrop(so)&&!(grab&&grab.whole)){const cx=so.rect.x+so.rect.w/2,cy=so.rect.y+so.rect.h/2;ctx.beginPath();ctx.arc(cx,cy,8*lw,0,7);ctx.fillStyle='rgba(255,255,255,.92)';ctx.fill();ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,2.5*lw,0,7);ctx.fillStyle='#111111';ctx.fill();}}
   ctx.restore();}
-cv.addEventListener('pointerdown',e=>{if(busy||e.button!==0)return;const [x,y]=canvasPt(e);
+cv.addEventListener('pointerdown',e=>{if(e.button!==0)return;const [x,y]=canvasPt(e);
   const take=()=>{e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);};
   /* cropping: the picture's corners zoom it, a drag anywhere on it moves it, a click away finishes */
   if(cropId){const co=opOf(cropId);if(co&&canCrop(co)){const g=cropBox(co),tol=9/scrPx(),cx=g.x+g.w/2,cy=g.y+g.h/2;
@@ -397,13 +397,13 @@ cv.addEventListener('pointermove',e=>{const [x,y]=canvasPt(e);
   dirty=true;});
 const letGo=()=>{if(!grab)return;const g=grab;grab=null;cv.classList.remove('grabbing');if(g.moved&&g.mode!=='click')saveItems();selectItem(g.it.id,true);};
 cv.addEventListener('pointerup',letGo);cv.addEventListener('pointercancel',letGo);cv.addEventListener('pointerleave',()=>{if(!grab)setHover(null);});
-cv.addEventListener('dblclick',e=>{if(busy)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!canCrop(o)){return;}selId=o.item.id;cropId=o.item.id;setPlaying(false);dirty=true;});
+cv.addEventListener('dblclick',e=>{const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!canCrop(o)){return;}selId=o.item.id;cropId=o.item.id;setPlaying(false);dirty=true;});
 document.addEventListener('keydown',e=>{if(cropId&&(e.key==='Escape'||e.key==='Enter')){cropId=null;dirty=true;}});
 cv.addEventListener('wheel',e=>{if(!e.altKey)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;e.preventDefault();setPlaying(false);
   const it=o.item,[lo,hi]=zRange(o);it.zm=+clamp((+it.zm||100)*Math.exp(-e.deltaY*.0025),lo,hi).toFixed(1);selId=it.id;dirty=true;
   clearTimeout(zoomT);zoomT=setTimeout(()=>{saveItems();openRows.add(it.id);paintMedia();},250);},{passive:false});
 /* the arrow keys nudge the selected piece (0.9): a px at a time, ten with Shift – a cropped piece moves its picture inside its frame */
-document.addEventListener('keydown',e=>{if(!selId||busy||!/^Arrow/.test(e.key)||e.metaKey||e.ctrlKey||e.altKey)return;const a=document.activeElement;
+document.addEventListener('keydown',e=>{if(!selId||!/^Arrow/.test(e.key)||e.metaKey||e.ctrlKey||e.altKey)return;const a=document.activeElement;
   if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable||(a.closest&&a.closest('.ctl,.seg,.kinds,.way,.stp-g,.trim'))))return;
   const o=opOf(selId);if(!o||!(o.frame||croppable(o)))return;e.preventDefault();const it=o.item,n=e.shiftKey?10:1,dx=e.key==='ArrowLeft'?-n:e.key==='ArrowRight'?n:0,dy=e.key==='ArrowUp'?-n:e.key==='ArrowDown'?n:0;
   if(o.whole||o.frame){it.ox=Math.round((+it.ox||0)+dx);it.oy=Math.round((+it.oy||0)+dy);}
@@ -440,7 +440,7 @@ let nudgeT=0;
   controls.push({d:{},w:btn,update(){btn.setAttribute('aria-pressed',!!S.guides);}});}
 document.addEventListener('keydown',e=>{if(!(e.metaKey||e.ctrlKey)||e.key.toLowerCase()!=='d'||e.shiftKey||e.altKey)return;const a=document.activeElement;
   if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;if(!selId)return;e.preventDefault();duplicateItem(selId);});
-document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!selId||busy)return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;selId=null;dirty=true;});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!selId)return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;selId=null;dirty=true;});
 /* the moment a piece is best seen: in Slides, as its slide has arrived; otherwise when it's
    biggest and nearest the middle of the canvas */
 function momentOf(it){const P=planNow(),[W,H]=size();
@@ -469,6 +469,14 @@ function fitLoop(T){T=clamp(+T||0,.5,600);const L0=planNow().L;if(!(L0>0)||Math.
   E.resetMeasure();dirty=true;paintMedia();refreshAll();toastUndo(`Loop ${planNow().L.toFixed(2)} s`);}
 {const c=$('#loopChip');typable(c,{label:'Loop length in seconds',get:()=>+planNow().L.toFixed(2),put:fitLoop,min:.5,max:600,show:()=>`${planNow().L.toFixed(1)} s loop`});
   c.dataset.tip='Click to set how long the loop lasts – every time in it is scaled to fit';}
+/* 0.17 – everything up there you can act on says so when you point at it: the loop types a new length,
+   the size and the count take you to the section that sets them. Nothing up there is decoration. */
+function jumpTo(id,tip){const card=$(`#panel section.card[data-id=${id}]`);if(!card)return;
+  if(card.classList.contains('collapsed'))card.querySelector('.card-toggle').click();
+  card.scrollIntoView({behavior:'smooth',block:'start'});card.classList.add('flash');setTimeout(()=>card.classList.remove('flash'),900);}
+for(const [sel,id,tip] of [['#dims','canvas','The size the loop comes out at – click for Canvas'],['#countChip','media','Click for Media']]){
+  const e=$(sel);if(!e)continue;e.classList.add('typable');e.tabIndex=0;e.setAttribute('role','button');e.dataset.tip=tip;
+  e.onclick=()=>jumpTo(id);e.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();jumpTo(id);}};}
 /* the play bar (0.11): a faint tick where each slide (or stop) begins its time on screen */
 let tickSig='';
 function paintTicks(P){const box=$('#ticks');if(!box)return;const at=(P.segs||[]).filter(g=>g.k==='hold'||g.k==='grid').map(g=>g.t0/P.L).filter(x=>x>=0&&x<1);
@@ -651,7 +659,7 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
     if(shp){G('position','Position');
       itemRange(cur,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(cur,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
       itemRange(cur,it,{label:'Size',key:'fz',min:20,max:400,step:1,def:100,unit:'%',tip:'This slide’s shape bigger or smaller than the rest'});
-      hint('Or drag the shape on the canvas – its corners size it; the arrow keys nudge it.');if(!crop)resetRow();}
+      hint('The arrow keys nudge it on the canvas – hold Shift for ten at a time.');if(!crop)resetRow();}   /* what to drag is said once, by the guide top left (0.17) */
     if(own||crop){G(own?'position':'crop',own?'Position':'Crop');const again=()=>paintMediaKeepFocus();
       if(own){itemRange(cur,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(cur,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
         itemRange(cur,it,{label:'Size',key:'zm',min:20,max:400,step:1,def:100,unit:'%',tip:'This slide bigger or smaller than the rest'});
@@ -660,7 +668,7 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
         if(zoomed||wide)itemRange(cur,it,{label:'Across',key:'px',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows across: −100% the right edge, 100% the left'});
         if(zoomed||tall)itemRange(cur,it,{label:'Up and down',key:'py',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows up and down: −100% the bottom, 100% the top'});
         itemRange(cur,it,{label:'Zoom',key:'zm',min:100,max:400,step:1,def:100,unit:'%',change:again,tip:'Crop in tighter. Zoomed in, it can move both ways.'});
-        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it.':shp?'Or on the canvas: drag the ring at its centre to move the picture in its shape – double-click to zoom it too.':'Or drag it on the canvas to move it in its frame – double-click to zoom it too; the arrow keys nudge it.');}
+        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it.':'The arrow keys nudge the picture in its frame – hold Shift for ten at a time.');}
       resetRow();}}
   /* its own blend and opacity – and, once it blends, what it blends with */
   G('look','Look',null,()=>[it.blend&&it.blend!=='normal'?optLabel(BLENDS,it.blend):'',it.opa!=null&&+it.opa<100?`${Math.round(+it.opa)}%`:''].filter(Boolean).join(' · ')||'Normal');
@@ -750,7 +758,7 @@ const KIND_ICON={
   wall:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="2" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="13" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="24" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="2" y="15" width="9" height="11" rx="1.5" class="dim"/><rect x="13" y="15" width="9" height="11" rx="1.5"/><rect x="24" y="15" width="9" height="11" rx="1.5"/><rect x="34.5" y="15" width="9" height="11" rx="1.5" class="dim"/><rect x="34.5" y="2" width="9" height="11" rx="1.5" class="dim"/></svg>'};
 function pickKind(k){if(k==='line')k=['up','down'].includes(S.dir)?'column':'row';if(S.layout!==k){set('layout',k);clock=0;}}
 function kindTiles(parent){const w=el('div','ctl kinds-ctl'),hd=el('div','ctl-head'),g=el('div','kinds');hd.append(el('span',null,'Kind'));g.setAttribute('role','group');g.setAttribute('aria-label','Kind');
-  const bs=KINDS.map(([v,t,tip])=>{const b=el('button','kind');b.type='button';b.innerHTML=KIND_ICON[v];b.append(el('span',null,t));b.dataset.tip=tip;b.onclick=()=>pickKind(v);g.append(b);return[v,b];});
+  const bs=KINDS.map(([v,t,tip])=>{const b=el('button','kind');b.type='button';b.dataset.k=v;b.innerHTML=KIND_ICON[v];b.append(el('span',null,t));b.dataset.tip=tip;b.onclick=()=>pickKind(v);g.append(b);return[v,b];});
   w.append(hd,g);parent.append(w);controls.push({d:{},w,update(){const k=KIND(S);bs.forEach(([v,b])=>b.setAttribute('aria-pressed',v===k));}});}
 const MOVES_ONE=[['cut','Cut','Straight to the next'],['fade','Fade','One into the next'],['dip','Dip','Out to the background, then up into the next'],['wipe','Wipe','A straight edge crosses the canvas'],
   ['slide','Push','The next pushes this one out'],['stack','Cover','The next slides in over this one'],['open','Open','A window opens from the middle onto the next'],['zoom','Zoom','This one grows away as the next fades up'],
@@ -1154,6 +1162,10 @@ function paintPresets(){presetBox.textContent='';
   /* a preset is a small drawing of it and its name; what it does is in its tooltip */
   const row=(p,own)=>{try{row1(p,own);}catch(e){reportError(e,'preset '+p.name);const r=el('div','slot preset-row'),m=el('div','slot-main');m.append(el('div','slot-name',p.name));m.setAttribute('role','button');m.tabIndex=0;m.onclick=()=>{applyPreset(p);paintPresets();};r.append(m);presetBox.append(r);}};
   const row1=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),ic=el('span','pk');try{ic.innerHTML=presetPic(p.s);}catch(e){}
+    /* what the little drawing does when you point at it: slides swap over, strips and grids travel the way they go, a pile builds */
+    try{const sp=Object.assign({},D,p.s),kk=E.kindOf(sp),u=DV[sp.dir]||DV.up,still=E.moveOf?E.moveOf(sp)==='still':false;
+      ic.dataset.anim=kk==='one'?(sp.pile?'pile':'swap'):still?'none':'shift';
+      if(ic.dataset.anim==='shift'){ic.style.setProperty('--dx',(u[0]*-3).toFixed(1)+'px');ic.style.setProperty('--dy',(u[1]*-3).toFixed(1)+'px');}}catch(e){}
     if(p.tip||own)main.dataset.tip=p.tip||(optLabel(KINDS,E.kindOf(p.s))+' – one of yours');main.append(nm);top.append(ic);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
     top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);r.classList.add('on');}
     if(own){const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Delete';rm.setAttribute('aria-label','Delete '+p.name);

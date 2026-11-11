@@ -1,5 +1,19 @@
 # Changelog
 
+## 11 November 2026 – Segue 0.17: Export as one control, the bottom line, a guide where you're looking
+
+Steve, 13:13: "on the export panel … I have on occasion clicked this thinking that I am exporting the mp4 … the stop button should feel cleaner next to whatever we land on with the export button – matching height … can this integrate with the % left? Add in a time estimate also? On the presets (and also 'kind') how feasible is it to bring in simple animations to the little visual cues? … if I click about on export, will this affect the export? It would be useful to keep on working / collapse the export bar. A little module could appear on complete (think apple notifications) … ensure the chips top right match the same style as the ones in export." And 13:19: "If I can change something in the top right, it should have a subtle hover … can this [the double-click guide] work in a form of dynamic island … sitting top left? Where we have the Saved element, should that sit along the bottom maybe – with presets."
+
+- **Export says what it does.** The button in the bar carries a chevron and a tip – it opens the choice of format; the Download in the sheet is what makes the file.
+- **The button becomes the progress.** While a file is being made, both the sheet's Download and the bar's Export fill from the left and read "Making the GIF · 23% · about 40 s left" (the bar shows just the per cent). A thin line underneath marks the exact point. **Stop** sits beside each, the same height.
+- **Work carries on.** An export now draws from a copy of the settings, pieces and pictures taken the moment it started – its own video elements, so its seeking and the preview's playing don't fight. Change anything, play, drag, open another section: the file comes out as it was when you pressed Download. The sheet can be shut and the bar keeps the progress.
+- **A note when it lands.** If the sheet is shut when it finishes, a small note appears top right – a tick, the file name and its size – and goes by itself (a dash and grey if it was stopped or failed). With the sheet open it says so in the bar, as before.
+- **The bottom line** is the work: **the project** (name, Saved, its list) now sits bottom left with the play bar and the presets, the same height and shape as both. It was top left. Where the line is tight the project keeps its mark and loses its name, then the play bar shortens, and a note in the bar gives way last – never one you can press Undo on.
+- **The guide, top left** – where the project used to be. It says what the thing you've selected does under the pointer ("Drag to move · corners to size · the ring, or a double-click, moves the picture inside"), and nothing when there's nothing to say. The piece's own rows no longer repeat it: they say what the keyboard does instead.
+- **Chips of one family.** The ones over the canvas and the ones in Export are now the same height, shape, type and numerals. Each one over the canvas does something: the loop types a new length, the size opens Canvas, the count opens Media – and all three say so on hover.
+- **The drawings move when you point at them.** Every Kind tile and every preset drawing does a little of what it is – slides swap over, strips and grids travel the way they go, a pile builds. Two seconds, subtle, and off for anyone who asks for less motion.
+- Tests: `tests/segue_check.py` – 7 new (Export's chevron, the progress and Stop, work carrying on, the sheet shut and the note, the chips as one family, the size chip, the drawings), 2 updated; `tests/segue_ui_check.py` – the export and Stop checks follow the new button.
+
 ## 11 November 2026 – The house rules rewritten; the sync list for Rubato, Tempo and Tutti
 
 Steve: "run UI principles through Rubato, Tutti (if required) and let me know any action points … update the UI Ensemble house style … the call was made to pause and get Segue in a place. After this run, I think now is the time."

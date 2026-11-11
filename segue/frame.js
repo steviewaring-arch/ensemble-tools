@@ -126,17 +126,34 @@ function layoutUI(){
   const app=$('.app'),isl=$('#island'),pc=$('#pcap');if(!app||!isl)return;topFit();
   if(innerWidth<=860){isl.style.left='';islMore();return;}
   const g=12,W=app.clientWidth,away=app.classList.contains('preview')&&!app.classList.contains('peek'),pw=away?0:$('#panelBox').offsetWidth;
-  const L=away?g:g*2+pw,R=W-g;let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
-  iw=Math.min(iw,R-L);let limit=R;if(pc&&!pc.hidden){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
+  const R=W-g,pj=$('#projBox'),base=away?g:g*2+pw;   /* the project sits on this line too, bottom left (0.17) */
+  app.classList.remove('tight-bar');
+  const leftEdge=()=>pj&&!away&&pj.offsetWidth?Math.max(base,pj.getBoundingClientRect().right-app.getBoundingClientRect().left+8):base;
+  let L=leftEdge();let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
+  let limit=R;if(pc&&!pc.hidden){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
+  /* three on one line – the project, the play bar, the presets: the scrub takes whatever's left, up to 300 (0.17) */
+  const sc=$('#scrub'),st=$('#toast');if(sc){sc.style.width='100px';
+    /* a note in the bar comes and goes, so it doesn't count towards the room – it shortens itself instead */
+    const rest=isl.querySelector('.island-in').offsetWidth-100-(st?st.offsetWidth:0),room=()=>limit-L-16-rest;
+    /* the play bar is the thing you use: the project loses its name before the bar gives up much of its length */
+    if(room()<200&&!away){app.classList.add('tight-bar');L=leftEdge();}
+    /* what gives way, in order: the project's name, then the play bar down to 100, then the note – and a note you can
+       press Undo on never goes, because that's the only way back */
+    /* a note comes and goes, so it never shortens the play bar below 200 – the bar mustn't change length under you */
+    const undoable=!!(st&&st.querySelector('.undo')),need=st&&st.classList.contains('on')?Math.max(0,Math.min(150,room()-200)):0;
+    const w=Math.round(Math.max(100,Math.min(300,room()-need)));sc.style.width=w+'px';
+    if(st){const nr=room()-w;st.style.maxWidth=Math.max(0,Math.round(Math.min(360,nr)))+'px';st.classList.toggle('squeezed',nr<90&&!undoable);}
+    isl.style.maxWidth=Math.max(240,Math.round(limit-L))+'px';iw=isl.offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);}
+  iw=Math.min(iw,R-L);
   let x=(L+R)/2;if(x+iw/2>limit)x=limit-iw/2;if(x-iw/2<L)x=L+iw/2;isl.style.left=Math.round(x)+'px';}
 /* the project chip top left and the chips top right share one line: where it's tight the info chips
    (size, loop, pieces) step aside first, then the saved state – never the name or the tools */
-function topFit(){const app=$('.app'),pb=$('#projBox'),tb=$('.topbar');if(!app||!pb||!tb)return;app.classList.remove('tight','tighter');
-  if(app.classList.contains('preview')){const h=$('#selHint');if(h)h.hidden=true;return;}const over=()=>pb.getBoundingClientRect().right+12>tb.getBoundingClientRect().left;
-  if(over())app.classList.add('tight');if(over())app.classList.add('tighter');
-  /* what a drag does to the selected piece – in the gap between the two, where there's room for it (0.14) */
-  const sh=$('#selHint');if(sh){const ab=app.getBoundingClientRect(),l=pb.getBoundingClientRect().right-ab.left+16,r=tb.getBoundingClientRect().left-ab.left-16,ok=!!sh.textContent&&r-l>=240&&!app.classList.contains('tight');
-    sh.hidden=!ok;if(ok){sh.style.left=Math.round(l)+'px';sh.style.width=Math.round(r-l)+'px';}}}
+function topFit(){const app=$('.app'),tb=$('.topbar'),sh=$('#selHint');if(!app||!tb)return;
+  app.classList.toggle('tight',app.clientWidth-(app.classList.contains('preview')?0:$('#panelBox').offsetWidth)<520);
+  /* 0.17 – the guide, top left where the project used to be: it shows only when there's room beside the tools, never in Preview */
+  if(!sh)return;if(!sh.textContent||app.classList.contains('preview')){sh.hidden=true;return;}
+  sh.hidden=false;const ab=app.getBoundingClientRect(),l=sh.getBoundingClientRect().left-ab.left,room=tb.getBoundingClientRect().left-ab.left-12-l;
+  if(room<180){sh.hidden=true;return;}sh.style.maxWidth=Math.round(room)+'px';}
 const ICON_EXPAND='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M11.5 2.5 7.8 6.2M5.5 11.5h-3v-3M2.5 11.5l3.7-3.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.5 5.5h-3v-3M8.5 5.5l3.3-3.3M2.5 8.5h3v3M5.5 8.5l-3.3 3.3" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function setPanel(open){const app=$('.app');app.classList.toggle('peek',!!open);const p=$('#panelBtn');if(p){p.setAttribute('aria-expanded',!!open);const t=open?'Hide the panel':'Show the panel';p.dataset.tip=t;p.setAttribute('aria-label',t);}layoutUI();}
@@ -342,6 +359,11 @@ panel.addEventListener('scroll',()=>{if(tipFor)hideTip();},{passive:true});
 /* ---------------- status and downloads ---------------- */
 let toastT=0;function toast(m,hold){const t=$('#toast');t.textContent=m;t.title=m;t.classList.add('on');clearTimeout(toastT);if(!hold)toastT=setTimeout(()=>t.classList.remove('on'),2800);}
 /* a bigger change says what it did, with Undo beside it – not while an export is running */
+/* a note top right, for something that finished while you were elsewhere (0.17) – it goes by itself; a click sends it sooner */
+function notice(title,sub,quiet){const n=$('#notice');if(!n)return;n.textContent='';n.classList.toggle('quiet',!!quiet);const ic=el('span','n-ic');
+  ic.innerHTML=quiet?'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4 7h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>':'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="m3.4 7.3 2.4 2.4 4.8-5.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const tx=el('span','n-tx');tx.append(el('b',null,title),el('span',null,sub||''));n.append(ic,tx);n.hidden=false;n.classList.remove('out');clearTimeout(notice.t);
+  const go=()=>{n.classList.add('out');setTimeout(()=>{n.hidden=true;},260);};notice.t=setTimeout(go,7000);n.onclick=()=>{clearTimeout(notice.t);go();};}
 function toastUndo(m){if(busy)return;const t=$('#toast');t.textContent='';t.append(el('span',null,m));const u=el('button','undo','Undo');u.type='button';
   u.onclick=e=>{e.stopPropagation();undo();};t.append(u);t.title=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),5000);}
 let dlNs=null;const dlReady=(window.claude&&typeof claude.use==='function')?claude.use('downloads').then(n=>dlNs=n).catch(()=>null):Promise.resolve(null);
@@ -365,7 +387,7 @@ function frameStart(){
   {const b=$('#themeBtn');b.dataset.tip='Light or dark';b.onclick=()=>setTheme(document.body.dataset.theme==='dark'?'light':'dark',true);setTheme(LS.get('mode')==='dark'?'dark':'light');}
   const pb=$('#previewBtn');setPreview(false);pb.onclick=()=>setPreview(!$('.app').classList.contains('preview'));
   $('#panelBtn').onclick=e=>{e.stopPropagation();setPanel(!$('.app').classList.contains('peek'));};
-  const eo=$('#exportOpen');eo.dataset.tip='Save or download what’s on the stage';eo.onclick=e=>{e.stopPropagation();SHEETS.export&&SHEETS.export.el.hidden?openSheet('export'):closeSheets();};
+  const eo=$('#exportOpen');eo.dataset.tip='Choose a format and download what’s on the stage';eo.onclick=e=>{e.stopPropagation();SHEETS.export&&SHEETS.export.el.hidden?openSheet('export'):closeSheets();};
   $('#pcapOpen').onclick=e=>{e.stopPropagation();SHEETS.presets&&SHEETS.presets.el.hidden?openSheet('presets'):closeSheets();};
   $('#stage').addEventListener('pointerdown',e=>{if(anySheet()){closeSheets();e.stopPropagation();}else if($('.app').classList.contains('peek')){setPanel(false);e.stopPropagation();}},true);
   window.addEventListener('keydown',e=>{

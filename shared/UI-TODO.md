@@ -2,13 +2,20 @@
 
 ## GO: the house sync (Steve, 10 Nov 23:30 – "after this run, I think now is the time")
 
-Segue is in place (0.16, 11 Nov): every setting audited by machine, the panel in the order of work, one way to switch things on, no bolt-on tier. `shared/UI.md` was rewritten on 11 Nov as the current house rules (the Project's `claude/house-ui-rules.md` is the same file) – read it first; it now has ten principles and three new sections (The panel as a whole, Switches, On the canvas, Checking a tool).
+Segue is in place (0.17, 11 Nov): every setting audited by machine, the panel in the order of work, one way to switch things on, no bolt-on tier, the export as one control and the work on the bottom line. `shared/UI.md` was rewritten on 11 Nov as the current house rules (the Project's `claude/house-ui-rules.md` is the same file) – read it first; it now has ten principles and three new sections (The panel as a whole, Switches, On the canvas, Checking a tool).
 
 Run this in one pass across **Rubato** (first – it's being shared next), **Tempo** and **Tutti**. Not Decentish or Patch – they're websites. Segue is the reference: copy its parts, don't reinvent them.
 
 **First:** `git pull`; read `shared/UI.md`, Segue's `frame.js`, `app.css` and the kit; take baselines of every suite on main (11 Nov: Tutti 84/84, Tempo 124/124, Rubato features 43/43 and 14 looks identical, Segue 171/171 and 83/83).
 
 ### A. Bring Segue's house parts across (all three tools)
+
+0. **New since this list was written (Segue 0.17, 11 Nov)** – all four of these are house rules now:
+   - **The bottom line**: the project chip moves out of the top left and on to the bottom line with the play bar and the presets, the same height and shape; the line gives way in order (project name, then the play bar, then a note – never one with an Undo). Tempo and Rubato have no projects yet, so this is Segue-only until they do.
+   - **The guide, top left** (`#selHint` + `topFit` in Segue's `frame.js`): one line saying what the selected thing does under the pointer; the panel's rows say the keyboard. Rubato's canvas (kerning, dragging a lockup) is the obvious next home for it.
+   - **Long jobs** (Export): the opening button carries a chevron; the doing button becomes the progress (fill, per cent, time left) with Stop beside it at the same height; the job runs from a copy so the person can carry on; a note top right (`notice()` in Segue's `frame.js`) when the sheet is shut as it ends. Tutti's recorder and Rubato's exports both want this; `notice()` and the `.run` button CSS should move to the shared kit when the second tool needs them.
+   - **Drawings that move** on hover (preset pictures, Kind tiles). Rubato's Movement and Order drawings are the candidates.
+
 
 1. **Top bar** – keyline groups top right: info chips, Undo and Redo, zoom (−, value, +; fit and 100%), Guides (on/off, an arrow to Margin, Grid, Snap). View settings live here, never in exports.
 2. **Change dots and undo** – blue `--k-dot`, click to put back, section Reset, ⌘Z / ⇧⌘Z and the top-bar buttons. Each tool needs "where a setting started": Tempo – the preset open, else defaults; Rubato – defaults; Tutti – each input's starting value.
@@ -66,7 +73,7 @@ Section names repeat (four "Change", five "Colour", "From your other designs" ×
 
 ## History
 
-- **11 Nov:** Segue 0.11–0.16 (in the Segue chat) – blends that make layers, the project chip, Layout apart from Motion, Pile up, cropping by double-click, the settings audit, switch groups, no Additionals. `shared/UI.md` rewritten. Safari 17 sheet fallback shared with Rubato and Tempo.
+- **11 Nov:** Segue 0.11–0.17 (in the Segue chat) – blends that make layers, the project chip, Layout apart from Motion, Pile up, cropping by double-click, the settings audit, switch groups, no Additionals, the export as one control and the bottom line. `shared/UI.md` rewritten. Safari 17 sheet fallback shared with Rubato and Tempo.
 - **10 Nov 12:03:** Steve: "wait for now until Segue is in a place, then we can run through the hitlist above on all in one clean go."
 - **6–9 Nov:** Segue 0.6–0.10 – layers, guides, the Snap, the Wall, Rows, projects, the top bar; thin scrollbars on every tool.
 - **6 Nov 09:30 – released:** the house kit on every tool. Segue 0.5.3, Tempo 0.12, Rubato 1.2, Tutti 6.2. All suites green, Tutti's 12 export hashes identical to 6.1.1, Tutti checked on weareensemble.co.uk/tutti and /tutti/app.

@@ -4,19 +4,27 @@
 /* ---------------- frames ---------------- */
 function seek(v,t){return new Promise(res=>{let done=false;const fin=()=>{if(done)return;done=true;v.removeEventListener('seeked',fin);res();};
   v.addEventListener('seeked',fin);try{v.currentTime=t;}catch(e){fin();}setTimeout(fin,4000);});}
+/* What an export draws from (0.17). While one runs it's a copy taken when it started – the settings, the pieces (each
+   video on an element of its own, so the export's seeking and the preview's playing don't fight) and the pictures – so
+   you can carry on working, and nothing you change gets into the file half way. Otherwise it's the live state. */
+let XS=S,XI=null,XP=PICS;const xPlan=()=>E.plan(XS,XI||(items.length?items:Array.from({length:6},()=>({}))));
+async function xBegin(){XS=JSON.parse(JSON.stringify(S));XP=Object.assign({},PICS);
+  XI=await Promise.all(items.map(async it=>{const c=Object.assign({},it);if(it.kind==='video'&&it.el){const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';
+    await new Promise(res=>{let d=false;const fin=()=>{if(!d){d=true;res();}};v.onloadeddata=fin;v.onerror=fin;setTimeout(fin,8000);v.src=it.el.currentSrc||it.el.src;v.load();});c.el=v;c.src=v;}return c;}));}
+function xEnd(){for(const it of XI||[])if(it.kind==='video'&&it.el){try{it.el.removeAttribute('src');it.el.load();}catch(e){}}XS=S;XI=null;XP=PICS;}
 async function frameAt(c,x,W,H,t,k){
-  const sc=E.scene(S,items,x,FONTS,W,H,t),want=new Map();
+  const sc=E.scene(XS,XI||items,x,FONTS,W,H,t),want=new Map();
   for(const o of sc.ops)if(o.item.kind==='video'&&o.time!=null&&!want.has(o.item))want.set(o.item,o.time);
   for(const [it,tm] of want){const v=it.el,d=Math.max(.01,it.dur||v.duration||1),tt=Math.min(d-1e-3,((tm%d)+d)%d);if(Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
-  crispNow=S.xCrisp!==false;try{E.paint(x,sc,S,FONTS,{scale:k||1,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});}finally{crispNow=false;}}
-async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>S[r+'F']));if(S.ovOn&&S.ovKind==='text')used.add(S.OF);
+  crispNow=XS.xCrisp!==false;try{E.paint(x,sc,XS,FONTS,{scale:k||1,media:drawMedia,bgImg:XP.bg,ovImg:XP.ov});}finally{crispNow=false;}}
+async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>XS[r+'F']));if(XS.ovOn&&XS.ovKind==='text')used.add(XS.OF);
   await Promise.all([...used].map(id=>FONTS[id]?document.fonts.load(fontStr(FONTS[id])).catch(()=>null):null));await document.fonts.ready;E.resetMeasure();}
 let stopFlag=false;
 /* n frames across the loops; when the loop isn't a whole number of frames long, each frame's
    moment is stretched by a fraction of a frame so the file still loops exactly */
 async function eachFrame(W,H,fps,n,fn,progress,len,k){
   k=k||1;const c=document.createElement('canvas');c.width=W*k;c.height=H*k;const x=c.getContext('2d',{willReadFrequently:true}),step=len?len/n:1/fps;
-  for(const it of items)if(it.el)it.el.pause();
+  for(const it of (XI||items))if(it.el)it.el.pause();
   /* hand the page back at least every 50 ms, so the progress shows and Stop is heard (a full-size GIF frame takes most of a second) */
   let breath=performance.now();
   for(let i=0;i<n;i++){if(stopFlag)throw new Error('stopped');await frameAt(c,x,W,H,i*step,k);await fn(c,x,i);if(progress)progress((i+1)/n);
@@ -133,8 +141,8 @@ function chunkVideoRange(data){/* length-prefixed NALs: fix any SPS carried in t
    Safari on a Mac) softens fine detail at that – High gives it room, Best more. */
 const MP4_Q={std:16,high:32,best:50};
 /* Size (0.4.4): 2× draws every frame at twice the pixels each way – the layout is the same, the type and media are drawn sharper, and the colour (kept at half size by H.264) is as fine as a 1× file's pixels. For MP4 and PNG. */
-function outSize(){const [W,H]=size(),k=S.xFormat!=='gif'&&+S.xScale===2?2:1;return [W*k,H*k,k];}
-function mp4Bitrate(){const [W,H]=outSize(),fps=+S.fps||30;return Math.round((MP4_Q[S.xQ]||32)*1e6*(W*H)/(1080*1350)*fps/30);}
+function outSize(s){s=s||S;const [W,H]=E.canvasSize(s),k=s.xFormat!=='gif'&&+s.xScale===2?2:1;return [W*k,H*k,k];}
+function mp4Bitrate(s){s=s||S;const [W,H]=outSize(s),fps=+s.fps||30;return Math.round((MP4_Q[s.xQ]||32)*1e6*(W*H)/(1080*1350)*fps/30);}
 /* Which setup actually honours the bitrate. Steve's three renders at 16, 32 and 50 Mbps all came
    out at 16.5 MB (Safari, Intel iMac): the encoder kept its own quality whatever it was asked.
    Chrome's hardware H.264 encoder on a Mac does the same in variable mode (w3c/webcodecs#430).
@@ -184,7 +192,7 @@ async function pickEncoder(W,H,fps,bitrate){
   return first?Object.assign(first,{honours:false}):{cfg:setups[0],honours:false};}
 async function makeMP4(progress){
   if(!window.VideoEncoder||!window.Mp4Muxer)throw new Error('This browser can’t write MP4 – try Chrome, Edge or Safari');
-  const [W,H,k]=outSize(),fps=+S.fps||30,P=planNow(),n=Math.max(1,Math.round(P.L*(+S.xLoops||1)*fps)),bitrate=mp4Bitrate();
+  const [W,H,k]=outSize(XS),fps=+XS.fps||30,P=xPlan(),n=Math.max(1,Math.round(P.L*(+XS.xLoops||1)*fps)),bitrate=mp4Bitrate(XS);
   toast('Finding the encoder that keeps the quality…',true);
   const pick=await pickEncoder(W,H,fps,bitrate);if(!pick)throw new Error('This browser can’t encode video');
   const cfg=pick.cfg,codec=cfg.codec,kind=codec.startsWith('vp09')?'vp9':'avc';encUsed=pick;
@@ -197,9 +205,9 @@ async function makeMP4(progress){
       muxer.addVideoChunk(chunk,meta);}catch(e){err=e;}},error:e=>{err=e;}});
   enc.configure(Object.assign({contentHint:'detail'},cfg));let stall=0;
   const Y=new Uint8Array(W*H),U=new Uint8Array((W>>1)*(H>>1)),V=new Uint8Array((W>>1)*(H>>1)),buf=new Uint8Array(W*H*3/2);
-  await eachFrame(W/k,H/k,fps,n,async(c,x,i)=>{if(err)throw err;const d=x.getImageData(0,0,W,H).data;toI420(d,W,H,Y,U,V);if(S.xChroma!==false)sharpChroma(d,W,H,Y,U,V);buf.set(Y,0);buf.set(U,W*H);buf.set(V,W*H+U.length);
+  await eachFrame(W/k,H/k,fps,n,async(c,x,i)=>{if(err)throw err;const d=x.getImageData(0,0,W,H).data;toI420(d,W,H,Y,U,V);if(XS.xChroma!==false)sharpChroma(d,W,H,Y,U,V);buf.set(Y,0);buf.set(U,W*H);buf.set(V,W*H+U.length);
     const f=new VideoFrame(buf,{format:'I420',codedWidth:W,codedHeight:H,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});enc.encode(f,{keyFrame:i%fps===0});f.close();
-    stall=0;while(enc.encodeQueueSize>4){await new Promise(r=>setTimeout(r,2));if((stall+=2)>15000)throw new Error('the video encoder stopped responding');}},progress,P.L*(+S.xLoops||1),k);
+    stall=0;while(enc.encodeQueueSize>4){await new Promise(r=>setTimeout(r,2));if((stall+=2)>15000)throw new Error('the video encoder stopped responding');}},progress,P.L*(+XS.xLoops||1),k);
   await enc.flush();enc.close();if(err)throw err;muxer.finalize();return new Blob([muxer.target.buffer],{type:'video/mp4'});}
 /* ---------------- GIF ---------------- */
 /* Made for showcase GIFs, which are usually Photoshop's job. A frame that doesn't change isn't
@@ -233,8 +241,8 @@ function gifPalette(cnt,sr,sg,sb,max){
   return{pal,count,index,near};}
 const GIF_TOL=2;   /* a pixel within this of what's showing is left as it is (video noise) */
 async function makeGIF(progress){
-  const [W0,H0]=size(),k=+S.xGifScale||.5,W=Math.max(2,Math.round(W0*k)),H=Math.max(2,Math.round(H0*k)),fps=+S.xGifFps||20,P=planNow();
-  const len=P.L,n=Math.max(1,Math.round(len*fps)),dither=!!S.xDither;   /* a GIF loops for ever: one loop is enough */
+  const [W0,H0]=E.canvasSize(XS),k=+XS.xGifScale||.5,W=Math.max(2,Math.round(W0*k)),H=Math.max(2,Math.round(H0*k)),fps=+XS.xGifFps||20,P=xPlan();
+  const len=P.L,n=Math.max(1,Math.round(len*fps)),dither=!!XS.xDither;   /* a GIF loops for ever: one loop is enough */
   const out=document.createElement('canvas');out.width=W;out.height=H;const ox=out.getContext('2d',{willReadFrequently:true});ox.imageSmoothingQuality='high';
   const buf=new ByteBuf();buf.s('GIF89a');buf.w(W);buf.w(H);buf.b(0x70);buf.b(0);buf.b(0);
   buf.b(0x21);buf.b(0xFF);buf.b(11);buf.s('NETSCAPE2.0');buf.b(3);buf.b(1);buf.w(0);buf.b(0);
@@ -264,11 +272,11 @@ async function makeGIF(progress){
     flush(cs(i));pend={cs:cs(i),bytes:fb.out(),see};},progress,len);
   flush(Math.round(len*100));
   buf.b(0x3B);const blob=new Blob([buf.out()],{type:'image/gif'});blob.gifFrames=frames;return blob;}
-async function makePNG(){const [W,H,k]=outSize(),P=planNow(),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+async function makePNG(){const [W,H,k]=outSize(XS),P=xPlan(),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
   await frameAt(c,x,W/k,H/k,((clock%P.L)+P.L)%P.L,k);return await new Promise(r=>c.toBlob(r,'image/png'));}
 /* ---------------- the Export sheet ---------------- */
 const fileName=ext=>{const [W,H]=ext==='gif'?size():outSize();const base=(S.name||'Segue').trim().replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_')||'Segue';return `${base}_${W}x${H}.${ext}`;};
-let xBar,xInfo,xGo,xStop;
+let xInfo,xGo,xStop;
 {const b=card('export','Export');
   build(b,[{t:'seg',k:'xFormat',label:'Format',opts:[['mp4','MP4'],['gif','GIF'],['png','PNG','The frame on the stage now, at full size']]},
     {t:'seg',k:'xQ',label:'Quality',opts:[['std','Standard'],['high','High'],['best','Best']],show:s=>s.xFormat==='mp4',tip:'How much detail the video keeps: Standard 16, High 32, Best 50 Mbps at 1080 × 1350 – more is crisper and a bigger file'},
@@ -283,15 +291,25 @@ let xBar,xInfo,xGo,xStop;
   addHint(b,'Still slides cost almost nothing in a GIF – each is written once and held. Anything that moves is written frame by frame, so the file grows with every second of it: half size at 15 fps keeps it manageable.',s=>s.xFormat==='gif'&&gifMoves(s));
   addHint(b,'Safari makes MP4s with its video-call encoder, which keeps its own quality – for the crispest MP4, export in Chrome.',s=>s.xFormat==='mp4'&&isSafari);
   xInfo=el('div','xinfo');xInfo.setAttribute('aria-live','polite');addCustom(b,null,xInfo);
-  const pr=el('div','progress');xBar=el('i');pr.append(xBar);addCustom(b,null,pr);
-  const r=el('div','ctl btn-row');xGo=el('button','pill primary','Download');xGo.type='button';xStop=el('button','pill small','Stop');xStop.type='button';xStop.hidden=true;r.append(xGo,xStop);addCustom(b,null,r);
-  xStop.onclick=()=>{stopFlag=true;};
-  xGo.onclick=async()=>{if(busy)return;const f=S.xFormat;busy=true;stopFlag=false;xGo.disabled=true;xStop.hidden=f==='png';xBar.style.width='0%';const t0=performance.now();
-    try{await fontsReady();const prog=p=>{xBar.style.width=Math.round(p*100)+'%';toast(`Making the ${f.toUpperCase()} – ${Math.round(p*100)}%`,true);};
-      const blob=f==='gif'?await makeGIF(prog):f==='png'?await makePNG():await makeMP4(prog);
-      await saveFile(fileName(f),blob);lastSize[f]=blob.size;const rate=f==='mp4'?` at ${(blob.size*8/(planNow().L*(+S.xLoops||1))/1e6).toFixed(1)} Mbps`:'';toast(`Saved ${fileName(f)} – ${mb(blob.size)}${rate}`);exportInfo();if(f==='mp4'&&encUsed)console.log('segue: encoder',encUsed.cfg.hardwareAcceleration,encUsed.cfg.bitrateMode,'honours bitrate:',encUsed.honours,encUsed.full,encUsed.third);console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
-    catch(e){toast(e.message==='stopped'?'Stopped':`Couldn’t make it – ${e.message||e}`);console.error(e);}
-    finally{busy=false;stopFlag=false;xGo.disabled=false;xStop.hidden=true;dirty=true;}};
+  /* 0.17: one button that is the progress while it works – its fill, the % and the time left in it – with Stop beside it at
+     the same height. The island's Export shows the same, so the sheet can be shut and work carried on. */
+  const r=el('div','ctl btn-row xrun');xGo=el('button','pill primary xgo','Download');xGo.type='button';xStop=el('button','pill xstop','Stop');xStop.type='button';xStop.hidden=true;r.append(xGo,xStop);addCustom(b,null,r);
+  const eo=$('#exportOpen'),eoT=eo.querySelector('.t'),es=$('#exportStop');
+  const left=(p,t0)=>{const el_=(performance.now()-t0)/1000;if(p<.04||el_<1.5)return '';const s=el_*(1-p)/p;return s<8?'a few seconds left':s<55?`about ${Math.max(10,Math.round(s/5)*5)} s left`:`about ${Math.max(1,Math.round(s/60))} min left`;};
+  const show=(on,p,t0,f)=>{for(const e of [xGo,eo]){e.classList.toggle('run',on);e.style.setProperty('--p',on?(p*100).toFixed(1)+'%':'0%');if(on)e.setAttribute('aria-busy','true');else e.removeAttribute('aria-busy');}
+    xStop.hidden=es.hidden=!on||f==='png';
+    if(on){const pc=Math.round(p*100)+'%',l=left(p,t0);xGo.textContent=`Making the ${f.toUpperCase()} · ${pc}${l?' · '+l:''}`;eoT.textContent=pc;eo.dataset.tip=l?`Making the ${f.toUpperCase()} – ${l}. You can carry on working.`:`Making the ${f.toUpperCase()}. You can carry on working.`;}
+    else{eoT.textContent='Export';eo.dataset.tip='Choose a format and download what’s on the stage';exportInfo();}};
+  xStop.onclick=es.onclick=e=>{e.stopPropagation();stopFlag=true;};
+  xGo.onclick=async()=>{if(busy)return;const f=S.xFormat;busy=true;stopFlag=false;const t0=performance.now(),name=fileName(f);show(true,0,t0,f);
+    try{if(f!=='png')await xBegin();await fontsReady();const prog=p=>show(true,p,t0,f);
+      const blob=f==='gif'?await makeGIF(prog):f==='png'?await makePNG():await makeMP4(prog);const L=xPlan().L*(f==='mp4'?(+XS.xLoops||1):1);
+      await saveFile(name,blob);lastSize[f]=blob.size;const rate=f==='mp4'?` at ${(blob.size*8/L/1e6).toFixed(1)} Mbps`:'';
+      /* done: said in the island if the sheet's open; if you'd shut it and carried on, a note top right */
+      if(SHEETS.export&&!SHEETS.export.el.hidden)toast(`Saved ${name} – ${mb(blob.size)}${rate}`);else notice('Saved',`${name} · ${mb(blob.size)}`);
+      if(f==='mp4'&&encUsed)console.log('segue: encoder',encUsed.cfg.hardwareAcceleration,encUsed.cfg.bitrateMode,'honours bitrate:',encUsed.honours,encUsed.full,encUsed.third);console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
+    catch(e){const m=e.message==='stopped'?'Stopped':`Couldn’t make it – ${e.message||e}`;if(SHEETS.export&&!SHEETS.export.el.hidden)toast(m);else notice(m==='Stopped'?'Export stopped':'Export failed',m==='Stopped'?name:String(e.message||e),true);if(e.message!=='stopped')console.error(e);}
+    finally{xEnd();busy=false;stopFlag=false;show(false);dirty=true;}};
   cardToSheet(b,'export');
   /* the sheet keeps one height whatever the format, so the choice you've just pressed stays under the pointer
      and Download stays put: on opening it's measured at its tallest and held there */
@@ -301,7 +319,7 @@ let xBar,xInfo,xGo,xStop;
 const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
 /* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
 function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
-function exportInfo(){if(!xInfo)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
+function exportInfo(){if(!xInfo||busy)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
   /* what you'll get, as a row of chips – a detail, not a sentence */
   const chips=f==='png'?[[`${W} × ${H}`],['This frame','The frame on the stage now']]

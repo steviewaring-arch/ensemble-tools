@@ -46,20 +46,28 @@ What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `cl
   dragged 280–480 px by its right edge (remembered per tool). The edge has no mark –
   the resize pointer is the sign – and its strip is thin enough (4 px) to stay clear
   of the scrollbar.
-- **The project**, top left over the work, in line with the top bar – a chip with its
-  name and how it's saved; its panel lists every project with a picture. The project
-  is the work, not a setting, so it sits out of the panel. (Tools that keep projects.)
+- **The project**, bottom left, on the line with the play bar and the presets and the
+  same height and shape as both – its name, how it's saved, and a list of every
+  project with a picture. The work belongs with the work, not among the view's
+  settings, and the top left is left for the guide. (Tools that keep projects.)
+- **The guide**, top left: one quiet line saying what the thing you've selected does
+  under the pointer, and nothing when there's nothing to say. It is said there, once:
+  the panel's own rows say what the keyboard does instead.
 - **Top bar**, top right, in keyline groups: the info chips (facts about the work),
   then Undo and Redo, zoom (−, the value, +), Guides (on and off, an arrow to its
   settings), Preview and light or dark. A setting that belongs to the *view*, not the
   work, lives here and never reaches an export. Its settings open in a small panel
   under the button – the panel's own surface and rows, shut by a click outside or
-  Esc. Where the line is tight, the info chips step aside first, then "Saved" – never
-  the name or the tools.
+  Esc. Anything up there you can act on says so when you point at it, and everything
+  up there can be acted on: the value types, the facts take you to the section that
+  sets them.
 - **Island**, bottom centre: what changes the view (Play, Show, scrub) and **Export**,
   which opens its sheet upward. Status and Undo show here. A play bar is long enough
   to aim at (300 px, less on a narrow window), with a fine tick where each step starts.
 - **Presets**, bottom right, the island's height – where a tool has presets.
+- **The bottom line gives way in order** when the window is narrow: the project keeps
+  its mark and loses its name, then the play bar shortens, then a note in the bar –
+  and never a note carrying an Undo, because that is the only way back.
 - **The work** fits the clear space, on a **pasteboard** of sparse, faint dots (24 px
   apart) so the canvas reads as the canvas. **Preview** (F) fills the window, slides
   the panel away and drops the dots; Esc leaves.
@@ -214,11 +222,29 @@ both).
 - **No modifier keys for the main things.** Shift for finer, arrows to nudge and
   ⌘Z are extras, never the only way.
 - **Handles only where they work.** A piece that fills its frame has no corners.
-- **It says what a drag will do** – one quiet line in the top bar's gap, for the
-  selected piece, where there's room.
+- **It says what a drag will do** – the guide, top left, for the selected piece,
+  where there's room.
 - **Clicking a piece's row takes the work to that piece**, and the other way round.
 - **Guides** are a margin and a grid (cells across, rows dividing evenly), with snap;
   they belong to the view.
+
+## Long jobs
+
+- **The button that starts it is the one that reports it.** A button that opens a
+  choice says so with a chevron; the one that does the thing does only that. While it
+  works, that button *is* the progress – it fills from the left and reads what it's
+  making, how far it's got and roughly how long is left ("Making the GIF · 23% ·
+  about 40 s left"), with a thin line marking the exact point. Where the same job can
+  be started from the bar, the bar shows it too, shorter.
+- **Stop sits beside it**, the same height, and appears only while there's something
+  to stop.
+- **Nothing is frozen.** A long job works from a copy of the state taken when it
+  started, so the person can carry on – play, drag, change settings, shut the sheet –
+  and what comes out is what they asked for.
+- **A note when it lands.** If the sheet that started it is shut when it finishes, a
+  small note appears top right – what happened, and the detail under it – and goes by
+  itself after a few seconds; a click sends it sooner. A tick when it worked, a dash
+  and grey when it was stopped or failed. With the sheet open, the bar says it.
 
 ## What's changed, and undo
 
@@ -235,8 +261,17 @@ both).
 ## Details as moments
 
 Facts are chips, not sentences: Export's "what you'll get" (`540 × 675` · `18.6 s` ·
-`20 fps` · `Loops`), the top bar's size and loop length, "In use", "Yours". The
-first chip (the size) is white; the rest grey. A chip's sentence goes in its tooltip.
+`20 fps` · `Loops`), the top bar's size and loop length, "In use", "Yours". One
+family wherever they appear – same height, shape, type and numerals – with the ones
+over the work keeping a keyline, since they sit on the picture. The first chip (the
+size) is white; the rest grey. A chip's sentence goes in its tooltip.
+
+## Drawings that move
+
+A drawing that stands for a choice – a preset's picture, a Kind's tile – does a
+little of what it is when you point at it: two seconds, subtle, looping, and only
+under the pointer or focus. Slides swap over, strips and grids travel the way they
+go, a pile builds. Nothing moves for anyone who has asked for less motion.
 
 ## Steadiness
 

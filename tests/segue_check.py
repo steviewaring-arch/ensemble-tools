@@ -927,7 +927,7 @@ with sync_playwright() as p:
     pg.evaluate("()=>{segue.items[1].blend='normal';segue.refresh();}"); time.sleep(.3)
     tk = pg.evaluate("""()=>{const P=segue.plan(),hs=P.segs.filter(g=>g.k==='hold'),ts=[...document.querySelectorAll('#ticks i')].map(e=>parseFloat(e.style.left));
       const w=document.querySelector('#scrub').getBoundingClientRect().width;return {n:ts.length,slides:hs.length,ts,want:hs.map(h=>h.t0/P.L*100),w};}""")
-    check('The play bar is longer and marks each slide with a fine tick where it starts', tk['n'] == tk['slides'] and tk['n'] >= 3 and tk['w'] >= 250
+    check('The play bar is longer and marks each slide with a fine tick where it starts', tk['n'] == tk['slides'] and tk['n'] >= 3 and tk['w'] >= 200
           and all(abs(a - b) < 1 for a, b in zip(tk['ts'], tk['want'])), str(tk))
     mv = pg.evaluate("""()=>{const c=document.createElement('canvas').getContext('2d'),out={};segue.applyPreset('Masonry drift');
       const shown=()=>segue.ui.controls.filter(x=>x.w&&x.w.isConnected&&!x.w.hidden&&!x.w.closest('[hidden]')).map(x=>x.d.k);out.before=shown().includes('inMove');out.off=segue.S.inMove;
@@ -951,9 +951,11 @@ with sync_playwright() as p:
     pg.mouse.move(cvb['x'] + cvb['width'] - 2, cvb['y'] + cvb['height'] - 2); pg.mouse.down(); pg.mouse.move(cvb['x'] + cvb['width'] - 40, cvb['y'] + cvb['height'] - 30, steps=6); pg.mouse.up(); time.sleep(.3)
     hd = pg.evaluate("()=>({zm:segue.items[0].zm,sel:segue.sel===segue.items[0].id,pos:!segue.ui.controls.find(c=>c.d&&c.d.k==='nudgeX').w.closest('.fold').hidden})")
     check('A full-bleed slide has no corner handles to scale it (it fills its frame – crop zoom does that), and no Position section', hd['zm'] == 100 and hd['sel'] and not hd['pos'], str(hd))
-    pj = pg.evaluate("""()=>{const r=e=>document.querySelector(e).getBoundingClientRect();const p=r('#projBox'),v=r('#view'),t=r('.topbar'),pn=r('#panelBox');
-      return {left:Math.round(p.left-v.left),top:Math.round(p.top-t.top),inPanel:!!document.querySelector('#panelBox #projBox'),clear:p.right<=t.left,h:Math.round(p.height-t.height)};}""")
-    check('The project chip sits out of the panel, top left over the canvas, in line with the top bar', pj['left'] == 0 and pj['top'] == 0 and not pj['inPanel'] and pj['clear'] and abs(pj['h']) <= 1, str(pj))
+    pj = pg.evaluate("""()=>{const r=e=>document.querySelector(e).getBoundingClientRect();const p=r('#projBox'),v=r('#view'),i=r('#island'),pc=r('#pcap'),h=r('#selHint');
+      return {left:Math.round(p.left-v.left),bottom:Math.round(p.bottom-i.bottom),inPanel:!!document.querySelector('#panelBox #projBox'),clearIsl:Math.round(i.left-p.right),clearPc:Math.round(pc.left-i.right),
+        hi:Math.round(h.left-v.left),hTop:Math.round(h.top-r('.topbar').top),same:Math.round(p.height-i.height)};}""")
+    check('The project sits on the bottom line with the play bar and the presets (0.17) – the same height, in that order, out of the panel; the guide has the top left to itself',
+          pj['left'] == 0 and pj['bottom'] == 0 and not pj['inPanel'] and pj['clearIsl'] >= 0 and pj['clearPc'] >= 0 and pj['same'] == 0 and pj['hi'] == 0 and pj['hTop'] == 0, str(pj))
     pg.locator('#panel .media-list .slot').nth(0).locator('.slot-main').click(); time.sleep(.4)
     dg = pg.evaluate("""()=>{const row=document.querySelector('.media-list .slot.open'),rng=row.querySelector('.slot-det input[type=range]'),top=row.querySelector('.slot-top .slot-name')||row.querySelector('.slot-top');
       const pd=e=>e.dispatchEvent(new PointerEvent('pointerdown',{bubbles:true}));const a=row.draggable;pd(rng);const b=row.draggable;pd(top);const c=row.draggable;
@@ -1084,6 +1086,47 @@ with sync_playwright() as p:
       segue.set('oneFit','bleed');o.bleed=vis('pile','toggle');segue.applyPreset('Float with title');o.float=[S.ovOn,S.ovText];segue.applyPreset('Posters');return o;}""")
     check('One way to switch a thing on (0.16): Border, Edge and Pile up each head their group with a box – Border’s width comes back as it was; Pile up isn’t offered for full bleed; Float with title shows a title',
           sw['off'] == [False, False] and sw['on'] == [True, True, True] and sw['off2'] == 0 and sw['back'] == 40 and sw['grp'] == [True, True] and sw['pile'] and not sw['bleed'] and sw['float'][0] is True and sw['float'][1], str(sw))
+
+    # ---- 0.17: Export as one control, the bottom line, the guide, chips of one family, drawings that move ----
+    pg.keyboard.press('Escape'); time.sleep(.2)
+    keepX = pg.evaluate("()=>({f:segue.S.xFormat,sc:segue.S.xGifScale,fps:segue.S.xGifFps})")
+    pg.evaluate("()=>{segue.applyPreset('Masonry drift');segue.set('xFormat','gif');segue.set('xGifScale',1);segue.set('xGifFps',25);}"); time.sleep(.5)
+    eo = pg.evaluate("()=>{const e=document.querySelector('#exportOpen');return {t:e.textContent.trim(),chev:!!e.querySelector('.chev'),tip:e.dataset.tip,stop:document.querySelector('#exportStop').hidden};}")
+    check('Export says it opens a choice – a chevron, and a tip that says so – rather than looking like the download itself', eo['t'] == 'Export' and eo['chev'] and 'Choose a format' in eo['tip'] and eo['stop'], str(eo))
+    pg.locator('#exportOpen').click(); time.sleep(.6)
+    pg.evaluate("document.querySelector('.sheet .xgo').click()"); time.sleep(2.2)
+    run = pg.evaluate("""()=>{const g=document.querySelector('.sheet .xgo'),e=document.querySelector('#exportOpen'),s=document.querySelector('#exportStop'),xs=document.querySelector('.sheet .xstop');
+      const h=x=>Math.round(x.getBoundingClientRect().height);return {go:g.textContent,p:parseFloat(g.style.getPropertyValue('--p')),run:g.classList.contains('run'),isl:e.textContent.trim(),islRun:e.classList.contains('run'),
+        stopShown:!s.hidden&&!xs.hidden,same:h(s)===h(e)&&h(xs)===h(g),busy:segue.busy};}""")
+    live = pg.evaluate("()=>{segue.setPlaying(true);const t0=segue.clock;segue.set('bg','#123456');return new Promise(r=>setTimeout(()=>{const m=segue.clock!==t0;segue.setPlaying(false);r({moved:m,bg:segue.S.bg});},500));}")
+    check('The Export button is the progress while it works – the fill, the per cent and the time left – and the island says the same, with Stop beside it at the same height',
+          run['run'] and run['islRun'] and run['p'] > 0 and 'GIF' in run['go'] and '%' in run['go'] and '%' in run['isl'] and run['stopShown'] and run['same'], str(run))
+    check('…and the work carries on while it runs: the loop still plays and settings still change (the file is made from a copy taken when it started)',
+          live['moved'] and live['bg'] == '#123456', str(live))
+    pg.keyboard.press('Escape'); time.sleep(.3)
+    shut = pg.evaluate("()=>({sheetShut:document.querySelector('.sheet[data-sheet=export]').hidden,still:segue.busy,isl:document.querySelector('#exportOpen').textContent.trim()})")
+    pg.evaluate("document.querySelector('#exportStop').click()"); time.sleep(1.4)
+    note = pg.evaluate("()=>{const n=document.querySelector('#notice');return {shown:!n.hidden,quiet:n.classList.contains('quiet'),t:n.textContent,back:document.querySelector('#exportOpen').textContent.trim(),busy:segue.busy};}")
+    check('The sheet can be shut while it works – the island keeps the progress and Stop – and a note says how it ended',
+          shut['sheetShut'] and shut['still'] and '%' in shut['isl'] and note['shown'] and note['quiet'] and 'stopped' in note['t'] and note['back'] == 'Export' and not note['busy'], f'{shut} {note}')
+    pg.evaluate("()=>{document.querySelector('#notice').hidden=true;segue.set('bg','#F5F5F3');segue.applyPreset('Straight cuts');}"); time.sleep(.4)
+    pg.locator('#exportOpen').click(); time.sleep(.5)
+    ch = pg.evaluate("""()=>{const r=e=>e.getBoundingClientRect(),f=[...document.querySelectorAll('.stage-foot span')].filter(e=>e.offsetParent);
+      const sh=document.querySelector('.xinfo .chip');const g=e=>{const c=getComputedStyle(e);return [Math.round(r(e).height),c.borderRadius,c.fontSize,c.fontWeight].join()};
+      return {foot:f.map(g),chip:sh?g(sh):null,act:f.map(e=>e.classList.contains('typable')),tips:f.map(e=>!!e.dataset.tip)};}""")
+    check('The chips over the canvas and the ones in Export are one family – same height, shape, type – and each one up there does something when you point at it',
+          ch['chip'] and all(x == ch['chip'] for x in ch['foot']) and all(ch['act']) and all(ch['tips']), str(ch))
+    pg.keyboard.press('Escape'); time.sleep(.3)
+    pg.evaluate("document.querySelector('#dims').click()"); time.sleep(.6)
+    jump = pg.evaluate("!document.querySelector('#panel section.card[data-id=canvas]').classList.contains('collapsed')")
+    check('…the size chip opens Canvas, where the size is set', jump is True)
+    pg.locator('#pcapOpen').click(); time.sleep(.8)
+    an = pg.evaluate("""()=>{const ks=[...document.querySelectorAll('.kind')].map(k=>k.dataset.k),ps=[...document.querySelectorAll('.preset-row .pk')].map(k=>k.dataset.anim);
+      return {ks,kinds:ks.every(Boolean),anims:[...new Set(ps)].sort(),all:ps.every(Boolean)};}""")
+    pg.keyboard.press('Escape'); time.sleep(.3)
+    check('Every Kind tile and every preset drawing knows how to move when you point at it – slides swap, strips travel, a pile builds',
+          an['kinds'] and an['all'] and 'swap' in an['anims'] and 'shift' in an['anims'] and 'pile' in an['anims'], str(an))
+    pg.evaluate("k=>{segue.set('xFormat',k.f);segue.set('xGifScale',k.sc);segue.set('xGifFps',k.fps);}", keepX); time.sleep(.3)
     pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false);segue.set('capOn',false)")
 
     # ---- exports ----

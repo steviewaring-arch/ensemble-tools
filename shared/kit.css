@@ -276,7 +276,8 @@
   .act-main{font-size:12px}
   .status{font-size:var(--fs-body)}
   .status.on{display:flex;align-items:center;gap:10px;line-height:normal;height:var(--h-isl)}
-  .status .undo{all:unset;cursor:pointer;font-weight:500;color:var(--ink-strong);box-shadow:inset 0 -1px 0 var(--hair);line-height:1.2}
+  .status>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* the message gives way; what you can press never does */
+  .status .undo{all:unset;flex:none;cursor:pointer;font-weight:500;color:var(--ink-strong);box-shadow:inset 0 -1px 0 var(--hair);line-height:1.2}
   .status .undo:hover{box-shadow:inset 0 -1px 0 var(--ink)}
   .status .undo:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
   .pc-row{padding:0 14px 0 4px}

@@ -177,19 +177,25 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .pop .hint{margin:8px 0 2px}
 @media (max-width:860px){#zoomTools,#historyTools{display:none}}
 /* the project (0.11): top left of the stage, in line with the top bar – a chip with its name and how it's saved */
-.projbar{position:absolute;left:calc(var(--gap)*2 + var(--pw));top:var(--gap);z-index:7;max-width:calc(100% - var(--pw) - var(--gap)*4 - 560px);min-width:160px}
-.proj-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;max-width:100%;height:var(--h-chip);padding:0 8px 0 12px;border-radius:var(--r-ctl);cursor:pointer;
-  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline);transition:background var(--t-snap)}
-.proj-btn:hover{background:var(--btn-hover)}
-.proj-btn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
-.proj-name{min-width:0;font-size:var(--fs-small);font-weight:500;color:var(--ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 0.17 – the project sits on the bottom line with the play bar and the presets, the same height and shape as both:
+   it's the piece of work, not a view setting, and the top line is left for what you're pointing at. */
+.projbar{position:absolute;left:calc(var(--gap)*2 + var(--pw));bottom:var(--gap);z-index:7;max-width:min(300px,calc(100% - var(--pw) - var(--gap)*4 - 420px));min-width:0}
+.proj-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;height:var(--h-bar);padding:0 14px 0 4px;border-radius:var(--r-surface);cursor:pointer;
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline);
+  transition:background var(--t-snap)}
+.proj-ic{width:var(--h-isl);height:var(--h-isl);border-radius:var(--r-ctl);background:var(--k-fill);display:flex;align-items:center;justify-content:center;color:var(--muted);flex:none}
+.proj-ic svg{width:14px;height:14px}
+.proj-btn:hover .proj-ic{color:var(--ink)}
+.proj-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.proj-name{min-width:0;font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .proj-state{flex:none;font-size:var(--fs-small);color:var(--muted)}
 .proj-state:not(:empty)::before{content:'·';margin-right:8px;color:var(--muted)}
-.proj-btn .chev{flex:none;width:12px;height:12px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
+.proj-btn .chev{flex:none;width:12px;height:12px;margin-left:auto;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
 .proj-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
 .app.preview .projbar{display:none}
-@media (max-width:860px){.projbar{left:var(--gap);max-width:46%;min-width:0}}
-.pop.proj-pop{left:0;right:auto;width:320px;top:calc(100% + 8px);padding:14px 14px 12px;max-height:min(70vh,640px);overflow-y:auto}
+@media (max-width:860px){.projbar{left:var(--gap);max-width:40%}.proj-state{display:none}}
+.app.tight-bar .proj-name,.app.tight-bar .proj-state,.app.tight-bar .proj-btn .chev{display:none}
+.app.tight-bar .proj-btn{padding:0 4px}
 .proj-field{width:100%;box-sizing:border-box;font-weight:500}
 .proj-acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 14px}
 .proj-acts>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);justify-content:center;font-size:12.5px}
@@ -208,16 +214,29 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .layer-sw{margin-bottom:12px}
 /* the play bar (0.11): longer, with a faint tick where each slide begins */
 .scrubw{position:relative;display:inline-flex;align-items:center;flex:none}
-@media (min-width:861px){.island #scrub{width:clamp(100px,calc(100vw - var(--pw,360px) - 640px),300px)}}
-.app.tight .topbar .stage-foot,.app.tighter .proj-state{display:none}
+/* the scrub's width is worked out in layoutUI, so the project, the play bar and the presets share the line */
+#island .status{flex:0 1 auto;min-width:0}
+#island .status.squeezed{display:none}
+#island .island-in{max-width:100%}
+#island #scrub,#island .scrubw{flex:none}
+.app.tight .topbar .stage-foot{display:none}
 .ticks{position:absolute;left:10px;right:10px;top:50%;height:10px;margin-top:-5px;pointer-events:none}
 .ticks i{position:absolute;top:0;width:1px;height:10px;margin-left:-.5px;background:color-mix(in srgb,var(--ink) 24%,transparent)}
 
 /* flat sheets for Safari 17 are in shared/components.css from 0.16 (every tool) */
 
 /* 0.14 – what a drag does to the selected piece, in the top line between the project chip and the tools */
-.selhint{position:absolute;top:var(--gap);height:var(--h-chip);z-index:6;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink-soft,var(--ink));opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;user-select:none}
+/* 0.17 – the guide: top left, where the project used to sit. It says what you can do with whatever you've just
+   selected, and nothing when there's nothing to say – one line, never a second thing to read. */
+.selhint{position:absolute;left:calc(var(--gap)*2 + var(--pw));top:var(--gap);z-index:6;display:flex;align-items:center;gap:8px;height:var(--h-chip);padding:0 12px 0 10px;border-radius:var(--r-ctl);
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline);
+  font-size:var(--fs-small);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;user-select:none;
+  animation:hintIn var(--t-smooth) var(--e-smooth)}
+.selhint::before{content:'';flex:none;width:5px;height:5px;border-radius:50%;background:var(--k-dot)}
+.selhint b{font-weight:500;color:var(--ink-strong)}
 .selhint[hidden]{display:none}
+@keyframes hintIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (max-width:860px){.selhint{left:var(--gap)}}
 /* a shut group says what it holds */
 .panel .fold-head[aria-expanded="false"] .sum{display:block;margin-left:10px;max-width:58%;font-weight:400;font-size:12px;color:var(--ink);opacity:.6;letter-spacing:0}
 .panel .fold-head[aria-expanded="false"] .cdot{margin-right:0}
@@ -237,3 +256,80 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .toggle-row.sw-grp>.q{position:static;margin:0 0 0 2px}
 .toggle-row.sw-grp:not(.on){margin-bottom:0}
 .card-body>.toggle-row.sw-grp:first-child{border-top:0;margin-top:0;padding-top:0}
+
+/* ---------------- 0.17: the export as one control, chips of one family, a note when something finishes ---------------- */
+/* Export opens a sheet – the chevron says so – and becomes the progress while it works: its fill, the per cent and
+   the time left, so the sheet can be shut and the work carried on. Stop sits beside it, the same height. */
+.ebtn.xopen .chev{width:10px;height:10px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
+.ebtn.xopen[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.ebtn.xopen:hover .chev{color:var(--ink)}
+.ebtn.run,.pill.xgo.run{position:relative;overflow:hidden;background:var(--k-fill);color:var(--ink);font-variant-numeric:tabular-nums;cursor:default}
+.ebtn.run::before,.pill.xgo.run::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);background:var(--k-fill-hover);transition:width .2s linear}
+.ebtn.run::after,.pill.xgo.run::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:var(--p,0%);background:var(--fill-ink);transition:width .2s linear}
+.ebtn.run>*,.pill.xgo.run{z-index:1}
+.ebtn.run>.chev{display:none}
+.pill.xgo.run>*{position:relative;z-index:1}
+.xrun{display:flex;gap:6px}
+.xrun .xgo{flex:1 1 auto}
+.ctl.btn-row.xrun>.xstop{flex:none;height:var(--h-ctl);padding:0 13px}
+.sheet .btn-row.xrun>.pill{height:36px}
+#exportStop{flex:none}
+/* the note: something finished while you were working elsewhere. It goes by itself; a click sends it sooner. */
+.notice{position:absolute;right:var(--gap);top:calc(var(--gap)*2 + var(--h-chip));z-index:9;display:flex;align-items:center;gap:10px;max-width:320px;padding:10px 14px 10px 12px;border-radius:var(--r-surface);
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline),0 8px 28px rgba(0,0,0,.1);
+  cursor:pointer;animation:noteIn .32s var(--e-smooth)}
+.notice.out{opacity:0;transform:translateY(-6px);transition:opacity .24s,transform .24s}
+.notice .n-ic{flex:none;width:22px;height:22px;border-radius:50%;background:var(--fill-ink);color:var(--on-ink);display:flex;align-items:center;justify-content:center}
+.notice.quiet .n-ic{background:var(--k-fill);color:var(--muted)}
+.notice .n-ic svg{width:12px;height:12px}
+.notice .n-tx{min-width:0;display:flex;flex-direction:column;gap:1px;line-height:1.3}
+.notice .n-tx b{font-size:var(--fs-small);font-weight:500;color:var(--ink-strong)}
+.notice .n-tx span{font-size:var(--fs-small);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes noteIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+/* one family of chips: the ones over the canvas and the ones in the export sheet – same height, shape, type and
+   numerals. The ones over the canvas keep their keyline, because they sit on the picture. */
+.stage-foot span{height:var(--h-chip);padding:0 10px;border-radius:var(--r-ctl);font-size:var(--fs-small);font-weight:500;color:var(--ink);letter-spacing:-0.005em}
+.xinfo .chip{height:var(--h-chip);padding:0 10px;border-radius:var(--r-ctl);font-size:var(--fs-small);font-weight:500}
+/* anything up there you can change says so when you point at it */
+.stage-foot span.typable{cursor:pointer;transition:background var(--t-snap),box-shadow var(--t-snap)}
+.stage-foot span.typable:hover{background:color-mix(in srgb,var(--ink) 7%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ink) 22%,transparent)}
+.stage-foot span.typable.editing{padding:0 4px}
+.stage-foot span.typable:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+/* the section you were sent to says so for a moment */
+.card.flash{animation:cardFlash .9s var(--e-smooth)}
+@keyframes cardFlash{0%,100%{box-shadow:none}25%{box-shadow:0 0 0 2px var(--k-dot)}}
+.stage-foot .val-in{width:5.5em;height:22px;text-align:center;font-size:var(--fs-small);font-variant-numeric:tabular-nums}
+/* ---------------- the drawings move when you point at them ---------------- */
+/* A preset's picture and a Kind's tile show what they do; on hover they do a little of it. Subtle, two seconds,
+   and never while the pointer is away – a label you can read, not a thing playing at you. */
+@media (prefers-reduced-motion:no-preference){
+  .kind:hover svg rect,.kind:focus-visible svg rect{animation:kNudge 2s var(--e-smooth) infinite}
+  .kind[data-k="one"]:hover svg rect:nth-child(1){animation:kOneA 2s var(--e-smooth) infinite}
+  .kind[data-k="one"]:hover svg rect:nth-child(2){animation:kOneB 2s var(--e-smooth) infinite}
+  .kind[data-k="line"]:hover svg rect,.kind[data-k="frames"]:hover svg rect:not(.line){animation:kLeft 2s var(--e-smooth) infinite}
+  .kind[data-k="frames"]:hover svg rect.line{animation:none}
+  .kind[data-k="grid"]:hover svg rect:nth-child(n+4){animation-delay:.18s}
+  .kind[data-k="columns"]:hover svg rect:nth-child(odd){animation:kUp 2s var(--e-smooth) infinite}
+  .kind[data-k="columns"]:hover svg rect:nth-child(even){animation:kDown 2s var(--e-smooth) infinite}
+  .kind[data-k="rows"]:hover svg rect:nth-child(n+4):nth-child(-n+6){animation:kRight 2s var(--e-smooth) infinite}
+  .kind[data-k="wall"]:hover svg rect:nth-child(even){animation-delay:.2s}
+  .kind[data-k="float"]:hover svg rect:nth-child(even){animation:kDown 2.6s var(--e-smooth) infinite}
+  .preset-row:hover .pk[data-anim="swap"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-a{animation:pA 2.2s var(--e-smooth) infinite}
+  .preset-row:hover .pk[data-anim="swap"] svg rect.pd-b,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-b{animation:pB 2.2s var(--e-smooth) infinite}
+  .preset-row:hover .pk[data-anim="shift"] svg rect,.preset-row:focus-within .pk[data-anim="shift"] svg rect{animation:pShift 2.2s var(--e-smooth) infinite}
+  .preset-row:hover .pk[data-anim="shift"] svg rect.pd-bg,.preset-row:hover .pk[data-anim="shift"] svg rect.pd-f,.preset-row:hover .pk[data-anim="shift"] svg rect.pd-o{animation:none}
+  .preset-row:hover .pk[data-anim="pile"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="pile"] svg rect.pd-a{animation:pPile 2.2s var(--e-smooth) infinite}
+  .preset-row:hover .pk svg rect.pd-bg{animation:none}
+}
+@keyframes kNudge{0%,62%,100%{transform:none}30%{transform:translateY(-1.2px)}}
+/* Slides: this one, then the next – a change of which is in front, never an empty tile */
+@keyframes kOneA{0%,22%{opacity:1}52%,74%{opacity:.38}100%{opacity:1}}
+@keyframes kOneB{0%,22%{opacity:.38}52%,74%{opacity:1}100%{opacity:.38}}
+@keyframes kLeft{0%,62%,100%{transform:none}30%{transform:translateX(-2.4px)}}
+@keyframes kRight{0%,62%,100%{transform:none}30%{transform:translateX(2.4px)}}
+@keyframes kUp{0%,62%,100%{transform:none}30%{transform:translateY(-2.4px)}}
+@keyframes kDown{0%,62%,100%{transform:none}30%{transform:translateY(2.4px)}}
+@keyframes pA{0%,20%{opacity:.86}55%,75%{opacity:.24}100%{opacity:.86}}
+@keyframes pB{0%,20%{opacity:.24}55%,75%{opacity:.86}100%{opacity:.24}}
+@keyframes pShift{0%,14%,100%{transform:none;opacity:inherit}50%,64%{transform:translate(var(--dx,0),var(--dy,0))}}
+@keyframes pPile{0%,12%{transform:translateY(5px);opacity:0}48%,100%{transform:none;opacity:.86}}

@@ -679,7 +679,8 @@
   .act-main{font-size:12px}
   .status{font-size:var(--fs-body)}
   .status.on{display:flex;align-items:center;gap:10px;line-height:normal;height:var(--h-isl)}
-  .status .undo{all:unset;cursor:pointer;font-weight:500;color:var(--ink-strong);box-shadow:inset 0 -1px 0 var(--hair);line-height:1.2}
+  .status>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* the message gives way; what you can press never does */
+  .status .undo{all:unset;flex:none;cursor:pointer;font-weight:500;color:var(--ink-strong);box-shadow:inset 0 -1px 0 var(--hair);line-height:1.2}
   .status .undo:hover{box-shadow:inset 0 -1px 0 var(--ink)}
   .status .undo:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
   .pc-row{padding:0 14px 0 4px}
@@ -1005,19 +1006,25 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .pop .hint{margin:8px 0 2px}
 @media (max-width:860px){#zoomTools,#historyTools{display:none}}
 /* the project (0.11): top left of the stage, in line with the top bar – a chip with its name and how it's saved */
-.projbar{position:absolute;left:calc(var(--gap)*2 + var(--pw));top:var(--gap);z-index:7;max-width:calc(100% - var(--pw) - var(--gap)*4 - 560px);min-width:160px}
-.proj-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;max-width:100%;height:var(--h-chip);padding:0 8px 0 12px;border-radius:var(--r-ctl);cursor:pointer;
-  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline);transition:background var(--t-snap)}
-.proj-btn:hover{background:var(--btn-hover)}
-.proj-btn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
-.proj-name{min-width:0;font-size:var(--fs-small);font-weight:500;color:var(--ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 0.17 – the project sits on the bottom line with the play bar and the presets, the same height and shape as both:
+   it's the piece of work, not a view setting, and the top line is left for what you're pointing at. */
+.projbar{position:absolute;left:calc(var(--gap)*2 + var(--pw));bottom:var(--gap);z-index:7;max-width:min(300px,calc(100% - var(--pw) - var(--gap)*4 - 420px));min-width:0}
+.proj-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;height:var(--h-bar);padding:0 14px 0 4px;border-radius:var(--r-surface);cursor:pointer;
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline);
+  transition:background var(--t-snap)}
+.proj-ic{width:var(--h-isl);height:var(--h-isl);border-radius:var(--r-ctl);background:var(--k-fill);display:flex;align-items:center;justify-content:center;color:var(--muted);flex:none}
+.proj-ic svg{width:14px;height:14px}
+.proj-btn:hover .proj-ic{color:var(--ink)}
+.proj-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.proj-name{min-width:0;font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .proj-state{flex:none;font-size:var(--fs-small);color:var(--muted)}
 .proj-state:not(:empty)::before{content:'·';margin-right:8px;color:var(--muted)}
-.proj-btn .chev{flex:none;width:12px;height:12px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
+.proj-btn .chev{flex:none;width:12px;height:12px;margin-left:auto;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
 .proj-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
 .app.preview .projbar{display:none}
-@media (max-width:860px){.projbar{left:var(--gap);max-width:46%;min-width:0}}
-.pop.proj-pop{left:0;right:auto;width:320px;top:calc(100% + 8px);padding:14px 14px 12px;max-height:min(70vh,640px);overflow-y:auto}
+@media (max-width:860px){.projbar{left:var(--gap);max-width:40%}.proj-state{display:none}}
+.app.tight-bar .proj-name,.app.tight-bar .proj-state,.app.tight-bar .proj-btn .chev{display:none}
+.app.tight-bar .proj-btn{padding:0 4px}
 .proj-field{width:100%;box-sizing:border-box;font-weight:500}
 .proj-acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:10px 0 14px}
 .proj-acts>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);justify-content:center;font-size:12.5px}
@@ -1036,16 +1043,29 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .layer-sw{margin-bottom:12px}
 /* the play bar (0.11): longer, with a faint tick where each slide begins */
 .scrubw{position:relative;display:inline-flex;align-items:center;flex:none}
-@media (min-width:861px){.island #scrub{width:clamp(100px,calc(100vw - var(--pw,360px) - 640px),300px)}}
-.app.tight .topbar .stage-foot,.app.tighter .proj-state{display:none}
+/* the scrub's width is worked out in layoutUI, so the project, the play bar and the presets share the line */
+#island .status{flex:0 1 auto;min-width:0}
+#island .status.squeezed{display:none}
+#island .island-in{max-width:100%}
+#island #scrub,#island .scrubw{flex:none}
+.app.tight .topbar .stage-foot{display:none}
 .ticks{position:absolute;left:10px;right:10px;top:50%;height:10px;margin-top:-5px;pointer-events:none}
 .ticks i{position:absolute;top:0;width:1px;height:10px;margin-left:-.5px;background:color-mix(in srgb,var(--ink) 24%,transparent)}
 
 /* flat sheets for Safari 17 are in shared/components.css from 0.16 (every tool) */
 
 /* 0.14 – what a drag does to the selected piece, in the top line between the project chip and the tools */
-.selhint{position:absolute;top:var(--gap);height:var(--h-chip);z-index:6;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink-soft,var(--ink));opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;user-select:none}
+/* 0.17 – the guide: top left, where the project used to sit. It says what you can do with whatever you've just
+   selected, and nothing when there's nothing to say – one line, never a second thing to read. */
+.selhint{position:absolute;left:calc(var(--gap)*2 + var(--pw));top:var(--gap);z-index:6;display:flex;align-items:center;gap:8px;height:var(--h-chip);padding:0 12px 0 10px;border-radius:var(--r-ctl);
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline);
+  font-size:var(--fs-small);color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;user-select:none;
+  animation:hintIn var(--t-smooth) var(--e-smooth)}
+.selhint::before{content:'';flex:none;width:5px;height:5px;border-radius:50%;background:var(--k-dot)}
+.selhint b{font-weight:500;color:var(--ink-strong)}
 .selhint[hidden]{display:none}
+@keyframes hintIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (max-width:860px){.selhint{left:var(--gap)}}
 /* a shut group says what it holds */
 .panel .fold-head[aria-expanded="false"] .sum{display:block;margin-left:10px;max-width:58%;font-weight:400;font-size:12px;color:var(--ink);opacity:.6;letter-spacing:0}
 .panel .fold-head[aria-expanded="false"] .cdot{margin-right:0}
@@ -1065,6 +1085,83 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .toggle-row.sw-grp>.q{position:static;margin:0 0 0 2px}
 .toggle-row.sw-grp:not(.on){margin-bottom:0}
 .card-body>.toggle-row.sw-grp:first-child{border-top:0;margin-top:0;padding-top:0}
+
+/* ---------------- 0.17: the export as one control, chips of one family, a note when something finishes ---------------- */
+/* Export opens a sheet – the chevron says so – and becomes the progress while it works: its fill, the per cent and
+   the time left, so the sheet can be shut and the work carried on. Stop sits beside it, the same height. */
+.ebtn.xopen .chev{width:10px;height:10px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
+.ebtn.xopen[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.ebtn.xopen:hover .chev{color:var(--ink)}
+.ebtn.run,.pill.xgo.run{position:relative;overflow:hidden;background:var(--k-fill);color:var(--ink);font-variant-numeric:tabular-nums;cursor:default}
+.ebtn.run::before,.pill.xgo.run::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);background:var(--k-fill-hover);transition:width .2s linear}
+.ebtn.run::after,.pill.xgo.run::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:var(--p,0%);background:var(--fill-ink);transition:width .2s linear}
+.ebtn.run>*,.pill.xgo.run{z-index:1}
+.ebtn.run>.chev{display:none}
+.pill.xgo.run>*{position:relative;z-index:1}
+.xrun{display:flex;gap:6px}
+.xrun .xgo{flex:1 1 auto}
+.ctl.btn-row.xrun>.xstop{flex:none;height:var(--h-ctl);padding:0 13px}
+.sheet .btn-row.xrun>.pill{height:36px}
+#exportStop{flex:none}
+/* the note: something finished while you were working elsewhere. It goes by itself; a click sends it sooner. */
+.notice{position:absolute;right:var(--gap);top:calc(var(--gap)*2 + var(--h-chip));z-index:9;display:flex;align-items:center;gap:10px;max-width:320px;padding:10px 14px 10px 12px;border-radius:var(--r-surface);
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline),0 8px 28px rgba(0,0,0,.1);
+  cursor:pointer;animation:noteIn .32s var(--e-smooth)}
+.notice.out{opacity:0;transform:translateY(-6px);transition:opacity .24s,transform .24s}
+.notice .n-ic{flex:none;width:22px;height:22px;border-radius:50%;background:var(--fill-ink);color:var(--on-ink);display:flex;align-items:center;justify-content:center}
+.notice.quiet .n-ic{background:var(--k-fill);color:var(--muted)}
+.notice .n-ic svg{width:12px;height:12px}
+.notice .n-tx{min-width:0;display:flex;flex-direction:column;gap:1px;line-height:1.3}
+.notice .n-tx b{font-size:var(--fs-small);font-weight:500;color:var(--ink-strong)}
+.notice .n-tx span{font-size:var(--fs-small);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes noteIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+/* one family of chips: the ones over the canvas and the ones in the export sheet – same height, shape, type and
+   numerals. The ones over the canvas keep their keyline, because they sit on the picture. */
+.stage-foot span{height:var(--h-chip);padding:0 10px;border-radius:var(--r-ctl);font-size:var(--fs-small);font-weight:500;color:var(--ink);letter-spacing:-0.005em}
+.xinfo .chip{height:var(--h-chip);padding:0 10px;border-radius:var(--r-ctl);font-size:var(--fs-small);font-weight:500}
+/* anything up there you can change says so when you point at it */
+.stage-foot span.typable{cursor:pointer;transition:background var(--t-snap),box-shadow var(--t-snap)}
+.stage-foot span.typable:hover{background:color-mix(in srgb,var(--ink) 7%,transparent);box-shadow:0 0 0 1px color-mix(in srgb,var(--ink) 22%,transparent)}
+.stage-foot span.typable.editing{padding:0 4px}
+.stage-foot span.typable:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+/* the section you were sent to says so for a moment */
+.card.flash{animation:cardFlash .9s var(--e-smooth)}
+@keyframes cardFlash{0%,100%{box-shadow:none}25%{box-shadow:0 0 0 2px var(--k-dot)}}
+.stage-foot .val-in{width:5.5em;height:22px;text-align:center;font-size:var(--fs-small);font-variant-numeric:tabular-nums}
+/* ---------------- the drawings move when you point at them ---------------- */
+/* A preset's picture and a Kind's tile show what they do; on hover they do a little of it. Subtle, two seconds,
+   and never while the pointer is away – a label you can read, not a thing playing at you. */
+@media (prefers-reduced-motion:no-preference){
+  .kind:hover svg rect,.kind:focus-visible svg rect{animation:kNudge 2s var(--e-smooth) infinite}
+  .kind[data-k="one"]:hover svg rect:nth-child(1){animation:kOneA 2s var(--e-smooth) infinite}
+  .kind[data-k="one"]:hover svg rect:nth-child(2){animation:kOneB 2s var(--e-smooth) infinite}
+  .kind[data-k="line"]:hover svg rect,.kind[data-k="frames"]:hover svg rect:not(.line){animation:kLeft 2s var(--e-smooth) infinite}
+  .kind[data-k="frames"]:hover svg rect.line{animation:none}
+  .kind[data-k="grid"]:hover svg rect:nth-child(n+4){animation-delay:.18s}
+  .kind[data-k="columns"]:hover svg rect:nth-child(odd){animation:kUp 2s var(--e-smooth) infinite}
+  .kind[data-k="columns"]:hover svg rect:nth-child(even){animation:kDown 2s var(--e-smooth) infinite}
+  .kind[data-k="rows"]:hover svg rect:nth-child(n+4):nth-child(-n+6){animation:kRight 2s var(--e-smooth) infinite}
+  .kind[data-k="wall"]:hover svg rect:nth-child(even){animation-delay:.2s}
+  .kind[data-k="float"]:hover svg rect:nth-child(even){animation:kDown 2.6s var(--e-smooth) infinite}
+  .preset-row:hover .pk[data-anim="swap"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-a{animation:pA 2.2s var(--e-smooth) infinite}
+  .preset-row:hover .pk[data-anim="swap"] svg rect.pd-b,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-b{animation:pB 2.2s var(--e-smooth) infinite}
+  .preset-row:hover .pk[data-anim="shift"] svg rect,.preset-row:focus-within .pk[data-anim="shift"] svg rect{animation:pShift 2.2s var(--e-smooth) infinite}
+  .preset-row:hover .pk[data-anim="shift"] svg rect.pd-bg,.preset-row:hover .pk[data-anim="shift"] svg rect.pd-f,.preset-row:hover .pk[data-anim="shift"] svg rect.pd-o{animation:none}
+  .preset-row:hover .pk[data-anim="pile"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="pile"] svg rect.pd-a{animation:pPile 2.2s var(--e-smooth) infinite}
+  .preset-row:hover .pk svg rect.pd-bg{animation:none}
+}
+@keyframes kNudge{0%,62%,100%{transform:none}30%{transform:translateY(-1.2px)}}
+/* Slides: this one, then the next – a change of which is in front, never an empty tile */
+@keyframes kOneA{0%,22%{opacity:1}52%,74%{opacity:.38}100%{opacity:1}}
+@keyframes kOneB{0%,22%{opacity:.38}52%,74%{opacity:1}100%{opacity:.38}}
+@keyframes kLeft{0%,62%,100%{transform:none}30%{transform:translateX(-2.4px)}}
+@keyframes kRight{0%,62%,100%{transform:none}30%{transform:translateX(2.4px)}}
+@keyframes kUp{0%,62%,100%{transform:none}30%{transform:translateY(-2.4px)}}
+@keyframes kDown{0%,62%,100%{transform:none}30%{transform:translateY(2.4px)}}
+@keyframes pA{0%,20%{opacity:.86}55%,75%{opacity:.24}100%{opacity:.86}}
+@keyframes pB{0%,20%{opacity:.24}55%,75%{opacity:.86}100%{opacity:.24}}
+@keyframes pShift{0%,14%,100%{transform:none;opacity:inherit}50%,64%{transform:translate(var(--dx,0),var(--dy,0))}}
+@keyframes pPile{0%,12%{transform:translateY(5px);opacity:0}48%,100%{transform:none;opacity:.86}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.js"></script>
 </head>
@@ -1077,18 +1174,14 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.16</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.17</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
     <div class="resizer" id="resizer" aria-hidden="true"></div>
   </aside>
   <button class="panel-btn" id="panelBtn" type="button" aria-expanded="false" aria-controls="panelBox" aria-label="Show the panel"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="2.5" width="10.4" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg></button>
-  <!-- the project (0.10; top left of the stage from 0.11) – its name, how it's saved, and its panel -->
-  <div class="projbar" id="projBox">
-    <button class="proj-btn" id="projBtn" type="button" aria-expanded="false" aria-controls="projPop" aria-haspopup="dialog"><span class="proj-name" id="projName">Untitled</span><span class="proj-state" id="projState"></span><svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="m3.2 4.6 2.8 2.8 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-    <div class="pop proj-pop" id="projPop" hidden role="dialog" aria-label="Projects"></div>
-  </div>
+  <!-- 0.17 – the guide: what you can do with whatever's selected, top left over the stage -->
   <div class="selhint" id="selHint" hidden aria-live="polite"></div>
   <div class="topbar">
     <div class="stage-foot"><span id="dims"></span><span id="loopChip"></span><span id="countChip"></span></div>
@@ -1112,6 +1205,11 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
       <button id="themeBtn" type="button" aria-label="Light or dark"><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.8a5.2 5.2 0 0 1 0 10.4z" fill="currentColor"/></svg></button>
     </div>
   </div>
+  <!-- the project (0.10; on the bottom line with the play bar and the presets from 0.17) -->
+  <div class="projbar" id="projBox">
+    <button class="proj-btn" id="projBtn" type="button" aria-expanded="false" aria-controls="projPop" aria-haspopup="dialog"><span class="proj-ic"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M1.8 4.2a1.2 1.2 0 0 1 1.2-1.2h2.3l1.1 1.4h4.6a1.2 1.2 0 0 1 1.2 1.2v4.4a1.2 1.2 0 0 1-1.2 1.2H3a1.2 1.2 0 0 1-1.2-1.2z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg></span><span class="proj-name" id="projName">Untitled</span><span class="proj-state" id="projState"></span><svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="m3.2 4.6 2.8 2.8 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    <div class="pop proj-pop" id="projPop" hidden role="dialog" aria-label="Projects"></div>
+  </div>
   <div class="island" id="island">
     <div class="sheets"><div id="islandSheets"></div></div>
     <div class="island-row"><div class="island-in">
@@ -1121,13 +1219,15 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
         <span class="act-main" id="time">0.0 / 0.0 s</span>
       </div><span class="ep-div"></span>
       <div class="status" id="toast" role="status" aria-live="polite"></div>
-      <button class="ebtn primary" id="exportOpen" type="button" aria-expanded="false" aria-controls="islandSheets" hidden>Export</button>
+      <button class="ebtn xopen" id="exportOpen" type="button" aria-expanded="false" aria-controls="islandSheets" hidden><span class="t">Export</span><svg class="chev" viewBox="0 0 10 10" aria-hidden="true"><path d="m2.4 6.2 2.6-2.6 2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button class="ebtn" id="exportStop" type="button" hidden><svg viewBox="0 0 12 12" aria-hidden="true"><rect x="3" y="3" width="6" height="6" rx="1.2" fill="currentColor"/></svg>Stop</button>
     </div></div>
   </div>
   <div class="pcap" id="pcap" hidden>
     <div class="sheets"><div id="pcapSheets"></div></div>
     <button class="pc-row" id="pcapOpen" type="button" aria-expanded="false" aria-controls="pcapSheets" data-tip="Presets"><span class="pc-ic"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="2" y="2" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="2" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="2" y="8" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/><rect x="8" y="8" width="4" height="4" rx="1" fill="none" stroke="currentColor" stroke-width="1.3"/></svg></span><span class="pc-t">Presets</span><span class="pc-name" id="pcapName"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 8.5 7 5l3.5 3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
   </div>
+  <div class="notice" id="notice" hidden role="status" aria-live="polite"></div>
   <div class="drop" id="drop">Drop images, video or fonts</div>
 </div>
 <input type="file" id="mediafile" accept="image/*,video/*,.mov,.mp4,.webm,.m4v" multiple class="vh" tabindex="-1">
@@ -3955,17 +4055,34 @@ function layoutUI(){
   const app=$('.app'),isl=$('#island'),pc=$('#pcap');if(!app||!isl)return;topFit();
   if(innerWidth<=860){isl.style.left='';islMore();return;}
   const g=12,W=app.clientWidth,away=app.classList.contains('preview')&&!app.classList.contains('peek'),pw=away?0:$('#panelBox').offsetWidth;
-  const L=away?g:g*2+pw,R=W-g;let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
-  iw=Math.min(iw,R-L);let limit=R;if(pc&&!pc.hidden){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
+  const R=W-g,pj=$('#projBox'),base=away?g:g*2+pw;   /* the project sits on this line too, bottom left (0.17) */
+  app.classList.remove('tight-bar');
+  const leftEdge=()=>pj&&!away&&pj.offsetWidth?Math.max(base,pj.getBoundingClientRect().right-app.getBoundingClientRect().left+8):base;
+  let L=leftEdge();let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
+  let limit=R;if(pc&&!pc.hidden){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
+  /* three on one line – the project, the play bar, the presets: the scrub takes whatever's left, up to 300 (0.17) */
+  const sc=$('#scrub'),st=$('#toast');if(sc){sc.style.width='100px';
+    /* a note in the bar comes and goes, so it doesn't count towards the room – it shortens itself instead */
+    const rest=isl.querySelector('.island-in').offsetWidth-100-(st?st.offsetWidth:0),room=()=>limit-L-16-rest;
+    /* the play bar is the thing you use: the project loses its name before the bar gives up much of its length */
+    if(room()<200&&!away){app.classList.add('tight-bar');L=leftEdge();}
+    /* what gives way, in order: the project's name, then the play bar down to 100, then the note – and a note you can
+       press Undo on never goes, because that's the only way back */
+    /* a note comes and goes, so it never shortens the play bar below 200 – the bar mustn't change length under you */
+    const undoable=!!(st&&st.querySelector('.undo')),need=st&&st.classList.contains('on')?Math.max(0,Math.min(150,room()-200)):0;
+    const w=Math.round(Math.max(100,Math.min(300,room()-need)));sc.style.width=w+'px';
+    if(st){const nr=room()-w;st.style.maxWidth=Math.max(0,Math.round(Math.min(360,nr)))+'px';st.classList.toggle('squeezed',nr<90&&!undoable);}
+    isl.style.maxWidth=Math.max(240,Math.round(limit-L))+'px';iw=isl.offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);}
+  iw=Math.min(iw,R-L);
   let x=(L+R)/2;if(x+iw/2>limit)x=limit-iw/2;if(x-iw/2<L)x=L+iw/2;isl.style.left=Math.round(x)+'px';}
 /* the project chip top left and the chips top right share one line: where it's tight the info chips
    (size, loop, pieces) step aside first, then the saved state – never the name or the tools */
-function topFit(){const app=$('.app'),pb=$('#projBox'),tb=$('.topbar');if(!app||!pb||!tb)return;app.classList.remove('tight','tighter');
-  if(app.classList.contains('preview')){const h=$('#selHint');if(h)h.hidden=true;return;}const over=()=>pb.getBoundingClientRect().right+12>tb.getBoundingClientRect().left;
-  if(over())app.classList.add('tight');if(over())app.classList.add('tighter');
-  /* what a drag does to the selected piece – in the gap between the two, where there's room for it (0.14) */
-  const sh=$('#selHint');if(sh){const ab=app.getBoundingClientRect(),l=pb.getBoundingClientRect().right-ab.left+16,r=tb.getBoundingClientRect().left-ab.left-16,ok=!!sh.textContent&&r-l>=240&&!app.classList.contains('tight');
-    sh.hidden=!ok;if(ok){sh.style.left=Math.round(l)+'px';sh.style.width=Math.round(r-l)+'px';}}}
+function topFit(){const app=$('.app'),tb=$('.topbar'),sh=$('#selHint');if(!app||!tb)return;
+  app.classList.toggle('tight',app.clientWidth-(app.classList.contains('preview')?0:$('#panelBox').offsetWidth)<520);
+  /* 0.17 – the guide, top left where the project used to be: it shows only when there's room beside the tools, never in Preview */
+  if(!sh)return;if(!sh.textContent||app.classList.contains('preview')){sh.hidden=true;return;}
+  sh.hidden=false;const ab=app.getBoundingClientRect(),l=sh.getBoundingClientRect().left-ab.left,room=tb.getBoundingClientRect().left-ab.left-12-l;
+  if(room<180){sh.hidden=true;return;}sh.style.maxWidth=Math.round(room)+'px';}
 const ICON_EXPAND='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M11.5 2.5 7.8 6.2M5.5 11.5h-3v-3M2.5 11.5l3.7-3.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.5 5.5h-3v-3M8.5 5.5l3.3-3.3M2.5 8.5h3v3M5.5 8.5l-3.3 3.3" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function setPanel(open){const app=$('.app');app.classList.toggle('peek',!!open);const p=$('#panelBtn');if(p){p.setAttribute('aria-expanded',!!open);const t=open?'Hide the panel':'Show the panel';p.dataset.tip=t;p.setAttribute('aria-label',t);}layoutUI();}
@@ -4171,6 +4288,11 @@ panel.addEventListener('scroll',()=>{if(tipFor)hideTip();},{passive:true});
 /* ---------------- status and downloads ---------------- */
 let toastT=0;function toast(m,hold){const t=$('#toast');t.textContent=m;t.title=m;t.classList.add('on');clearTimeout(toastT);if(!hold)toastT=setTimeout(()=>t.classList.remove('on'),2800);}
 /* a bigger change says what it did, with Undo beside it – not while an export is running */
+/* a note top right, for something that finished while you were elsewhere (0.17) – it goes by itself; a click sends it sooner */
+function notice(title,sub,quiet){const n=$('#notice');if(!n)return;n.textContent='';n.classList.toggle('quiet',!!quiet);const ic=el('span','n-ic');
+  ic.innerHTML=quiet?'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M4 7h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>':'<svg viewBox="0 0 14 14" aria-hidden="true"><path d="m3.4 7.3 2.4 2.4 4.8-5.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const tx=el('span','n-tx');tx.append(el('b',null,title),el('span',null,sub||''));n.append(ic,tx);n.hidden=false;n.classList.remove('out');clearTimeout(notice.t);
+  const go=()=>{n.classList.add('out');setTimeout(()=>{n.hidden=true;},260);};notice.t=setTimeout(go,7000);n.onclick=()=>{clearTimeout(notice.t);go();};}
 function toastUndo(m){if(busy)return;const t=$('#toast');t.textContent='';t.append(el('span',null,m));const u=el('button','undo','Undo');u.type='button';
   u.onclick=e=>{e.stopPropagation();undo();};t.append(u);t.title=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),5000);}
 let dlNs=null;const dlReady=(window.claude&&typeof claude.use==='function')?claude.use('downloads').then(n=>dlNs=n).catch(()=>null):Promise.resolve(null);
@@ -4194,7 +4316,7 @@ function frameStart(){
   {const b=$('#themeBtn');b.dataset.tip='Light or dark';b.onclick=()=>setTheme(document.body.dataset.theme==='dark'?'light':'dark',true);setTheme(LS.get('mode')==='dark'?'dark':'light');}
   const pb=$('#previewBtn');setPreview(false);pb.onclick=()=>setPreview(!$('.app').classList.contains('preview'));
   $('#panelBtn').onclick=e=>{e.stopPropagation();setPanel(!$('.app').classList.contains('peek'));};
-  const eo=$('#exportOpen');eo.dataset.tip='Save or download what’s on the stage';eo.onclick=e=>{e.stopPropagation();SHEETS.export&&SHEETS.export.el.hidden?openSheet('export'):closeSheets();};
+  const eo=$('#exportOpen');eo.dataset.tip='Choose a format and download what’s on the stage';eo.onclick=e=>{e.stopPropagation();SHEETS.export&&SHEETS.export.el.hidden?openSheet('export'):closeSheets();};
   $('#pcapOpen').onclick=e=>{e.stopPropagation();SHEETS.presets&&SHEETS.presets.el.hidden?openSheet('presets'):closeSheets();};
   $('#stage').addEventListener('pointerdown',e=>{if(anySheet()){closeSheets();e.stopPropagation();}else if($('.app').classList.contains('peek')){setPanel(false);e.stopPropagation();}},true);
   window.addEventListener('keydown',e=>{
@@ -4487,7 +4609,7 @@ function fitCanvas(){
   /* the preview draws at the size it shows (sharp on a retina screen), never above the real size */
   const k=Math.min(1,cw*(devicePixelRatio||1)/W),bw=Math.max(1,Math.round(W*k)),bh=Math.max(1,Math.round(H*k));
   if(cv.width!==bw||cv.height!==bh){cv.width=bw;cv.height=bh;}
-  $('#dims').textContent=`${W} × ${H}`;$('#dims').title=`The loop comes out at ${W} × ${H} pixels`;dirty=true;}
+  $('#dims').textContent=`${W} × ${H}`;dirty=true;}
 function planNow(){return E.plan(S,items.length?items:Array.from({length:6},()=>({})));}
 function render(){
   const [W,H]=size(),P=planNow(),t=((clock%P.L)+P.L)%P.L;
@@ -4504,11 +4626,11 @@ function syncVideos(sc){const want=new Map();for(const o of sc.ops)if(o.item.kin
   for(const it of items){if(it.kind!=='video'||!it.el)continue;const v=it.el,t=want.get(it);
     if(t==null){if(!v.paused)v.pause();continue;}
     const d=Math.max(.01,it.dur||v.duration||1),tt=((t%d)+d)%d;
-    if(playing&&!busy){if(v.paused)v.play().catch(()=>{});if(wrapD(v.currentTime,tt,d)>.25&&!v.seeking)v.currentTime=tt;}
+    if(playing){if(v.paused)v.play().catch(()=>{});if(wrapD(v.currentTime,tt,d)>.25&&!v.seeking)v.currentTime=tt;}
     else{if(!v.paused)v.pause();if(wrapD(v.currentTime,tt,d)>.02&&!v.seeking)v.currentTime=tt;}}}
 function tick(now){const dt=lastT?Math.min(100,now-lastT):0;lastT=now;
-  if(playing&&!busy){clock+=dt/1000;dirty=true;}
-  if(dirty&&!busy){dirty=false;try{render();}catch(e){console.error(e);}}
+  if(playing){clock+=dt/1000;dirty=true;}
+  if(dirty){dirty=false;try{render();}catch(e){console.error(e);}}
   requestAnimationFrame(tick);}
 /* The canvas (0.6). Hover a piece and it's outlined, and its row in Media lights up; click it to
    select it – its row opens – and drag it: inside its frame where it's cropped (the rest of the
@@ -4586,7 +4708,7 @@ function drawUI(){if($('.app').classList.contains('preview'))return;const [W,H]=
     /* the ring: the picture inside a shape you can also move */
     if(!inCrop&&so.frame&&canCrop(so)&&!(grab&&grab.whole)){const cx=so.rect.x+so.rect.w/2,cy=so.rect.y+so.rect.h/2;ctx.beginPath();ctx.arc(cx,cy,8*lw,0,7);ctx.fillStyle='rgba(255,255,255,.92)';ctx.fill();ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,2.5*lw,0,7);ctx.fillStyle='#111111';ctx.fill();}}
   ctx.restore();}
-cv.addEventListener('pointerdown',e=>{if(busy||e.button!==0)return;const [x,y]=canvasPt(e);
+cv.addEventListener('pointerdown',e=>{if(e.button!==0)return;const [x,y]=canvasPt(e);
   const take=()=>{e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);};
   /* cropping: the picture's corners zoom it, a drag anywhere on it moves it, a click away finishes */
   if(cropId){const co=opOf(cropId);if(co&&canCrop(co)){const g=cropBox(co),tol=9/scrPx(),cx=g.x+g.w/2,cy=g.y+g.h/2;
@@ -4614,13 +4736,13 @@ cv.addEventListener('pointermove',e=>{const [x,y]=canvasPt(e);
   dirty=true;});
 const letGo=()=>{if(!grab)return;const g=grab;grab=null;cv.classList.remove('grabbing');if(g.moved&&g.mode!=='click')saveItems();selectItem(g.it.id,true);};
 cv.addEventListener('pointerup',letGo);cv.addEventListener('pointercancel',letGo);cv.addEventListener('pointerleave',()=>{if(!grab)setHover(null);});
-cv.addEventListener('dblclick',e=>{if(busy)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!canCrop(o)){return;}selId=o.item.id;cropId=o.item.id;setPlaying(false);dirty=true;});
+cv.addEventListener('dblclick',e=>{const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!canCrop(o)){return;}selId=o.item.id;cropId=o.item.id;setPlaying(false);dirty=true;});
 document.addEventListener('keydown',e=>{if(cropId&&(e.key==='Escape'||e.key==='Enter')){cropId=null;dirty=true;}});
 cv.addEventListener('wheel',e=>{if(!e.altKey)return;const [x,y]=canvasPt(e),o=hitAt(x,y);if(!o||!croppable(o))return;e.preventDefault();setPlaying(false);
   const it=o.item,[lo,hi]=zRange(o);it.zm=+clamp((+it.zm||100)*Math.exp(-e.deltaY*.0025),lo,hi).toFixed(1);selId=it.id;dirty=true;
   clearTimeout(zoomT);zoomT=setTimeout(()=>{saveItems();openRows.add(it.id);paintMedia();},250);},{passive:false});
 /* the arrow keys nudge the selected piece (0.9): a px at a time, ten with Shift – a cropped piece moves its picture inside its frame */
-document.addEventListener('keydown',e=>{if(!selId||busy||!/^Arrow/.test(e.key)||e.metaKey||e.ctrlKey||e.altKey)return;const a=document.activeElement;
+document.addEventListener('keydown',e=>{if(!selId||!/^Arrow/.test(e.key)||e.metaKey||e.ctrlKey||e.altKey)return;const a=document.activeElement;
   if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable||(a.closest&&a.closest('.ctl,.seg,.kinds,.way,.stp-g,.trim'))))return;
   const o=opOf(selId);if(!o||!(o.frame||croppable(o)))return;e.preventDefault();const it=o.item,n=e.shiftKey?10:1,dx=e.key==='ArrowLeft'?-n:e.key==='ArrowRight'?n:0,dy=e.key==='ArrowUp'?-n:e.key==='ArrowDown'?n:0;
   if(o.whole||o.frame){it.ox=Math.round((+it.ox||0)+dx);it.oy=Math.round((+it.oy||0)+dy);}
@@ -4657,7 +4779,7 @@ let nudgeT=0;
   controls.push({d:{},w:btn,update(){btn.setAttribute('aria-pressed',!!S.guides);}});}
 document.addEventListener('keydown',e=>{if(!(e.metaKey||e.ctrlKey)||e.key.toLowerCase()!=='d'||e.shiftKey||e.altKey)return;const a=document.activeElement;
   if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;if(!selId)return;e.preventDefault();duplicateItem(selId);});
-document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!selId||busy)return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;selId=null;dirty=true;});
+document.addEventListener('keydown',e=>{if(e.key!=='Escape'||!selId)return;const a=document.activeElement;if(a&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;selId=null;dirty=true;});
 /* the moment a piece is best seen: in Slides, as its slide has arrived; otherwise when it's
    biggest and nearest the middle of the canvas */
 function momentOf(it){const P=planNow(),[W,H]=size();
@@ -4686,6 +4808,14 @@ function fitLoop(T){T=clamp(+T||0,.5,600);const L0=planNow().L;if(!(L0>0)||Math.
   E.resetMeasure();dirty=true;paintMedia();refreshAll();toastUndo(`Loop ${planNow().L.toFixed(2)} s`);}
 {const c=$('#loopChip');typable(c,{label:'Loop length in seconds',get:()=>+planNow().L.toFixed(2),put:fitLoop,min:.5,max:600,show:()=>`${planNow().L.toFixed(1)} s loop`});
   c.dataset.tip='Click to set how long the loop lasts – every time in it is scaled to fit';}
+/* 0.17 – everything up there you can act on says so when you point at it: the loop types a new length,
+   the size and the count take you to the section that sets them. Nothing up there is decoration. */
+function jumpTo(id,tip){const card=$(`#panel section.card[data-id=${id}]`);if(!card)return;
+  if(card.classList.contains('collapsed'))card.querySelector('.card-toggle').click();
+  card.scrollIntoView({behavior:'smooth',block:'start'});card.classList.add('flash');setTimeout(()=>card.classList.remove('flash'),900);}
+for(const [sel,id,tip] of [['#dims','canvas','The size the loop comes out at – click for Canvas'],['#countChip','media','Click for Media']]){
+  const e=$(sel);if(!e)continue;e.classList.add('typable');e.tabIndex=0;e.setAttribute('role','button');e.dataset.tip=tip;
+  e.onclick=()=>jumpTo(id);e.onkeydown=ev=>{if(ev.key==='Enter'||ev.key===' '){ev.preventDefault();jumpTo(id);}};}
 /* the play bar (0.11): a faint tick where each slide (or stop) begins its time on screen */
 let tickSig='';
 function paintTicks(P){const box=$('#ticks');if(!box)return;const at=(P.segs||[]).filter(g=>g.k==='hold'||g.k==='grid').map(g=>g.t0/P.L).filter(x=>x>=0&&x<1);
@@ -4868,7 +4998,7 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
     if(shp){G('position','Position');
       itemRange(cur,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(cur,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
       itemRange(cur,it,{label:'Size',key:'fz',min:20,max:400,step:1,def:100,unit:'%',tip:'This slide’s shape bigger or smaller than the rest'});
-      hint('Or drag the shape on the canvas – its corners size it; the arrow keys nudge it.');if(!crop)resetRow();}
+      hint('The arrow keys nudge it on the canvas – hold Shift for ten at a time.');if(!crop)resetRow();}   /* what to drag is said once, by the guide top left (0.17) */
     if(own||crop){G(own?'position':'crop',own?'Position':'Crop');const again=()=>paintMediaKeepFocus();
       if(own){itemRange(cur,it,{label:'Across',key:'ox',min:-1200,max:1200,step:1,def:0,unit:' px'});itemRange(cur,it,{label:'Up and down',key:'oy',min:-1200,max:1200,step:1,def:0,unit:' px'});
         itemRange(cur,it,{label:'Size',key:'zm',min:20,max:400,step:1,def:100,unit:'%',tip:'This slide bigger or smaller than the rest'});
@@ -4877,7 +5007,7 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
         if(zoomed||wide)itemRange(cur,it,{label:'Across',key:'px',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows across: −100% the right edge, 100% the left'});
         if(zoomed||tall)itemRange(cur,it,{label:'Up and down',key:'py',min:-100,max:100,step:1,def:0,unit:'%',tip:'Which part shows up and down: −100% the bottom, 100% the top'});
         itemRange(cur,it,{label:'Zoom',key:'zm',min:100,max:400,step:1,def:100,unit:'%',change:again,tip:'Crop in tighter. Zoomed in, it can move both ways.'});
-        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it.':shp?'Or on the canvas: drag the ring at its centre to move the picture in its shape – double-click to zoom it too.':'Or drag it on the canvas to move it in its frame – double-click to zoom it too; the arrow keys nudge it.');}
+        hint(!zoomed&&!wide&&!tall?'It fits its frame exactly – zoom in to move it.':'The arrow keys nudge the picture in its frame – hold Shift for ten at a time.');}
       resetRow();}}
   /* its own blend and opacity – and, once it blends, what it blends with */
   G('look','Look',null,()=>[it.blend&&it.blend!=='normal'?optLabel(BLENDS,it.blend):'',it.opa!=null&&+it.opa<100?`${Math.round(+it.opa)}%`:''].filter(Boolean).join(' · ')||'Normal');
@@ -4967,7 +5097,7 @@ const KIND_ICON={
   wall:'<svg viewBox="0 0 40 28" aria-hidden="true"><rect x="2" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="13" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="24" y="2" width="9" height="11" rx="1.5" class="dim"/><rect x="2" y="15" width="9" height="11" rx="1.5" class="dim"/><rect x="13" y="15" width="9" height="11" rx="1.5"/><rect x="24" y="15" width="9" height="11" rx="1.5"/><rect x="34.5" y="15" width="9" height="11" rx="1.5" class="dim"/><rect x="34.5" y="2" width="9" height="11" rx="1.5" class="dim"/></svg>'};
 function pickKind(k){if(k==='line')k=['up','down'].includes(S.dir)?'column':'row';if(S.layout!==k){set('layout',k);clock=0;}}
 function kindTiles(parent){const w=el('div','ctl kinds-ctl'),hd=el('div','ctl-head'),g=el('div','kinds');hd.append(el('span',null,'Kind'));g.setAttribute('role','group');g.setAttribute('aria-label','Kind');
-  const bs=KINDS.map(([v,t,tip])=>{const b=el('button','kind');b.type='button';b.innerHTML=KIND_ICON[v];b.append(el('span',null,t));b.dataset.tip=tip;b.onclick=()=>pickKind(v);g.append(b);return[v,b];});
+  const bs=KINDS.map(([v,t,tip])=>{const b=el('button','kind');b.type='button';b.dataset.k=v;b.innerHTML=KIND_ICON[v];b.append(el('span',null,t));b.dataset.tip=tip;b.onclick=()=>pickKind(v);g.append(b);return[v,b];});
   w.append(hd,g);parent.append(w);controls.push({d:{},w,update(){const k=KIND(S);bs.forEach(([v,b])=>b.setAttribute('aria-pressed',v===k));}});}
 const MOVES_ONE=[['cut','Cut','Straight to the next'],['fade','Fade','One into the next'],['dip','Dip','Out to the background, then up into the next'],['wipe','Wipe','A straight edge crosses the canvas'],
   ['slide','Push','The next pushes this one out'],['stack','Cover','The next slides in over this one'],['open','Open','A window opens from the middle onto the next'],['zoom','Zoom','This one grows away as the next fades up'],
@@ -5371,6 +5501,10 @@ function paintPresets(){presetBox.textContent='';
   /* a preset is a small drawing of it and its name; what it does is in its tooltip */
   const row=(p,own)=>{try{row1(p,own);}catch(e){reportError(e,'preset '+p.name);const r=el('div','slot preset-row'),m=el('div','slot-main');m.append(el('div','slot-name',p.name));m.setAttribute('role','button');m.tabIndex=0;m.onclick=()=>{applyPreset(p);paintPresets();};r.append(m);presetBox.append(r);}};
   const row1=(p,own)=>{const r=el('div','slot preset-row'),top=el('div','slot-top'),main=el('div','slot-main'),nm=el('div','slot-name',p.name),ic=el('span','pk');try{ic.innerHTML=presetPic(p.s);}catch(e){}
+    /* what the little drawing does when you point at it: slides swap over, strips and grids travel the way they go, a pile builds */
+    try{const sp=Object.assign({},D,p.s),kk=E.kindOf(sp),u=DV[sp.dir]||DV.up,still=E.moveOf?E.moveOf(sp)==='still':false;
+      ic.dataset.anim=kk==='one'?(sp.pile?'pile':'swap'):still?'none':'shift';
+      if(ic.dataset.anim==='shift'){ic.style.setProperty('--dx',(u[0]*-3).toFixed(1)+'px');ic.style.setProperty('--dy',(u[1]*-3).toFixed(1)+'px');}}catch(e){}
     if(p.tip||own)main.dataset.tip=p.tip||(optLabel(KINDS,E.kindOf(p.s))+' – one of yours');main.append(nm);top.append(ic);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-label','Use '+p.name);main.onclick=()=>{applyPreset(p);paintPresets();};main.onkeydown=e=>{if(e.key==='Enter'){applyPreset(p);paintPresets();}};
     top.append(main);if(current===p.name){const t=el('span','tag','In use');top.append(t);r.classList.add('on');}
     if(own){const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Delete';rm.setAttribute('aria-label','Delete '+p.name);
@@ -5521,19 +5655,27 @@ $('#projfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)ope
 /* ---------------- frames ---------------- */
 function seek(v,t){return new Promise(res=>{let done=false;const fin=()=>{if(done)return;done=true;v.removeEventListener('seeked',fin);res();};
   v.addEventListener('seeked',fin);try{v.currentTime=t;}catch(e){fin();}setTimeout(fin,4000);});}
+/* What an export draws from (0.17). While one runs it's a copy taken when it started – the settings, the pieces (each
+   video on an element of its own, so the export's seeking and the preview's playing don't fight) and the pictures – so
+   you can carry on working, and nothing you change gets into the file half way. Otherwise it's the live state. */
+let XS=S,XI=null,XP=PICS;const xPlan=()=>E.plan(XS,XI||(items.length?items:Array.from({length:6},()=>({}))));
+async function xBegin(){XS=JSON.parse(JSON.stringify(S));XP=Object.assign({},PICS);
+  XI=await Promise.all(items.map(async it=>{const c=Object.assign({},it);if(it.kind==='video'&&it.el){const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';
+    await new Promise(res=>{let d=false;const fin=()=>{if(!d){d=true;res();}};v.onloadeddata=fin;v.onerror=fin;setTimeout(fin,8000);v.src=it.el.currentSrc||it.el.src;v.load();});c.el=v;c.src=v;}return c;}));}
+function xEnd(){for(const it of XI||[])if(it.kind==='video'&&it.el){try{it.el.removeAttribute('src');it.el.load();}catch(e){}}XS=S;XI=null;XP=PICS;}
 async function frameAt(c,x,W,H,t,k){
-  const sc=E.scene(S,items,x,FONTS,W,H,t),want=new Map();
+  const sc=E.scene(XS,XI||items,x,FONTS,W,H,t),want=new Map();
   for(const o of sc.ops)if(o.item.kind==='video'&&o.time!=null&&!want.has(o.item))want.set(o.item,o.time);
   for(const [it,tm] of want){const v=it.el,d=Math.max(.01,it.dur||v.duration||1),tt=Math.min(d-1e-3,((tm%d)+d)%d);if(Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
-  crispNow=S.xCrisp!==false;try{E.paint(x,sc,S,FONTS,{scale:k||1,media:drawMedia,bgImg:PICS.bg,ovImg:PICS.ov});}finally{crispNow=false;}}
-async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>S[r+'F']));if(S.ovOn&&S.ovKind==='text')used.add(S.OF);
+  crispNow=XS.xCrisp!==false;try{E.paint(x,sc,XS,FONTS,{scale:k||1,media:drawMedia,bgImg:XP.bg,ovImg:XP.ov});}finally{crispNow=false;}}
+async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>XS[r+'F']));if(XS.ovOn&&XS.ovKind==='text')used.add(XS.OF);
   await Promise.all([...used].map(id=>FONTS[id]?document.fonts.load(fontStr(FONTS[id])).catch(()=>null):null));await document.fonts.ready;E.resetMeasure();}
 let stopFlag=false;
 /* n frames across the loops; when the loop isn't a whole number of frames long, each frame's
    moment is stretched by a fraction of a frame so the file still loops exactly */
 async function eachFrame(W,H,fps,n,fn,progress,len,k){
   k=k||1;const c=document.createElement('canvas');c.width=W*k;c.height=H*k;const x=c.getContext('2d',{willReadFrequently:true}),step=len?len/n:1/fps;
-  for(const it of items)if(it.el)it.el.pause();
+  for(const it of (XI||items))if(it.el)it.el.pause();
   /* hand the page back at least every 50 ms, so the progress shows and Stop is heard (a full-size GIF frame takes most of a second) */
   let breath=performance.now();
   for(let i=0;i<n;i++){if(stopFlag)throw new Error('stopped');await frameAt(c,x,W,H,i*step,k);await fn(c,x,i);if(progress)progress((i+1)/n);
@@ -5650,8 +5792,8 @@ function chunkVideoRange(data){/* length-prefixed NALs: fix any SPS carried in t
    Safari on a Mac) softens fine detail at that – High gives it room, Best more. */
 const MP4_Q={std:16,high:32,best:50};
 /* Size (0.4.4): 2× draws every frame at twice the pixels each way – the layout is the same, the type and media are drawn sharper, and the colour (kept at half size by H.264) is as fine as a 1× file's pixels. For MP4 and PNG. */
-function outSize(){const [W,H]=size(),k=S.xFormat!=='gif'&&+S.xScale===2?2:1;return [W*k,H*k,k];}
-function mp4Bitrate(){const [W,H]=outSize(),fps=+S.fps||30;return Math.round((MP4_Q[S.xQ]||32)*1e6*(W*H)/(1080*1350)*fps/30);}
+function outSize(s){s=s||S;const [W,H]=E.canvasSize(s),k=s.xFormat!=='gif'&&+s.xScale===2?2:1;return [W*k,H*k,k];}
+function mp4Bitrate(s){s=s||S;const [W,H]=outSize(s),fps=+s.fps||30;return Math.round((MP4_Q[s.xQ]||32)*1e6*(W*H)/(1080*1350)*fps/30);}
 /* Which setup actually honours the bitrate. Steve's three renders at 16, 32 and 50 Mbps all came
    out at 16.5 MB (Safari, Intel iMac): the encoder kept its own quality whatever it was asked.
    Chrome's hardware H.264 encoder on a Mac does the same in variable mode (w3c/webcodecs#430).
@@ -5701,7 +5843,7 @@ async function pickEncoder(W,H,fps,bitrate){
   return first?Object.assign(first,{honours:false}):{cfg:setups[0],honours:false};}
 async function makeMP4(progress){
   if(!window.VideoEncoder||!window.Mp4Muxer)throw new Error('This browser can’t write MP4 – try Chrome, Edge or Safari');
-  const [W,H,k]=outSize(),fps=+S.fps||30,P=planNow(),n=Math.max(1,Math.round(P.L*(+S.xLoops||1)*fps)),bitrate=mp4Bitrate();
+  const [W,H,k]=outSize(XS),fps=+XS.fps||30,P=xPlan(),n=Math.max(1,Math.round(P.L*(+XS.xLoops||1)*fps)),bitrate=mp4Bitrate(XS);
   toast('Finding the encoder that keeps the quality…',true);
   const pick=await pickEncoder(W,H,fps,bitrate);if(!pick)throw new Error('This browser can’t encode video');
   const cfg=pick.cfg,codec=cfg.codec,kind=codec.startsWith('vp09')?'vp9':'avc';encUsed=pick;
@@ -5714,9 +5856,9 @@ async function makeMP4(progress){
       muxer.addVideoChunk(chunk,meta);}catch(e){err=e;}},error:e=>{err=e;}});
   enc.configure(Object.assign({contentHint:'detail'},cfg));let stall=0;
   const Y=new Uint8Array(W*H),U=new Uint8Array((W>>1)*(H>>1)),V=new Uint8Array((W>>1)*(H>>1)),buf=new Uint8Array(W*H*3/2);
-  await eachFrame(W/k,H/k,fps,n,async(c,x,i)=>{if(err)throw err;const d=x.getImageData(0,0,W,H).data;toI420(d,W,H,Y,U,V);if(S.xChroma!==false)sharpChroma(d,W,H,Y,U,V);buf.set(Y,0);buf.set(U,W*H);buf.set(V,W*H+U.length);
+  await eachFrame(W/k,H/k,fps,n,async(c,x,i)=>{if(err)throw err;const d=x.getImageData(0,0,W,H).data;toI420(d,W,H,Y,U,V);if(XS.xChroma!==false)sharpChroma(d,W,H,Y,U,V);buf.set(Y,0);buf.set(U,W*H);buf.set(V,W*H+U.length);
     const f=new VideoFrame(buf,{format:'I420',codedWidth:W,codedHeight:H,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});enc.encode(f,{keyFrame:i%fps===0});f.close();
-    stall=0;while(enc.encodeQueueSize>4){await new Promise(r=>setTimeout(r,2));if((stall+=2)>15000)throw new Error('the video encoder stopped responding');}},progress,P.L*(+S.xLoops||1),k);
+    stall=0;while(enc.encodeQueueSize>4){await new Promise(r=>setTimeout(r,2));if((stall+=2)>15000)throw new Error('the video encoder stopped responding');}},progress,P.L*(+XS.xLoops||1),k);
   await enc.flush();enc.close();if(err)throw err;muxer.finalize();return new Blob([muxer.target.buffer],{type:'video/mp4'});}
 /* ---------------- GIF ---------------- */
 /* Made for showcase GIFs, which are usually Photoshop's job. A frame that doesn't change isn't
@@ -5750,8 +5892,8 @@ function gifPalette(cnt,sr,sg,sb,max){
   return{pal,count,index,near};}
 const GIF_TOL=2;   /* a pixel within this of what's showing is left as it is (video noise) */
 async function makeGIF(progress){
-  const [W0,H0]=size(),k=+S.xGifScale||.5,W=Math.max(2,Math.round(W0*k)),H=Math.max(2,Math.round(H0*k)),fps=+S.xGifFps||20,P=planNow();
-  const len=P.L,n=Math.max(1,Math.round(len*fps)),dither=!!S.xDither;   /* a GIF loops for ever: one loop is enough */
+  const [W0,H0]=E.canvasSize(XS),k=+XS.xGifScale||.5,W=Math.max(2,Math.round(W0*k)),H=Math.max(2,Math.round(H0*k)),fps=+XS.xGifFps||20,P=xPlan();
+  const len=P.L,n=Math.max(1,Math.round(len*fps)),dither=!!XS.xDither;   /* a GIF loops for ever: one loop is enough */
   const out=document.createElement('canvas');out.width=W;out.height=H;const ox=out.getContext('2d',{willReadFrequently:true});ox.imageSmoothingQuality='high';
   const buf=new ByteBuf();buf.s('GIF89a');buf.w(W);buf.w(H);buf.b(0x70);buf.b(0);buf.b(0);
   buf.b(0x21);buf.b(0xFF);buf.b(11);buf.s('NETSCAPE2.0');buf.b(3);buf.b(1);buf.w(0);buf.b(0);
@@ -5781,11 +5923,11 @@ async function makeGIF(progress){
     flush(cs(i));pend={cs:cs(i),bytes:fb.out(),see};},progress,len);
   flush(Math.round(len*100));
   buf.b(0x3B);const blob=new Blob([buf.out()],{type:'image/gif'});blob.gifFrames=frames;return blob;}
-async function makePNG(){const [W,H,k]=outSize(),P=planNow(),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
+async function makePNG(){const [W,H,k]=outSize(XS),P=xPlan(),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
   await frameAt(c,x,W/k,H/k,((clock%P.L)+P.L)%P.L,k);return await new Promise(r=>c.toBlob(r,'image/png'));}
 /* ---------------- the Export sheet ---------------- */
 const fileName=ext=>{const [W,H]=ext==='gif'?size():outSize();const base=(S.name||'Segue').trim().replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_')||'Segue';return `${base}_${W}x${H}.${ext}`;};
-let xBar,xInfo,xGo,xStop;
+let xInfo,xGo,xStop;
 {const b=card('export','Export');
   build(b,[{t:'seg',k:'xFormat',label:'Format',opts:[['mp4','MP4'],['gif','GIF'],['png','PNG','The frame on the stage now, at full size']]},
     {t:'seg',k:'xQ',label:'Quality',opts:[['std','Standard'],['high','High'],['best','Best']],show:s=>s.xFormat==='mp4',tip:'How much detail the video keeps: Standard 16, High 32, Best 50 Mbps at 1080 × 1350 – more is crisper and a bigger file'},
@@ -5800,15 +5942,25 @@ let xBar,xInfo,xGo,xStop;
   addHint(b,'Still slides cost almost nothing in a GIF – each is written once and held. Anything that moves is written frame by frame, so the file grows with every second of it: half size at 15 fps keeps it manageable.',s=>s.xFormat==='gif'&&gifMoves(s));
   addHint(b,'Safari makes MP4s with its video-call encoder, which keeps its own quality – for the crispest MP4, export in Chrome.',s=>s.xFormat==='mp4'&&isSafari);
   xInfo=el('div','xinfo');xInfo.setAttribute('aria-live','polite');addCustom(b,null,xInfo);
-  const pr=el('div','progress');xBar=el('i');pr.append(xBar);addCustom(b,null,pr);
-  const r=el('div','ctl btn-row');xGo=el('button','pill primary','Download');xGo.type='button';xStop=el('button','pill small','Stop');xStop.type='button';xStop.hidden=true;r.append(xGo,xStop);addCustom(b,null,r);
-  xStop.onclick=()=>{stopFlag=true;};
-  xGo.onclick=async()=>{if(busy)return;const f=S.xFormat;busy=true;stopFlag=false;xGo.disabled=true;xStop.hidden=f==='png';xBar.style.width='0%';const t0=performance.now();
-    try{await fontsReady();const prog=p=>{xBar.style.width=Math.round(p*100)+'%';toast(`Making the ${f.toUpperCase()} – ${Math.round(p*100)}%`,true);};
-      const blob=f==='gif'?await makeGIF(prog):f==='png'?await makePNG():await makeMP4(prog);
-      await saveFile(fileName(f),blob);lastSize[f]=blob.size;const rate=f==='mp4'?` at ${(blob.size*8/(planNow().L*(+S.xLoops||1))/1e6).toFixed(1)} Mbps`:'';toast(`Saved ${fileName(f)} – ${mb(blob.size)}${rate}`);exportInfo();if(f==='mp4'&&encUsed)console.log('segue: encoder',encUsed.cfg.hardwareAcceleration,encUsed.cfg.bitrateMode,'honours bitrate:',encUsed.honours,encUsed.full,encUsed.third);console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
-    catch(e){toast(e.message==='stopped'?'Stopped':`Couldn’t make it – ${e.message||e}`);console.error(e);}
-    finally{busy=false;stopFlag=false;xGo.disabled=false;xStop.hidden=true;dirty=true;}};
+  /* 0.17: one button that is the progress while it works – its fill, the % and the time left in it – with Stop beside it at
+     the same height. The island's Export shows the same, so the sheet can be shut and work carried on. */
+  const r=el('div','ctl btn-row xrun');xGo=el('button','pill primary xgo','Download');xGo.type='button';xStop=el('button','pill xstop','Stop');xStop.type='button';xStop.hidden=true;r.append(xGo,xStop);addCustom(b,null,r);
+  const eo=$('#exportOpen'),eoT=eo.querySelector('.t'),es=$('#exportStop');
+  const left=(p,t0)=>{const el_=(performance.now()-t0)/1000;if(p<.04||el_<1.5)return '';const s=el_*(1-p)/p;return s<8?'a few seconds left':s<55?`about ${Math.max(10,Math.round(s/5)*5)} s left`:`about ${Math.max(1,Math.round(s/60))} min left`;};
+  const show=(on,p,t0,f)=>{for(const e of [xGo,eo]){e.classList.toggle('run',on);e.style.setProperty('--p',on?(p*100).toFixed(1)+'%':'0%');if(on)e.setAttribute('aria-busy','true');else e.removeAttribute('aria-busy');}
+    xStop.hidden=es.hidden=!on||f==='png';
+    if(on){const pc=Math.round(p*100)+'%',l=left(p,t0);xGo.textContent=`Making the ${f.toUpperCase()} · ${pc}${l?' · '+l:''}`;eoT.textContent=pc;eo.dataset.tip=l?`Making the ${f.toUpperCase()} – ${l}. You can carry on working.`:`Making the ${f.toUpperCase()}. You can carry on working.`;}
+    else{eoT.textContent='Export';eo.dataset.tip='Choose a format and download what’s on the stage';exportInfo();}};
+  xStop.onclick=es.onclick=e=>{e.stopPropagation();stopFlag=true;};
+  xGo.onclick=async()=>{if(busy)return;const f=S.xFormat;busy=true;stopFlag=false;const t0=performance.now(),name=fileName(f);show(true,0,t0,f);
+    try{if(f!=='png')await xBegin();await fontsReady();const prog=p=>show(true,p,t0,f);
+      const blob=f==='gif'?await makeGIF(prog):f==='png'?await makePNG():await makeMP4(prog);const L=xPlan().L*(f==='mp4'?(+XS.xLoops||1):1);
+      await saveFile(name,blob);lastSize[f]=blob.size;const rate=f==='mp4'?` at ${(blob.size*8/L/1e6).toFixed(1)} Mbps`:'';
+      /* done: said in the island if the sheet's open; if you'd shut it and carried on, a note top right */
+      if(SHEETS.export&&!SHEETS.export.el.hidden)toast(`Saved ${name} – ${mb(blob.size)}${rate}`);else notice('Saved',`${name} · ${mb(blob.size)}`);
+      if(f==='mp4'&&encUsed)console.log('segue: encoder',encUsed.cfg.hardwareAcceleration,encUsed.cfg.bitrateMode,'honours bitrate:',encUsed.honours,encUsed.full,encUsed.third);console.log(`segue: ${f} in ${((performance.now()-t0)/1000).toFixed(1)} s, ${(blob.size/1e6).toFixed(2)} MB`);}
+    catch(e){const m=e.message==='stopped'?'Stopped':`Couldn’t make it – ${e.message||e}`;if(SHEETS.export&&!SHEETS.export.el.hidden)toast(m);else notice(m==='Stopped'?'Export stopped':'Export failed',m==='Stopped'?name:String(e.message||e),true);if(e.message!=='stopped')console.error(e);}
+    finally{xEnd();busy=false;stopFlag=false;show(false);dirty=true;}};
   cardToSheet(b,'export');
   /* the sheet keeps one height whatever the format, so the choice you've just pressed stays under the pointer
      and Download stays put: on opening it's measured at its tallest and held there */
@@ -5818,7 +5970,7 @@ let xBar,xInfo,xGo,xStop;
 const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
 /* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
 function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
-function exportInfo(){if(!xInfo)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
+function exportInfo(){if(!xInfo||busy)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
   /* what you'll get, as a row of chips – a detail, not a sentence */
   const chips=f==='png'?[[`${W} × ${H}`],['This frame','The frame on the stage now']]
