@@ -261,7 +261,7 @@ Done in 0.12: building slides up on each other (Pile up).
 Done in 0.11: Safari's presets (flat sheets), movement in the other kinds.
 Done in 0.10: projects (kept in the browser, and as a file).
 Done from the 0.6 backlog in 0.9: builds (a layer's own arrival), undo for a piece's own settings, arrow keys to nudge, saying when media is enlarged, the loop's length typed (from SOH Motion).
-- **Safari presets:** found from Steve's note (Safari 17.6) and handled in 0.11 with flat sheets – confirm with him on his Mac. Rubato and Tempo use the same sliding sheets and may need the same fallback.
+- **Safari presets:** found from Steve's note (Safari 17.6) and handled in 0.11 with flat sheets – confirm with him on his Mac. From 0.16 the fallback is shared (`shared/core.js`, `shared/components.css`), so Rubato and Tempo have it.
 - **Strips:** each one's own Offset or Lag (only Offset for every other one, and one Lag, for now); different media per strip.
 - **Canvas:** snapping for cropped pieces and in the other kinds; a rotate handle; layers in the other kinds (a texture over a column's pieces).
 - **Colour edges further:** the brightness correction at full strength is crisper still but outlines the figures; a perceptual weighting might get the crispness without the outline.

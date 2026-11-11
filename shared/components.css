@@ -248,6 +248,9 @@
   .pcap{right:var(--gap)}
   .island.open,.pcap.open{min-width:340px}
   .sheets{display:grid;grid-template-rows:0fr;transition:grid-template-rows .42s cubic-bezier(.2,.85,.25,1);contain:inline-size}
+  /* sheets that open flat, without the slide – Safari 17, where the slide can stick shut (see syncSheets) */
+  .flat-sheets .sheets{display:block;transition:none}
+  .flat-sheets .island:not(.open)>.sheets,.flat-sheets .pcap:not(.open)>.sheets{display:none}
   .sheets>div{min-height:0;overflow:hidden}
   .open>.sheets{grid-template-rows:1fr}
   .sheet{padding:16px 16px 12px;border-bottom:1px solid var(--keyline);max-height:calc(100vh - 140px);overflow-y:auto;scrollbar-width:thin}

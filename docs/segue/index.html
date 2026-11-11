@@ -290,6 +290,9 @@
   .pcap{right:var(--gap)}
   .island.open,.pcap.open{min-width:340px}
   .sheets{display:grid;grid-template-rows:0fr;transition:grid-template-rows .42s cubic-bezier(.2,.85,.25,1);contain:inline-size}
+  /* sheets that open flat, without the slide – Safari 17, where the slide can stick shut (see syncSheets) */
+  .flat-sheets .sheets{display:block;transition:none}
+  .flat-sheets .island:not(.open)>.sheets,.flat-sheets .pcap:not(.open)>.sheets{display:none}
   .sheets>div{min-height:0;overflow:hidden}
   .open>.sheets{grid-template-rows:1fr}
   .sheet{padding:16px 16px 12px;border-bottom:1px solid var(--keyline);max-height:calc(100vh - 140px);overflow-y:auto;scrollbar-width:thin}
@@ -1038,9 +1041,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .ticks{position:absolute;left:10px;right:10px;top:50%;height:10px;margin-top:-5px;pointer-events:none}
 .ticks i{position:absolute;top:0;width:1px;height:10px;margin-left:-.5px;background:color-mix(in srgb,var(--ink) 24%,transparent)}
 
-/* sheets that open flat, without the slide (Safari 17 – see syncSheets) */
-.flat-sheets .sheets{display:block;transition:none}
-.flat-sheets .island:not(.open)>.sheets,.flat-sheets .pcap:not(.open)>.sheets{display:none}
+/* flat sheets for Safari 17 are in shared/components.css from 0.16 (every tool) */
 
 /* 0.14 – what a drag does to the selected piece, in the top line between the project chip and the tools */
 .selhint{position:absolute;top:var(--gap);height:var(--h-chip);z-index:6;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink-soft,var(--ink));opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;user-select:none}

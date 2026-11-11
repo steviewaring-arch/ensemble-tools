@@ -312,7 +312,14 @@ function syncSheets(){
   const open={island:false,pcap:false};
   for(const k in SHEETS){const s=SHEETS[k],o=!s.el.hidden;open[k==='presets'?'pcap':'island']||=o;if(s.opener)s.opener.setAttribute('aria-expanded',o);}
   $('#island').classList.toggle('open',open.island);$('#pcap').classList.toggle('open',open.pcap);layoutUI();
-  if(open.island||open.pcap)requestAnimationFrame(()=>{syncRanges(document);layoutUI();});}
+  if(open.island||open.pcap){requestAnimationFrame(()=>{syncRanges(document);layoutUI();});
+    /* Safari 17 can leave a sheet's row at 0 – the 0fr-to-1fr slide never runs, so Presets opens unseen (found in Segue, Steve's
+       Safari 17.6, Nov 2026). If the row is still shut once the slide should be over, sheets open flat from then on. */
+    clearTimeout(syncSheets.t);syncSheets.t=setTimeout(()=>{const root=document.documentElement;if(root.classList.contains('flat-sheets'))return;
+      for(const c of [$('#island'),$('#pcap')]){const sh=c&&c.classList.contains('open')&&c.querySelector(':scope>.sheets');
+        if(sh&&sh.getBoundingClientRect().height<2){root.classList.add('flat-sheets');layoutUI();return;}}},480);}}
+/* Safari before 18 opens sheets flat from the start */
+{const m=/Version\/(\d+)[.\d]* Safari/.exec(navigator.userAgent);if(m&&+m[1]<18&&!/Chrome|Chromium|Edg/.test(navigator.userAgent))document.documentElement.classList.add('flat-sheets');}
 /* the island sits centred under the work, clear of the panel and of Presets */
 /* phones: when the island's view controls run on past Export, their far end fades to say so */
 function islMore(){const m=$('#islandMain');if(m)m.classList.toggle('more',innerWidth<=860&&m.scrollLeft+m.clientWidth<m.scrollWidth-1);}

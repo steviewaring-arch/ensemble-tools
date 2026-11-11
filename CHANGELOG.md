@@ -16,6 +16,8 @@ Steve, 10 Nov: "have we lost features and flex from earlier iterations? Ensure t
 
 **No Additionals.** The panel is the order of work: **Canvas, Media, Layout, Motion, Captions, Overlay** – Canvas first and open. Captions and Overlay are sections like the rest. The whole layout's position is **Layout › Placement** (it was a section called Position, then Shift everything).
 
+**Every tool:** the Safari 17 sheet fallback (Presets opening unseen) is now in `shared/core.js` and `shared/components.css`, so Rubato and Tempo have it too (their versions unchanged; Tutti has no Presets capsule). Checked: Tutti 84 of 84, Tempo 124 of 124, Rubato features 43 of 43 and its 14 looks identical.
+
 - Tests: `tests/segue_check.py` – 3 new (Frames changing and looping with a frame of a piece's own; the switch groups), 5 updated; `tests/segue_ui_check.py` – helpers. The audit scripts are described in `segue/HANDOVER.md` (they live outside the repo's test run – 25 minutes).
 
 ## 10 November 2026 – Segue 0.15: cropping without a key, one outline, cleaner Additionals
