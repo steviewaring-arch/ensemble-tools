@@ -1,5 +1,13 @@
 # Changelog
 
+## 11 November 2026 – The house rules rewritten; the sync list for Rubato, Tempo and Tutti
+
+Steve: "run UI principles through Rubato, Tutti (if required) and let me know any action points … update the UI Ensemble house style … the call was made to pause and get Segue in a place. After this run, I think now is the time."
+
+- `shared/UI.md` rewritten as what holds now (it had become a list of dated additions): ten principles (new: nothing bolted on; direct, no secret handshakes; every setting earns its place), and new sections – The panel as a whole, Switches, On the canvas, Checking a tool.
+- `shared/UI-TODO.md` (new; the Project's `claude/ui-todo.md`): the house sync, with action points for Rubato (ten), Tutti (six) and Tempo (in passing). Nothing in Rubato or Tutti is broken; it's structure, names and the house parts they don't have yet.
+- No change to Rubato, Tempo or Tutti beyond the shared Safari 17 fallback below.
+
 ## 11 November 2026 – Segue 0.16: the audit – every setting tested, Frames that change, one way to switch things on, no bolt-ons
 
 Steve, 10 Nov: "have we lost features and flex from earlier iterations? Ensure the previous examples shared are doable. For example in the frames parameter I cannot seem to see how we can transition through each card with a different design? This feels like it needs the ability to set what is in each card, or automate … is the logic better to set the canvas, the colour in background etc, then tackle media, then the motion … a full, thorough audit of all parameters, ensure all work, all have the required flex, all feel figma level intuitive … I want to stop iterating and use." And, with a picture of Border (a slider from 0) beside Edge (a tick): "sort this inconsistent UI out – same thing in essence, two ways to go about … weave in 'Additionals' in the appropriate place – or at least name so they feel less like bolt-ons."

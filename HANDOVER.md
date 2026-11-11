@@ -1,6 +1,6 @@
 # Ensemble Tools – handover (8 October 2026, updated for Rubato 1.0 and Tempo 0.9 on 13 October, Segue 0.5.3, Tempo 0.12, Rubato 1.2 and Tutti 6.2 on 6 November; Segue 0.6 the same day; Segue 0.9 and thin scrollbars on every tool on 7 November; Segue 0.10 – projects – on 9 November; Segue 0.11 to 0.15 on 10 November, 0.16 – the audit – on 11 November)
 
-Read this and `README.md` before changing anything. Tutti's own notes are in `tutti/HANDOVER.md`; Segue's are in `segue/HANDOVER.md`.
+Read this and `README.md` before changing anything. Tutti's own notes are in `tutti/HANDOVER.md`; Segue's are in `segue/HANDOVER.md`. The interface's house rules are `shared/UI.md` (rewritten 11 November as what holds now); what each tool still has to take up is `shared/UI-TODO.md` – the house sync across Rubato, Tempo and Tutti, which Steve said to run on 10 November.
 
 ## Where things are
 - **Repo:** `ensemble-tools` – source of truth for Rubato, Tempo and Tutti.

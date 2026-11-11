@@ -5,10 +5,14 @@ whatever comes next. Decentish and Patch are websites, not tools, and keep their
 look. These rules are the brief for every future build; when a tool and this file
 disagree, the tool is wrong.
 
-Settled with Steve over rounds 1–4 (October–November 2026). The kit lives in
-`shared/kit.css`; the mock-ups and reasoning are at `ui/review/` (round 4 at
-`ui/review/round4/`). Last revised 10 November 2026 (Segue 0.11, Tempo 0.12,
-Rubato 1.2, Tutti 6.2).
+Settled with Steve over rounds 1–4 (October–November 2026) and then worked hard in
+Segue (0.5 to 0.16, 5–11 November), which is the reference build: where a rule here
+needs an example, look at Segue. The kit lives in `shared/kit.css`; the mock-ups and
+reasoning are at `ui/review/` (round 4 at `ui/review/round4/`). The history of each
+rule is in `CHANGELOG.md`; this file says only what holds now.
+
+Last revised 11 November 2026 (Segue 0.16, Tempo 0.16, Rubato 1.2, Tutti 6.2).
+What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `claude/ui-todo.md`).
 
 ## Principles
 
@@ -17,32 +21,87 @@ Rubato 1.2, Tutti 6.2).
 2. **Clean, then usable, then clever.** Every element earns its place; if a label,
    rule or note doesn't help someone find or set something, it goes.
 3. **One logic everywhere.** Where you are, what level you're on and what a control
-   does should be readable at a glance, the same in every tool.
+   does should be readable at a glance, the same in every tool. **The same thing is
+   done the same way** – if two settings are the same kind of thing (two things you
+   switch on, two amounts, two choices), they are the same component.
 4. **Give it room.** Space is the main tool for grouping – more of it, not more lines.
 5. **Details are moments.** Small facts (sizes, durations, states) are designed as
    chips and tags, not left as sentences.
 6. **Nothing is lost.** Changes show, and can be put back or undone.
 7. **Behaviour holds.** A UI change never changes what a tool makes – exports are
    checked byte for byte where they can be.
+8. **Nothing is bolted on.** A new setting goes with what it is a setting *of*. If
+   the panel needs a heading like "More", "Advanced" or "Additionals" to hold it,
+   the panel's structure is wrong – fix the structure.
+9. **Direct, and no secret handshakes.** What you can see, you can drag. The main
+   things never need a modifier key or a manual; the interface says, quietly and in
+   the moment, what a drag will do.
+10. **Every setting earns its place by doing something.** A setting that can't
+    change the picture in the state it's shown in isn't shown. This is checked by
+    machine (see Checking a tool), not by eye.
 
 ## The frame
 
 - **Panel** on the left: making. A 4% grey surface (`--k-panel`), 360 px by default,
-  dragged 280–480 px by its right edge (remembered per tool).
-- **Top bar**, top right: chips (facts about the work), then Preview and light/dark.
+  dragged 280–480 px by its right edge (remembered per tool). The edge has no mark –
+  the resize pointer is the sign – and its strip is thin enough (4 px) to stay clear
+  of the scrollbar.
+- **The project**, top left over the work, in line with the top bar – a chip with its
+  name and how it's saved; its panel lists every project with a picture. The project
+  is the work, not a setting, so it sits out of the panel. (Tools that keep projects.)
+- **Top bar**, top right, in keyline groups: the info chips (facts about the work),
+  then Undo and Redo, zoom (−, the value, +), Guides (on and off, an arrow to its
+  settings), Preview and light or dark. A setting that belongs to the *view*, not the
+  work, lives here and never reaches an export. Its settings open in a small panel
+  under the button – the panel's own surface and rows, shut by a click outside or
+  Esc. Where the line is tight, the info chips step aside first, then "Saved" – never
+  the name or the tools.
 - **Island**, bottom centre: what changes the view (Play, Show, scrub) and **Export**,
-  which opens its sheet upward. Status and Undo show here.
+  which opens its sheet upward. Status and Undo show here. A play bar is long enough
+  to aim at (300 px, less on a narrow window), with a fine tick where each step starts.
 - **Presets**, bottom right, the island's height – where a tool has presets.
-- **The work** fits the clear space; **Preview** (F) fills the window and slides the
-  panel away; Esc leaves.
+- **The work** fits the clear space, on a **pasteboard** of sparse, faint dots (24 px
+  apart) so the canvas reads as the canvas. **Preview** (F) fills the window, slides
+  the panel away and drops the dots; Esc leaves.
 - **Sheets** (Export, Presets) grow out of what opened them; one at a time; Esc or a
-  click on the work closes them, and that click never reaches the work.
+  click on the work closes them, and that click never reaches the work. Where a
+  browser can't run the slide (Safari 17), they open flat – `shared/core.js` sees to it.
 - **No drop shadows anywhere.** Surfaces are told apart by fills and hairlines.
 - **Light by default**; dark only once chosen with the button, then remembered.
+- **Scrollbars:** a 6 px soft grey thumb that darkens under the pointer, no track, in
+  a 16 px lane that's always kept (`overflow-y:scroll`, `scrollbar-gutter:stable`),
+  so nothing shifts when a section opens and every section ends at the same right
+  edge. (Chrome ignores `::-webkit-scrollbar` wherever `scrollbar-width` is set, so
+  the kit sets it back to `auto` there; Firefox keeps thin.)
 - **Phones** (≤ 860 px): the work on top, the panel below; the island along the
   bottom with Export pinned at its end; Presets as an icon.
 - **Embedded** (weareensemble.co.uk): framed on the page's colour, unless `?app`
   asks for edge to edge. Embed code: `tutti/EMBED.md`.
+
+## The panel, as a whole
+
+- **Sections follow the order of work.** In Segue: Canvas (the page: its format and
+  what's behind it), Media (what goes on it), Layout (how it's arranged), Motion (how
+  it moves), then Captions and Overlay (type over it). Each tool has its own chapters,
+  but the test is the same: someone starting cold should be able to work down the
+  panel once and have made something.
+- **No tier of leftovers.** Sections used now and then are sections like the rest,
+  shut while they're off (see Switches) – not gathered under "Additionals", "More" or
+  "Advanced".
+- **One word for one idea, and one idea per word** – across the panel, a row's own
+  detail, the tooltips and the other tools. Transition is getting from one thing to
+  the next; Movement is what happens within one; Format is the canvas's size and
+  shape; Placement moves a whole layout; Position is one piece's own. No two controls
+  share a label unless they sit in different, named groups (Border › Width, Edge ›
+  Width).
+- **A setting sits with what it's a setting of.** The shape of things is with the
+  layout that arranges them, not in a section further down; how a pile ends is with
+  the switch that makes the pile.
+- **Settings that would do nothing aren't shown** – and nor are handles on the canvas.
+  An empty group hides its heading.
+- **Where a choice has a shape, draw it** (an easing curve, a route, a transition, a
+  preset) – from the same settings the tool uses, as a picture that isn't itself a
+  control. A number already says what a slider does.
 
 ## The ladder of levels
 
@@ -55,24 +114,45 @@ Every part of the panel is one of four levels. Each level looks one way only.
    puts the whole section back.
 2. **Group** – inside a card: one hairline, then a title 13 px **Bold** and a
    chevron. 20 px of space before it. One rule per edge – never a rule on the group
-   and on its head.
+   and on its head. **A shut group says what it holds** – its value, quietly, beside
+   the chevron – so a panel can open on the few groups that matter.
 3. **Setting** – one row, 30 px high (see the row grammar).
-4. **Detail** – belongs to one row: a slide's own settings open inside its row; a
+4. **Detail** – belongs to one row: a piece's own settings open inside its row; a
    note sits under what it explains. When a detail has groups of its own (a piece's
-   Timing, Look, Caption…), they are groups in the level-2 style – a rule, a 13 Bold
-   title, a chevron – never sub-heads that read like labels; what's rarely used
-   starts shut (Segue 0.9). An open row keeps the soft grey of a closed one, with no
-   keyline (Segue 0.10): inside it, fills go white (a lighter grey in dark) and
-   segment tracks a shade darker than the row, the chosen part white. Its foot: a
+   Timing, Look, Caption…), they are groups in the level-2 style, each saying what it
+   holds when shut; the row opens on the groups tied to what you drag on the canvas
+   (Position, Crop) and keeps the rest shut. An open row keeps the soft grey of a
+   closed one, with no keyline: inside it, fills go white (a lighter grey in dark)
+   and segment tracks a shade darker than the row, the chosen part white. Its foot: a
    keyline chip on the left (Duplicate), small arrow buttons bottom right.
 
-**Additionals** (Segue 0.10): sections used now and then (Captions, Overlay, Position)
-sit at the foot of the panel under one quiet heading – 14 Bold in grey, no card – shut
-until wanted, its summary saying what's on. A section that's on or off has the box
-beside its name, in its head – never a first row repeating its name.
+Don't invent a fifth level. A plain label acting as a mini-heading ("Spacing",
+"Kerning") is a fifth level – make it a group, or let the rows speak for themselves.
 
 Sheets speak the same language: the sheet's title is set as a section title
 (14 Bold), its groups as labels (13 Medium) with one rule between groups.
+
+## Switches – one way to turn a thing on
+
+Anything optional that has settings of its own is **a switch that heads those
+settings**: the round box, then its name in the weight of its level; its settings
+appear beneath while it's on, and it's shut while it's off. No arrow, no line of
+text explaining how to turn it on, no first row repeating its name – and the name
+does what the box does.
+
+- **A switch section** (level 1): Captions, Overlay.
+- **A switch group** (level 2): Border, Edge, Pile up.
+- **A switch row** (level 3) for something with no settings of its own, in the
+  control column.
+
+Never turn a feature on by raising a slider from 0 while its neighbour has a tick. A
+switch remembers what it was set to (Border's width comes back as you left it). A
+plain amount whose zero is naturally "none" (Lag, Scatter) stays a slider.
+
+A switch says what it does in words ("Layer on above"), never a menu of states that
+need explaining. Where a choice only works with another, it brings that one with it
+and says so (a blend makes its slide a layer, with a note, and one Undo takes back
+both).
 
 ## The row grammar
 
@@ -83,10 +163,10 @@ Sheets speak the same language: the sheet's title is set as a section title
   its label, tiles (Kind), lists (media, fonts, presets, bands), a text box of more
   than one line – the label goes above and the control takes the full width.
 - **Choices:** beside the label when each option fits its share with 8 px either
-  side; otherwise full width under it; otherwise (Segue) a menu beside the label, or
-  (Tempo, Rubato) an even grid. The island's choices keep their own widths.
-- **Long labels wrap** onto two lines in the label column rather than squeeze the
-  control.
+  side; otherwise full width under it; otherwise a menu beside the label. (Tempo and
+  Rubato still use an even grid for long sets – to move to menus.)
+- **Labels are short** – one or two words that fit the label column. A label that
+  wraps is a label to rewrite; the explanation goes in its tooltip.
 - **Hints** are 12 px grey, one or two short lines, with room after them and a
   right margin that keeps lines short. If it needs more, it's a tooltip.
 
@@ -106,62 +186,49 @@ Sheets speak the same language: the sheet's title is set as a section title
 - **Stepper** (− 3 +) for small whole counts.
 - **Menu, field, colour:** grey fills, 8 px corners. A colour is its hex field
   across the control column and a swatch at its end.
-- **Switch:** the round tick, in the control column; what depends on it appears
-  only while it's on.
 - **Buttons:** grey fill, 8 px, Medium. **Black only for the main action** in a
   place (Export, Download, Save PNG). A pressed toggle button is white on grey.
 - **Keyline chips** (24 px, a hairline, 6 px corners, an icon) for quiet actions:
-  Shuffle, Clear all, Reset, Replace, + Add, Randomise.
+  Shuffle, Clear all, Reset, Replace, + Add, Randomise, Duplicate.
 - **List rows:** soft grey fills, 8 px; a grip where they reorder; the open or
-  chosen one white with its keyline **inside** (so a scrolling sheet never clips it).
+  chosen one keeps its fill with its settings inside. A row picks up only from its
+  top line, never from a control inside it.
 - **Presets:** a list of names (13 Medium) under their kind, each with a small
   drawing of itself – all on one white ground in the interface's greys, the piece in
-  focus dark, each kind drawn one way, no arrows or colour (Segue 0.9); what a preset
-  does goes in its tooltip; "In use" as a tag.
-- **The top bar** (Segue 0.10): top right, in keyline groups – the info chips, then
-  Undo and Redo, zoom (−, the value, +), Guides (on and off, an arrow to its
-  settings), Preview and light or dark. A setting that belongs to the view, not the
-  work, lives here. Its settings open in a small panel under the button – the panel's
-  own surface and rows, shut by a click outside or Esc.
-- **The project** (Segue 0.11): a chip top left over the canvas, in line with the top
-  bar – its name and how it's saved; its panel lists every project with a picture.
-  The project is the work, not a setting, so it sits out of the panel. Where the top
-  line is tight, the info chips step aside first, then "Saved".
-- **The pasteboard** (Segue 0.11): sparse faint dots (24 px apart) round the canvas, so
-  the canvas reads as the canvas; none in Preview.
-- **The play bar** (Segue 0.11): long enough to aim at (300 px, less on a narrow
-  window), with a fine tick where each slide or step starts.
-- **Guides** are a margin and a grid (cells across, rows dividing evenly) – no columns.
-- **Scrollbars:** a 6 px soft grey thumb that darkens under the pointer, no track, in a
-  16 px lane that's always kept (`overflow-y:scroll`, `scrollbar-gutter:stable`), so
-  nothing shifts when a section opens and every section ends at the same right edge
-  (`kit.css`, every tool, from 0.11). Chrome ignores `::-webkit-scrollbar` wherever
-  `scrollbar-width` is set, so the kit sets it back to `auto` there; Firefox keeps thin.
-- **Nothing drags by accident:** a list row picks up only from its top line, never from
-  a control inside it; panel labels and pictures don't select or drag (inputs do).
-- **Settings that would do nothing aren't shown** – and nor are handles: a piece that
-  fills its frame has no corners to scale (Segue 0.11).
-- **On the canvas** (Segue 0.15): one outline, never two; no modifier keys for the main
-  things – a drag moves, corners size, a double-click goes inside to crop.
-- **A section with a switch** has no arrow: on is open, off is shut, and its name does
-  what its box does. No line of text explaining how to turn it on.
-- **The panel's edge** widens it with no mark – the resize pointer is the sign.
-- **Sections follow the order of work** (Segue 0.14): Media, Canvas, Layout (how it's
-  arranged), Motion (how it moves), then Additionals. One word for one idea across the
-  panel and a piece's row (Transition, Movement); no name used for two things.
-- **A shut group says what it holds** (Segue 0.14) – its value, quietly, beside the
-  chevron – so a row can open on the few groups that matter and keep the rest shut.
-- **A switch says what it does in words** ("Layer on the piece above"), never a menu of
-  states that need explaining; and where a choice only works with another, it brings
-  that one with it and says so (a blend makes its slide a layer, Segue 0.11).
+  focus dark, each kind drawn one way, no arrows or colour; what a preset does goes
+  in its tooltip; "In use" as a tag. A preset shows what its name promises (one
+  called "with title" turns a title on).
+- **Nothing drags or selects by accident:** panel labels and pictures don't select
+  or drag out of the browser (inputs do).
+
+## On the canvas
+
+- **One outline, never two** – a single line that shows on anything (white through
+  "difference"); thinner and fainter for what's under the pointer.
+- **A drag moves; corners size; a double-click goes inside.** A piece that shows
+  whole (or sits in a shape of its own) moves and sizes directly. A picture cropped
+  by its frame: double-click and you're working on the picture – all of it shows
+  faintly, a drag moves it, its corners zoom it; click away, Esc or Enter to finish.
+  Where a shape can also be moved, a ring at its centre moves the picture inside
+  without going in.
+- **No modifier keys for the main things.** Shift for finer, arrows to nudge and
+  ⌘Z are extras, never the only way.
+- **Handles only where they work.** A piece that fills its frame has no corners.
+- **It says what a drag will do** – one quiet line in the top bar's gap, for the
+  selected piece, where there's room.
+- **Clicking a piece's row takes the work to that piece**, and the other way round.
+- **Guides** are a margin and a grid (cells across, rows dividing evenly), with snap;
+  they belong to the view.
 
 ## What's changed, and undo
 
 - **The change column:** a narrow column at the right of every row. A **blue** dot
   (`--k-dot`) when the row differs from where it started (the preset in use, or the
   default); click it to put the row back. Changed values read in ink, Medium.
-- **Undo:** ⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Y – settings, presets, section resets, removed
-  files, and (Segue 0.9) a piece's own settings. A drag is one step. Removing something says so in the island, with Undo.
+- **Undo:** ⌘Z / Ctrl+Z, ⇧⌘Z / Ctrl+Y, and the buttons in the top bar – settings,
+  presets, section resets, removed files, a piece's own settings. A drag is one
+  step; a change that brings another with it is one step. Removing something says so
+  in the island, with Undo.
 - In Segue now; Tempo, Rubato and Tutti take it next (their state needs a "where it
   started" first).
 
@@ -176,7 +243,8 @@ first chip (the size) is white; the rest grey. A chip's sentence goes in its too
 - A sheet keeps its height while you work in it: Export is measured at its tallest
   format on opening, so the choice you pressed stays under the pointer and Download
   stays put.
-- Nothing jumps: new rows fade in; choices re-fit only when their width changes.
+- Nothing jumps: new rows fade in; choices re-fit only when their width changes; the
+  panel's scrollbar lane is always there.
 - Focus rings show only when working from the keyboard (Tab or arrows).
 
 ## Type
@@ -195,10 +263,12 @@ A button says what it does ("Download GIF"); status says what happened ("Saved �
 
 ## Colour
 
-Neutral greys only (no warmth): panel `#F4F4F4`, card `#FFFFFF`, controls `#F2F2F2`,
+Neutral greys only: panel `#F4F4F4`, card `#FFFFFF`, controls `#F2F2F2`,
 hover `#ECECEC`, a slider's value `#E2E2E2`, grey text ≥ 4.5:1. Black for the main
 action. Blue `#2F6BFF` (dark `#6B95FF`) for "changed". Dark mode mirrors these
-(`body[data-theme=dark]` in `kit.css`).
+(`body[data-theme=dark]` in `kit.css`). Open with Steve: his sampled base grey
+`#F6F5F4` (a touch warm) as the reference the other tones derive from – see
+`shared/UI-TODO.md`.
 
 ## Corners, space, motion
 
@@ -212,30 +282,37 @@ action. Blue `#2F6BFF` (dark `#6B95FF`) for "changed". Dark mode mirrors these
   Morph 420 ms with a touch of overshoot for the white choice and dots, Roll 260 ms
   for numbers. None with reduced motion.
 
+## Checking a tool
+
+1. **Work it the way a person does** – `tests/segue_ui_check.py` is the model: every
+   control typed, clicked, dragged, reset and undone; the Export bar in every format;
+   a phone. Labels and accessible names are the contract with the tests – rename one
+   only with its test.
+2. **Audit the settings by machine** – `tests/audit/` is the model: for every preset
+   and every state a setting can show in, change it to its other values and compare
+   frames of the output with before. A setting that never changes anything is dead; a
+   setting shown where it can't change anything should step aside. Run it after any
+   round that adds or moves settings.
+3. **Exports unchanged** where the work shouldn't have changed – byte for byte where
+   they can be (Tutti's twelve export hashes; Rubato's looks; Tempo's parity).
+4. **At 1440 × 900, 1280 × 800 and 390 px, light and dark, and in Safari** (the
+   WebKit probe, `tests/webkit_probe.py`; Safari 17 is the one that bites).
+5. **Tutti is live on weareensemble.co.uk** – check `/tutti` and `/tutti/app` after
+   any change to it or to the shared files it takes (`tokens.css`, `components.css`).
+
 ## Building a tool
 
 1. Start from Segue (the most complete): `shared/page.html`, the frame markup, a
    frame script with `card()`, `fold()`, `addRange/Seg/Toggle/Colour/Select/Text`,
    `cardToSheet()`. Build CSS: `tokens.css` + `components.css` + `kit.css` + the
    tool's own, written in kit terms (`--k-*` tokens, the ladder, the row grammar).
-2. Use the ladder: sections for chapters, groups for what you don't always need,
-   rows for settings, details inside rows. Don't invent a fifth level.
-   **Look at the whole panel when you add to it** (Segue 0.7 did, after features had
-   been bolted on one at a time): a new control goes with what it is a setting *of*,
-   not wherever there was room; one group name means one thing in every section
-   (Position, Timing, Character, Look, Type); groups run in the order people decide
-   things; no two controls share a label unless they never show together; an empty
-   group hides its heading; and where a choice has a shape (an easing curve, a route,
-   a transition), draw it – from the same settings the tool uses, as a picture that is
-   not itself a control, and only there: a number already says what a slider does.
-   Settings that take a number in steps start where the sliders do, so a column of
-   them lines up. Pin the order in the tool's tests.
-3. Write labels short enough for the label column; put explanations in tooltips.
-4. Give every setting a default (for the change dot and Reset).
-5. Check it at 1440 × 900, 1280 × 800 and 390 px, light and dark, and in Safari.
-6. **Test it the way a person works it** (`tests/segue_ui_check.py` is the model:
-   every control typed, clicked, dragged, reset and undone; the Export bar in every
-   format; a phone), plus a check that exports are unchanged. Labels and accessible
-   names are the contract with the tests – rename one only with its test.
-7. Tutti is live on weareensemble.co.uk – check `/tutti` and `/tutti/app` after any
-   change to it or to the shared files it takes.
+2. Lay the panel out in the order of work before building any of it; name each
+   section and group once, and check no word is doing two jobs.
+3. Use the ladder and the switches. Write labels short enough for the label column;
+   put explanations in tooltips. Settings that take a number in steps start where
+   the sliders do, so a column of them lines up.
+4. Give every setting a default (for the change dot and Reset), and every preset the
+   settings its name promises.
+5. **Look at the whole panel whenever you add to it.** The way panels go wrong is one
+   reasonable addition at a time.
+6. Pin the order and the names in the tool's tests, then check it (above).
