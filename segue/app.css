@@ -336,3 +336,8 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 @keyframes pB{0%,20%{opacity:.24}55%,75%{opacity:.86}100%{opacity:.24}}
 @keyframes pShift{0%,14%,100%{transform:none;opacity:inherit}50%,64%{transform:translate(var(--dx,0),var(--dy,0))}}
 @keyframes pPile{0%,12%{transform:translateY(5px);opacity:0}48%,100%{transform:none;opacity:.86}}
+
+/* 0.18 – stepping either side of Play: the same chip as the other round controls, just narrower */
+.island .ebtn.icon{padding:0 8px;min-width:0}
+.island .ebtn.icon svg{width:12px;height:12px;display:block}
+.island .ebtn.icon[hidden]{display:none}

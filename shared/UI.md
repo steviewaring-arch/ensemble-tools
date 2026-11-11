@@ -65,6 +65,8 @@ What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `cl
   which opens its sheet upward. Status and Undo show here. A play bar is long enough
   to aim at (300 px, less on a narrow window), with a fine tick where each step starts.
 - **Presets**, bottom right, the island's height – where a tool has presets.
+- **Back and forward sit either side of Play** where the work has steps of its own, and
+  go where it hasn't. (Segue 0.18.)
 - **The bottom line gives way in order** when the window is narrow: the project keeps
   its mark and loses its name, then the play bar shortens, then a note in the bar –
   and never a note carrying an Undo, because that is the only way back.
@@ -222,6 +224,9 @@ both).
 - **No modifier keys for the main things.** Shift for finer, arrows to nudge and
   ⌘Z are extras, never the only way.
 - **Handles only where they work.** A piece that fills its frame has no corners.
+- **A corner holds the corner opposite still** while it sizes something; the middle of
+  a side grows it about the centre. Both keep the shape. (Segue 0.18.)
+- **A list where one row opens at a time** – opening one shuts the last.
 - **It says what a drag will do** – the guide, top left, for the selected piece,
   where there's room.
 - **Clicking a piece's row takes the work to that piece**, and the other way round.

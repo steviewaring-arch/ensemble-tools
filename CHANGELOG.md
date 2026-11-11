@@ -1,5 +1,16 @@
 # Changelog
 
+## 11 November 2026 – Segue 0.18: stepping slide by slide, corners that hold still, strips that share
+
+Steve: "would be very useful to have back / forward cursors on so individual slides can be altered (next to play button) – for example on Slides layout, moving each one about on Pile Up would be easier. secondly, allowing a resize of an object from a corner (fixed ratio), so it does not enlarge from centre, allowing easier alignment. central enlarge could be done from a mid cursor point on the line … also auto collapse of a media module if another is opened. also when using rows (and I presume same for columns), we need an option to 'add all images to 1 row' or use across all rows without duplication … wall setting says shape can be media's own but it cant."
+
+- **Back and forward, either side of Play.** Each press goes to the next slide (or step), pauses, and selects the piece that lands there – so with Pile up you can walk the pile and move each slide as it arrives. `,` and `.` do the same, as do Alt and the arrow keys. The buttons go where a kind has no steps to take.
+- **A corner holds the corner opposite still.** Dragging a corner no longer grows a piece about its middle, so an edge you've lined up stays lined up. The middle of each side grows it about the centre, as before. Both keep the shape.
+- **One piece open at a time.** Opening a piece in Media shuts the one that was open.
+- **Columns and Rows can share the media out.** **Each column shows** (or **Each row shows**): *All of them* – every strip runs through every piece, each starting somewhere different, as before – or *Its share* – the pieces are dealt out between the strips in order, so each appears once and the loop is as short as the longest strip. With a dozen images in three columns, that is a third of the length. It shows only when there are more pieces than strips; one strip plus Its share puts everything in that one strip.
+- **The Shape menu tells the truth.** Only Columns, Rows and Float give every piece its own shape; the kinds that tile take one shape for them all, and that one is the first media's. The menu now says which it means – "Each media's own" or "The first media's shape" – instead of promising the same thing everywhere.
+- Tests: `tests/segue_check.py` – 6 new (stepping and what it selects, the buttons going where nothing steps, the corner and the side, one row open, the strips sharing, the Shape menu), 2 updated (each kind's controls, the shape drag now moves what it should).
+
 ## 11 November 2026 – Segue 0.17.2: the Projects panel opens again
 
 Steve: "The bottom left 'saved' module does not open / expand in chrome or safari, even with a hard refresh."

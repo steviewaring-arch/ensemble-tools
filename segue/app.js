@@ -8,7 +8,7 @@ const D={
   layout:'column',ratio:'16:10',rW:16,rH:10,size:86,cols:3,gap:64,radius:12,fit:'fill',shapeBg:'#E6E6E3',edge:false,edgeC:'#111111',edgeW:2,nudgeX:0,nudgeY:0,
   mat:0,matC:'#FFFFFF',matR:0,
   oneFit:'shape',ownScale:'fit',kb:'none',kbAmt:6,inMove:'none',inAmt:5,
-  oneMove:'slide',trackMove:'step',dir:'up',feel:'snap',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',gStag:40,gFloat:30,fFill:'share',
+  oneMove:'slide',trackMove:'step',dir:'up',feel:'snap',hold:1.2,dur:.7,spsh:2.5,still:8,lag:0,creep:0,after:'pull',gCols:3,gGap:40,gSize:88,zOut:1.1,gHold:1.6,zIn:1.1,zFeel:'soft',gStag:40,gFloat:30,fFill:'share',cFill:'all',
   pile:false,pileKeep:0,pileScatter:0,pileEnd:'cover',pileBack:2,
   colDir:'alt',colSpeed:'same',colLag:.4,colOff:50,
   sd0:1,sd1:-1,sd2:1,sd3:-1,sd4:1,sd5:-1,sd6:1,sd7:-1,ss0:1,ss1:1,ss2:1,ss3:1,ss4:1,ss5:1,ss6:1,ss7:1,
@@ -317,13 +317,19 @@ const ringAt=(o,x,y)=>!!o&&o.frame&&canCrop(o)&&Math.hypot(x-(o.rect.x+o.rect.w/
 function panGrab(o,x,y){const it=o.item,[sx,sy]=spare(o);grab={mode:'move',it,o,whole:false,x0:x,y0:y,px:+it.px||0,py:+it.py||0,ox:0,oy:0,sx,sy,k:1,r0:Object.assign({},o.rect),moved:false,snap:null};cv.classList.add('grabbing');}
 const opOf=id=>cur&&id?cur.ops.find(o=>o.item&&o.item.id===id&&o.rect&&o.alpha>.05):null;
 const cornersOf=r=>[[r.x,r.y],[r.x+r.w,r.y],[r.x+r.w,r.y+r.h],[r.x,r.y+r.h]];
+/* 0.18 – the middle of each side: these grow a piece about its centre, where a corner keeps the opposite
+   corner where it is (how everything else that resizes works) */
+const edgesOf=r=>[[r.x+r.w/2,r.y],[r.x+r.w,r.y+r.h/2],[r.x+r.w/2,r.y+r.h],[r.x,r.y+r.h/2]];
+const edgesFit=r=>r.w*scrPx()>56&&r.h*scrPx()>56;
 function handleAt(x,y){const o=opOf(selId);if(!o||!(o.whole||o.frame))return null;const tol=9/scrPx();
-  for(const [i,[cx,cy]] of cornersOf(o.rect).entries())if(Math.abs(x-cx)<=tol&&Math.abs(y-cy)<=tol)return{o,i};return null;}
+  for(const [i,[cx,cy]] of cornersOf(o.rect).entries())if(Math.abs(x-cx)<=tol&&Math.abs(y-cy)<=tol)return{o,i,edge:false};
+  if(edgesFit(o.rect))for(const [i,[cx,cy]] of edgesOf(o.rect).entries())if(Math.abs(x-cx)<=tol&&Math.abs(y-cy)<=tol)return{o,i,edge:true};
+  return null;}
 const rowOf=id=>mediaBox&&id?mediaBox.querySelector(`.slot[data-id="${id}"]`):null;
 function setHover(o){const id=o&&o.item?o.item.id:null,was=hoverOp&&hoverOp.item?hoverOp.item.id:null;hoverOp=o;if(id===was)return;
   const a=rowOf(was);if(a)a.classList.remove('hover');const b=rowOf(id);if(b)b.classList.add('hover');dirty=true;}
 /* select a piece: outline it; open its row and bring it into view */
-function selectItem(id,open){selId=id;dirty=true;if(!id||!open)return;openRows.add(id);paintMedia();
+function selectItem(id,open){selId=id;dirty=true;if(!id||!open)return;openRows.clear();openRows.add(id);paintMedia();
   const c=document.querySelector('section.card[data-id="media"]');if(c&&c.classList.contains('collapsed'))c.querySelector('.card-toggle').click();
   const r=rowOf(id);if(r)requestAnimationFrame(()=>r.scrollIntoView({block:'nearest',behavior:reduceMotion.matches?'auto':'smooth'}));}
 /* the guides: margins, columns and rows between them, and the centre */
@@ -357,15 +363,16 @@ function drawUI(){if($('.app').classList.contains('preview'))return;const [W,H]=
     ctx.restore();}
   const so=opOf(selId),hid=hoverOp&&hoverOp.item?hoverOp.item.id:hoverRow,ho=hid&&hid!==selId?opOf(hid):null;
   if(cropId&&(cropId!==selId||!so||!canCrop(so)))cropId=null;
-  {const t=!so?'':cropId?'Drag the picture to move it · its corners zoom it · click away when it’s right':so.layer||so.whole?'Drag to move · corners to size':so.frame?(canCrop(so)?'Drag to move · corners to size · the ring, or a double-click, moves the picture inside':'Drag to move · corners to size'):canCrop(so)?'Drag to move the picture in its frame · double-click to zoom it':'';
+  {const t=!so?'':cropId?'Drag the picture to move it · its corners zoom it · click away when it’s right':so.layer||so.whole?'Drag to move · a corner sizes it from the opposite one · a side from the middle':so.frame?(canCrop(so)?'Drag to move · a corner sizes it from the opposite one · the ring, or a double-click, moves the picture inside':'Drag to move · a corner sizes it from the opposite one · a side from the middle'):canCrop(so)?'Drag to move the picture in its frame · double-click to zoom it':'';
     const sh=$('#selHint');if(sh&&sh.textContent!==t){sh.textContent=t;topFit();}}
   if(ho)box(ho.rect,false);
-  if(so){const ready=so.item.src&&(so.item.kind!=='video'||so.item.src.readyState>=2),inCrop=cropId===so.item.id,sq=(cx,cy)=>{const hs=7*lw;ctx.fillStyle='#FFFFFF';ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs);};
+  if(so){const ready=so.item.src&&(so.item.kind!=='video'||so.item.src.readyState>=2),inCrop=cropId===so.item.id,sq=(cx,cy,n)=>{const hs=(n||7)*lw;ctx.fillStyle='#FFFFFF';ctx.fillRect(cx-hs/2,cy-hs/2,hs,hs);ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.strokeRect(cx-hs/2,cy-hs/2,hs,hs);};
     /* the whole picture, faintly – while cropping, or while it's being moved inside its frame */
     if(ready&&canCrop(so)&&(inCrop||(grab&&grab.moved&&grab.mode==='move'&&!grab.whole))){const g=cropBox(so);ctx.save();ctx.globalAlpha=.32;try{ctx.drawImage(so.item.src,g.x,g.y,g.w,g.h);}catch(e){}ctx.restore();
       ctx.save();ctx.setLineDash([4*lw,3*lw]);box(g,false);ctx.restore();if(inCrop)for(const [cx,cy] of cornersOf(g))sq(cx,cy);}
     box(so.rect,true);
-    if(!inCrop&&(so.whole||so.frame))for(const [cx,cy] of cornersOf(so.rect))sq(cx,cy);
+    if(!inCrop&&(so.whole||so.frame)){for(const [cx,cy] of cornersOf(so.rect))sq(cx,cy);
+      if(edgesFit(so.rect))for(const [cx,cy] of edgesOf(so.rect))sq(cx,cy,5);}
     /* the ring: the picture inside a shape you can also move */
     if(!inCrop&&so.frame&&canCrop(so)&&!(grab&&grab.whole)){const cx=so.rect.x+so.rect.w/2,cy=so.rect.y+so.rect.h/2;ctx.beginPath();ctx.arc(cx,cy,8*lw,0,7);ctx.fillStyle='rgba(255,255,255,.92)';ctx.fill();ctx.lineWidth=lw;ctx.strokeStyle='#111111';ctx.stroke();ctx.beginPath();ctx.arc(cx,cy,2.5*lw,0,7);ctx.fillStyle='#111111';ctx.fill();}}
   ctx.restore();}
@@ -378,8 +385,12 @@ cv.addEventListener('pointerdown',e=>{if(e.button!==0)return;const [x,y]=canvasP
     cropId=null;dirty=true;}
   {const so=opOf(selId);if(ringAt(so,x,y)){take();panGrab(so,x,y);return;}}
   const h=handleAt(x,y);
-  if(h){e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);const o=h.o,zk=o.frame?'fz':'zm',[lo,hi]=o.frame?[20,400]:zRange(o),cx=o.rect.x+o.rect.w/2,cy=o.rect.y+o.rect.h/2;
-    grab={mode:'scale',it:o.item,o,zk,zm0:+o.item[zk]||100,cx,cy,d0:Math.max(1e-6,Math.hypot(x-cx,y-cy)),lo,hi,x0:x,y0:y,moved:false};return;}
+  if(h){e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);const o=h.o,zk=o.frame?'fz':'zm',[lo,hi]=o.frame?[20,400]:zRange(o),r0=o.rect,cx=r0.x+r0.w/2,cy=r0.y+r0.h/2;
+    /* a corner holds the one opposite still (so an edge you've lined up stays lined up); the middle of a side grows it about its centre */
+    const [ax,ay]=h.edge?[cx,cy]:cornersOf(r0)[(h.i+2)%4],sx=Math.sign(cx-ax)||1,sy=Math.sign(cy-ay)||1;
+    grab={mode:'scale',it:o.item,o,zk,zm0:+o.item[zk]||100,cx,cy,ax,ay,sx,sy,edge:h.edge,r0:Object.assign({},r0),
+      ox0:+o.item.ox||0,oy0:+o.item.oy||0,k:(o.whole||o.frame)&&!h.edge?unitK(o):1,
+      d0:Math.max(1e-6,Math.hypot(x-ax,y-ay)),lo,hi,x0:x,y0:y,moved:false};return;}
   const o=hitAt(x,y);if(!o){if(selId){selId=null;dirty=true;}return;}
   e.preventDefault();e.stopPropagation();cv.setPointerCapture(e.pointerId);setPlaying(false);selId=o.item.id;dirty=true;
   /* a shape in Slides (0.13): a drag moves the shape; the ring at its centre, or a double-click, is for the picture inside (0.15) */
@@ -391,7 +402,10 @@ cv.addEventListener('pointermove',e=>{const [x,y]=canvasPt(e);
   if(!grab){if(e.buttons)return;if(!cropId&&ringAt(opOf(selId),x,y)){cv.style.cursor='move';return;}const h=cropId?null:handleAt(x,y);if(h){cv.style.cursor=h.i%2===0?'nwse-resize':'nesw-resize';cv.classList.remove('grab');setHover(h.o);return;}
     cv.style.cursor='';const o=hitAt(x,y);cv.classList.toggle('grab',!!(o&&(o.frame||croppable(o))));setHover(o);return;}
   const g=grab,it=g.it,dx=x-g.x0,dy=y-g.y0;if(!g.moved&&Math.hypot(dx,dy)*scrPx()<3)return;g.moved=true;if(g.mode==='click')return;
-  if(g.mode==='scale'){it[g.zk]=+clamp(g.zm0*Math.hypot(x-g.cx,y-g.cy)/g.d0,g.lo,g.hi).toFixed(1);dirty=true;return;}
+  if(g.mode==='scale'){const z=+clamp(g.zm0*Math.hypot(x-(g.ax!=null?g.ax:g.cx),y-(g.ay!=null?g.ay:g.cy))/g.d0,g.lo,g.hi).toFixed(1);it[g.zk]=z;
+    if(!g.edge&&g.r0&&g.k){const f=z/(g.zm0||100),w=g.r0.w*f,h2=g.r0.h*f;   /* hold the opposite corner: the middle moves by half of what the size gained */
+      it.ox=+(g.ox0+((g.ax+g.sx*w/2)-g.cx)/g.k).toFixed(1);it.oy=+(g.oy0+((g.ay+g.sy*h2/2)-g.cy)/g.k).toFixed(1);}
+    dirty=true;return;}
   if(g.whole){const [sdx,sdy,lx,ly]=snapMove(g.r0,dx,dy,e.altKey);g.snap=[lx,ly];it.ox=+(g.ox+sdx/g.k).toFixed(1);it.oy=+(g.oy+sdy/g.k).toFixed(1);}
   else{if(g.sx>.5)it.px=+clamp(g.px+dx/g.sx*100,-100,100).toFixed(1);if(g.sy>.5)it.py=+clamp(g.py+dy/g.sy*100,-100,100).toFixed(1);}
   dirty=true;});
@@ -451,8 +465,28 @@ function momentOf(it){const P=planNow(),[W,H]=size();
       const d=Math.hypot(r.x+r.w/2-W/2,r.y+r.h/2-H/2)/Math.hypot(W,H),v=vx*vy*o.alpha*(1-d);if(v>best+1e-6){best=v;bt=t;}}}
   return bt;}
 function seekTo(it){const t=momentOf(it);if(t==null)return;setPlaying(false);clock=t;dirty=true;}
+/* 0.18 – stepping slide by slide, either side of Play: the moments are where each slide (or step) begins, so a piece
+   can be settled where it lands. Where a kind has no steps of its own the loop is walked in eighths. */
+const wrap=(a,n)=>((a%n)+n)%n;   /* the engine keeps its own; this is the app's */
+function stepMoments(){const P=planNow(),out=[];
+  for(const g of (P.segs||[]))if(g.k==='hold'||g.k==='grid')out.push(g.t0);
+  if(out.length<2&&/step$/.test(P.kind||'')){const c=(+S.hold||0)+(+S.dur||0);if(c>.05&&c<P.L-1e-6)for(let t=0;t<P.L-1e-6;t+=c)out.push(t);}
+  if(out.length<2)return [];   /* a kind that doesn't step has nothing to step through, so the buttons go */
+  return [...new Set(out.map(t=>+t.toFixed(4)))].sort((a,b)=>a-b);}
+function stepBy(d){const P=planNow(),ms=stepMoments();if(ms.length<2)return;const eps=Math.min(.04,P.L/400);
+  const now=((clock%P.L)+P.L)%P.L;let i=0;for(let j=0;j<ms.length;j++)if(now>=ms[j]-eps-1e-4)i=j;
+  const at=ms[wrap(i+d,ms.length)];setPlaying(false);clock=at+Math.min(.04,P.L/400);dirty=true;
+  /* the slide that lands there is the one you'll want to move */
+  if(S.layout==='one'){const g=P.segs&&P.segs.find(q=>(q.k==='hold')&&Math.abs(q.t0-at)<1e-4),sl=E.slidesOf(items);
+    if(g&&sl.bases.length&&sl.bases[wrap(g.s,sl.bases.length)]){const id=sl.bases[wrap(g.s,sl.bases.length)].id;if(id!==selId){selId=id;paintMedia();}}}
+  stepBtns();}
+function stepBtns(){const on=stepMoments().length>1,a=$('#stepBack'),b2=$('#stepOn');if(a)a.hidden=!on;if(b2)b2.hidden=!on;}
+$('#stepBack').onclick=()=>stepBy(-1);$('#stepOn').onclick=()=>stepBy(1);
 function setPlaying(v){playing=v;const b=$('#play');b.textContent=v?'Pause':'Play';b.setAttribute('aria-label',v?'Pause':'Play');dirty=true;}
 $('#play').onclick=()=>setPlaying(!playing);
+document.addEventListener('keydown',e=>{if(e.metaKey||e.ctrlKey)return;const t=e.target;if(t&&/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))return;
+  if(e.key===','||(e.altKey&&e.key==='ArrowLeft')){e.preventDefault();stepBy(-1);}
+  else if(e.key==='.'||(e.altKey&&e.key==='ArrowRight')){e.preventDefault();stepBy(1);}});
 $('#scrub').addEventListener('input',()=>{setPlaying(false);const P=planNow();clock=$('#scrub').value/1000*P.L;dirty=true;});
 function onSet(k){if(/^gu/.test(k)||k==='guides')dirty=true;if(/^gu[MN]$/.test(k)&&!S.guides)set('guides',true,true);if(openRows.size&&['layout','capOn','oneFit','oneMove','kb','hold','dur'].includes(k))paintMedia();if(['cSize','cW','cH'].includes(k))fitCanvas();if(current&&LOOK.includes(k)&&!edited){edited=true;LS.set('presetEdited',true);}if(['TF','LF','GF','OF','TS','LS','GS','OS','pairs','kern'].includes(k))E.resetMeasure();if(k==='OF'&&FONTS[S.OF]&&document.fonts)document.fonts.load(fontStr(FONTS[S.OF])).then(fontsSettled).catch(()=>{});}
 /* the loop's length, typed (0.9): click the chip and type a length – every time in the loop (rests, moves, each shape,
@@ -482,7 +516,7 @@ let tickSig='';
 function paintTicks(P){const box=$('#ticks');if(!box)return;const at=(P.segs||[]).filter(g=>g.k==='hold'||g.k==='grid').map(g=>g.t0/P.L).filter(x=>x>=0&&x<1);
   const sig=P.L.toFixed(3)+':'+at.map(x=>x.toFixed(4)).join();if(sig===tickSig)return;tickSig=sig;box.textContent='';if(at.length<2||at.length>80)return;
   for(const x of at){const i=el('i');i.style.left=(x*100).toFixed(3)+'%';box.append(i);}}
-function appRefresh(){const P=planNow(),lc=$('#loopChip');paintTicks(P);if(!lc.classList.contains('editing'))lc.textContent=`${P.L.toFixed(1)} s loop`;
+function appRefresh(){const P=planNow(),lc=$('#loopChip');paintTicks(P);stepBtns();if(!lc.classList.contains('editing'))lc.textContent=`${P.L.toFixed(1)} s loop`;
   const g6=S.layout==='one'?E.slidesOf(items):null;
   $('#countChip').textContent=!items.length?'No media yet':g6&&g6.layers.size?`${items.length} pieces · ${g6.bases.length} slides`:(items.length===1?'1 shape':`${items.length} shapes`);
   if(current&&BUILTIN.concat(mine).some(x=>x.name===current)){const e=LOOK.some(moved);if(e!==edited){edited=e;LS.set('presetEdited',e);}}
@@ -571,7 +605,7 @@ function paintMedia(){
     {const k=enlargeMap().get(it);if(k>1.08){const e=el('span','enl',` · shown at ${Math.round(k*100)}%`);e.dataset.tip=`Drawn bigger than its own pixels – up to ${k.toFixed(2)}× – so it can’t be fully crisp. For a crisp export it would need ${Math.ceil(it.w*k)} × ${Math.ceil(it.h*k)} px.`;meta.append(e);}}
     main.append(nm,meta);main.setAttribute('role','button');main.tabIndex=0;main.setAttribute('aria-expanded',openRows.has(it.id));main.setAttribute('aria-label',`${i+1}. ${it.name} – details`);
     /* opening a row selects the piece and takes the playhead to it (0.6) */
-    const tog=()=>{if(openRows.has(it.id)){openRows.delete(it.id);if(selId===it.id)selId=null;}else{openRows.add(it.id);selId=it.id;}seekTo(it);paintMedia();dirty=true;};main.onclick=tog;
+    const tog=()=>{if(openRows.has(it.id)){openRows.delete(it.id);if(selId===it.id)selId=null;}else{openRows.clear();openRows.add(it.id);selId=it.id;}seekTo(it);paintMedia();dirty=true;};main.onclick=tog;   /* one piece open at a time (0.18) */
     th.style.cursor='pointer';th.onclick=()=>{selId=it.id;seekTo(it);paintMedia();dirty=true;};main.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();tog();}};
     const rm=el('button','pill small icon');rm.type='button';rm.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M3 3l6 6M9 3 3 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';rm.dataset.tip='Remove';rm.setAttribute('aria-label','Remove '+it.name);rm.onclick=e=>{e.stopPropagation();removeItems([it.id],`Removed ${it.name}`);};
     const grip=el('span','grip');grip.innerHTML=ICON.grip;grip.setAttribute('aria-hidden','true');top.append(grip,th,main,rm);row.append(top);if(openRows.has(it.id))row.classList.add('open');row.dataset.id=it.id;if(lay)row.classList.add('layer');if(hoverOp&&hoverOp.item===it)row.classList.add('hover');
@@ -903,6 +937,9 @@ const groupShow=list=>s=>list.some(d=>!d.show||d.show(s));
    themselves. It was split between the top of Motion and a Shapes section further down ("choose In a shape, then go
    and find the shape"); Motion now holds only what moves. */
 const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
+  /* how the media are shared out between the strips (0.18) – all of them in each, or each strip its own share */
+  const stripShare=s=>isK('columns','rows')(s)&&items.length>Math.max(1,Math.round(+s.cols)||3);
+  const FILL=[['all','All of them','Every strip runs through every piece, each starting somewhere different'],['share','Its share','The pieces are dealt out between the strips in order – each appears once, and the loop is shorter']];
 {const b=card('layout','Layout');kindTiles(b);const notBleed=s=>!(isK('one')(s)&&s.oneFit==='bleed');
   build(b,[
     {t:'seg',k:'oneFit',label:'Each slide',opts:FITS,show:isK('one')},
@@ -916,13 +953,22 @@ const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
     {t:'range',k:'fCols',label:'Across',min:1,max:6,step:1,show:isK('frames')},
     {t:'range',k:'fRows',label:'Down',min:1,max:4,step:1,show:isK('frames')},
     {t:'seg',k:'fFill',label:'Each frame',opts:[['share','Its share','The media are dealt round the frames, so each frame has its own'],['all','All of them','Every frame goes through all the media, each starting somewhere different']],show:s=>isK('frames')(s)&&framesSpare(s),tip:'To give a piece a frame of its own, open it in Media and choose its Frame'},
-    {t:'range',k:'colOff',label:'Offset',min:0,max:100,step:1,unit:'%',show:isK('columns','rows'),tip:'Every other one set along by part of a shape, so it reads as a wall rather than a grid'}]);
+    {t:'range',k:'colOff',label:'Offset',min:0,max:100,step:1,unit:'%',show:isK('columns','rows'),tip:'Every other one set along by part of a shape, so it reads as a wall rather than a grid'},
+    {t:'seg',k:'cFill',label:'Each column shows',opts:FILL,show:s=>isK('columns')(s)&&stripShare(s),tip:'With a lot of media, Its share keeps the loop short – nothing is repeated'},
+    {t:'seg',k:'cFill',id:'cFillR',label:'Each row shows',opts:FILL,show:s=>isK('rows')(s)&&stripShare(s),tip:'With a lot of media, Its share keeps the loop short – nothing is repeated'}]);
   build(b,[
     {t:'range',k:'depth',label:'Depth',min:0,max:100,step:1,unit:'%',show:isK('float')},
     {t:'range',k:'spread',label:'Spread',min:0,max:300,step:1,unit:'%',show:isK('float')}]);
   {const r=el('div','ctl btn-row'),sh=el('button','pill small','Shuffle');sh.type='button';sh.dataset.tip='Scatter the shapes another way';sh.onclick=()=>set('seed',(Math.round(+S.seed)||0)+1);r.append(sh);addCustom(b,isK('float'),r);}
-  const sf=fold(b,'shapes','Shapes',notBleed,false,s=>[ownFit(s)?'Their own':s.ratio==='custom'?`${s.rW}:${s.rH}`:s.ratio==='media'?'Media’s own':({a4p:'A4 portrait',a4l:'A4 landscape'}[s.ratio]||s.ratio),s.radius?`${s.radius} px corners`:'Square corners'].join(' · '));
-  build(sf,[{t:'select',k:'ratio',label:'Shape',show:s=>!ownFit(s),opts:[['media','The media’s own'],['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']]},
+  const sf=fold(b,'shapes','Shapes',notBleed,false,s=>[ownFit(s)?'Their own':s.ratio==='custom'?`${s.rW}:${s.rH}`:s.ratio==='media'?(perPiece(s)?'Each media’s own':'First media’s shape'):({a4p:'A4 portrait',a4l:'A4 landscape'}[s.ratio]||s.ratio),s.radius?`${s.radius} px corners`:'Square corners'].join(' · '));
+  /* 0.18 – Steve: "wall setting says shape can be media's own but it cant". Only the strips and Float give every
+     piece its own shape; the kinds that tile take one shape for all, and that one is the first media's. The option
+     now says which of the two it is, rather than promising the same thing everywhere. */
+  const perPiece=s=>E.stripsOf(s)||s.layout==='float',RATIO_REST=[['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']];
+  build(sf,[{t:'select',k:'ratio',label:'Shape',show:s=>!ownFit(s),
+    optsFn:()=>[['media',perPiece(S)?'Each media’s own':'The first media’s shape'],...RATIO_REST],
+    opts:[['media','The media’s own'],['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']],
+    tip:'The shape the pieces take. Columns, Rows and Float can give each piece its own; the kinds that tile take one shape for them all'},
     {t:'nums',keys:['rW','rH'],names:['W','H'],label:'Shape ratio',min:.1,max:100,step:.1,sep:':',show:s=>s.ratio==='custom'&&!ownFit(s)},
     {t:'range',k:'size',label:'Size',min:10,max:100,step:.5,unit:'%',show:isK('one','line','frames','wall'),tip:'How big the shapes are: 100% fills the canvas (Slides, Frames, Wall), its height (a row) or its width (a column)'},
     {t:'range',k:'size',id:'gsize',label:'Width',min:10,max:100,step:.5,unit:'%',show:isK('grid'),tip:'How much of the canvas’s width they take'},
@@ -942,7 +988,7 @@ const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
   /* Placement (0.16, was the Position section under Additionals): every shape moved together */
   const pf=fold(b,'place','Placement',s=>!isK('float')(s)&&!(isK('one')(s)&&s.oneFit==='bleed'),true,s=>(+s.nudgeX||+s.nudgeY)?`${Math.round(s.nudgeX)}, ${Math.round(s.nudgeY)} px`:'Centred');
   build(pf,[{t:'range',k:'nudgeX',label:'Across',min:-600,max:600,step:1,unit:' px',tip:'Move every shape left or right'},{t:'range',k:'nudgeY',label:'Up and down',min:-600,max:600,step:1,unit:' px',tip:'Move every shape up or down'}]);
-  SUMMARY.layout=s=>[kindName(s),isK('one')(s)?optLabel(FITS,s.oneFit):'',isK('one')(s)&&s.oneFit==='bleed'?'':(ownFit(s)?'':s.ratio==='custom'?`${s.rW}:${s.rH}`:s.ratio==='media'?'Media’s own':({a4p:'A4 portrait',a4l:'A4 landscape'}[s.ratio]||s.ratio))].filter(Boolean).join(' · ');}
+  SUMMARY.layout=s=>[kindName(s),isK('one')(s)?optLabel(FITS,s.oneFit):'',isK('one')(s)&&s.oneFit==='bleed'?'':(ownFit(s)?'':s.ratio==='custom'?`${s.rW}:${s.rH}`:s.ratio==='media'?(perPiece(s)?'Each media’s own':'First media’s shape'):({a4p:'A4 portrait',a4l:'A4 landscape'}[s.ratio]||s.ratio))].filter(Boolean).join(' · ');}
 /* Motion (0.7): the kind first, then what that kind moves and which way; then three groups that mean the
    same in every kind – Timing (how long), Character (how it feels) and After the last (how the loop ends).
    Each shows only what the choices above it use. */

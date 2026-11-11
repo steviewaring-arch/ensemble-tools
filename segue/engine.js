@@ -179,10 +179,12 @@ function plan(S,items){
   const N=Math.max(1,items.length),mv=moveOf(S),lay=S.layout||'one';
   const hold=Math.max(0,+S.hold||0),dur=Math.max(0,+S.dur||0),cyc=hold+dur;
   const still=()=>Math.max(.5,+S.still||8);
-  if(lay==='columns'||lay==='rows'){const C=colsOf(S),n=N;
-    if(mv==='still')return{kind:'cstill',L:still(),n,C,N};
-    if(mv==='drift')return{kind:'cdrift',L:Math.max(.2,n*(+S.spsh||2.5)*stripBase(S,C)),n,C,N};
-    return{kind:'cstep',L:cyc>0?n*cyc:1,n,C,N,hold,dur};}
+  if(lay==='columns'||lay==='rows'){const C=colsOf(S),seqs=stripSeqs(S,items),lens=seqs.map(q=>q.length||1),n=Math.max(...lens);
+    /* sharing the media out (0.18) leaves strips of different lengths: the loop is as long as they all need to come round */
+    let nl=1;for(const v of lens){nl=nl*v/gcd(nl,v);if(nl>720){nl=n;break;}}
+    if(mv==='still')return{kind:'cstill',L:still(),n,C,N,seqs};
+    if(mv==='drift')return{kind:'cdrift',L:Math.max(.2,n*(+S.spsh||2.5)*stripBase(S,C)),n,C,N,seqs};
+    return{kind:'cstep',L:cyc>0?nl*cyc:1,n,C,N,hold,dur,seqs};}
   if(lay==='wall'){const W=wallPlan(S,N);
     if(mv==='still')return Object.assign(W,{kind:'wstill',L:still()});
     if(mv==='drift')return Object.assign(W,{kind:'wdrift',L:Math.max(.2,W.n*(+S.spsh||2.5))});
@@ -504,15 +506,23 @@ function pullScene(S,G,P,cam,N,push){
    own: the slowest moving one sets the pace); stepping, its speed in shapes a move, each strip a beat out of step
    with the one before. Alternate strips can sit part of a shape along, so it reads as a wall rather than a grid.
    Columns are as wide as Width shares out across the canvas (more than 100% runs off the sides); Rows as tall. */
+/* What each strip shows (0.18). "All of them" – every strip runs through every piece, each starting somewhere
+   different (how it has always been). "Its share" – the pieces are dealt out between the strips in order, so each
+   one appears once and the loop is as short as the longest strip. A strip is never left empty. */
+function stripSeqs(S,list){const C=colsOf(S),N=list.length,share=S.cFill==='share'&&N>C,seqs=[];
+  for(let c=0;c<C;c++){const q=[];if(!N){seqs.push(q);continue;}
+    if(share){const a=Math.floor(N*c/C),b=Math.max(a+1,Math.floor(N*(c+1)/C));for(let i=a;i<b&&i<N;i++)q.push(i);}
+    else{const from=Math.round(N*c/C);for(let j=0;j<N;j++)q.push(mod(from+j,N));}
+    seqs.push(q.length?q:[mod(c,N)]);}
+  return seqs;}
 function columnsScene(S,P,cam,list,ctx,fonts,W,H,push){
-  const rows=S.layout==='rows',C=P.C,n=P.n,N=list.length,size=clamp(+S.size||80,1,300)/100,gap=Math.max(0,+S.gap||0),rf=ratioEach(S,list);
+  const rows=S.layout==='rows',C=P.C,seqs=P.seqs||stripSeqs(S,list),N=list.length,size=clamp(+S.size||80,1,300)/100,gap=Math.max(0,+S.gap||0),rf=ratioEach(S,list);
   const {reserve}=capReserve(S,list,ctx,fonts),above=S.capOn&&capWhereOf(S)==='above'&&reserve;
   const A=rows?H:W,B=rows?W:H,cw=Math.max(1,(A*size-(C-1)*gap)/C),mid=rows?H/2+(+S.nudgeY||0):W/2+(+S.nudgeX||0),z0=rows?+S.nudgeX||0:+S.nudgeY||0;
   const cr=creepOf(S),fn=feel(S.feel),tt=cam.tt;
   for(let c=0;c<C;c++){
-    const idx=[],pitch=[],cum=[];let T=0;
-    const from=Math.round(N*c/C);
-    for(let j=0;j<n;j++){const i=mod(from+j,N);idx.push(i);const p=(rows?Math.max(1,cw-reserve)*rf(list[i]):cw/rf(list[i])+reserve)+gap;cum.push(T);pitch.push(p);T+=p;}
+    const idx=[],pitch=[],cum=[];let T=0;const q=seqs[c]||[],n=q.length;if(!n)continue;
+    for(let j=0;j<n;j++){const i=q[j];idx.push(i);const p=(rows?Math.max(1,cw-reserve)*rf(list[i]):cw/rf(list[i])+reserve)+gap;cum.push(T);pitch.push(p);T+=p;}
     const way=stripWay(S,c),k=stripSpeed(S,c),at=x=>{const f=Math.floor(x),m=mod(f,n);return Math.floor(f/n)*T+cum[m]+(x-f)*pitch[m];};
     let s=0;
     if(P.kind==='cdrift')s=k*T*tt/P.L;
@@ -709,5 +719,5 @@ function drawBlock(ctx,S,b,x0,y0,sc,alpha,rev,seed,tt){
       draw(c.glyphs,cx+c.padX*sc,by,st.colour);}});
   ctx.restore();}
 
-return{frameSeqs,stripWay,stripSpeed,stripBase,stripsOf,FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
+return{frameSeqs,stripSeqs,stripWay,stripSpeed,stripBase,stripsOf,FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
 })();
