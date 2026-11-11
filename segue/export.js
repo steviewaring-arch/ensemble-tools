@@ -347,5 +347,8 @@ window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts
    Presets and Export above all – and says what went wrong where it can be seen */
 for(const [n,f] of [['frame',frameStart],['media',paintMedia],['fonts',paintFonts],['presets',paintPresets],['refresh',refreshAll],['canvas',fitCanvas],['layout',layoutUI]]){try{f();}catch(e){reportError(e,'start-up: '+n);}}
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
-loadBuiltinFonts();restoreFonts().then(paintFonts);Promise.all([restoreMedia(),restorePics()]).then(projectsStart).catch(e=>reportError(e,'start-up: projects'));
+loadBuiltinFonts();restoreFonts().then(paintFonts);
+/* 0.17.1 – the projects start even if restoring the media or the pictures went wrong, so the tool is never left without one */
+Promise.all([restoreMedia().catch(e=>reportError(e,'start-up: media')),restorePics().catch(e=>reportError(e,'start-up: pictures'))])
+  .then(projectsStart).catch(e=>reportError(e,'start-up: projects'));
 requestAnimationFrame(tick);

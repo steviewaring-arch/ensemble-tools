@@ -1,5 +1,14 @@
 # Changelog
 
+## 11 November 2026 – Segue 0.17.1: the Projects panel opened too early
+
+Steve sent the note the tool makes: `async = null is not an object (evaluating 'PROJ.name')` at `paintProjPop`, Safari 26.5.
+
+- **What happened:** opening the project panel before start-up had finished reading the projects out of the browser. On a fast machine with little media you never catch it; on Safari with a project's worth of media to restore first, the moment is wide open. The panel now says "Getting your projects…" and fills itself in when they arrive.
+- **And the cause behind it:** the projects waited on the media and the pictures being restored, so anything going wrong there left the tool with no project at all. The two are now caught on their own, and start-up always ends with a project – even in a browser that won't keep one.
+- Nothing in the panel acts before there's a project to act on (New, Duplicate, Save as file).
+- Tests: `tests/segue_check.py` – 1 new, which slows IndexedDB so the race happens every time (179 of 179).
+
 ## 11 November 2026 – Segue 0.17: Export as one control, the bottom line, a guide where you're looking
 
 Steve, 13:13: "on the export panel … I have on occasion clicked this thinking that I am exporting the mp4 … the stop button should feel cleaner next to whatever we land on with the export button – matching height … can this integrate with the % left? Add in a time estimate also? On the presets (and also 'kind') how feasible is it to bring in simple animations to the little visual cues? … if I click about on export, will this affect the export? It would be useful to keep on working / collapse the export bar. A little module could appear on complete (think apple notifications) … ensure the chips top right match the same style as the ones in export." And 13:19: "If I can change something in the top right, it should have a subtle hover … can this [the double-click guide] work in a form of dynamic island … sitting top left? Where we have the Saved element, should that sit along the bottom maybe – with presets."

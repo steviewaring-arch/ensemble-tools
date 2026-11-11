@@ -1174,7 +1174,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">0.17</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">0.17.1</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -5553,10 +5553,11 @@ async function openProject(id){if(busy){toast('Wait for the export to finish');r
   let rec=null;try{rec=await DB.get('projects',id);}catch(e){}if(!rec){toast('Couldn’t find that project');return;}
   projReady=false;await saveProject(true);try{await loadProject(rec);}finally{projReady=true;}await saveProject(true);closeProjPop();toast(`Opened ${PROJ.name}`);}
 async function newProject(){if(busy){toast('Wait for the export to finish');return;}projReady=false;await saveProject(true);
+  if(!PROJ)return;
   const name=untitled(await allProjects());
   try{await loadProject({id:newPid(),name,created:Date.now(),settings:{},items:[],pics:{},preset:{current:'',edited:false}});}finally{projReady=true;}
   await saveProject(true);closeProjPop();toast(`New project – ${name}. The last one is in Projects.`);}
-async function duplicateProject(){await saveProject(true);const r=projRecord(PROJ.thumb),list=await allProjects(),taken=new Set(list.map(x=>x.name));
+async function duplicateProject(){if(!PROJ)return;await saveProject(true);const r=projRecord(PROJ.thumb),list=await allProjects(),taken=new Set(list.map(x=>x.name));
   let name=`${PROJ.name} copy`;for(let k=2;taken.has(name);k++)name=`${PROJ.name} copy ${k}`;
   Object.assign(r,{id:newPid(),name,created:Date.now(),updated:Date.now()});await DB.put('projects',r.id,r);paintProjPop();toast(`Copied as ${name}`);}
 async function renameProject(n){n=String(n||'').trim().slice(0,80);if(!n||!PROJ||n===PROJ.name)return;PROJ.name=n;paintProject();await saveProject();}
@@ -5566,10 +5567,13 @@ async function removeProject(id){if(PROJ&&id===PROJ.id){const others=(await allP
   paintProjPop();}
 function undoProject(was){const label=`Removed ${was.name}`;pushUndo({label,fn:async w=>{if(w)await DB.del('projects',was.id);else await DB.put('projects',was.id,was);paintProjPop();}});toastUndo(label);}
 /* start-up: the work in the browser becomes (or stays) the open project; files nothing uses are cleared */
-async function projectsStart(){let rec=null;const id=LS.get('project');try{if(id)rec=await DB.get('projects',id);}catch(e){}
-  if(rec)PROJ={id:rec.id,name:rec.name||'Untitled',created:rec.created,thumb:rec.thumb||null};
-  else{const list=await allProjects();PROJ={id:id||newPid(),name:untitled(list),created:Date.now(),thumb:null};LS.set('project',PROJ.id);}
-  paintProject();projReady=true;await saveProject(true);gcFiles();}
+async function projectsStart(){let rec=null;const id=LS.get('project');
+  try{if(id)rec=await DB.get('projects',id);}catch(e){}
+  try{
+    if(rec)PROJ={id:rec.id,name:rec.name||'Untitled',created:rec.created,thumb:rec.thumb||null};
+    else{const list=await allProjects();PROJ={id:id||newPid(),name:untitled(list),created:Date.now(),thumb:null};LS.set('project',PROJ.id);}
+  }catch(e){PROJ={id:id||newPid(),name:'Untitled',created:Date.now(),thumb:null};}   /* a browser that won't keep projects still gets one to work in */
+  paintProject();projReady=true;if(!$('#projPop').hidden)paintProjPop();await saveProject(true);gcFiles();}
 async function gcFiles(){try{const used=new Set(),add=list=>{for(const m of list||[])if(m&&(m.ref||m.id))used.add(m.ref||m.id);},pic=m=>{if(m)used.add(m.ref||'');};
     add(LS.get('items'));pic(LS.get('pic:bg'));for(const w of ['bg','ov'])if(LS.get('pic:'+w)&&!LS.get('pic:'+w).ref)used.add('pic:'+w);pic(LS.get('pic:ov'));
     const list=await DB.all('projects');for(const r of list){add(r.items);if(r.pics){for(const w of ['bg','ov']){const m=r.pics[w];if(m)used.add(m.ref||'pic:'+w);}}}
@@ -5581,7 +5585,10 @@ const ICON_DUP='<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="1.5" y="3.5
 const when=t=>{if(!t)return '';const d=new Date(t),now=new Date(),hm=d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   if(d.toDateString()===now.toDateString())return `Today ${hm}`;const y=new Date(now);y.setDate(now.getDate()-1);if(d.toDateString()===y.toDateString())return `Yesterday ${hm}`;
   return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+hm;};
-async function paintProjPop(){const pop=$('#projPop');if(pop.hidden)return;await saveProject();const list=await allProjects();pop.textContent='';
+async function paintProjPop(){const pop=$('#projPop');if(pop.hidden)return;
+  /* 0.17.1 – it can be opened before start-up has the projects in (Safari, a lot of media): say so and come back */
+  if(!PROJ){pop.textContent='';pop.append(el('div','pop-title','Project'),el('p','hint','Getting your projects…'));return;}
+  await saveProject();const list=await allProjects();pop.textContent='';
   const nm=el('input','proj-field');nm.type='text';nm.value=PROJ.name;nm.spellcheck=false;nm.setAttribute('aria-label','Project name');nm.maxLength=80;
   nm.onchange=()=>renameProject(nm.value);nm.onkeydown=e=>{if(e.key==='Enter')nm.blur();if(e.key==='Escape'){nm.value=PROJ.name;nm.blur();}};
   const acts=el('div','proj-acts'),act=(label,icon,fn,tip)=>{const b=el('button','pill small');b.type='button';b.innerHTML=icon+`<span>${label}</span>`;b.dataset.tip=tip;b.onclick=fn;acts.append(b);};
@@ -5623,7 +5630,7 @@ async function readZip(file){const n=file.size,tb=new DataView(await file.slice(
     out.set(name,b);}
   return out;}
 const safeName=n=>String(n||'file').replace(/[\\/:*?"<>|\u0000-\u001f]+/g,'-').slice(0,120)||'file';
-async function projectFile(){await saveProject(true);const r=projRecord(PROJ.thumb),files=[],seen=new Set(),media={},pics={},fonts=[];
+async function projectFile(){if(!PROJ)throw new Error('the project isn’t ready yet');await saveProject(true);const r=projRecord(PROJ.thumb),files=[],seen=new Set(),media={},pics={},fonts=[];
   for(const m of r.items){const ref=m.ref||m.id;if(seen.has(ref))continue;seen.add(ref);let b=null;try{b=await DB.get('media',ref);}catch(e){}if(!b)continue;
     const path=`media/${ref}/${safeName(m.name)}`;media[ref]={path,type:b.type||''};files.push({name:path,blob:b});}
   for(const w of ['bg','ov']){const m=r.pics[w];if(!m)continue;const ref=m.ref||'pic:'+w;let b=null;try{b=await DB.get('media',ref);}catch(e){}if(!b)continue;
@@ -5998,7 +6005,10 @@ window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts
    Presets and Export above all – and says what went wrong where it can be seen */
 for(const [n,f] of [['frame',frameStart],['media',paintMedia],['fonts',paintFonts],['presets',paintPresets],['refresh',refreshAll],['canvas',fitCanvas],['layout',layoutUI]]){try{f();}catch(e){reportError(e,'start-up: '+n);}}
 requestAnimationFrame(()=>{layoutUI();syncRanges(document);fitCanvas();});
-loadBuiltinFonts();restoreFonts().then(paintFonts);Promise.all([restoreMedia(),restorePics()]).then(projectsStart).catch(e=>reportError(e,'start-up: projects'));
+loadBuiltinFonts();restoreFonts().then(paintFonts);
+/* 0.17.1 – the projects start even if restoring the media or the pictures went wrong, so the tool is never left without one */
+Promise.all([restoreMedia().catch(e=>reportError(e,'start-up: media')),restorePics().catch(e=>reportError(e,'start-up: pictures'))])
+  .then(projectsStart).catch(e=>reportError(e,'start-up: projects'));
 requestAnimationFrame(tick);
 })();
 </script>

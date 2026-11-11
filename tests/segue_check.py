@@ -1120,6 +1120,19 @@ with sync_playwright() as p:
     pg.evaluate("document.querySelector('#dims').click()"); time.sleep(.6)
     jump = pg.evaluate("!document.querySelector('#panel section.card[data-id=canvas]').classList.contains('collapsed')")
     check('…the size chip opens Canvas, where the size is set', jump is True)
+    # 0.17.1 – Steve's Safari 26.5: the Projects panel opened before start-up had the projects in, and threw.
+    # Here IndexedDB is slowed so the race happens every time.
+    slow = """(()=>{const open=indexedDB.open.bind(indexedDB);indexedDB.open=function(...a){const r=open(...a);let f=null;
+      Object.defineProperty(r,'onsuccess',{configurable:true,get(){return f;},set(fn){f=fn;r.addEventListener('success',e=>{setTimeout(()=>fn&&fn.call(r,e),1600);});}});return r;};})()"""
+    ctx3 = b.new_context(viewport={'width': 1400, 'height': 900}); ctx3.add_init_script(slow)
+    p3 = ctx3.new_page(); e3 = []; p3.on('pageerror', lambda e: e3.append(str(e))); p3.goto(url); time.sleep(.6)
+    p3.click('#projBtn'); time.sleep(.3)
+    waiting = p3.evaluate("[document.querySelector('#projPop').hidden,document.querySelector('#projPop').textContent]")
+    time.sleep(3.5)
+    ready = p3.evaluate("[!!document.querySelector('#projPop .proj-field'),document.querySelector('#projName').textContent]")
+    ctx3.close()
+    check('Projects opened before start-up has them in says so and fills itself in when they arrive, rather than going wrong (0.17.1)',
+          waiting[0] is False and 'Getting your projects' in waiting[1] and ready[0] and ready[1] and not e3, f'{waiting} {ready} {e3[:1]}')
     pg.locator('#pcapOpen').click(); time.sleep(.8)
     an = pg.evaluate("""()=>{const ks=[...document.querySelectorAll('.kind')].map(k=>k.dataset.k),ps=[...document.querySelectorAll('.preset-row .pk')].map(k=>k.dataset.anim);
       return {ks,kinds:ks.every(Boolean),anims:[...new Set(ps)].sort(),all:ps.every(Boolean)};}""")
