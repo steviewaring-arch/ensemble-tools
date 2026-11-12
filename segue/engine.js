@@ -46,7 +46,12 @@ function canvasSize(S){return S.cSize==='custom'?[even(S.cW),even(S.cH)]:(SIZES[
 const RATIOS={'4:5':4/5,'3:4':3/4,'2:3':2/3,'9:16':9/16,'9:19.5':9/19.5,'1:1':1,'4:3':4/3,'3:2':3/2,'16:10':16/10,'16:9':16/9,'a4p':1/Math.SQRT2,'a4l':Math.SQRT2};
 function ratioOf(S,items){
   if(S.ratio==='custom')return clamp((+S.rW||1)/(+S.rH||1),.05,20);
-  if(S.ratio==='media'){const m=items.find(i=>i&&i.w&&i.h);return m?m.w/m.h:16/10;}
+  /* 1.0 – every kind lets each piece keep its own shape. The strips and Float size each piece by it; the kinds that
+     tile need one slot for them all, and each piece is fitted inside its slot (ownShapes): the slot is the middle
+     shape of them all, so the pieces come out near the same size, and Align lines them up in their slots. */
+  if(S.ratio==='media'){const rs=items.filter(i=>i&&i.w&&i.h).map(i=>clamp(i.w/i.h,.05,20));if(!rs.length)return 16/10;const l=S.layout;
+    if(OWNSLOT.has(l)){const q=rs.slice().sort((a,b)=>a-b);return q[q.length>>1];}
+    return rs[0];}
   return RATIOS[S.ratio]||16/10;}
 /* Columns and Float can give each shape its own media's shape */
 function ratioEach(S,items){const r=ratioOf(S,items);return S.ratio==='media'?(it=>it&&it.w&&it.h?clamp(it.w/it.h,.05,20):r):(()=>r);}
@@ -174,7 +179,22 @@ function floatSetup(S,items,W,H){
   const lens=list.map(along),aNear=lens.reduce((a,x)=>a+x,0)/lens.length,aMax=Math.max(...lens),sp=1+clamp(+S.spread||60,0,400)/100;
   const K=Math.max(Math.ceil(N/Ld),Math.ceil((E/scales[0]+aMax)/(aNear*sp))+1,2);
   return{vert,E,X,b,Ld,scales,K,aNear,aMax,sp,rf,along,dir};}
-function plan(S,items){
+/* 1.0 – it needn't loop. Ends › Once through plays to where it naturally finishes – the last slide's rest (or all of
+   them in view, when it pulls back) – without going round to the first again. A set length plays for that long, round
+   the loop as often as it takes, and – Finish on a clean cut – stops at the end of the rest nearest to it. P.T is how
+   long it plays; P.L is still the loop the motion is built on. */
+function cutsOf(P){const c=[];
+  if(P.segs){for(const g of P.segs)if(g.k==='hold'||g.k==='grid')c.push(g.t1);}
+  else if(/step$/.test(P.kind||'')&&P.hold!=null){const cyc=P.hold+P.dur;if(cyc>0)for(let t=P.hold;t<P.L+1e-9;t+=cyc)c.push(Math.min(t,P.L));}
+  return c.filter(t=>t>.05);}
+function endOf(S,P){const m=S.endAs||'loop',L=P.L;if(m==='loop'||!(L>0))return L;const c=cutsOf(P);
+  if(m==='once')return c.length?c[c.length-1]:L;
+  const want=clamp(+S.endLen||L,.2,3600);if(S.endSnap===false||!c.length)return want;
+  let best=want,bd=Infinity;const k0=Math.max(0,Math.floor(want/L)-1);
+  for(let k=k0;k<=k0+2;k++)for(const x of c){const t=x+k*L,d=Math.abs(t-want);if(t>=.2&&d<bd){bd=d;best=t;}}
+  return best;}
+function plan(S,items){const P=plan0(S,items);P.T=endOf(S,P);return P;}
+function plan0(S,items){
   if((S.layout||'one')==='one'&&items.length&&!(items[0]&&items[0].placeholder))items=slidesOf(items).bases;
   const N=Math.max(1,items.length),mv=moveOf(S),lay=S.layout||'one';
   const hold=Math.max(0,+S.hold||0),dur=Math.max(0,+S.dur||0),cyc=hold+dur;
@@ -289,7 +309,7 @@ function geometry(S,items,ctx,fonts,W,H){
   const {capH,reserve}=capReserve(S,items,ctx,fonts);
   const size=clamp(+S.size||80,1,300)/100,gap=Math.max(0,+S.gap||0);let sw,sh;
   if(lay==='one'){if(S.oneFit==='bleed'){sw=W;sh=H;}
-    else{const bw=W,bh=Math.max(1,H-reserve),q=S.oneFit==='own'?bw/bh:r;if(bw/bh>q){sh=bh*size;sw=sh*q;}else{sw=bw*size;sh=sw/q;}}}
+    else{const bw=W,bh=Math.max(1,H-reserve),q=S.oneFit==='own'||(S.oneFit==='shape'&&S.ratio==='media')?bw/bh:r;if(bw/bh>q){sh=bh*size;sw=sh*q;}else{sw=bw*size;sh=sw/q;}}}
   else if(lay==='row'){sh=Math.max(1,H-reserve)*size;sw=sh*r;}
   else if(lay==='column'){sw=W*size;sh=sw/r;}
   else{const C=colsOf(S);sw=Math.max(1,(W*size-(C-1)*gap)/C);sh=sw/r;}
@@ -330,6 +350,7 @@ function scene(S,items,ctx,fonts,W,H,t){
   else if(S.layout==='grid')gridScene(S,G,P,cam,N,push);
   else if(S.layout==='one'&&cam.seg&&cam.seg.k==='move'&&cam.how!=='slide')oneMove(S,G,cam,N,push);
   else trackScene(S,G,P,cam,N,push);
+  if(S.ratio==='media'&&OWNSLOT.has(S.layout)&&real)ownShapes(S,ops);
   if(S.layout==='one'){oneFinish(S,G,P,cam,ops);if(layers){const lo=layerOps(S,G,ops,layers);ops.length=0;ops.push(...lo);}}
   else innerMove(S,ops,cam.tt!=null?cam.tt:t,P.L);
   /* a caption fixed on the canvas: the current shape's, handing over during a move */
@@ -347,6 +368,12 @@ function innerMove(S,ops,t,L){const m=S.inMove||'none';if(m==='none'||!(L>0)||(S
     const th=2*Math.PI*(n*t/L+(h>>>0)/4294967296);
     if(m==='zoom')o.inner={s:1+a*(.5-.5*Math.cos(th)),x:0,y:0};
     else if(m==='drift')o.inner={s:1+a,x:a*.48*Math.sin(th),y:a*.32*Math.cos(th)};}}
+/* 1.0 – each piece its own shape, in the kinds that tile: fitted inside its slot, and lined up in it (top, middle or
+   bottom; left, centre or right) so a row of mixed pieces can share a baseline, a column an edge */
+const OWNSLOT=new Set(['row','column','grid','wall','frames']);
+function ownShapes(S,ops){const v=S.ownV||'mid',h=S.ownH||'mid';
+  for(const o of ops){const it=o.item;if(!it||it.placeholder||!it.w||!it.h||o.layer)continue;const r=o.rect,q=it.w/it.h;let w=r.w,hh=r.h;if(w/hh>q)w=hh*q;else hh=w/q;
+    o.slot=r;o.rect={x:h==='start'?r.x:h==='end'?r.x+r.w-w:r.x+(r.w-w)/2,y:v==='start'?r.y:v==='end'?r.y+r.h-hh:r.y+(r.h-hh)/2,w,h:hh};}}
 function placeholders(n,S){return Array.from({length:n},(_,i)=>({placeholder:true,n:i+1,kind:'image'}));}
 function trackScene(S,G,P,cam,N,push){
   const ext=G.hz?G.W:G.H,slot=G.hz?G.slotW:G.slotH,span=Math.ceil((ext/2+slot)/G.pitch)+1,p=cam.p;
@@ -406,13 +433,26 @@ function pileScene(S,G,P,cam,N,push){
       o.clip=d==='left'?{x:cx,y:0,w:W-cx,h:H}:d==='right'?{x:0,y:0,w:cx,h:H}:d==='up'?{x:0,y:cy,w:W,h:H-cy}:{x:0,y:0,w:W,h:cy};}
     else if(hw==='open'){const w=G.W*ek,h=G.H*ek;o.clip={x:(G.W-w)/2,y:(G.H-h)/2,w,h};}
     if(o.shift){if(hz)x+=o.shift;else y+=o.shift;}
+    if(o.ds)scl*=o.ds;
     const r=shapeIn(G,S,G.cx+x,G.cy+y,scl);o.alpha=a;o.scale=scl;push(i,r,o);};
+  /* Deck (1.0, Steve's reference of 12 Nov): the pile reads as a deck of cards – each one beneath the top sits a step
+     back the way the cards come from, a touch smaller, so their edges show; up to three show, the next fades. With
+     Cover the deck goes round for ever: under the first are the last few, so the loop joins with nothing changing. */
+  const deck=clamp(+S.pileDeck||0,0,100)/100,dStep=deck*.075*Math.min(G.sw,G.sh),dSc=n=>1-.045*deck*n,dA=n=>clamp(4-n,0,1);
+  if(deck>0&&end==='cover'){let k=top<0?0:top,ek=1,hw='cut';
+    if(eEnd>0){k=stops;ek=eEnd;hw=how[stops];}else if(top>=0&&e[top]<1){ek=e[top];hw=how[top];}
+    const depth=Math.min(keep?keep:4,4,N-1);
+    for(let d=depth;d>=1;d--){const n=d-1+ek,a=d===depth?Math.min(dA(n),depth<4?1-ek:1):dA(n);if(a<=0)continue;
+      put(k-d,1,'cut',{alpha:a,capAlpha:d===1?1-ek:0,shift:-sg*n*dStep,ds:dSc(n)});}
+    put(k,ek,hw,{});return;}
   /* the pile: pushed off together when it clears; fading beneath the first when it's covered */
   const out=end==='clear'?-eEnd*D*sg:0,under=end==='cover'?1-smooth(eEnd):1;
   for(let s=0;s<stops;s++){if(e[s]<=0)continue;
     let a=under;if(keep&&s+keep<stops)a*=1-e[s+keep];if(a<=0)continue;
     const landed=s<top||(e[s]>=1&&s===top),hw=landed?'cut':how[s];
-    put(s,landed?1:e[s],hw,{alpha:a,capAlpha:s===top?1:s===top-1?1-e[top]:0,shift:out});}
+    /* how far beneath the top this one is – the one arriving counts as it lands */
+    let n=0;if(deck>0){for(let j=s+1;j<=top;j++)n+=e[j];a*=dA(n);if(a<=0)continue;}
+    put(s,landed?1:e[s],hw,{alpha:a,capAlpha:s===top?1:s===top-1?1-e[top]:0,shift:out-(deck>0?sg*n*dStep:0),ds:deck>0?dSc(n):0});}
   /* the first again, coming round */
   if(eEnd>0){if(end==='clear')put(stops,1,'cut',{shift:(1-eEnd)*D*sg});else put(stops,eEnd,how[stops],{});}}
 /* One, last of all: slides that keep their own shape are fitted into their space, and each
@@ -429,8 +469,10 @@ function uOf(P,cam,k){
 function oneFinish(S,G,P,cam,ops){
   const own=S.oneFit==='own',amt=clamp((+S.kbAmt||0)/100,0,.5),where=capWhereOf(S),d=G.dir,hz=horiz(d),sg=sgnOf(d)*-1;
   for(const o of ops){if(o.k==null||!o.item)continue;let r=o.rect;o.key='s'+o.k;o.space=r;
-    if(own&&o.item.w&&o.item.h){const q=o.item.w/o.item.h,f=G.rel?G.rel(o.item):1;let w=r.w,h=r.h;if(w/h>q)w=h*q;else h=w/q;w*=f;h*=f;
-      const y=where==='under'&&S.capOn?r.y+r.h-h:where==='above'&&S.capOn?r.y:r.y+(r.h-h)/2;r={x:r.x+(r.w-w)/2,y,w,h};}
+    /* its own shape: As it is – and, from 1.0, In a shape with Each media's own; Align says where in its space it sits */
+    if((own||(S.oneFit==='shape'&&S.ratio==='media'))&&o.item.w&&o.item.h){const q=o.item.w/o.item.h,f=own&&G.rel?G.rel(o.item):1;let w=r.w,h=r.h;if(w/h>q)w=h*q;else h=w/q;w*=f;h*=f;
+      const av=S.ownV||'mid',ah=S.ownH||'mid';
+      const y=where==='under'&&S.capOn?r.y+r.h-h:where==='above'&&S.capOn?r.y:av==='start'?r.y:av==='end'?r.y+r.h-h:r.y+(r.h-h)/2;r={x:ah==='start'?r.x:ah==='end'?r.x+r.w-w:r.x+(r.w-w)/2,y,w,h};}
     /* As it is: this slide's own size and position, set in Media or by dragging it on the canvas */
     if(own){const z=clamp((+o.item.zm||100)/100,.2,4),w=r.w*z,h=r.h*z;r={x:r.x-(w-r.w)/2+(+o.item.ox||0)*G.u,y:r.y-(h-r.h)/2+(+o.item.oy||0)*G.u,w,h};o.whole=true;}
     /* In a shape (0.13): the shape itself can be moved and sized for this slide too – its own Position and Size (fz); the crop keeps px, py, zm */
@@ -444,6 +486,8 @@ function oneFinish(S,G,P,cam,ops){
     let ms=r.w/Math.max(1e-6,pre.w),tx=(r.x+r.w/2)-(pre.x+pre.w/2),ty=(r.y+r.h/2)-(pre.y+pre.h/2);
     if(o.inner&&m!=='parallax'){ms*=o.inner.s;tx+=o.inner.x*r.w;ty+=o.inner.y*r.h;}
     o.mv={s:ms,cx:pre.x+pre.w/2,cy:pre.y+pre.h/2,tx,ty};
+    /* 1.0 – a piece turned: its own angle (Media, or just outside a corner on the canvas), about its centre */
+    const rd=(own||S.oneFit==='shape')?(+o.item.rot||0)*Math.PI/180:0;if(rd)o.rot=(o.rot||0)+rd;
     o.rect=r;if(o.rot)o.rotC={x:r.x+r.w/2,y:r.y+r.h/2};}}
 /* each slide's layers, placed on its space: fitted inside it (or filling it), at their own size and
    offset (px at a 1080 short side, scaling with the slide), then moved with the slide's movement.
@@ -460,7 +504,7 @@ function layerOps(S,G,ops,layers){const out=[],own=S.oneFit==='own',rad=Math.max
         const t=(o.since||0)-lands-Math.max(0,it.lafter==null?.3:+it.lafter),e=how==='cut'?(t>=0?1:0):smooth(clamp(t/Math.max(.05,it.lover==null?.6:+it.lover),0,1));
         a*=e;if(how==="rise")cy+=(1-e)*.08*F.h;if(how==='grow'){const g=.88+.12*e;w*=g;h*=g;}}
       if(m){cx=(cx-m.cx)*m.s+m.cx+m.tx;cy=(cy-m.cy)*m.s+m.cy+m.ty;w*=m.s;h*=m.s;}
-      return Object.assign({},o,{item:it,layer:true,lfill:fill,key:o.key+'.'+j,rect:{x:cx-w/2,y:cy-h/2,w,h},alpha:a,whole:true,inner:null,slide:null,mv:null,
+      return Object.assign({},o,{item:it,layer:true,lfill:fill,lrot:(+it.rot||0)*Math.PI/180,key:o.key+'.'+j,rect:{x:cx-w/2,y:cy-h/2,w,h},alpha:a,whole:true,inner:null,slide:null,mv:null,
         lclip:own?null:{x:o.rect.x,y:o.rect.y,w:o.rect.w,h:o.rect.h,r:rad*o.scale},time:it.kind==='video'?clipTime(it,o.since||0):null,capAlpha:0});};
     const back=L.filter(it=>it.place==='behind'),front=L.filter(it=>it.place!=='behind');
     back.forEach((it,j)=>out.push(mk(it,'b'+j)));out.push(back.length?Object.assign(o,{noFill:true}):o);front.forEach((it,j)=>out.push(mk(it,'f'+j)));}
@@ -654,7 +698,8 @@ function paint(ctx,SC,S,fonts,opt){
     /* its own blend and opacity (0.6): drawn straight onto what's beneath, without the shape's colour */
     const it=o.item,bl=!it.placeholder&&it.blend&&it.blend!=='normal'?BLEND[it.blend]:null,op=it.placeholder?1:opaOf(it);
     if(!(bl||op<1||o.noFill)){ctx.fillStyle=it.placeholder?(lum(S.bg)>.5?'#d9d8d4':'#3a3940'):(S.shapeBg||'#e6e6e3');ctx.fillRect(mr.x,mr.y,mr.w,mr.h);}
-    if(o.item.placeholder){ctx.fillStyle=lum(S.bg)>.5?'#8f8d88':'#77757f';ctx.font=`400 ${Math.max(8,mr.h*.18)}px "Inter Tight", Helvetica, Arial, sans-serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(String(o.item.n),mr.x+mr.w/2,mr.y+mr.h/2);ctx.textAlign='left';ctx.textBaseline='alphabetic';}
+    if(o.item.placeholder){ctx.fillStyle=lum(S.bg)>.5?'#8f8d88':'#77757f';/* 1.0 – an empty card's number sits top left, in Aktiv Regular, the same tight margin across as down (the cap height is .72 of the size) */
+      const fs=clamp(Math.min(mr.w,mr.h)*.12,9,56),m=fs*.55;ctx.font=`400 ${fs}px "aktiv-grotesk", "Aktiv Grotesk", Helvetica, Arial, sans-serif`;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(String(o.item.n),mr.x+m,mr.y+m+fs*.72);}
     else if(opt.media){if(bl||op<1){ctx.save();ctx.globalAlpha*=op;if(bl)ctx.globalCompositeOperation=bl;opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');ctx.restore();}
       else opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');}
     ctx.restore();
@@ -673,6 +718,7 @@ function drawLayer(ctx,o,opt,W,H){const it=o.item;if(!opt.media||it.placeholder)
   ctx.save();if(o.clip){const c=o.clip;ctx.beginPath();if(c.out){ctx.rect(0,0,W,H);ctx.rect(c.x,c.y,c.w,c.h);ctx.clip('evenodd');}else{ctx.rect(c.x,c.y,c.w,c.h);ctx.clip();}}
   if(o.rot)turn(ctx,o,o.rect);
   const f=o.lclip;if(f){rr(ctx,f.x,f.y,f.w,f.h,f.r);ctx.clip();}
+  if(o.lrot){const cx=o.rect.x+o.rect.w/2,cy=o.rect.y+o.rect.h/2;ctx.translate(cx,cy);ctx.rotate(o.lrot);ctx.translate(-cx,-cy);}
   if(o.lfill){ctx.beginPath();ctx.rect(o.rect.x,o.rect.y,o.rect.w,o.rect.h);ctx.clip();}
   ctx.globalAlpha=clamp(o.alpha*opaOf(it),0,1);ctx.globalCompositeOperation=BLEND[it.blend]||'source-over';
   opt.media(ctx,o,o.rect,o.lfill?'cover':'contain');ctx.restore();}
@@ -685,9 +731,27 @@ function drawOverlay(ctx,S,SC,fonts,opt){
       const y=(v==='t'?m:v==='b'?H-m-hh:(H-hh)/2)+ny;ctx.drawImage(img.src||img,hx(w),y,w,hh);}}
   else if(String(S.ovText||'').trim()){const b=overlayBlock(ctx,S,fonts),n=b.lines.length,hb=b.ch+(n-1)*b.lh;
     const base0=(v==='t'?m+b.ch:v==='b'?H-m-(n-1)*b.lh:(H-hb)/2+b.ch)+ny;
-    ctx.font=b.st.font;try{ctx.fontKerning='none';}catch(e){}ctx.textBaseline='alphabetic';ctx.textAlign='left';
-    b.lines.forEach((L,j)=>{const x=hx(L.width),y=base0+j*b.lh;for(const g of L.glyphs){if(!g.ch.trim())continue;ctx.fillStyle=g.c||b.st.colour;ctx.fillText(g.ch,x+g.x,y);}});}
+    const glyphs=(c,solid)=>{c.font=b.st.font;try{c.fontKerning='none';}catch(e){}c.textBaseline='alphabetic';c.textAlign='left';
+      b.lines.forEach((L,j)=>{const x=hx(L.width),y=base0+j*b.lh;for(const g of L.glyphs){if(!g.ch.trim())continue;c.fillStyle=solid||g.c||b.st.colour;c.fillText(g.ch,x+g.x,y);}});};
+    /* Frosted (1.0): the letters are frosted glass – what's beneath shows through them, blurred, with the text's
+       colour laid over as a tint. The blur is made by shrinking the frame and growing it again (no canvas filter, so
+       it's the same in Safari), then cut to the letters and put back. */
+    const fr=S.ovFrost?clamp(+S.ovBlur||0,0,200):0;
+    if(fr>0&&ctx.canvas&&ctx.canvas.width){const cw=ctx.canvas.width,chh=ctx.canvas.height,T=ctx.getTransform(),k=Math.hypot(T.a,T.b)||1;
+      const [A,B,C]=frostCanvases(cw,chh),d=Math.max(1,fr*k/2.2);let w=cw,h=chh,src=ctx.canvas,n=0;
+      const a=A.getContext('2d'),bb=B.getContext('2d');a.setTransform(1,0,0,1,0,0);bb.setTransform(1,0,0,1,0,0);a.globalCompositeOperation=bb.globalCompositeOperation='copy';a.imageSmoothingQuality=bb.imageSmoothingQuality='high';
+      let f=d;while(f>1.001&&w>2&&h>2){const s=Math.min(2,f),nw=Math.max(1,Math.round(w/s)),nh=Math.max(1,Math.round(h/s)),dst=n%2?bb:a;dst.drawImage(src,0,0,w,h,0,0,nw,nh);src=dst.canvas;w=nw;h=nh;f/=s;n++;}
+      const c=C.getContext('2d');c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation='copy';c.globalAlpha=1;c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';
+      /* back up in halves too, so it's soft rather than blocky */
+      let uw=w,uh=h,us=src;while(uw<cw||uh<chh){const nw=Math.min(cw,uw*2),nh=Math.min(chh,uh*2),last=nw===cw&&nh===chh,dst=last?c:(us===a.canvas?bb:a);dst.imageSmoothingEnabled=true;dst.drawImage(us,0,0,uw,uh,0,0,nw,nh);us=dst.canvas;uw=nw;uh=nh;if(last)break;}
+      if(us!==C){c.drawImage(us,0,0,uw,uh,0,0,cw,chh);}
+      c.globalCompositeOperation='destination-in';c.setTransform(T);glyphs(c,'#000');c.setTransform(1,0,0,1,0,0);
+      ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(C,0,0);ctx.restore();
+      ctx.globalAlpha*=clamp(S.ovTint==null?.3:+S.ovTint/100,0,1);}
+    glyphs(ctx);}
   ctx.restore();}
+let FROST=null;
+function frostCanvases(w,h){if(!FROST)FROST=[0,1,2].map(()=>document.createElement('canvas'));for(const c of FROST)if(c.width!==w||c.height!==h){c.width=w;c.height=h;}return FROST;}
 function capOrigin(S,b,r,sc){const sp=(+S.capSpace||0)*sc,al=S.capAlign||'left',bw=b.w*sc,where=capWhereOf(S);let x,y;
   if(where==='over'){x=al==='left'?r.x+sp:al==='right'?r.x+r.w-sp-bw:r.x+(r.w-bw)/2;y=r.y+r.h-sp-b.h*sc;}
   else if(where==='above'){x=al==='left'?r.x:al==='right'?r.x+r.w-bw:r.x+(r.w-bw)/2;y=r.y-sp-b.h*sc;}
@@ -719,5 +783,5 @@ function drawBlock(ctx,S,b,x0,y0,sc,alpha,rev,seed,tt){
       draw(c.glyphs,cx+c.padX*sc,by,st.colour);}});
   ctx.restore();}
 
-return{frameSeqs,stripSeqs,stripWay,stripSpeed,stripBase,stripsOf,FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
+return{cutsOf,endOf,frameSeqs,stripSeqs,stripWay,stripSpeed,stripBase,stripsOf,FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
 })();

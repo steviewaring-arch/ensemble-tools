@@ -170,6 +170,18 @@ def main():
         old = pg.evaluate("JSON.parse(localStorage.getItem('rubato-0.9:settings')||'{}')"); new = pg.evaluate("JSON.parse(localStorage.getItem('rubato:settings'))")
         check('0.9 saves its own settings and leaves 1.0’s alone', old.get('mode') == 'snappy' and new.get('mode') == 'jitter' and len(new['blocks']) == 3)
 
+        # ---- house rules from Segue 1.0 (12 Nov): the bottom line stays put, the page never scrolls, the house colour picker ----
+        pg.goto(base + 'docs/rubato/'); time.sleep(1.5)
+        isl = lambda: pg.evaluate("(()=>{const r=e=>{const b=document.querySelector(e).getBoundingClientRect();return [Math.round(b.left),Math.round(b.width)]};return [r('#island'),r('#island .ebtn')]})()")
+        a0 = isl(); pg.click('#pcapOpen'); time.sleep(.8); a1 = isl(); pg.click('#pcapOpen'); time.sleep(.5)
+        hs = pg.evaluate("[getComputedStyle(document.documentElement).overflowY,Math.round(document.querySelector('#island').getBoundingClientRect().left-document.querySelector('#panelBox').getBoundingClientRect().right),parseFloat(getComputedStyle(document.querySelector('.card-toggle')).fontSize)]")
+        check('House (Segue 1.0): the island is anchored bottom left and doesn’t move when Presets opens; the page never scrolls; section titles are 15 px', a0 == a1 and hs[0] == 'hidden' and 0 <= hs[1] <= 16 and hs[2] == 15, f'{a0} {a1} {hs}')
+        pg.evaluate("document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(t=>t.click())"); time.sleep(.5)
+        pg.evaluate("document.querySelector('#c_ink').scrollIntoView({block:'center'})"); time.sleep(.2); was = pg.evaluate("document.querySelector('#c_ink').value")
+        pg.click('#c_ink', force=True); time.sleep(.3); opened = pg.evaluate("!!document.querySelector('.cpk:not([hidden])')")
+        pg.fill('.cpk-f input >> nth=0', '#CC3322'); time.sleep(.2); got = pg.evaluate("document.querySelector('#c_ink').value")
+        pg.fill('.cpk-f input >> nth=0', was); time.sleep(.2); pg.keyboard.press('Enter'); time.sleep(.2)
+        check('House colour picker: a swatch opens it, not the browser’s; hex sets the colour', opened and got.lower() == '#cc3322' and pg.evaluate("document.querySelector('#c_ink').value").lower() == was.lower(), f'{opened} {got}')
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     n = sum(1 for r in results if r[0])

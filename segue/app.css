@@ -1,6 +1,14 @@
   /* Segue – its own parts, on the shared tokens and components */
-  .media-list .slot.dragging{opacity:.4}
-  .media-list .slot.over{box-shadow:inset 0 2px 0 var(--fill-ink)}
+  /* 1.0 – moving a row: the one in hand fades; where it will land is a slim line in the gap above, the full width,
+     in the focus colour – not a black edge on half the row */
+  .media-list .slot{position:relative}
+  .media-list .slot.dragging{opacity:.35}
+  .media-list .slot.over,.media-list .slot.open.over{box-shadow:none}
+  .media-list .slot.over::after{content:'';position:absolute;left:2px;right:2px;top:-4px;height:2px;border-radius:1px;background:var(--focus);pointer-events:none}
+  .media-list .slot .grip{width:22px;height:32px;margin:0 -4px 0 -4px}
+  /* 1.0 – the page never scrolls on a desktop: the window is the workspace */
+  @media (min-width:861px){html,body{height:100%;overflow:hidden}}
+  body.no-dots .view{background-image:none}
   .mthumb{flex:none;width:44px;height:32px;border-radius:var(--r-sw,4px);background:var(--well);box-shadow:inset 0 0 0 1px var(--keyline);overflow:hidden;display:block}
   .mthumb canvas{display:block;width:100%;height:100%}
   .slot-main{min-width:0}
@@ -179,7 +187,17 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 /* the project (0.11): top left of the stage, in line with the top bar – a chip with its name and how it's saved */
 /* 0.17 – the project sits on the bottom line with the play bar and the presets, the same height and shape as both:
    it's the piece of work, not a view setting, and the top line is left for what you're pointing at. */
-.projbar{position:absolute;left:calc(var(--gap)*2 + var(--pw));bottom:var(--gap);z-index:7;max-width:min(300px,calc(100% - var(--pw) - var(--gap)*4 - 420px));min-width:0}
+/* 1.0 – the play bar bottom left, the project and the presets bottom right; each opens upward from where it is and
+   nothing else on the line moves (Steve: "try to ensure that things don't jump about when they are opened") */
+.projbar{position:absolute;right:calc(var(--gap) + 130px);bottom:var(--gap);z-index:7;max-width:min(300px,calc(100% - var(--pw) - var(--gap)*4 - 560px));min-width:0;transition:opacity var(--t-snap)}
+@media (min-width:861px){
+  .island{left:calc(var(--gap)*2 + var(--pw));transform:none}
+  .island .island-row{justify-content:flex-start}
+  .pcap .pc-row{justify-content:flex-end}
+  .app:has(.pcap.open) .projbar{opacity:0;pointer-events:none}
+  /* Saved and Saving… take the same room, so the chip – and with it the play bar – never changes width as it saves */
+  .proj-state:not(:empty){min-width:62px;box-sizing:border-box}
+}
 .proj-btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;width:100%;height:var(--h-bar);padding:0 14px 0 4px;border-radius:var(--r-surface);cursor:pointer;
   background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline);
   transition:background var(--t-snap)}
@@ -193,7 +211,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .proj-btn .chev{flex:none;width:12px;height:12px;margin-left:auto;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
 .proj-btn[aria-expanded="true"] .chev{transform:rotate(180deg)}
 .app.preview .projbar{display:none}
-@media (max-width:860px){.projbar{left:var(--gap);max-width:40%}.proj-state{display:none}}
+@media (max-width:860px){.projbar{left:var(--gap);right:auto;max-width:40%}.proj-state{display:none}.pop.proj-pop{left:0;right:auto}}
 .app.tight-bar .proj-name,.app.tight-bar .proj-state,.app.tight-bar .proj-btn .chev{display:none}
 .app.tight-bar .proj-btn{padding:0 4px}
 .proj-field{width:100%;box-sizing:border-box;font-weight:500}
@@ -201,7 +219,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .proj-acts>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);justify-content:center;font-size:12.5px}
 /* the Projects panel opens upward from the chip on the bottom line, and stays inside the window (0.17.1 –
    it was lost when the chip moved down, so it opened below the foot of the page) */
-.pop.proj-pop{left:0;right:auto;width:320px;top:auto;bottom:calc(100% + 8px);padding:14px 14px 12px;max-height:min(70vh,640px);overflow-y:auto}
+.pop.proj-pop{left:auto;right:0;width:320px;top:auto;bottom:calc(100% + 8px);padding:14px 14px 12px;max-height:min(70vh,640px);overflow-y:auto}
 .proj-pop .sub-head{margin:2px 0 8px;padding-top:12px;border-top:1px solid var(--hair)}
 .proj-list{display:flex;flex-direction:column;gap:6px}
 .proj-row .slot-top{display:flex;align-items:center;gap:10px}
@@ -306,17 +324,21 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 /* A preset's picture and a Kind's tile show what they do; on hover they do a little of it. Subtle, two seconds,
    and never while the pointer is away – a label you can read, not a thing playing at you. */
 @media (prefers-reduced-motion:no-preference){
-  .kind:hover svg rect,.kind:focus-visible svg rect{animation:kNudge 2s var(--e-smooth) infinite}
-  .kind[data-k="one"]:hover svg rect:nth-child(1){animation:kOneA 2s var(--e-smooth) infinite}
-  .kind[data-k="one"]:hover svg rect:nth-child(2){animation:kOneB 2s var(--e-smooth) infinite}
-  .kind[data-k="line"]:hover svg rect,.kind[data-k="frames"]:hover svg rect:not(.line){animation:kLeft 2s var(--e-smooth) infinite}
-  .kind[data-k="frames"]:hover svg rect.line{animation:none}
-  .kind[data-k="grid"]:hover svg rect:nth-child(n+4){animation-delay:.18s}
-  .kind[data-k="columns"]:hover svg rect:nth-child(odd){animation:kUp 2s var(--e-smooth) infinite}
-  .kind[data-k="columns"]:hover svg rect:nth-child(even){animation:kDown 2s var(--e-smooth) infinite}
-  .kind[data-k="rows"]:hover svg rect:nth-child(n+4):nth-child(-n+6){animation:kRight 2s var(--e-smooth) infinite}
-  .kind[data-k="wall"]:hover svg rect:nth-child(even){animation-delay:.2s}
-  .kind[data-k="float"]:hover svg rect:nth-child(even){animation:kDown 2.6s var(--e-smooth) infinite}
+  /* 1.0 – each tile does a little of what its kind does: a step, a rest, a step back. Nothing moves that the kind
+     doesn't move (the general nudge is gone – Steve: "movement added for the sake of it"). */
+  .kind[data-k="one"]:hover svg rect:nth-child(1){animation:kOneA 2.4s var(--e-smooth) infinite}
+  .kind[data-k="one"]:hover svg rect:nth-child(2){animation:kOneB 2.4s var(--e-smooth) infinite}
+  .kind[data-k="line"]:hover svg rect,.kind[data-k="wall"]:hover svg rect{animation:kLeft 2.4s var(--e-smooth) infinite}
+  .kind[data-k="grid"]:hover svg rect{animation:kUp 2.4s var(--e-smooth) infinite}
+  .kind[data-k="columns"]:hover svg rect{animation:kUp 2.4s var(--e-smooth) infinite}
+  .kind[data-k="columns"]:hover svg rect:nth-child(3),.kind[data-k="columns"]:hover svg rect:nth-child(4){animation-name:kDown}
+  .kind[data-k="rows"]:hover svg rect{animation:kLeft 2.4s var(--e-smooth) infinite}
+  .kind[data-k="rows"]:hover svg rect:nth-child(n+4):nth-child(-n+6){animation-name:kRight}
+  .kind[data-k="frames"]:hover svg rect:not(.line){animation:kUp 2.4s var(--e-smooth) infinite}
+  .kind[data-k="frames"]:hover svg rect:nth-child(4){animation-delay:.12s}
+  .kind[data-k="frames"]:hover svg rect:nth-child(6){animation-delay:.24s}
+  .kind[data-k="float"]:hover svg rect{animation:kUp 2.4s var(--e-smooth) infinite}
+  .kind[data-k="float"]:hover svg rect:nth-child(even){animation-name:kUpFar}
   .preset-row:hover .pk[data-anim="swap"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-a{animation:pA 2.2s var(--e-smooth) infinite}
   .preset-row:hover .pk[data-anim="swap"] svg rect.pd-b,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-b{animation:pB 2.2s var(--e-smooth) infinite}
   .preset-row:hover .pk[data-anim="shift"] svg rect,.preset-row:focus-within .pk[data-anim="shift"] svg rect{animation:pShift 2.2s var(--e-smooth) infinite}
@@ -324,14 +346,15 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
   .preset-row:hover .pk[data-anim="pile"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="pile"] svg rect.pd-a{animation:pPile 2.2s var(--e-smooth) infinite}
   .preset-row:hover .pk svg rect.pd-bg{animation:none}
 }
-@keyframes kNudge{0%,62%,100%{transform:none}30%{transform:translateY(-1.2px)}}
+
 /* Slides: this one, then the next – a change of which is in front, never an empty tile */
 @keyframes kOneA{0%,22%{opacity:1}52%,74%{opacity:.38}100%{opacity:1}}
 @keyframes kOneB{0%,22%{opacity:.38}52%,74%{opacity:1}100%{opacity:.38}}
-@keyframes kLeft{0%,62%,100%{transform:none}30%{transform:translateX(-2.4px)}}
-@keyframes kRight{0%,62%,100%{transform:none}30%{transform:translateX(2.4px)}}
-@keyframes kUp{0%,62%,100%{transform:none}30%{transform:translateY(-2.4px)}}
-@keyframes kDown{0%,62%,100%{transform:none}30%{transform:translateY(2.4px)}}
+@keyframes kLeft{0%,10%,90%,100%{transform:none}36%,64%{transform:translateX(-2.6px)}}
+@keyframes kRight{0%,10%,90%,100%{transform:none}36%,64%{transform:translateX(2.6px)}}
+@keyframes kUp{0%,10%,90%,100%{transform:none}36%,64%{transform:translateY(-2.2px)}}
+@keyframes kUpFar{0%,10%,90%,100%{transform:none}36%,64%{transform:translateY(-4px)}}
+@keyframes kDown{0%,10%,90%,100%{transform:none}36%,64%{transform:translateY(2.2px)}}
 @keyframes pA{0%,20%{opacity:.86}55%,75%{opacity:.24}100%{opacity:.86}}
 @keyframes pB{0%,20%{opacity:.24}55%,75%{opacity:.86}100%{opacity:.24}}
 @keyframes pShift{0%,14%,100%{transform:none;opacity:inherit}50%,64%{transform:translate(var(--dx,0),var(--dy,0))}}

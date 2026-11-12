@@ -203,6 +203,15 @@ def run(p, eng, mode):
     check(tag, 'Record GIF, ping-pong (type)', lambda: record('gif', pp=True))
     pg.wait_for_timeout(3200)
     check(tag, 'Export opens after recording', lambda: (sheet(True), L('#exportSheet').evaluate('e=>e.hidden?"closed":"open"'))[1] == 'open' or (_ for _ in ()).throw(Exception('closed')))
+    def house_picker():
+        # the house colour picker (Segue 1.0, 12 Nov): a swatch opens it, not the browser's; hex sets the colour
+        was = L('#bgColor').input_value(); L('#bgColor').scroll_into_view_if_needed(); L('#bgColor').click(force=True); pg.wait_for_timeout(300)
+        if not L('.cpk').is_visible(): raise Exception('the house picker did not open')
+        L('.cpk-f input').first.fill('#EEDDCC'); pg.wait_for_timeout(200); got = L('#bgColor').input_value().lower()
+        L('.cpk-f input').first.fill(was); pg.wait_for_timeout(200); L('.cpk-f input').first.press('Enter'); pg.wait_for_timeout(200)
+        if got != '#eeddcc' or L('.cpk').is_visible() or L('#bgColor').input_value().lower() != was.lower(): raise Exception(f'{got}, back to {L("#bgColor").input_value()}')
+        return 'opens from the swatch, hex sets the colour, Enter closes'
+    check(tag, 'House colour picker', house_picker)
     check(tag, 'no script errors', lambda: (not errs) or (_ for _ in ()).throw(Exception('; '.join(errs[:3]))))
     pg.screenshot(path=os.path.join(OUT, f'tutti_{eng}_{mode}.png'))
     b.close()

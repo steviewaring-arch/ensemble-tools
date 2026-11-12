@@ -716,6 +716,11 @@ def main():
               and not btn(pb, 'Delete', True).is_visible() and not eb, status(pb))
         bi.close()
 
+        # ---- house rules from Segue 1.0 (12 Nov): the bottom line stays put, the page never scrolls, the house colour picker ----
+        isl = lambda: pg.evaluate("(()=>{const r=e=>{const b=document.querySelector(e).getBoundingClientRect();return [Math.round(b.left),Math.round(b.width)]};return [r('#island'),r('#island .ebtn')]})()")
+        a0 = isl(); pg.click('#pcapOpen'); time.sleep(.8); a1 = isl(); pg.click('#pcapOpen'); time.sleep(.5)
+        hs = pg.evaluate("[getComputedStyle(document.documentElement).overflowY,Math.round(document.querySelector('#island').getBoundingClientRect().left-document.querySelector('#panelBox').getBoundingClientRect().right),parseFloat(getComputedStyle(document.querySelector('.card-toggle')).fontSize)]")
+        check('House (Segue 1.0): the island is anchored bottom left and doesn’t move when Presets opens; the page never scrolls; section titles are 15 px', a0 == a1 and hs[0] == 'hidden' and 0 <= hs[1] <= 16 and hs[2] == 15, f'{a0} {a1} {hs}')
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     failed = [r for r in results if not r[0]]

@@ -104,3 +104,6 @@
   .layer-foot [hidden]{display:none}
   .tt-stack{display:flex;flex-direction:column;align-items:flex-start;font-size:.56rem;line-height:1;letter-spacing:-.03em;padding-left:8px;width:100%}
   .tt-stack .in{padding-left:26px}
+  /* the page never scrolls on a desktop: the window is the workspace (house rule from Segue 1.0 – a stray pixel was
+     giving the window a scrollbar that did nothing) */
+  @media (min-width:861px){html,body{height:100%;overflow:hidden}}

@@ -327,10 +327,12 @@ function layoutUI(){
   const app=$('.app'),isl=$('#island'),pc=$('#pcap');if(!app||!isl)return;
   if(innerWidth<=860){isl.style.left='';islMore();return;}/* phones: the stylesheet places it along the bottom */
   const g=12,narrow=false,W=narrow?innerWidth:app.clientWidth,away=app.classList.contains('preview')&&!app.classList.contains('peek'),pw=narrow||away?0:$('#panelBox').offsetWidth;
-  const L=narrow||away?g:g*2+pw,R=W-g;let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
-  iw=Math.min(iw,R-L);/* on a phone the island scrolls; Presets sits above it */
-  let limit=R;if(pc&&!pc.hidden&&!narrow){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
-  let x=(L+R)/2;if(x+iw/2>limit)x=limit-iw/2;if(x-iw/2<L)x=L+iw/2;isl.style.left=Math.round(x)+'px';}
+  /* House rule from Segue 1.0 (12 Nov): nothing on the bottom line moves when something else opens. The island is
+     anchored bottom left, beside the panel; Presets bottom right. Each opens upward from where it is. (It used to sit
+     centred between the two, so it slid sideways whenever Presets opened or its own width changed.) */
+  const L=narrow||away?g:g*2+pw,R=W-g;
+  let pcW=0;if(pc&&!pc.hidden&&!narrow){const row=pc.querySelector('.pc-row');if(!pc.classList.contains('open')||!pc._w)pc._w=row.offsetWidth;pcW=pc._w;}
+  isl.style.maxWidth=Math.max(240,Math.round(R-(pcW?pcW+8:0)-L))+'px';isl.style.left=Math.round(L)+'px';}
 const ICON_EXPAND='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M11.5 2.5 7.8 6.2M5.5 11.5h-3v-3M2.5 11.5l3.7-3.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.5 5.5h-3v-3M8.5 5.5l3.3-3.3M2.5 8.5h3v3M5.5 8.5l-3.3 3.3" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /* Preview: the work fills the window; the panel, island and Presets stay where they are */

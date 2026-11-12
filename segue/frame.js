@@ -124,28 +124,32 @@ function syncSheets(){
 function islMore(){const m=$('#islandMain');if(m)m.classList.toggle('more',innerWidth<=860&&m.scrollLeft+m.clientWidth<m.scrollWidth-1);}
 function layoutUI(){
   const app=$('.app'),isl=$('#island'),pc=$('#pcap');if(!app||!isl)return;topFit();
-  if(innerWidth<=860){isl.style.left='';islMore();return;}
+  if(innerWidth<=860){isl.style.left='';const pj0=$('#projBox');if(pj0)pj0.style.right='';islMore();return;}
+  /* 1.0 – nothing on the bottom line moves when something else opens. The play bar is anchored bottom left, beside the
+     panel; the project and the presets are anchored bottom right. Each opens upward from where it is. Only the scrub
+     gives way, and only to the width of the window. */
   const g=12,W=app.clientWidth,away=app.classList.contains('preview')&&!app.classList.contains('peek'),pw=away?0:$('#panelBox').offsetWidth;
-  const R=W-g,pj=$('#projBox'),base=away?g:g*2+pw;   /* the project sits on this line too, bottom left (0.17) */
+  const pj=$('#projBox'),base=away?g:g*2+pw;
   app.classList.remove('tight-bar');
-  const leftEdge=()=>pj&&!away&&pj.offsetWidth?Math.max(base,pj.getBoundingClientRect().right-app.getBoundingClientRect().left+8):base;
-  let L=leftEdge();let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
-  let limit=R;if(pc&&!pc.hidden){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
-  /* three on one line – the project, the play bar, the presets: the scrub takes whatever's left, up to 300 (0.17) */
+  let pcW=0;if(pc&&!pc.hidden){const row=pc.querySelector('.pc-row');if(!pc.classList.contains('open')||!pc._w)pc._w=row.offsetWidth;pcW=pc.classList.contains('open')?pc._w:row.offsetWidth;}
+  if(pj)pj.style.right=(g+(pcW?pcW+8:0))+'px';
+  const rightEdge=()=>W-g-(pcW?pcW+8:0)-(pj&&!away&&pj.offsetWidth?pj.offsetWidth+8:0);
+  let limit=rightEdge();
   const sc=$('#scrub'),st=$('#toast');if(sc){sc.style.width='100px';
     /* a note in the bar comes and goes, so it doesn't count towards the room – it shortens itself instead */
-    const rest=isl.querySelector('.island-in').offsetWidth-100-(st?st.offsetWidth:0),room=()=>limit-L-16-rest;
+    const rest=isl.querySelector('.island-in').offsetWidth-100-(st?st.offsetWidth:0),room=()=>limit-base-16-rest;
     /* the play bar is the thing you use: the project loses its name before the bar gives up much of its length */
-    if(room()<200&&!away){app.classList.add('tight-bar');L=leftEdge();}
-    /* what gives way, in order: the project's name, then the play bar down to 100, then the note – and a note you can
-       press Undo on never goes, because that's the only way back */
-    /* a note comes and goes, so it never shortens the play bar below 200 – the bar mustn't change length under you */
-    const undoable=!!(st&&st.querySelector('.undo')),need=st&&st.classList.contains('on')?Math.max(0,Math.min(150,room()-200)):0;
+    if(room()<200&&!away){app.classList.add('tight-bar');limit=rightEdge();}
+    /* a note comes and goes, so it never shortens the play bar below 200 – the bar mustn't change length under you;
+       and a note you can press Undo on never goes, because that's the only way back */
+    const undoable=!!(st&&st.classList.contains('on')&&st.querySelector('.undo'));
+    /* Undo needs about 72 px to be pressed: where it hasn't got them, the project gives up its name first (1.0) */
+    if(undoable&&room()-200<72&&!away&&!app.classList.contains('tight-bar')){app.classList.add('tight-bar');limit=rightEdge();}
+    const need=st&&st.classList.contains('on')?Math.max(0,Math.min(150,room()-200)):0;
     const w=Math.round(Math.max(100,Math.min(300,room()-need)));sc.style.width=w+'px';
     if(st){const nr=room()-w;st.style.maxWidth=Math.max(0,Math.round(Math.min(360,nr)))+'px';st.classList.toggle('squeezed',nr<90&&!undoable);}
-    isl.style.maxWidth=Math.max(240,Math.round(limit-L))+'px';iw=isl.offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);}
-  iw=Math.min(iw,R-L);
-  let x=(L+R)/2;if(x+iw/2>limit)x=limit-iw/2;if(x-iw/2<L)x=L+iw/2;isl.style.left=Math.round(x)+'px';}
+    isl.style.maxWidth=Math.max(240,Math.round(limit-base))+'px';}
+  isl.style.left=Math.round(base)+'px';}
 /* the project chip top left and the chips top right share one line: where it's tight the info chips
    (size, loop, pieces) step aside first, then the saved state – never the name or the tools */
 function topFit(){const app=$('.app'),tb=$('.topbar'),sh=$('#selHint');if(!app||!tb)return;
@@ -315,7 +319,7 @@ function addColour(parent,d){
 function addSelect(parent,d){
   const w=el('div','ctl sel'),hd=el('div','ctl-head'),lb=el('label',null,d.label),s=el('select');s.id='c_'+d.k;lb.htmlFor=s.id;d.group=d.group||curGroup;
   hd.append(lb);const q=qMark(d);if(q)hd.append(q);w.append(hd,s);parent.append(w);let sig='';
-  s.onchange=()=>set(d.k,d.num?+s.value:s.value);
+  s.onchange=()=>{if(d.pick&&d.pick(s.value)===true){s.value=S[d.k];return;}set(d.k,d.num?+s.value:s.value);};
   const c={d,w,update(){const o=d.optsFn?d.optsFn():d.opts,ns=JSON.stringify(o);if(ns!==sig){sig=ns;s.textContent='';for(const [v,t] of o){const op=el('option',null,t);op.value=v;s.append(op);}}
     if(document.activeElement!==s)s.value=S[d.k];}};controls.push(c);addCx(c,hd);return c;}
 function addNums(parent,d){/* a pair of number fields on one row – Width × Height */
@@ -357,7 +361,7 @@ document.addEventListener('click',e=>{const q=e.target.closest&&e.target.closest
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&tipFor)hideTip();});
 panel.addEventListener('scroll',()=>{if(tipFor)hideTip();},{passive:true});
 /* ---------------- status and downloads ---------------- */
-let toastT=0;function toast(m,hold){const t=$('#toast');t.textContent=m;t.title=m;t.classList.add('on');clearTimeout(toastT);if(!hold)toastT=setTimeout(()=>t.classList.remove('on'),2800);}
+let toastT=0;function toast(m,hold){const t=$('#toast');t.textContent=m;t.title=m;t.classList.remove('squeezed');t.classList.add('on');layoutUI();clearTimeout(toastT);if(!hold)toastT=setTimeout(()=>{t.classList.remove('on');layoutUI();},2800);}
 /* a bigger change says what it did, with Undo beside it – not while an export is running */
 /* a note top right, for something that finished while you were elsewhere (0.17) – it goes by itself; a click sends it sooner */
 function notice(title,sub,quiet){const n=$('#notice');if(!n)return;n.textContent='';n.classList.toggle('quiet',!!quiet);const ic=el('span','n-ic');
@@ -365,7 +369,7 @@ function notice(title,sub,quiet){const n=$('#notice');if(!n)return;n.textContent
   const tx=el('span','n-tx');tx.append(el('b',null,title),el('span',null,sub||''));n.append(ic,tx);n.hidden=false;n.classList.remove('out');clearTimeout(notice.t);
   const go=()=>{n.classList.add('out');setTimeout(()=>{n.hidden=true;},260);};notice.t=setTimeout(go,7000);n.onclick=()=>{clearTimeout(notice.t);go();};}
 function toastUndo(m){if(busy)return;const t=$('#toast');t.textContent='';t.append(el('span',null,m));const u=el('button','undo','Undo');u.type='button';
-  u.onclick=e=>{e.stopPropagation();undo();};t.append(u);t.title=m;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),5000);}
+  u.onclick=e=>{e.stopPropagation();undo();};t.append(u);t.title=m;t.classList.remove('squeezed');t.classList.add('on');layoutUI();clearTimeout(toastT);toastT=setTimeout(()=>{t.classList.remove('on');layoutUI();},5000);}
 let dlNs=null;const dlReady=(window.claude&&typeof claude.use==='function')?claude.use('downloads').then(n=>dlNs=n).catch(()=>null):Promise.resolve(null);
 async function saveFile(name,blob){
   if(window.claude&&typeof claude.use==='function'){await dlReady;

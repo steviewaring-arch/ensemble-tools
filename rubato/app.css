@@ -101,3 +101,6 @@
   #knote .kbtn:hover{background:var(--btn-hover)}
   @media(max-width:860px){#knote .khint{display:none}}
   .seed-row>span{font-size:0.85rem;color:var(--muted);font-variant-numeric:tabular-nums}
+  /* the page never scrolls on a desktop: the window is the workspace (house rule from Segue 1.0 – a stray pixel was
+     giving the window a scrollbar that did nothing) */
+  @media (min-width:861px){html,body{height:100%;overflow:hidden}}

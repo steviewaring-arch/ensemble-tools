@@ -222,14 +222,14 @@ with sync_playwright() as p:
     kinds = pg.evaluate("[...document.querySelectorAll('.kinds .kind')].map(b=>b.textContent)")
     check('Motion opens on eight kinds – the ones a camera moves across first, then the ones with a clock each (Rows beside Columns, 0.9)', kinds == ['Slides', 'Line', 'Grid', 'Wall', 'Columns', 'Rows', 'Frames', 'Float'], str(kinds))
     want = {
-        'Line': (['Kind', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting', '▸ After the last', 'Then'], {'trackMove': 'step'}),
-        'Slides': (['Kind', 'Each slide', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', '▸ After the last', 'Then'], {'oneMove': 'slide', 'oneFit': 'shape', 'kb': 'none'}),
-        'Grid': (['Kind', 'Columns', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting'], {'trackMove': 'step'}),
-        'Columns': (['Kind', 'Columns', 'Offset', 'Each column shows', 'Move', 'Directions', 'Speeds', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting'], {'trackMove': 'step', 'colDir': 'alt', 'colSpeed': 'same'}),
-        'Rows': (['Kind', 'Rows', 'Offset', 'Each row shows', 'Move', 'Directions', 'Speeds', '▸ Each row', 'Row 1', 'Row 2', 'Row 3', '▸ Timing', 'Each shape', '▸ Character', 'Movement'], {'trackMove': 'drift', 'cols': 3, 'colDir': 'own', 'colSpeed': 'same'}),
-        'Frames': (['Kind', 'Across', 'Down', 'Each frame', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
-        'Float': (['Kind', 'Depth', 'Spread', 'Shuffle', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting'], {'trackMove': 'step'}),
-        'Wall': (['Kind', 'Columns', 'Rows', 'Offset', 'Move', 'Path', 'Direction', 'Distance', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting'], {'trackMove': 'step', 'wPath': 'across', 'wOff': 0})}
+        'Line': (['Kind', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting', '▸ After the last', 'Then', '▸ Ending', 'Ends'], {'trackMove': 'step'}),
+        'Slides': (['Kind', 'Each slide', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', '▸ After the last', 'Then', '▸ Ending', 'Ends'], {'oneMove': 'slide', 'oneFit': 'shape', 'kb': 'none'}),
+        'Grid': (['Kind', 'Columns', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting', '▸ Ending', 'Ends'], {'trackMove': 'step'}),
+        'Columns': (['Kind', 'Columns', 'Offset', 'Each column shows', 'Move', 'Directions', 'Speeds', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', 'Keep drifting', '▸ Ending', 'Ends'], {'trackMove': 'step', 'colDir': 'alt', 'colSpeed': 'same'}),
+        'Rows': (['Kind', 'Rows', 'Offset', 'Each row shows', 'Move', 'Directions', 'Speeds', '▸ Each row', 'Row 1', 'Row 2', 'Row 3', '▸ Timing', 'Each shape', '▸ Character', 'Movement', '▸ Ending', 'Ends'], {'trackMove': 'drift', 'cols': 3, 'colDir': 'own', 'colSpeed': 'same'}),
+        'Frames': (['Kind', 'Across', 'Down', 'Each frame', 'Change', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Lag', '▸ Ending', 'Ends'], {'fMove': 'push', 'fCols': 2, 'fRows': 1}),
+        'Float': (['Kind', 'Depth', 'Spread', 'Shuffle', 'Move', 'Direction', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting', '▸ Ending', 'Ends'], {'trackMove': 'step'}),
+        'Wall': (['Kind', 'Columns', 'Rows', 'Offset', 'Move', 'Path', 'Direction', 'Distance', '▸ Timing', 'Rest', 'Move time', '▸ Character', 'Feel', 'Movement', 'Keep drifting', '▸ Ending', 'Ends'], {'trackMove': 'step', 'wPath': 'across', 'wOff': 0})}
     seen = {}
     for name, (labels, setup) in want.items():
         pg.locator('.kinds .kind', has_text=name).click(); time.sleep(.15)
@@ -361,10 +361,10 @@ with sync_playwright() as p:
     # ---- 0.3: Slides – the showcase kind ----
     names = pg.evaluate("[...document.querySelectorAll('#pcapSheets .preset-row .slot-name')].map(e=>e.textContent)")
     heads = pg.evaluate("[...document.querySelectorAll('#pcapSheets .preset-list .sub-head')].map(e=>e.textContent)")
-    check('presets named for what they do, grouped by kind – the showcase five first, plainest to most extreme',
-          names[:5] == ['Straight cuts', 'Slow fades', 'Push and drift', 'Open and zoom', 'Zoom through'] and not {'Milky Way', 'Semplice', 'Presto', 'Nocturne'} & set(names) and heads[:2] == ['Slides', 'Line'], f'{names} {heads}')
+    check('presets named for what they do, grouped by kind – slimmed at 1.0 to sixteen, Steve’s three references of 12 Nov among them',
+          names[:5] == ['Straight cuts', 'Zoom through', 'Build up', 'Deck', 'Overview'] and len(names) - 1 <= 16 and not {'Milky Way', 'Semplice', 'Presto', 'Nocturne'} & set(names) and heads[:2] == ['Slides', 'Line'], f'{names} {heads}')
     # ---- 0.8: the Wall's presets, and the little drawings ----
-    check('the Wall has presets of its own, listed between Grid and Columns', {'Wall snap', 'Wall stairs', 'Brick wall'} <= set(names) and heads.index('Wall') == heads.index('Grid') + 1 and heads.index('Columns') == heads.index('Wall') + 1, f'{names} {heads}')
+    check('the Wall has presets of its own, listed between Grid and Columns', {'Wall snap', 'Brick wall'} <= set(names) and heads.index('Wall') == heads.index('Grid') + 1 and heads.index('Columns') == heads.index('Wall') + 1, f'{names} {heads}')
     pics = pg.evaluate("""(()=>{const rows=[...document.querySelectorAll('#pcapSheets .preset-row')];
       const fills=new Set(rows.map(r=>getComputedStyle(r.querySelector('.pk svg .pd-bg')).fill));
       return {rows:rows.length,pics:rows.filter(r=>r.querySelector('.pk svg rect')).length,arrows:document.querySelectorAll('#pcapSheets .pk svg path').length,grounds:fills.size,focus:rows.filter(r=>r.querySelector('.pk svg .pd-a')).length,hidden:rows.filter(r=>r.querySelector('.pk svg').getAttribute('aria-hidden')!=='true').length};})()""")
@@ -398,9 +398,9 @@ with sync_playwright() as p:
         'bleed, cut, still': slide_labels({'oneFit': 'bleed', 'oneMove': 'cut', 'kb': 'none'}),
         'own, push, drift': slide_labels({'oneFit': 'own', 'oneMove': 'slide', 'kb': 'drift'}),
         'bleed, fade, zoom in': slide_labels({'oneFit': 'bleed', 'oneMove': 'fade', 'kb': 'in'})}
-    want3 = {'bleed, cut, still': ['Kind', 'Each slide', 'Transition', '▸ Timing', 'On screen', '▸ Character', 'Movement', '▸ After the last', 'Then'],
-             'own, push, drift': ['Kind', 'Each slide', 'Sizes', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', 'Amount', '▸ After the last', 'Then'],
-             'bleed, fade, zoom in': ['Kind', 'Each slide', 'Transition', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Movement', 'Amount', '▸ After the last', 'Then']}
+    want3 = {'bleed, cut, still': ['Kind', 'Each slide', 'Transition', '▸ Timing', 'On screen', '▸ Character', 'Movement', '▸ After the last', 'Then', '▸ Ending', 'Ends'],
+             'own, push, drift': ['Kind', 'Each slide', 'Sizes', 'Align vertically', 'Align horizontally', 'Transition', 'Direction', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Feel', 'Movement', 'Amount', '▸ After the last', 'Then', '▸ Ending', 'Ends'],
+             'bleed, fade, zoom in': ['Kind', 'Each slide', 'Transition', '▸ Timing', 'On screen', 'Transition time', '▸ Character', 'Movement', 'Amount', '▸ After the last', 'Then', '▸ Ending', 'Ends']}
     check('Slides shows only what each choice needs – no Feel for a cut or fade, no Direction unless something travels, Sizes only for As it is',
           all(lb[k] == want3[k] for k in want3), '; '.join(f'{k}: {lb[k]}' for k in want3 if lb[k] != want3[k]))
     vis = pg.evaluate("""(()=>{const shapes=()=>![...document.querySelectorAll('#panel section[data-id=layout] .fold')].find(f=>f.querySelector('.fold-head span').textContent==='Shapes').hidden,where=()=>[...document.querySelectorAll('#panel section[data-id=captions] .seg[aria-label=Where] .pill')].map(b=>b.textContent);
@@ -464,7 +464,7 @@ with sync_playwright() as p:
     pg.evaluate("for(const [k,v] of [['cSize','4:5'],['layout','column'],['trackMove','step'],['after','carry'],['capOn',true],['ovOn',true],['ovKind','text']])segue.set(k,v)"); time.sleep(.3)
     cv = outline('canvas', True)
     check('Canvas: its Size, then Background (colour and image together) – Guides moved to the top bar (0.10), no frame rate here',
-          cv[0] == 'Format' and group(cv, 'Background')[:2] == ['Colour', 'Image'] and '▸ Guides' not in cv and 'Frame rate' not in cv and not pg.evaluate("!!document.querySelector('#panel .seg[aria-label=\"Frame rate\"]')"), str(cv))
+          cv[0] == 'Format' and group(cv, 'Background')[:2] == ['Colour', 'Image or video'] and '▸ Guides' not in cv and 'Frame rate' not in cv and not pg.evaluate("!!document.querySelector('#panel .seg[aria-label=\"Frame rate\"]')"), str(cv))
     cp = outline('captions', True)
     check('Captions: what they do (where, align, arrives), then Position and spacing, each role’s type, Kerning and accent, Fonts',
           cp[:4] == ['Where', 'Align', 'Arrives', 'Over'] and [x for x in cp if x.startswith('▸')] == ['▸ Position and spacing', '▸ Title', '▸ Line', '▸ Tags', '▸ Kerning and accent', '▸ Fonts'], str(cp))
@@ -473,7 +473,7 @@ with sync_playwright() as p:
     ov = outline('overlay', True)
     check('Overlay: what goes over, its Type, Position (the pad, margin and nudge together), then Blend and opacity – on and off by the box in its head (0.10)',
           ov[:2] == ['What', 'Text'] and [x for x in ov if x.startswith('▸')] == ['▸ Type', '▸ Position', '▸ Blend and opacity']
-          and group(ov, 'Position') in (['Place', 'Margin', 'Across', 'Up and down'], ['Place', 'Across', 'Up and down']) and group(ov, 'Blend and opacity') == ['Blend', 'Opacity'], str(ov))
+          and group(ov, 'Position') in (['Place', 'Margin', 'Across', 'Up and down'], ['Place', 'Across', 'Up and down']) and group(ov, 'Blend and opacity') == ['Blend', 'Opacity', 'Frosted'], str(ov))
     pg.evaluate("segue.set('ovOn',false);segue.set('capOn',false)")
     mo = outline('motion')
     check('Motion: After the last holds the choice; Pull back, its settings, appears as a group of its own only when you pull back',
@@ -952,16 +952,16 @@ with sync_playwright() as p:
     hd = pg.evaluate("()=>({zm:segue.items[0].zm,sel:segue.sel===segue.items[0].id,pos:!segue.ui.controls.find(c=>c.d&&c.d.k==='nudgeX').w.closest('.fold').hidden})")
     check('A full-bleed slide has no corner handles to scale it (it fills its frame – crop zoom does that), and no Position section', hd['zm'] == 100 and hd['sel'] and not hd['pos'], str(hd))
     pj = pg.evaluate("""()=>{const r=e=>document.querySelector(e).getBoundingClientRect();const p=r('#projBox'),v=r('#view'),i=r('#island'),pc=r('#pcap'),h=r('#selHint');
-      return {left:Math.round(p.left-v.left),bottom:Math.round(p.bottom-i.bottom),inPanel:!!document.querySelector('#panelBox #projBox'),clearIsl:Math.round(i.left-p.right),clearPc:Math.round(pc.left-i.right),
+      return {left:Math.round(i.left-v.left),bottom:Math.round(p.bottom-i.bottom),inPanel:!!document.querySelector('#panelBox #projBox'),clearIsl:Math.round(p.left-i.right),clearPc:Math.round(pc.left-p.right),right:Math.round(v.right-pc.right),
         hi:Math.round(h.left-v.left),hTop:Math.round(h.top-r('.topbar').top),same:Math.round(p.height-i.height)};}""")
     pg.click('#projBtn'); time.sleep(.5)
     pop = pg.evaluate("""()=>{const p=document.querySelector('#projPop'),b=document.querySelector('#projBtn'),r=p.getBoundingClientRect(),br=b.getBoundingClientRect();
-      return {hidden:p.hidden,above:Math.round(br.top-r.bottom),left:Math.round(r.left-br.left),inWin:r.top>=0&&r.bottom<=innerHeight,w:Math.round(r.width),name:!!p.querySelector('.proj-field'),rows:p.querySelectorAll('.proj-row').length};}""")
+      return {hidden:p.hidden,above:Math.round(br.top-r.bottom),left:Math.round(r.left),right:Math.round(r.right-br.right),inWin:r.top>=0&&r.bottom<=innerHeight,w:Math.round(r.width),name:!!p.querySelector('.proj-field'),rows:p.querySelectorAll('.proj-row').length};}""")
     pg.keyboard.press('Escape'); time.sleep(.3)
     check('…and it opens upward from the chip, inside the window, with the name, what you can do and every project',
-          pop['hidden'] is False and 0 <= pop['above'] <= 16 and pop['left'] == 0 and pop['inWin'] and pop['w'] >= 300 and pop['name'] and pop['rows'] >= 1, str(pop))
-    check('The project sits on the bottom line with the play bar and the presets (0.17) – the same height, in that order, out of the panel; the guide has the top left to itself',
-          pj['left'] == 0 and pj['bottom'] == 0 and not pj['inPanel'] and pj['clearIsl'] >= 0 and pj['clearPc'] >= 0 and pj['same'] == 0 and pj['hi'] == 0 and pj['hTop'] == 0, str(pj))
+          pop['hidden'] is False and 0 <= pop['above'] <= 16 and pop['right'] == 0 and pop['left'] >= 0 and pop['inWin'] and pop['w'] >= 300 and pop['name'] and pop['rows'] >= 1, str(pop))
+    check('The bottom line (1.0): the play bar bottom left, then the project and the presets bottom right – the same height, out of the panel; the guide has the top left to itself',
+          pj['left'] == 0 and pj['right'] == 0 and pj['bottom'] == 0 and not pj['inPanel'] and pj['clearIsl'] >= 0 and pj['clearPc'] >= 0 and pj['same'] == 0 and pj['hi'] == 0 and pj['hTop'] == 0, str(pj))
     # 0.18: one piece is open at a time, so make sure it's this one
     pg.evaluate("()=>{document.querySelectorAll('.media-list .slot.open .slot-main').forEach(e=>e.click());}"); time.sleep(.3)
     pg.locator('#panel .media-list .slot').nth(0).locator('.slot-main').click(); time.sleep(.4)
@@ -1060,10 +1060,10 @@ with sync_playwright() as p:
       o.shift=segue.ui.controls.find(c=>c.d&&c.d.k==='nudgeX').w.closest('.fold').querySelector('.fold-head span').textContent+' in '+segue.ui.controls.find(c=>c.d&&c.d.k==='nudgeX').w.closest('section.card').dataset.id;
       const sh=[...document.querySelectorAll('#panel section.card[data-id=layout] .fold-head')].find(h=>h.getAttribute('aria-expanded')==='false');o.sum=sh?[sh.querySelector('.sum').textContent,getComputedStyle(sh.querySelector('.sum')).display]:null;return o;}""")
     check('Layout holds the Kind, what each slide is and the Shapes; Motion holds only what moves – and the pile’s Then sits with Pile up, After the last only without it',
-          rv['layout'] == [True, True, 'Shapes,Placement'] and rv['motion'][:2] == [False, False] and rv['motion'][2] == 'Timing,Character'
+          rv['layout'] == [True, True, 'Shapes,More'] and rv['motion'][:2] == [False, False] and rv['motion'][2] == 'Timing,Character,Ending'
           and 'Pile up' in rv['pile'] and rv['pile'].index('Pile up') < rv['pile'].index('Then') and 'After the last' in rv['after'], str(rv))
-    check('Names that meant two things: the canvas has a Format, the whole layout is moved by Layout’s Placement (0.16); a shut group says what it holds',
-          rv['format'] and rv['shift'] == 'Placement in layout' and rv['sum'] and rv['sum'][0] and rv['sum'][1] != 'none', str(rv))
+    check('Names that meant two things: the canvas has a Format, the whole layout is moved by Placement, in Layout’s More (1.0); a shut group says what it holds',
+          rv['format'] and rv['shift'] == 'More in layout' and rv['sum'] and rv['sum'][0] and rv['sum'][1] != 'none', str(rv))
     pg.evaluate("document.querySelectorAll('.media-list .slot.open .slot-main').forEach(e=>e.click())"); time.sleep(.2)
     pg.locator('#panel .media-list .slot').nth(1).locator('.slot-main').click(); time.sleep(.6)
     pr = pg.evaluate("""()=>{const d=document.querySelector('.media-list .slot.open .slot-det');return {labels:[...d.querySelectorAll('.ctl.sel label')].map(e=>e.textContent),sw:d.querySelector('.layer-sw .toggle span:last-child').textContent,
@@ -1088,7 +1088,7 @@ with sync_playwright() as p:
           fr['three'][0] == 'fstep' and fr['three'][1] == 3 and fr['three'][2] == '[[0,1,2],[1,2,0],[2,0,1]]' and len(set(fr['all'].split(','))) == 1, str(fr))
     check('…and a piece can have a frame of its own: that frame shows only its pieces, the rest go round the others, and it still loops', fr['pin'] == '[0,1]' and not fr['others'] and fr['loop'], str(fr))
     sw = pg.evaluate("""()=>{const o={},S=segue.S,row=k=>segue.ui.controls.find(c=>c.d&&c.d.k===k&&c.d.t==='toggle'),vis=(k,t)=>segue.ui.controls.some(c=>c.d&&c.d.k===k&&c.d.t===t&&!c.w.hidden&&!c.w.closest('[hidden]'));
-      segue.applyPreset('Posters');segue.set('mat',0);o.off=[vis('mat','range'),vis('matC','colour')];row('mat').w.querySelector('.toggle').click();o.on=[S.mat>0,vis('mat','range'),vis('matC','colour')];segue.set('mat',40);
+      segue.applyPreset('Posters');{const mh=[...document.querySelectorAll('#panel section.card[data-id=layout] .fold-head')].find(h=>h.querySelector('span').textContent==='More');if(mh&&mh.getAttribute('aria-expanded')==='false')mh.click();}segue.set('mat',0);o.off=[vis('mat','range'),vis('matC','colour')];row('mat').w.querySelector('.toggle').click();o.on=[S.mat>0,vis('mat','range'),vis('matC','colour')];segue.set('mat',40);
       row('mat').w.querySelector('.toggle').click();o.off2=S.mat;row('mat').w.querySelector('.toggle').click();o.back=S.mat;
       o.grp=['mat','edge'].map(k=>row(k).w.classList.contains('sw-grp'));segue.applyPreset('Build up');o.pile=row('pile').w.classList.contains('sw-grp');
       segue.set('oneFit','bleed');o.bleed=vis('pile','toggle');segue.applyPreset('Float with title');o.float=[S.ovOn,S.ovText];segue.applyPreset('Posters');return o;}""")
@@ -1197,9 +1197,9 @@ with sync_playwright() as p:
           and all(len(q.split('-')) == len(sh['all']['seqs']) + 1 for q in sh['all']['seqs']), str(sh))
     rt = pg.evaluate("""()=>{const o={};for(const lay of ['wall','grid','frames','columns','rows','float']){segue.set('layout',lay);
       const sel=document.querySelector('#c_ratio');o[lay]=sel?sel.options[0].textContent:'none';}segue.set('layout','one');return o;}""")
-    check('The Shape menu says which it means: each piece its own in Columns, Rows and Float, the first media’s shape where the kind tiles (0.18)',
+    check('Every kind lets each piece keep its own shape (1.0) – the Shape menu says so everywhere',
           rt['columns'].startswith('Each') and rt['rows'].startswith('Each') and rt['float'].startswith('Each')
-          and rt['wall'].startswith('The first') and rt['grid'].startswith('The first') and rt['frames'].startswith('The first'), str(rt))
+          and rt['wall'].startswith('Each') and rt['grid'].startswith('Each') and rt['frames'].startswith('Each'), str(rt))
     pg.evaluate("segue.applyPreset('Card stack');segue.set('ovOn',false);segue.set('capOn',false)")
 
     # ---- exports ----
@@ -1240,6 +1240,88 @@ with sync_playwright() as p:
     pg.reload(); time.sleep(2.5); pg.evaluate(OPEN_TIER); time.sleep(.3)
     back = pg.evaluate("[segue.items.length,segue.items[0].title,segue.S.cW,segue.S.name,!!segue.pics.bg,!!segue.pics.ov]")
     check('after a reload: the media, captions, settings and both images are back', back == [4, 'Title 1', 540, 'Test reel', True, True], str(back))
+    # ---- 1.0: the hitlist of 12 Nov – endings, turning, own shapes everywhere, the deck, frosted type, a video behind, the house colour picker, a still bottom line ----
+    ctx3 = b.new_context(viewport={'width': 1440, 'height': 900}); q = ctx3.new_page(); errs3 = []
+    q.on('pageerror', lambda e: errs3.append(str(e))); q.on('console', lambda m: m.type == 'error' and errs3.append(m.text))
+    q.goto(url); time.sleep(1.2); q.set_input_files('#mediafile', IMGS[:4]); time.sleep(2); q.evaluate("segue.setPlaying(false)")
+    en = q.evaluate("""()=>{const o={},S=segue.S;segue.applyPreset('Straight cuts');segue.set('hold',1);segue.set('oneMove','fade');segue.set('dur',.5);const P0=segue.plan();o.loop=[P0.L,P0.T];
+      segue.set('endAs','once');const P1=segue.plan();o.once=[P1.L,P1.T];o.chip=document.querySelector('#loopChip').textContent;
+      segue.set('endAs','length');segue.set('endLen',9.6);const P2=segue.plan();o.len=[P2.L,P2.T];segue.set('endSnap',false);o.free=segue.plan().T;segue.set('endSnap',true);
+      segue.set('xFormat','mp4');o.loopsShown=segue.ui.controls.some(c=>c.d&&c.d.k==='xLoops'&&!c.w.hidden);segue.set('endAs','loop');o.loopsBack=segue.ui.controls.some(c=>c.d&&c.d.k==='xLoops'&&!c.w.hidden);
+      segue.applyPreset('Overview');segue.set('endAs','once');const P3=segue.plan(),g=P3.segs.find(x=>x.k==='grid');o.pull=[P3.T,g.t1];segue.set('endAs','loop');return o;}""")
+    check('Ending (1.0): it loops unless told otherwise; Once through stops as the last rest ends, without going round to the first; a set length goes round as often as it takes and finishes on the nearest clean cut',
+          en['loop'][0] == en['loop'][1] and en['once'][1] < en['once'][0] and abs(en['once'][0] - en['once'][1] - .5) < 1e-6 and 'once' in en['chip']
+          and en['len'][1] > en['len'][0] and abs(en['len'][1] - 9.6) <= .6 and abs(en['free'] - 9.6) < 1e-6, str(en))
+    check('…Loops in the file is only offered for a loop, and a piece that pulls back ends with all of them in view', not en['loopsShown'] and en['loopsBack'] and abs(en['pull'][0] - en['pull'][1]) < 1e-6, str(en))
+    tn = q.evaluate("""()=>{const o={},E=segue.E,S=segue.S;segue.applyPreset('Straight cuts');segue.set('oneFit','shape');segue.set('ratio','4:3');segue.set('size',50);segue.items[0].rot=30;segue.refresh();segue.setClock(.2);
+      const c=document.createElement('canvas').getContext('2d'),[W,H]=E.canvasSize(S),op=()=>E.scene(S,segue.items,c,segue.fonts,W,H,.2).ops.find(x=>x.item===segue.items[0]);
+      const a=op();o.rot=+(a.rot*180/Math.PI).toFixed(1);o.rect=[a.rect.x,a.rect.y,a.rect.w,a.rect.h];const b=document.querySelector('#cv').getBoundingClientRect(),k=b.width/W,r=a.rect,cx=r.x+r.w/2,cy=r.y+r.h/2;
+      const pt=(x,y)=>{const dx=x-cx,dy=y-cy,t=a.rot;return [b.x+(cx+dx*Math.cos(t)-dy*Math.sin(t))*k,b.y+(cy+dx*Math.sin(t)+dy*Math.cos(t))*k];};
+      o.mid=pt(cx,cy);o.br=pt(r.x+r.w,r.y+r.h);o.tl=pt(r.x,r.y);o.out=pt(r.x+r.w+16/k,r.y-16/k);return o;}""")
+    q.mouse.click(*tn['mid']); time.sleep(.3); q.mouse.move(*tn['br']); time.sleep(.1); q.mouse.down(); q.mouse.move(tn['br'][0] + 30, tn['br'][1] + 45, steps=5); q.mouse.up(); time.sleep(.3)
+    tn2 = q.evaluate("""()=>{const E=segue.E,S=segue.S,c=document.createElement('canvas').getContext('2d'),[W,H]=E.canvasSize(S),a=E.scene(S,segue.items,c,segue.fonts,W,H,.2).ops.find(x=>x.item===segue.items[0]);
+      const b=document.querySelector('#cv').getBoundingClientRect(),k=b.width/W,r=a.rect,cx=r.x+r.w/2,cy=r.y+r.h/2,dx=r.x-cx,dy=r.y-cy,t=a.rot;return {tl:[b.x+(cx+dx*Math.cos(t)-dy*Math.sin(t))*k,b.y+(cy+dx*Math.sin(t)+dy*Math.cos(t))*k],w:r.w,fz:segue.items[0].fz};}""")
+    tn['out'] = q.evaluate("""()=>{const E=segue.E,S=segue.S,c=document.createElement('canvas').getContext('2d'),[W,H]=E.canvasSize(S),a=E.scene(S,segue.items,c,segue.fonts,W,H,.2).ops.find(x=>x.item===segue.items[0]);
+      const b=document.querySelector('#cv').getBoundingClientRect(),k=b.width/W,r=a.rect,cx=r.x+r.w/2,cy=r.y+r.h/2,dx=r.x+r.w+13/k-cx,dy=r.y-13/k-cy,t=a.rot;return [b.x+(cx+dx*Math.cos(t)-dy*Math.sin(t))*k,b.y+(cy+dx*Math.sin(t)+dy*Math.cos(t))*k];}""")
+    q.mouse.move(*tn['out']); time.sleep(.15); cur = q.evaluate("document.querySelector('#cv').style.cursor.slice(0,8)")
+    q.mouse.down(); q.mouse.move(tn['out'][0] + 40, tn['out'][1] + 60, steps=6); q.mouse.up(); time.sleep(.3)
+    rot2 = q.evaluate("segue.items[0].rot")
+    check('Turning (1.0): a piece has a Turn; its corner still holds the opposite corner while it sizes, turned; and a drag just outside a corner turns it, under a turning cursor',
+          tn['rot'] == 30 and tn2['w'] > tn['rect'][2] + 5 and abs(tn2['tl'][0] - tn['tl'][0]) < 1.5 and abs(tn2['tl'][1] - tn['tl'][1]) < 1.5 and cur.startswith('url(') and rot2 != 30, f"{tn} {tn2} {cur} {rot2}")
+    pr = q.evaluate("""()=>{const o={},E=segue.E,S=segue.S;segue.items.forEach(i=>{i.rot=0;i.fz=100;i.ox=0;i.oy=0;});segue.items[0].prot=25;segue.set('shapeBg','#FF00FF');segue.refresh();
+      const cv=document.createElement('canvas'),[W,H]=E.canvasSize(S);cv.width=W;cv.height=H;const c=cv.getContext('2d'),sc=E.scene(S,segue.items,c,segue.fonts,W,H,.2);
+      return (async()=>{await segue.frameAt(cv,c,W,H,.2,1);const r=sc.ops.find(x=>x.item===segue.items[0]).rect,px=(x,y)=>[...c.getImageData(Math.round(x),Math.round(y),1,1).data].slice(0,3).join();
+        o.corners=[[r.x+3,r.y+3],[r.x+r.w-3,r.y+3],[r.x+3,r.y+r.h-3],[r.x+r.w-3,r.y+r.h-3]].map(p=>px(...p));o.out=px(r.x-6,r.y-6);segue.items[0].prot=0;segue.set('shapeBg','#E6E6E3');segue.refresh();return o;})();}""")
+    check('…and a picture can be turned inside its frame: it grows just enough to keep every corner of the frame covered', all(cn != '255,0,255' for cn in pr['corners']), str(pr))
+    ow = q.evaluate("""()=>{const o={},E=segue.E,S=segue.S,c=document.createElement('canvas').getContext('2d');const its=[[600,900],[1200,700],[800,800],[500,1000]].map(([w,h],i)=>Object.assign({},segue.items[i],{w,h}));
+      for(const lay of ['row','column','grid','wall','frames']){const S2=Object.assign({},S,{layout:lay,ratio:'media',ownV:'start',ownH:'start',trackMove:'still',fMove:'still'}),[W,H]=E.canvasSize(S2),ops=E.scene(S2,its,c,segue.fonts,W,H,0).ops.filter(x=>x.item&&x.slot);
+        o[lay]=[ops.length,ops.every(x=>Math.abs(x.rect.w/x.rect.h-x.item.w/x.item.h)<.01),ops.every(x=>Math.abs(x.rect.y-x.slot.y)<.01&&Math.abs(x.rect.x-x.slot.x)<.01&&x.rect.w<=x.slot.w+.01&&x.rect.h<=x.slot.h+.01)];}
+      segue.set('layout','wall');segue.set('ratio','media');o.ctl=['ownV','ownH'].map(k=>segue.ui.controls.some(c=>c.d&&c.d.k===k&&!c.w.hidden));segue.set('layout','row');o.rowCtl=['ownV','ownH'].map(k=>segue.ui.controls.some(c=>c.d&&c.d.k===k&&!c.w.hidden));segue.set('ratio','4:5');return o;}""")
+    check('Each media’s own shape in every kind (1.0): in the kinds that tile, each piece is fitted inside its slot at its own shape, and Align puts it top, middle or bottom, left, centre or right',
+          all(v[0] > 0 and v[1] and v[2] for k, v in ow.items() if k in ('row', 'column', 'grid', 'wall', 'frames')) and ow['ctl'] == [True, True] and ow['rowCtl'] == [True, False], str(ow))
+    dk = q.evaluate("""()=>{const o={},E=segue.E,S=segue.S;segue.applyPreset('Deck');const c=document.createElement('canvas').getContext('2d'),[W,H]=E.canvasSize(S),P=segue.plan();
+      const at=t=>E.scene(S,segue.items,c,segue.fonts,W,H,t).ops.filter(x=>x.item).map(x=>x.i+':'+x.rect.x.toFixed(1)+','+x.rect.y.toFixed(1)+','+x.rect.w.toFixed(1)+':'+(x.alpha==null?1:x.alpha).toFixed(2));
+      const a=at(.3);o.n=a.length;o.join=at(1e-4).join('|')===at(P.L+1e-4).join('|');const ops=E.scene(S,segue.items,c,segue.fonts,W,H,.3).ops.filter(x=>x.item);o.top=ops[ops.length-1].rect.w;o.under=ops[ops.length-2].rect.w;o.up=ops[ops.length-2].rect.y<ops[ops.length-1].rect.y;return o;}""")
+    check('Deck (1.0, his reference): the cards beneath the top sit a step back and a touch smaller so their edges show, and with Cover the deck goes round with the loop joining exactly',
+          dk['n'] >= 3 and dk['join'] and dk['under'] < dk['top'] and dk['up'], str(dk))
+    fo = q.evaluate("""()=>{const E=segue.E,S=segue.S;segue.applyPreset('Straight cuts');for(const [k,v] of [['ovOn',true],['ovKind','text'],['ovText','MMMM'],['OS',300],['OC','#00FF00'],['ovFrost',false]])segue.set(k,v);
+      const cv=document.createElement('canvas'),[W,H]=E.canvasSize(S);cv.width=W;cv.height=H;const c=cv.getContext('2d');
+      return (async()=>{const grab=async()=>{await segue.frameAt(cv,c,W,H,.2,1);return c.getImageData(0,0,W,H).data;};const plain=await grab();segue.set('ovFrost',true);segue.set('ovTint',0);segue.set('ovBlur',40);const fr=await grab();segue.set('ovTint',100);const full=await grab();segue.set('ovOn',false);const none=await grab();
+        let inText=0,green=0,changed=0;for(let i=0;i<plain.length;i+=4*7){const g=plain[i]===0&&plain[i+1]===255&&plain[i+2]===0;if(!g)continue;inText++;if(fr[i]===0&&fr[i+1]===255&&fr[i+2]===0)green++;if(full[i]===0&&full[i+1]===255&&full[i+2]===0)changed++;}
+        segue.set('ovFrost',false);return {inText,green,changed,ctl:['ovBlur','ovTint'].map(k=>!!segue.ui.controls.find(c=>c.d&&c.d.k===k))};})();}""")
+    check('Frosted type (1.0): the overlay’s letters show what’s beneath them, blurred – at no tint none of the text’s own colour is left, at full tint it is all there; Blur and Tint set how much',
+          fo['inText'] > 500 and fo['green'] == 0 and fo['changed'] > fo['inText'] * .9 and fo['ctl'] == [True, True], str(fo))
+    q.set_input_files('#bgfile', CLIPS[0]); time.sleep(2)
+    bv = q.evaluate("[segue.pics.bg&&segue.pics.bg.kind,segue.pics.bg&&segue.pics.bg.w>0,document.querySelector('#bgfile').accept.includes('video')]")
+    fm = q.evaluate("[...document.querySelector('#c_OF').options].pop().textContent")
+    check('A video can be the background (1.0), and every Font menu ends with Add a font…', bv == ['video', True, True] and fm.startswith('+ Add a font'), f'{bv} {fm}')
+    q.evaluate("segue.clearPic('bg');document.querySelector('#panel section.card[data-id=canvas]').scrollIntoView()"); time.sleep(.3)
+    q.click('#c_bg'); time.sleep(.3)
+    cp1 = q.evaluate("[!!document.querySelector('.cpk:not([hidden])'),!!document.querySelector('.cpk-eye'),document.querySelectorAll('.cpk-f input').length]")
+    q.fill('.cpk-f input >> nth=0', '#102030'); time.sleep(.2); a1 = q.evaluate("segue.S.bg")
+    q.fill('.cpk-f input >> nth=1', '200'); time.sleep(.2); a2 = q.evaluate("segue.S.bg")
+    q.keyboard.press('Enter'); time.sleep(.2); a3 = q.evaluate("[!!document.querySelector('.cpk:not([hidden])'),segue.S.bg]")
+    check('The colour picker is the house’s own (1.0): a colour swatch opens it rather than the browser’s; it has a pipette, a hex field and R, G and B to type into, and each sets the colour as you type',
+          cp1 == [True, True, 4] and a1 == '#102030' and a2 == '#C82030' and a3 == [False, '#C82030'], f'{cp1} {a1} {a2} {a3}')
+    bl = q.evaluate("""()=>{const r=e=>{const b=document.querySelector(e).getBoundingClientRect();return [Math.round(b.left),Math.round(b.top),Math.round(b.width)];},v=document.querySelector('#view').getBoundingClientRect();
+      const o={left:Math.round(document.querySelector('#island').getBoundingClientRect().left-v.left),order:r('#island')[0]<r('#projBox')[0]&&r('#projBox')[0]<r('#pcap')[0],right:Math.round(v.right-document.querySelector('#pcap').getBoundingClientRect().right)};
+      o.before=[r('#play'),r('#exportOpen'),r('#pcapOpen .pc-ic')];o.scroll=getComputedStyle(document.documentElement).overflowY;return o;}""")
+    q.click('#pcapOpen'); time.sleep(.7); b2 = q.evaluate("(()=>{const r=e=>{const b=document.querySelector(e).getBoundingClientRect();return [Math.round(b.left),Math.round(b.top),Math.round(b.width)];};return [r('#play'),r('#exportOpen')];})()")
+    q.click('#pcapOpen'); time.sleep(.6); q.click('#exportOpen'); time.sleep(.7); mv = []
+    for fmt in ['mp4', 'gif', 'png']:
+        q.evaluate("f=>segue.set('xFormat',f)", fmt); time.sleep(.5)
+        mv.append(q.evaluate("(()=>{const r=e=>{const b=document.querySelector(e).getBoundingClientRect();return [Math.round(b.left*2)/2,Math.round(b.top*2)/2,Math.round(b.width*2)/2,Math.round(b.height*2)/2];};return JSON.stringify([r('#island'),r('#islandSheets .seg'),r('#islandSheets .xgo'),r('#projBox'),r('#pcap')]);})()"))
+    q.click('#exportOpen'); time.sleep(.4)
+    check('The bottom line stays put (1.0): the play bar bottom left, the project and the presets bottom right; opening the presets moves nothing on the play bar, and nothing in the export sheet moves between MP4, GIF and PNG; the page itself never scrolls',
+          bl['left'] == 0 and bl['order'] and bl['right'] == 0 and b2 == bl['before'][:2] and len(set(mv)) == 1 and bl['scroll'] == 'hidden', f'{bl} {b2} {mv}')
+    lm = q.evaluate("""()=>{const o={};segue.applyPreset('Posters');const k=n=>{const c=segue.ui.controls.find(c=>c.d&&c.d.k===n&&(c.d.t==='range'||c.d.t==='toggle')),f=c&&c.w.closest('.fold');return f?f.querySelector('.fold-head span').textContent:null;};
+      o.in=['mat','edge','nudgeX'].map(k);const names=[...document.querySelectorAll('#pcapSheets .preset-list>*')],per={};let h='';for(const n of names){if(n.classList.contains('sub-head'))h=n.textContent;else if(h!=='Yours')per[h]=(per[h]||0)+1;}o.per=per;
+      segue.set('guDots',false);o.dots=getComputedStyle(document.querySelector('#view')).backgroundImage;segue.set('guDots',true);o.dots2=getComputedStyle(document.querySelector('#view')).backgroundImage!=='none';
+      o.title=parseFloat(getComputedStyle(document.querySelector('#panel .card-toggle')).fontSize);return o;}""")
+    check('Tidied (1.0): Border, Edge and Placement sit in Layout’s More; no kind has more than four presets; the pasteboard’s dots can be switched off in Guides; section titles are 15 px',
+          lm['in'] == ['More', 'More', 'More'] and max(lm['per'].values()) <= 4 and lm['dots'] == 'none' and lm['dots2'] and lm['title'] == 15, str(lm))
+    check('no errors on the page through the 1.0 checks', not errs3, '; '.join(errs3[:3]))
+    ctx3.close()
     check('no errors on the page', not errs, '; '.join(errs[:3]))
     b.close()
 

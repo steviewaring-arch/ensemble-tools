@@ -507,6 +507,9 @@
   .layer-foot [hidden]{display:none}
   .tt-stack{display:flex;flex-direction:column;align-items:flex-start;font-size:.56rem;line-height:1;letter-spacing:-.03em;padding-left:8px;width:100%}
   .tt-stack .in{padding-left:26px}
+  /* the page never scrolls on a desktop: the window is the workspace (house rule from Segue 1.0 – a stray pixel was
+     giving the window a scrollbar that did nothing) */
+  @media (min-width:861px){html,body{height:100%;overflow:hidden}}
   /* Ensemble tool system – the kit, round 4 (UI stream, November 2026). On Segue first;
      Tempo, Rubato and Tutti move onto it once it's signed off. It sits on top of tokens.css
      and components.css and changes how things look, not where they are: the panel on the left,
@@ -524,7 +527,7 @@
      Black is for the main action (Export, Download); a choice is shown white on grey. */
   @property --p{syntax:'<number>';inherits:true;initial-value:0}
   :root{
-    --fs-mark:20px; --fs-by:20px; --fs-title:14px; --fs-body:13px; --fs-small:12px;
+    --fs-mark:20px; --fs-by:20px; --fs-title:15px; --fs-body:13px; --fs-small:12px;
     --h-ctl:30px; --h-sm:24px; --h-chip:28px;
     --r-frame:12px; --r-card:8px; --r-inner:6px;
     --r-surface:12px; --r-ctl:8px; --r-in:6px; --r-chip:6px; --r-sw:4px;
@@ -738,7 +741,10 @@
   .media-list .slot,.font-list .slot,.preset-list .slot{background:var(--k-fill);border-radius:var(--r-ctl);padding:6px;transition:background var(--t-snap)}
   .media-list .slot:hover,.font-list .slot:hover,.preset-list .slot:hover{background:var(--k-fill-hover)}
   .media-list .slot.open,.preset-list .slot.on{background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line)}
-  .media-list .slot.over{box-shadow:inset 0 2px 0 var(--fill-ink)}
+  /* moving a row (Segue 1.0): where it will land is a slim line in the gap above, the full width, in the focus colour */
+  .media-list .slot{position:relative}
+  .media-list .slot.over{box-shadow:none}
+  .media-list .slot.over::after{content:'';position:absolute;left:2px;right:2px;top:-4px;height:2px;border-radius:1px;background:var(--focus);pointer-events:none}
   .slot-top{gap:8px}
   .slot-name{font-size:var(--fs-body)}
   .slot-meta{font-size:11.5px;margin-top:2px}
@@ -933,6 +939,13 @@
   .panel,.island,.pcap,.topbar,.pop{-webkit-user-select:none;user-select:none}
   .panel input,.panel textarea,.panel [contenteditable],.pop input,.island input{-webkit-user-select:text;user-select:text}
   .panel img,.panel svg,.panel canvas{-webkit-user-drag:none}
+  /* House rule from Segue 1.0: the bottom line stays put – the island anchored bottom left, Presets bottom right
+     (their ids, so Tutti's own export bar keeps its place) */
+  @media (min-width:861px){
+    #island{transform:none}
+    #island .island-row{justify-content:flex-start}
+    #pcap .pc-row{justify-content:flex-end}
+  }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.js"></script>
 </head>
@@ -943,7 +956,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.18</span></div>
+      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.18.1</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -4817,10 +4830,12 @@ function layoutUI(){
   const app=$('.app'),isl=$('#island'),pc=$('#pcap');if(!app||!isl)return;
   if(innerWidth<=860){isl.style.left='';islMore();return;}/* phones: the stylesheet places it along the bottom */
   const g=12,narrow=false,W=narrow?innerWidth:app.clientWidth,away=app.classList.contains('preview')&&!app.classList.contains('peek'),pw=narrow||away?0:$('#panelBox').offsetWidth;
-  const L=narrow||away?g:g*2+pw,R=W-g;let iw=isl.querySelector('.island-in').offsetWidth;if(isl.classList.contains('open'))iw=Math.max(iw,340);
-  iw=Math.min(iw,R-L);/* on a phone the island scrolls; Presets sits above it */
-  let limit=R;if(pc&&!pc.hidden&&!narrow){let w=pc.querySelector('.pc-row').offsetWidth;if(pc.classList.contains('open'))w=Math.max(w,340);limit=R-w-8;}
-  let x=(L+R)/2;if(x+iw/2>limit)x=limit-iw/2;if(x-iw/2<L)x=L+iw/2;isl.style.left=Math.round(x)+'px';}
+  /* House rule from Segue 1.0 (12 Nov): nothing on the bottom line moves when something else opens. The island is
+     anchored bottom left, beside the panel; Presets bottom right. Each opens upward from where it is. (It used to sit
+     centred between the two, so it slid sideways whenever Presets opened or its own width changed.) */
+  const L=narrow||away?g:g*2+pw,R=W-g;
+  let pcW=0;if(pc&&!pc.hidden&&!narrow){const row=pc.querySelector('.pc-row');if(!pc.classList.contains('open')||!pc._w)pc._w=row.offsetWidth;pcW=pc._w;}
+  isl.style.maxWidth=Math.max(240,Math.round(R-(pcW?pcW+8:0)-L))+'px';isl.style.left=Math.round(L)+'px';}
 const ICON_EXPAND='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M8.5 2.5h3v3M11.5 2.5 7.8 6.2M5.5 11.5h-3v-3M2.5 11.5l3.7-3.7" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_COLLAPSE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M11.5 5.5h-3v-3M8.5 5.5l3.3-3.3M2.5 8.5h3v3M5.5 8.5l-3.3 3.3" fill="none" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 /* Preview: the work fills the window; the panel, island and Presets stay where they are */

@@ -6,12 +6,14 @@ look. These rules are the brief for every future build; when a tool and this fil
 disagree, the tool is wrong.
 
 Settled with Steve over rounds 1–4 (October–November 2026) and then worked hard in
-Segue (0.5 to 0.16, 5–11 November), which is the reference build: where a rule here
+Segue (0.5 to 1.0, 5–12 November), which is the reference build: where a rule here
 needs an example, look at Segue. The kit lives in `shared/kit.css`; the mock-ups and
 reasoning are at `ui/review/` (round 4 at `ui/review/round4/`). The history of each
 rule is in `CHANGELOG.md`; this file says only what holds now.
 
-Last revised 11 November 2026 (Segue 0.16, Tempo 0.16, Rubato 1.2, Tutti 6.2).
+Last revised 12 November 2026 (Segue 1.0, Tempo 0.18.1, Rubato 1.2.1, Tutti 6.2) – the 1.0 round:
+the bottom line that stays put, the house colour picker, one "More" per section, turning on the
+canvas, drawings that only do what the choice does, a short list of presets, 15 px section titles.
 What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `claude/ui-todo.md`).
 
 ## Principles
@@ -31,8 +33,9 @@ What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `cl
 7. **Behaviour holds.** A UI change never changes what a tool makes – exports are
    checked byte for byte where they can be.
 8. **Nothing is bolted on.** A new setting goes with what it is a setting *of*. If
-   the panel needs a heading like "More", "Advanced" or "Additionals" to hold it,
-   the panel's structure is wrong – fix the structure.
+   the *panel* needs a heading like "Advanced" or "Additionals" to hold it, the
+   panel's structure is wrong – fix the structure. (Inside a section, the settings
+   reached for least may sit in one shut group called **More** – see The panel.)
 9. **Direct, and no secret handshakes.** What you can see, you can drag. The main
    things never need a modifier key or a manual; the interface says, quietly and in
    the moment, what a drag will do.
@@ -61,10 +64,19 @@ What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `cl
   Esc. Anything up there you can act on says so when you point at it, and everything
   up there can be acted on: the value types, the facts take you to the section that
   sets them.
-- **Island**, bottom centre: what changes the view (Play, Show, scrub) and **Export**,
-  which opens its sheet upward. Status and Undo show here. A play bar is long enough
-  to aim at (300 px, less on a narrow window), with a fine tick where each step starts.
-- **Presets**, bottom right, the island's height – where a tool has presets.
+- **Island**, bottom left, beside the panel: what changes the view (Play, Show, scrub)
+  and **Export**, which opens its sheet upward. Status and Undo show here. A play bar
+  is long enough to aim at (300 px, less on a narrow window), with a fine tick where
+  each step starts.
+- **The project, then Presets**, bottom right, the island's height – where a tool has
+  them. Each opens upward from where it is.
+- **The bottom line stays put** (Segue 1.0). Nothing on it moves because something
+  else opened, a preset was chosen or a save began: the island is anchored left, the
+  project and Presets right, and only the scrub gives way – to the width of the
+  window, never to its neighbours. (It used to sit centred between them and slid
+  sideways. Tutti's export bar, alone on its line, stays centred.)
+- **The page never scrolls on a desktop** – the window is the workspace; only the
+  panel and an open sheet scroll.
 - **Back and forward sit either side of Play** where the work has steps of its own, and
   go where it hasn't. (Segue 0.18.)
 - **The bottom line gives way in order** when the window is narrow: the project keeps
@@ -96,8 +108,14 @@ What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `cl
   but the test is the same: someone starting cold should be able to work down the
   panel once and have made something.
 - **No tier of leftovers.** Sections used now and then are sections like the rest,
-  shut while they're off (see Switches) – not gathered under "Additionals", "More" or
+  shut while they're off (see Switches) – not gathered under "Additionals" or
   "Advanced".
+- **One "More" inside a section, at its foot** (Segue 1.0, Steve: "potentially just
+  'more'"). The settings of that section that most work never touches – Layout's
+  Border, Edge and Placement – sit in one shut group called More, which says what's
+  on in it when something is ("Border · Moved 0, 40 px") and what it holds when
+  nothing is. Never two in a section, never a section of its own, and never a home
+  for something new that has a better one.
 - **One word for one idea, and one idea per word** – across the panel, a row's own
   detail, the tooltips and the other tools. Transition is getting from one thing to
   the next; Movement is what happens within one; Format is the canvas's size and
@@ -118,7 +136,7 @@ What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `cl
 Every part of the panel is one of four levels. Each level looks one way only.
 
 1. **Section** – a white card (`--k-card`) on the panel's grey, 10 px apart.
-   Title 14 px **Bold**, lined up with everything under it (no numbers, no summary
+   Title 15 px **Bold** (1.0 – a point up, so the section reads at a glance), lined up with everything under it (no numbers, no summary
    line beside it), a chevron on the right. Opens and shuts on the Smooth curve.
    Shut, a blue dot says something inside has changed; open, a **Reset** chip
    puts the whole section back.
@@ -140,7 +158,7 @@ Don't invent a fifth level. A plain label acting as a mini-heading ("Spacing",
 "Kerning") is a fifth level – make it a group, or let the rows speak for themselves.
 
 Sheets speak the same language: the sheet's title is set as a section title
-(14 Bold), its groups as labels (13 Medium) with one rule between groups.
+(15 Bold), its groups as labels (13 Medium) with one rule between groups.
 
 ## Switches – one way to turn a thing on
 
@@ -226,6 +244,17 @@ both).
 - **Handles only where they work.** A piece that fills its frame has no corners.
 - **A corner holds the corner opposite still** while it sizes something; the middle of
   a side grows it about the centre. Both keep the shape. (Segue 0.18.)
+- **Just outside a corner turns it** (Segue 1.0), as in Figma: the pointer becomes a
+  curved arrow, the angle shows beside it as you go, it catches on every 45° and
+  Shift goes in 15s. A turned piece keeps all of this in its own turned space – its
+  corners still hold the opposite corner, the cursors point the way the corner does.
+  Inside a frame (after the double-click) the same gesture turns the picture, which
+  grows just enough to keep the frame covered. Every one of these also has a row in
+  the panel (Turn, Size, Position) for typing.
+- **An empty slot is designed too**: its number sits top left in Aktiv Regular, the
+  same tight margin across as down.
+- **Moving a row in a list**: the row in hand fades; where it will land is a slim
+  line in the gap, the full width, in the focus colour. The grip has room either side.
 - **A list where one row opens at a time** – opening one shuts the last.
 - **It says what a drag will do** – the guide, top left, for the selected piece,
   where there's room.
@@ -274,9 +303,19 @@ size) is white; the rest grey. A chip's sentence goes in its tooltip.
 ## Drawings that move
 
 A drawing that stands for a choice – a preset's picture, a Kind's tile – does a
-little of what it is when you point at it: two seconds, subtle, looping, and only
-under the pointer or focus. Slides swap over, strips and grids travel the way they
-go, a pile builds. Nothing moves for anyone who has asked for less motion.
+little of what it is when you point at it: about two seconds, subtle, looping, and
+only under the pointer or focus. Slides swap over, strips and grids travel the way
+they go, a pile builds. **It does only what the choice does** (Segue 1.0): a step, a
+rest, a step back – no general wobble, and nothing moves that the choice doesn't
+move. If a drawing has nothing true to do, it stays still. Nothing moves for anyone
+who has asked for less motion.
+
+## Presets
+
+A short list: about three to a group, each one a thing someone would actually pick –
+a reference, a request, or the plainest good version of that kind. Named for what
+they do. A preset retired from the list still resolves by name, so older work knows
+where its settings started.
 
 ## Steadiness
 
@@ -294,7 +333,7 @@ Aktiv Grotesk (Adobe Fonts kit `rhx3hsl`), three weights with three jobs:
 | | Size | Weight |
 |---|---|---|
 | Tool name and version, "By ENSEMBLE" | 20 | Medium / Regular grey |
-| Section and group titles | 14 / 13 | **Bold** |
+| Section and group titles | 15 / 13 | **Bold** |
 | Labels, buttons, the chosen option, chips | 13 / 12 | Medium |
 | Values, options, notes | 13 / 12 | Regular |
 
@@ -306,7 +345,19 @@ A button says what it does ("Download GIF"); status says what happened ("Saved �
 Neutral greys only: panel `#F4F4F4`, card `#FFFFFF`, controls `#F2F2F2`,
 hover `#ECECEC`, a slider's value `#E2E2E2`, grey text ≥ 4.5:1. Black for the main
 action. Blue `#2F6BFF` (dark `#6B95FF`) for "changed". Dark mode mirrors these
-(`body[data-theme=dark]` in `kit.css`). Open with Steve: his sampled base grey
+(`body[data-theme=dark]` in `kit.css`).
+
+**The colour picker is the house's own** (`shared/colour.js`, Segue 1.0) – never the
+browser's. A swatch opens it beside itself: a field of shade and strength, a hue
+bar, a pipette (the browser's where it has one, otherwise from the canvas – which is
+what works in Safari), **Hex and R, G, B to type into**, and the colours already in
+use in the piece, so colours can be matched rather than guessed. Its surface,
+corners and fields are the kit's. It takes the place of the native picker on every
+`<input type="color">` just by being included: the input stays what the tool reads.
+Segue, Rubato and Tutti use it; Tempo has its own (RGB and CMYK sliders, saved
+colours) – the two should become one (see `UI-TODO.md`).
+
+Open with Steve: his sampled base grey
 `#F6F5F4` (a touch warm) as the reference the other tones derive from – see
 `shared/UI-TODO.md`.
 

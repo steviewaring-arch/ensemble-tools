@@ -8,14 +8,22 @@ function seek(v,t){return new Promise(res=>{let done=false;const fin=()=>{if(don
    video on an element of its own, so the export's seeking and the preview's playing don't fight) and the pictures – so
    you can carry on working, and nothing you change gets into the file half way. Otherwise it's the live state. */
 let XS=S,XI=null,XP=PICS;const xPlan=()=>E.plan(XS,XI||(items.length?items:Array.from({length:6},()=>({}))));
+const cloneVid=async el=>{const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';
+  await new Promise(res=>{let d=false;const fin=()=>{if(!d){d=true;res();}};v.onloadeddata=fin;v.onerror=fin;setTimeout(fin,8000);v.src=el.currentSrc||el.src;v.load();});return v;};
 async function xBegin(){XS=JSON.parse(JSON.stringify(S));XP=Object.assign({},PICS);
+  if(PICS.bg&&PICS.bg.el){const v=await cloneVid(PICS.bg.el);XP.bg=Object.assign({},PICS.bg,{el:v,src:v,own:true});}
   XI=await Promise.all(items.map(async it=>{const c=Object.assign({},it);if(it.kind==='video'&&it.el){const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';
     await new Promise(res=>{let d=false;const fin=()=>{if(!d){d=true;res();}};v.onloadeddata=fin;v.onerror=fin;setTimeout(fin,8000);v.src=it.el.currentSrc||it.el.src;v.load();});c.el=v;c.src=v;}return c;}));}
-function xEnd(){for(const it of XI||[])if(it.kind==='video'&&it.el){try{it.el.removeAttribute('src');it.el.load();}catch(e){}}XS=S;XI=null;XP=PICS;}
+function xEnd(){for(const it of XI||[])if(it.kind==='video'&&it.el){try{it.el.removeAttribute('src');it.el.load();}catch(e){}}
+  if(XP&&XP.bg&&XP.bg.own){try{XP.bg.el.removeAttribute('src');XP.bg.el.load();}catch(e){}}XS=S;XI=null;XP=PICS;}
+/* how many times round the MP4 goes: only a loop goes round more than once */
+const xLoopsOf=s=>(s.endAs||'loop')==='loop'?(+s.xLoops||1):1;
 async function frameAt(c,x,W,H,t,k){
   const sc=E.scene(XS,XI||items,x,FONTS,W,H,t),want=new Map();
   for(const o of sc.ops)if(o.item.kind==='video'&&o.time!=null&&!want.has(o.item))want.set(o.item,o.time);
   for(const [it,tm] of want){const v=it.el,d=Math.max(.01,it.dur||v.duration||1),tt=Math.min(d-1e-3,((tm%d)+d)%d);if(Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
+  /* a video background: at this moment of its own length */
+  if(XP.bg&&XP.bg.el&&XS.bgImgOn!==false){const v=XP.bg.el,d=Math.max(.01,XP.bg.dur||v.duration||1),tt=Math.min(d-1e-3,((t%d)+d)%d);if(v.readyState<2||Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
   crispNow=XS.xCrisp!==false;try{E.paint(x,sc,XS,FONTS,{scale:k||1,media:drawMedia,bgImg:XP.bg,ovImg:XP.ov});}finally{crispNow=false;}}
 async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>XS[r+'F']));if(XS.ovOn&&XS.ovKind==='text')used.add(XS.OF);
   await Promise.all([...used].map(id=>FONTS[id]?document.fonts.load(fontStr(FONTS[id])).catch(()=>null):null));await document.fonts.ready;E.resetMeasure();}
@@ -192,7 +200,7 @@ async function pickEncoder(W,H,fps,bitrate){
   return first?Object.assign(first,{honours:false}):{cfg:setups[0],honours:false};}
 async function makeMP4(progress){
   if(!window.VideoEncoder||!window.Mp4Muxer)throw new Error('This browser can’t write MP4 – try Chrome, Edge or Safari');
-  const [W,H,k]=outSize(XS),fps=+XS.fps||30,P=xPlan(),n=Math.max(1,Math.round(P.L*(+XS.xLoops||1)*fps)),bitrate=mp4Bitrate(XS);
+  const [W,H,k]=outSize(XS),fps=+XS.fps||30,P=xPlan(),loops=xLoopsOf(XS),n=Math.max(1,Math.round(P.T*loops*fps)),bitrate=mp4Bitrate(XS);
   toast('Finding the encoder that keeps the quality…',true);
   const pick=await pickEncoder(W,H,fps,bitrate);if(!pick)throw new Error('This browser can’t encode video');
   const cfg=pick.cfg,codec=cfg.codec,kind=codec.startsWith('vp09')?'vp9':'avc';encUsed=pick;
@@ -207,7 +215,7 @@ async function makeMP4(progress){
   const Y=new Uint8Array(W*H),U=new Uint8Array((W>>1)*(H>>1)),V=new Uint8Array((W>>1)*(H>>1)),buf=new Uint8Array(W*H*3/2);
   await eachFrame(W/k,H/k,fps,n,async(c,x,i)=>{if(err)throw err;const d=x.getImageData(0,0,W,H).data;toI420(d,W,H,Y,U,V);if(XS.xChroma!==false)sharpChroma(d,W,H,Y,U,V);buf.set(Y,0);buf.set(U,W*H);buf.set(V,W*H+U.length);
     const f=new VideoFrame(buf,{format:'I420',codedWidth:W,codedHeight:H,timestamp:Math.round(i*1e6/fps),duration:Math.round(1e6/fps),colorSpace:MP4_COLOUR});enc.encode(f,{keyFrame:i%fps===0});f.close();
-    stall=0;while(enc.encodeQueueSize>4){await new Promise(r=>setTimeout(r,2));if((stall+=2)>15000)throw new Error('the video encoder stopped responding');}},progress,P.L*(+XS.xLoops||1),k);
+    stall=0;while(enc.encodeQueueSize>4){await new Promise(r=>setTimeout(r,2));if((stall+=2)>15000)throw new Error('the video encoder stopped responding');}},progress,P.T*loops,k);
   await enc.flush();enc.close();if(err)throw err;muxer.finalize();return new Blob([muxer.target.buffer],{type:'video/mp4'});}
 /* ---------------- GIF ---------------- */
 /* Made for showcase GIFs, which are usually Photoshop's job. A frame that doesn't change isn't
@@ -242,7 +250,7 @@ function gifPalette(cnt,sr,sg,sb,max){
 const GIF_TOL=2;   /* a pixel within this of what's showing is left as it is (video noise) */
 async function makeGIF(progress){
   const [W0,H0]=E.canvasSize(XS),k=+XS.xGifScale||.5,W=Math.max(2,Math.round(W0*k)),H=Math.max(2,Math.round(H0*k)),fps=+XS.xGifFps||20,P=xPlan();
-  const len=P.L,n=Math.max(1,Math.round(len*fps)),dither=!!XS.xDither;   /* a GIF loops for ever: one loop is enough */
+  const len=P.T,n=Math.max(1,Math.round(len*fps)),dither=!!XS.xDither;   /* a GIF loops for ever: one loop is enough */
   const out=document.createElement('canvas');out.width=W;out.height=H;const ox=out.getContext('2d',{willReadFrequently:true});ox.imageSmoothingQuality='high';
   const buf=new ByteBuf();buf.s('GIF89a');buf.w(W);buf.w(H);buf.b(0x70);buf.b(0);buf.b(0);
   buf.b(0x21);buf.b(0xFF);buf.b(11);buf.s('NETSCAPE2.0');buf.b(3);buf.b(1);buf.w(0);buf.b(0);
@@ -273,7 +281,7 @@ async function makeGIF(progress){
   flush(Math.round(len*100));
   buf.b(0x3B);const blob=new Blob([buf.out()],{type:'image/gif'});blob.gifFrames=frames;return blob;}
 async function makePNG(){const [W,H,k]=outSize(XS),P=xPlan(),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d');
-  await frameAt(c,x,W/k,H/k,((clock%P.L)+P.L)%P.L,k);return await new Promise(r=>c.toBlob(r,'image/png'));}
+  await frameAt(c,x,W/k,H/k,((clock%P.T)+P.T)%P.T,k);return await new Promise(r=>c.toBlob(r,'image/png'));}
 /* ---------------- the Export sheet ---------------- */
 const fileName=ext=>{const [W,H]=ext==='gif'?size():outSize();const base=(S.name||'Segue').trim().replace(/[\\/:*?"<>|]+/g,'').replace(/\s+/g,'_')||'Segue';return `${base}_${W}x${H}.${ext}`;};
 let xInfo,xGo,xStop;
@@ -282,7 +290,7 @@ let xInfo,xGo,xStop;
     {t:'seg',k:'xQ',label:'Quality',opts:[['std','Standard'],['high','High'],['best','Best']],show:s=>s.xFormat==='mp4',tip:'How much detail the video keeps: Standard 16, High 32, Best 50 Mbps at 1080 × 1350 – more is crisper and a bigger file'},
     {t:'seg',k:'xScale',label:'Scale',opts:[[1,'1×'],[2,'2×']],show:s=>s.xFormat!=='gif',tip:'2× draws every frame at twice the pixels each way – same layout, sharper type and media, and coloured type stays crisp (MP4 keeps colour at half size, so at 2× it’s as fine as a 1× file’s pixels). Crisp on Retina screens and when cropped in; about four times the time, and a bigger file. Instagram shrinks it to 1080 wide.'},
     {t:'seg',k:'fps',label:'Frame rate',opts:[[24,'24'],[25,'25'],[30,'30'],[60,'60']],show:s=>s.xFormat==='mp4'},
-    {t:'seg',k:'xLoops',label:'Loops in the file',opts:[[1,'1'],[2,'2'],[3,'3']],show:s=>s.xFormat==='mp4'},
+    {t:'seg',k:'xLoops',label:'Loops in the file',opts:[[1,'1'],[2,'2'],[3,'3']],show:s=>s.xFormat==='mp4'&&(s.endAs||'loop')==='loop'},
     {t:'seg',k:'xGifScale',label:'GIF size',opts:[[1,'Full'],[.5,'Half'],[.25,'Quarter']],show:s=>s.xFormat==='gif'},
     {t:'seg',k:'xGifFps',label:'GIF frame rate',opts:[[12,'12'],[15,'15'],[20,'20'],[25,'25']],show:s=>s.xFormat==='gif'},
     {t:'toggle',k:'xDither',label:'Dither',show:s=>s.xFormat==='gif',tip:'Smooths gradients and photographs with a fine grain of dots. The file comes out bigger.'},
@@ -303,7 +311,7 @@ let xInfo,xGo,xStop;
   xStop.onclick=es.onclick=e=>{e.stopPropagation();stopFlag=true;};
   xGo.onclick=async()=>{if(busy)return;const f=S.xFormat;busy=true;stopFlag=false;const t0=performance.now(),name=fileName(f);show(true,0,t0,f);
     try{if(f!=='png')await xBegin();await fontsReady();const prog=p=>show(true,p,t0,f);
-      const blob=f==='gif'?await makeGIF(prog):f==='png'?await makePNG():await makeMP4(prog);const L=xPlan().L*(f==='mp4'?(+XS.xLoops||1):1);
+      const blob=f==='gif'?await makeGIF(prog):f==='png'?await makePNG():await makeMP4(prog);const L=xPlan().T*(f==='mp4'?xLoopsOf(XS):1);
       await saveFile(name,blob);lastSize[f]=blob.size;const rate=f==='mp4'?` at ${(blob.size*8/L/1e6).toFixed(1)} Mbps`:'';
       /* done: said in the island if the sheet's open; if you'd shut it and carried on, a note top right */
       if(SHEETS.export&&!SHEETS.export.el.hidden)toast(`Saved ${name} – ${mb(blob.size)}${rate}`);else notice('Saved',`${name} · ${mb(blob.size)}`);
@@ -319,12 +327,12 @@ let xInfo,xGo,xStop;
 const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
 /* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
 function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
-function exportInfo(){if(!xInfo||busy)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?(+S.xLoops||1):1;
+function exportInfo(){if(!xInfo||busy)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?xLoopsOf(S):1,once=(S.endAs||'loop')!=='loop';
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
   /* what you'll get, as a row of chips – a detail, not a sentence */
   const chips=f==='png'?[[`${W} × ${H}`],['This frame','The frame on the stage now']]
-    :f==='gif'?[[`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}`],[`${P.L.toFixed(1)} s`],[`${S.xGifFps} fps`],['Loops','Plays round for ever']]
-    :[[`${W} × ${H}`],[`${(P.L*l).toFixed(1)} s`],[`${S.fps} fps`],['H.264'],[`≤ ${mb(mp4Bitrate()*P.L*l/8)}`,'The most it can be – flat colour and type come out far smaller']];
+    :f==='gif'?[[`${Math.round(W*S.xGifScale)} × ${Math.round(H*S.xGifScale)}`],[`${P.T.toFixed(1)} s`],[`${S.xGifFps} fps`],once?['Repeats','A GIF starts again when it ends']:['Loops','Plays round for ever']]
+    :[[`${W} × ${H}`],[`${(P.T*l).toFixed(1)} s`],[`${S.fps} fps`],['H.264'],[`≤ ${mb(mp4Bitrate()*P.T*l/8)}`,'The most it can be – flat colour and type come out far smaller']];
   if(lastSize[f])chips.push([`Last ${mb(lastSize[f])}`,'The size of the last one you made']);
   xInfo.textContent='';for(const [t,tip] of chips){const c=el('span','chip',t);if(tip)c.dataset.tip=tip;xInfo.append(c);}}
 /* ---------------- start ---------------- */
@@ -332,13 +340,13 @@ function exportInfo(){if(!xInfo||busy)return;const [W,H]=S.xFormat==='gif'?size(
 $('#mediafile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs);};
 $('#bgfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)setPic('bg',f);};
 $('#ovfile').onchange=e=>{const f=e.target.files[0];e.target.value='';if(f)setPic('ov',f);};
-$('#fontfile').onchange=e=>{const fs=[...e.target.files];e.target.value='';if(fs.length)addFiles(fs).then(paintFonts);};
+$('#fontfile').onchange=e=>{const fs=[...e.target.files],k=fontFor,had=new Set(ownFontIds());fontFor=null;e.target.value='';if(fs.length)addFiles(fs).then(()=>{paintFonts();const n=ownFontIds().find(id=>!had.has(id));if(k&&n)set(k,n);else refreshAll();});};
 {let depth=0;const drop=$('#drop');
   window.addEventListener('dragenter',e=>{if(!dragId&&e.dataTransfer&&[...e.dataTransfer.types].includes('Files')){depth++;drop.classList.add('on');}});
   window.addEventListener('dragleave',()=>{depth=Math.max(0,depth-1);if(!depth)drop.classList.remove('on');});
   window.addEventListener('dragover',e=>e.preventDefault());
   window.addEventListener('drop',e=>{e.preventDefault();depth=0;drop.classList.remove('on');let fs=[...(e.dataTransfer?e.dataTransfer.files:[])];const pj=fs.find(f=>/\.segue$/i.test(f.name));if(pj){openProjectFile(pj);fs=fs.filter(f=>f!==pj);}if(fs.length)addFiles(fs).then(paintFonts);});}
-window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(mine).find(x=>x.name===n);if(p)applyPreset(p);},
+window.segue={E,S,outSize,sharpChroma,spsExport,get items(){return items;},fonts:FONTS,pics:PICS,setPic,clearPic,mp4Bitrate,pickEncoder,get encUsed(){return encUsed;},refresh(){saveItems();E.resetMeasure();paintMedia();refreshAll();dirty=true;},addFiles,set,plan:planNow,render,frameAt,makeMP4,makeGIF,makePNG,spsVideoRange,avcCVideoRange,fixSourceRange,applyPreset:n=>{const p=BUILTIN.concat(RETIRED,mine).find(x=>x.name===n);if(p)applyPreset(p);},
   projects:{list:allProjects,get current(){return PROJ;},open:openProject,make:newProject,duplicate:duplicateProject,remove:removeProject,rename:renameProject,save:saveProject,file:projectFile,openFile:openProjectFile,readZip,gc:gcFiles},duplicate:duplicateItem,setZoom,get zoom(){return viewZoom;},
   setClock(t){clock=t;dirty=true;},setPlaying,get busy(){return busy;},get sel(){return selId;},momentOf,seekTo,guideLines,get clock(){return clock;},get playing(){return playing;},
   /* the interface, for the checks: every control, the undo history, where each setting started */

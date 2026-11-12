@@ -1,5 +1,35 @@
 # Changelog
 
+## 12 November 2026 – Segue 1.0: the hitlist – and the shared parts taken to Rubato, Tempo and Tutti
+
+Steve's "hitlist before pushing Segue to 1.0", nineteen points with three recordings, then: "run any and all aspects that may impact Tutti and Rubato through their UI, test and update the house style accordingly."
+
+**On the canvas**
+- **Turn anything.** Drag just outside a corner – the pointer becomes a curved arrow, the angle shows beside it, it catches on every 45° and Shift goes in 15s. Corners still size from the opposite corner and a side from the middle, turned or not. Double-click a framed picture and the same gesture turns the picture inside its frame; it grows just enough to stay covering. Each has a **Turn** row in Media for typing.
+- **Each media's own shape, in every kind.** Rows, columns, grids, walls and frames now fit each piece at its own shape inside its slot, with **Align vertically** and **Align horizontally** to line mixed pieces up. Slides has the same two.
+- **A video as the background** – Canvas › Background takes an MP4 (or MOV, WebM); it plays behind everything and goes into every export.
+
+**Motion**
+- **Ending.** *Loops* (as before), *Once through* (plays to its natural finish – the last one at rest, or all of them in view – and doesn't go round to the first again), or a *Set length* in seconds, with **Finish on a clean cut** to stop as the nearest rest ends. A set length can be longer than the loop.
+- **Deck** in Pile up – the cards beneath the top show their edges, like a deck; with Cover it goes round for ever.
+- His three recordings are presets: **Straight cuts**, **Overview** and **Deck**.
+
+**Overlay and captions**
+- **Frosted** type: the letters show what's beneath them, blurred, under a tint of the text's colour – Blur and Tint set how much.
+- Every Font menu ends with **+ Add a font…**, the overlay's included.
+
+**The interface**
+- **The bottom line stays put.** Play bar bottom left; the project and Presets bottom right. Nothing moves when something else opens, a preset is picked or a save begins – which is also what was nudging the export sheet between MP4, GIF and PNG.
+- **A colour picker of our own**: pipette, Hex, R, G and B to type, and the colours already in use – in the house's surface and corners.
+- Layout's Border, Edge and Placement are in one shut group, **More**. Section titles are a point bigger. The pasteboard's dots can be switched off in Guides. Empty cards carry their number top left in Aktiv Regular. The window's stray scrollbar is gone.
+- **Presets: sixteen, was twenty-four** – three or fewer to a kind (Slides has four). The ones that left still resolve by name for older projects.
+- Hover drawings do only what the kind does – a step, a rest, a step back; the general wobble is gone. Dragging a media row shows a slim line where it will land, and the grip is easier to catch.
+
+**The other tools**
+- **Rubato 1.2.1, Tempo 0.18.1**: the island is anchored bottom left and no longer slides when Presets opens; the stray window scrollbar is gone; section titles 15 px. **Rubato and Tutti** take the house colour picker (Tempo keeps its own, which has CMYK – merging the two is on the list). **Tutti** otherwise unchanged; its 12 export hashes are identical.
+- House rules (`shared/UI.md`) revised; `shared/UI-TODO.md` says what's done and what still wants a yes.
+- Tests: Segue 198 of 198 (12 new, 10 updated) and 83 of 83; Rubato 45 of 45 and 14 looks identical; Tempo 125 of 125; Tutti 87 of 87, hashes identical; WebKit probe clean.
+
 ## 11 November 2026 – Segue 0.18: stepping slide by slide, corners that hold still, strips that share
 
 Steve: "would be very useful to have back / forward cursors on so individual slides can be altered (next to play button) – for example on Slides layout, moving each one about on Pile Up would be easier. secondly, allowing a resize of an object from a corner (fixed ratio), so it does not enlarge from centre, allowing easier alignment. central enlarge could be done from a mid cursor point on the line … also auto collapse of a media module if another is opened. also when using rows (and I presume same for columns), we need an option to 'add all images to 1 row' or use across all rows without duplication … wall setting says shape can be media's own but it cant."
