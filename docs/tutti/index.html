@@ -1151,6 +1151,34 @@
   .txt-wrap{position:relative;margin-top:14px}
   .txt-wrap>textarea{margin-top:0!important;display:block}
 
+
+  /* 6.4: Mixed sizes – a switch that heads its group (the kit's .sw-grp) */
+  .mixgrp{padding-top:2px}
+  .mixgrp[hidden]{display:none}
+  .mixgrp .card-tools{margin:0 0 8px}
+  .mixgrp .row .seg{grid-column:2;display:flex;width:100%}
+  .mixgrp .row .seg button{flex:1;min-width:0;padding:0 4px}
+  .seg.multi button[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);font-weight:500;box-shadow:0 0 0 1px var(--k-raise-line)}
+  .card-body>.mixgrp>.row:not(.ctl-head){display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;min-height:var(--h-ctl);margin:0 0 10px}
+  .card-body>.mixgrp>.row:not(.ctl-head)>.lbl{font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .card-body>.toggle-row.sw-grp>.toggle{display:flex;grid-template-columns:none}
+  .card-body>.toggle-row.sw-grp>.toggle>span{order:0}
+
+  /* each band's mark: a drawer under its row – Mark or Big mark, then Dot, the house set and your own */
+  .markbox{margin:-2px 0 8px;padding:10px;border-radius:var(--r-card);background:var(--k-fill)}
+  .markbox .markseg{display:flex;width:100%;margin-bottom:10px;background:var(--k-card,var(--btn))}
+  .markbox .markseg button{flex:1}
+  .marks{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px}
+  .mk{height:40px;border:0;border-radius:var(--r-in);background:var(--k-card,var(--btn));color:var(--ink-strong);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font:inherit;font-size:11px;box-shadow:inset 0 0 0 1px var(--keyline)}
+  .mk svg{width:22px;height:22px;fill:currentColor}
+  .mk:hover{box-shadow:inset 0 0 0 1px var(--ink)}
+  .mk.on{box-shadow:inset 0 0 0 2px var(--ink-strong)}
+  .mk span{line-height:1.1;text-align:center;padding:0 2px}
+  .mk.own,.marks .mk[data-k=same]{grid-column:span 2}
+  .card-body>.toggle-row.sw-grp>.toggle{width:100%}
+  .card-body>.toggle-row.sw-grp>.toggle>span{font-weight:700;color:var(--ink-strong)}
+  .mixgrp .card-tools{margin:-6px 0 6px}
+  button.svgbtn{border:0;font-family:inherit;line-height:1.2}
 </style>
 </head>
 <body data-theme="light">
@@ -1165,7 +1193,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.3</span></div>
+      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.4</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls">
@@ -1252,6 +1280,16 @@
       <input type="range" id="minsize" min="0" max="100" step="1" value="8">
       <div class="row"><label class="lbl">Shape size<i class="q" data-tip="Scales every mark. Above 1× marks spill past their cell and overlap their neighbours.">?</i></label><span class="val" id="ssizeV">1.00×</span></div>
       <input type="range" id="ssize" min="0.2" max="3" step="0.01" value="1">
+      <div class="toggle-row sw-grp" id="mixRow"><div class="toggle" id="tMix"><div class="box"></div><span>Mixed sizes<i class="q" data-tip="Some marks span several cells – 2×2 up to 5×5, or a bar – always on the grid. A big mark is the band's mark scaled, or a Big mark you choose in Mapping.">?</i></span></div></div>
+      <div class="mixgrp" id="mixGrp" hidden>
+        <div class="card-tools"><a id="mixShuffle" title="Another pattern of blocks">Shuffle</a></div>
+        <div class="row"><label class="lbl">Squares</label><div class="seg multi" id="mixSq" role="group" aria-label="Squares"><button type="button" data-s="2">2×2</button><button type="button" data-s="3">3×3</button><button type="button" data-s="4">4×4</button><button type="button" data-s="5">5×5</button></div></div>
+        <div class="row"><label class="lbl">Bars<i class="q" data-tip="Long marks, either way round. A dot becomes a capsule; an SVG mark is stretched to fit.">?</i></label><div class="seg multi" id="mixBar" role="group" aria-label="Bars"><button type="button" data-s="1x2">1×2</button><button type="button" data-s="1x3">1×3</button><button type="button" data-s="2x3">2×3</button></div></div>
+        <div class="row"><label class="lbl">Amount<i class="q" data-tip="From one or two big marks to as many as will fit.">?</i></label><span class="val" id="mixAmtV">50%</span></div>
+        <input type="range" id="mixAmt" min="0" max="100" step="1" value="50">
+        <div class="row"><label class="lbl">Where<i class="q" data-tip="Even: only where every cell under a block shares one band, so big marks sit in flat areas. Further right lets them cross more bands.">?</i></label><span class="val" id="mixWhereV">Even tone</span></div>
+        <input type="range" id="mixWhere" min="0" max="100" step="1" value="0">
+      </div>
       </div>
     </section>
 
@@ -1662,7 +1700,7 @@ function mountGuides(o){
   paint();
   return{draw,paint};
 }
-const VERSION="6.3", MAXB=7, MINB=2;
+const VERSION="6.4", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,
@@ -1670,8 +1708,10 @@ const S={
   shapeScale:1, opacity:1, baseRot:0, rotJit:0, posJit:0, autoRotate:false, rotSpeed:Math.PI/3, keepSvgColor:false,
   srcBlur:0, threshLever:0, tracking:0, typeGrad:false, typeGradAngle:0, typeW:1, typeH:1, typeSlant:0,
   nBands:6, edges:[],
+  /* 6.4: Mixed sizes – some marks span 2×2 to 5×5 cells, or a bar, always starting on the grid */
+  mix:false, mixSizes:['2','3'], mixAmount:50, mixWhere:0, mixSeed:0,
   text:'Tutti', tsize:220, tlh:1.0, align:'center', userFont:false,
-  states:Array.from({length:MAXB},()=>({color:'#000000',userColor:false,img:null,inner:null,vb:null})),
+  states:Array.from({length:MAXB},()=>({color:'#000000',userColor:false,img:null,inner:null,vb:null,key:null,bigImg:null,bigInner:null,bigVb:null,bigKey:null})),
   sample:null, sampleDirty:true, spritesDirty:true, sprites:[]
 };
 const $=id=>document.getElementById(id);
@@ -1729,19 +1769,60 @@ function setActive(el){ srcBtns().forEach(b=>b&&b.classList.remove('active')); i
 
 /* mapping rows */
 const statesEl=$('states');
-function loadStateSVG(i,txt){
+function loadStateSVG(i,txt,big,key){
+  const st=S.states[i], vbK=big?'bigVb':'vb', inK=big?'bigInner':'inner', imK=big?'bigImg':'img', kK=big?'bigKey':'key', tK=big?'_tb':'_t';
+  const tok=st[tK]=(st[tK]||0)+1; st[kK]=key||'own';
   try{
     const doc=new DOMParser().parseFromString(txt,'image/svg+xml');
     const sv=doc.querySelector('svg');
     let vb=sv.getAttribute('viewBox');
     if(!vb){ const w=parseFloat(sv.getAttribute('width'))||100, h=parseFloat(sv.getAttribute('height'))||100; vb='0 0 '+w+' '+h; }
-    S.states[i].vb=vb; S.states[i].inner=sv.innerHTML;
-  }catch(err){ S.states[i].vb='0 0 100 100'; S.states[i].inner=''; }
+    st[vbK]=vb; st[inK]=sv.innerHTML;
+  }catch(err){ st[vbK]='0 0 100 100'; st[inK]=''; }
   let t=txt;
-  if(!/width=|height=/.test(t)){ const wh=(S.states[i].vb||'0 0 100 100').split(/\s+/); t=t.replace('<svg','<svg width="'+wh[2]+'" height="'+wh[3]+'"'); }
+  if(!/width=|height=/.test(t)){ const wh=(st[vbK]||'0 0 100 100').split(/\s+/); t=t.replace('<svg','<svg width="'+wh[2]+'" height="'+wh[3]+'"'); }
   const im=new Image();
-  im.onload=()=>{S.states[i].img=im;S.spritesDirty=true; const b=document.querySelector('.svgbtn[data-i="'+i+'"]'); if(b)b.classList.add('set'); const pv=document.querySelector('.svgprev[data-i="'+i+'"]'); if(pv){ pv.src=im.src; pv.style.display='block'; }};
+  im.onload=()=>{ if(st[tK]!==tok)return; st[imK]=im; S.spritesDirty=true; paintMarks(); };
   im.src=URL.createObjectURL(new Blob([t],{type:'image/svg+xml'}));
+}
+/* 6.4: the house set of marks – drawn on 100 × 100, all filled shapes, so a band colour recolours them
+   on screen and in the SVG alike */
+const HOUSE=[
+  ['ring','Ring','<path fill-rule="evenodd" d="M8 50a42 42 0 1 0 84 0a42 42 0 1 0-84 0zM21 50a29 29 0 1 0 58 0a29 29 0 1 0-58 0z"/>'],
+  ['ringdot','Ring and dot','<path fill-rule="evenodd" d="M8 50a42 42 0 1 0 84 0a42 42 0 1 0-84 0zM21 50a29 29 0 1 0 58 0a29 29 0 1 0-58 0z"/><circle cx="50" cy="50" r="14"/>'],
+  ['square','Square','<path fill-rule="evenodd" d="M10 10h80v80H10zM23 23v54h54V23z"/>'],
+  ['squaredot','Square and dot','<path fill-rule="evenodd" d="M10 10h80v80H10zM23 23v54h54V23z"/><circle cx="50" cy="50" r="13"/>'],
+  ['x','X','<path d="M50 40.8 24.6 15.4l-9.2 9.2L40.8 50 15.4 75.4l9.2 9.2L50 59.2l25.4 25.4 9.2-9.2L59.2 50l25.4-25.4-9.2-9.2z"/>'],
+  ['plus','Plus','<path d="M43.5 10h13v33.5H90v13H56.5V90h-13V56.5H10v-13h33.5z"/>'],
+  ['asterisk','Asterisk','<rect x="44" y="8" width="12" height="84"/><rect x="44" y="8" width="12" height="84" transform="rotate(60 50 50)"/><rect x="44" y="8" width="12" height="84" transform="rotate(120 50 50)"/>'],
+  ['checker','Checker','<path d="M8 8h21v21H8zM50 8h21v21H50zM29 29h21v21H29zM71 29h21v21H71zM8 50h21v21H8zM50 50h21v21H50zM29 71h21v21H29zM71 71h21v21H71z"/>'],
+  ['grid','Grid of squares','<path d="M12 12h12v12H12zM35 12h12v12H35zM58 12h12v12H58zM81 12h12v12H81zM12 35h12v12H12zM35 35h12v12H35zM58 35h12v12H58zM81 35h12v12H81zM12 58h12v12H12zM35 58h12v12H35zM58 58h12v12H58zM81 58h12v12H81zM12 81h12v12H12zM35 81h12v12H35zM58 81h12v12H58zM81 81h12v12H81z"/>']];
+const houseSVG=inner=>'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">'+inner+'</svg>';
+function setMark(i,key,big){ const st=S.states[i];
+  if(key==='dot'||key==='same'){ if(big){st.bigImg=null;st.bigInner=null;st.bigVb=null;st.bigKey=null;st._tb=(st._tb||0)+1;}else{st.img=null;st.inner=null;st.vb=null;st.key=null;st._t=(st._t||0)+1;} S.spritesDirty=true; paintMarks(); return; }
+  const h=HOUSE.find(m=>m[0]===key); if(h) loadStateSVG(i,houseSVG(h[2]),big,key); }
+/* each band's mark: Dot, one of the house set, or an SVG of your own – and, for Mixed sizes, a big mark
+   (the same one scaled, unless you choose another) */
+let markOpen=-1, markBig=false;
+const DOT='<circle cx="50" cy="50" r="42"/>';
+function markDrawer(i){
+  const st=S.states[i], d=document.createElement('div'); d.className='markbox'; d.dataset.i=i;
+  const cur=markBig?st.bigInner:st.inner, k=markBig?st.bigKey:st.key;
+  const sel=cur==null?(markBig?'same':'dot'):(k&&k!=='own'?k:'own');
+  let h='<div class="seg markseg" role="group" aria-label="Which mark"><button type="button" data-b="0"'+(markBig?'':' class="on"')+'>Mark</button><button type="button" data-b="1"'+(markBig?' class="on"':'')+' title="For marks that span several cells – Mixed sizes">Big mark</button></div><div class="marks">';
+  const tile=(k,t,inner)=>'<button type="button" class="mk'+(sel===k?' on':'')+'" data-k="'+k+'" title="'+t+'" aria-label="'+t+'" aria-pressed="'+(sel===k)+'">'+(inner?'<svg viewBox="0 0 100 100" aria-hidden="true">'+inner+'</svg>':'<span>'+t+'</span>')+'</button>';
+  h+= markBig? tile('same','Same, scaled',null) : tile('dot','Dot',DOT);
+  HOUSE.forEach(m=>{h+=tile(m[0],m[1],m[2]);});
+  h+='<label class="mk own'+(sel==='own'?' on':'')+'" for="'+(markBig?'stBig':'stSvg')+i+'" title="An SVG of your own"><span>'+(sel==='own'?'Your SVG':'Upload')+'</span></label></div>';
+  d.innerHTML=h;
+  d.querySelectorAll('.markseg button').forEach(b=>b.onclick=()=>{markBig=b.dataset.b==='1';buildStates();});
+  d.querySelectorAll('button.mk').forEach(b=>b.onclick=()=>{setMark(i,b.dataset.k,markBig);buildStates();});
+  return d;
+}
+function paintMarks(){
+  for(let i=0;i<S.nBands;i++){ const st=S.states[i], pv=document.querySelector('.svgprev[data-i="'+i+'"]'), b=document.querySelector('.markbtn[data-i="'+i+'"]');
+    if(pv){ if(st.img){ pv.src=st.img.src; pv.style.display='block'; } else { pv.removeAttribute('src'); pv.style.display='none'; } }
+    if(b) b.classList.toggle('set',!!(st.inner||st.bigInner)); }
 }
 function buildStates(){
   const names=namesFor(S.nBands);
@@ -1753,26 +1834,31 @@ function buildStates(){
       '<div class="swatch"><input type="color" value="'+st.color+'" data-i="'+i+'" class="stColor"></div>'+
       '<div class="meta"><b>'+names[i]+'</b></div>'+
       '<img class="svgprev" data-i="'+i+'" alt="">'+
-      '<label class="svgbtn'+(st.inner?' set':'')+'" data-i="'+i+'">SVG<input type="file" accept=".svg,image/svg+xml" data-i="'+i+'" class="stSvg" style="display:none"></label>';
+      '<button type="button" class="svgbtn markbtn'+(st.inner||st.bigInner?' set':'')+'" data-i="'+i+'" aria-expanded="'+(markOpen===i)+'" title="Choose this band\u2019s mark">Mark</button>'+
+      '<input type="file" accept=".svg,image/svg+xml" data-i="'+i+'" id="stSvg'+i+'" class="stSvg" hidden>'+
+      '<input type="file" accept=".svg,image/svg+xml" data-i="'+i+'" id="stBig'+i+'" class="stBig" hidden>';
     statesEl.appendChild(row);
+    if(markOpen===i) statesEl.appendChild(markDrawer(i));
   }
-  for(let i=0;i<S.nBands;i++){ const pv=document.querySelector('.svgprev[data-i="'+i+'"]'); if(pv&&S.states[i].img){ pv.src=S.states[i].img.src; pv.style.display='block'; } }
+  paintMarks();
   document.querySelectorAll('.stColor').forEach(inp=>{
     inp.closest('.swatch').style.background=inp.value;
     inp.oninput=e=>{const i=+e.target.dataset.i;S.states[i].color=e.target.value;S.states[i].userColor=true;e.target.closest('.swatch').style.background=e.target.value;S.spritesDirty=true;};
   });
-  document.querySelectorAll('.stSvg').forEach(inp=>{
-    inp.onchange=e=>{const i=+e.target.dataset.i,f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>loadStateSVG(i,rd.result);rd.readAsText(f);};
+  document.querySelectorAll('.stSvg,.stBig').forEach(inp=>{
+    inp.onchange=e=>{const i=+e.target.dataset.i,big=e.target.classList.contains('stBig'),f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>loadStateSVG(i,rd.result,big);rd.readAsText(f);e.target.value='';};
   });
+  document.querySelectorAll('.markbtn').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;markOpen=(markOpen===i)?-1:i;buildStates();});
   $('bandCount').textContent=S.nBands;
   $('bandMinus').disabled=(S.nBands<=MINB);
   $('bandPlus').disabled=(S.nBands>=MAXB);
 }
 function setBands(n){ n=Math.max(MINB,Math.min(MAXB,n)); if(n===S.nBands)return;
-  S.nBands=n; S.edges=evenEdges(n); applyRamp(); buildStates(); buildEdgeUI(); S.spritesDirty=true; }
+  S.nBands=n; if($('mixWhereV'))$('mixWhereV').textContent=whereText(); S.edges=evenEdges(n); applyRamp(); buildStates(); buildEdgeUI(); S.spritesDirty=true; }
 $('bandPlus').onclick=()=>setBands(S.nBands+1);
 $('bandMinus').onclick=()=>setBands(S.nBands-1);
-$('resetShapes').onclick=()=>{ for(let i=0;i<MAXB;i++){S.states[i].img=null;S.states[i].inner=null;S.states[i].vb=null;}
+$('resetShapes').onclick=()=>{ for(let i=0;i<MAXB;i++){const t=S.states[i];t.img=null;t.inner=null;t.vb=null;t.key=null;t.bigImg=null;t.bigInner=null;t.bigVb=null;t.bigKey=null;t._t=(t._t||0)+1;t._tb=(t._tb||0)+1;}
+  if(markOpen>=0) buildStates();
   document.querySelectorAll('.svgbtn').forEach(b=>b.classList.remove('set'));
   document.querySelectorAll('.svgprev').forEach(p=>{p.removeAttribute('src');p.style.display='none';});
   S.spritesDirty=true; };
@@ -1919,6 +2005,21 @@ $('rjit').oninput=e=>{S.rotJit=(+e.target.value)/100*Math.PI*2;$('rjV').textCont
 $('pjit').oninput=e=>{S.posJit=(+e.target.value)/100*0.8;$('pjV').textContent=e.target.value+'%';};
 function toggle(id,key){const el=$(id);el.onclick=()=>{el.classList.toggle('on');S[key]=el.classList.contains('on');S.spritesDirty=true;};}
 toggle('tFill','fill'); toggle('tInvert','invert'); toggle('tScale','scale'); toggle('tKeepSvg','keepSvgColor');
+/* Mixed sizes (6.4) */
+function whereText(){ const k=Math.round(S.mixWhere/100*(S.nBands-1)); return k===0?'Even tone':k>=S.nBands-1?'Anywhere':'Across '+(k+1)+' bands'; }
+function syncMix(){
+  $('tMix').classList.toggle('on',S.mix); $('mixRow').classList.toggle('on',S.mix); $('mixGrp').hidden=!S.mix;
+  document.querySelectorAll('#mixSq button,#mixBar button').forEach(b=>{const on=S.mixSizes.includes(b.dataset.s);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+  $('mixAmt').value=S.mixAmount; $('mixAmtV').textContent=S.mixAmount+'%';
+  $('mixWhere').value=S.mixWhere; $('mixWhereV').textContent=whereText();
+}
+$('tMix').onclick=()=>{ S.mix=!S.mix; syncMix(); };
+document.querySelectorAll('#mixSq button,#mixBar button').forEach(b=>b.onclick=()=>{ const k=b.dataset.s, L=S.mixSizes.filter(x=>x!==k);
+  if(L.length===S.mixSizes.length) L.push(k); S.mixSizes=Object.keys(MIXSIZES).filter(x=>L.includes(x)); syncMix(); });
+$('mixAmt').oninput=e=>{ S.mixAmount=+e.target.value; $('mixAmtV').textContent=S.mixAmount+'%'; };
+$('mixWhere').oninput=e=>{ S.mixWhere=+e.target.value; $('mixWhereV').textContent=whereText(); };
+$('mixShuffle').onclick=()=>{ S.mixSeed=1+Math.floor(Math.random()*9999); };
+syncMix();
 
 /* geometry / sprites / sampling */
 function computeDims(){
@@ -1944,7 +2045,7 @@ function drawCover(ctx,w,h){
   ctx.drawImage(el,(w-dw)/2,(h-dh)/2,dw,dh); return true;
 }
 function buildSprites(){
-  const spx=Math.max(24,cell*3); S.sprites=[]; S.spriteCell=cell;
+  const spx=Math.max(24,cell*3); S.sprites=[]; S.spriteCell=cell; S.bsprites={};
   for(let i=0;i<S.nBands;i++){
     const st=S.states[i];
     const c=document.createElement('canvas'); c.width=c.height=spx; const x=c.getContext('2d');
@@ -1989,13 +2090,77 @@ function cellParams(i,j){
   const angle=S.baseRot+(rnd(i,j,3)-0.5)*S.rotJit;
   return {idx,dsz,cx,cy,angle,skip:cov<0.02};
 }
+/* 6.4: the placement list. Everything that draws – the canvas (so PNG, MP4 and GIF) and the SVG – draws
+   from this one list. With Mixed sizes off it is one mark per cell, the same marks in the same order as
+   before. With it on, blocks are chosen first, biggest first: each starts on its own grid (a 3×3 only
+   every third cell), takes cells nothing else has, and – unless Where says otherwise – only where its
+   cells share one band. Whether a slot gets a block is a fixed draw for that slot and pattern (Shuffle
+   picks another), so on video the blocks stay put and change only where the tone does. */
+const MIXSIZES={'2':[2,2],'3':[3,3],'4':[4,4],'5':[5,5],'1x2':[1,2],'1x3':[1,3],'2x3':[2,3]};
+function covAt(q){ let c=1-S.sample[q]/255; if(S.invert)c=1-c; return c; }
+function mixShapes(){
+  const L=[]; S.mixSizes.forEach(k=>{ const d=MIXSIZES[k]; if(!d)return; L.push([d[0],d[1]]); if(d[0]!==d[1]) L.push([d[1],d[0]]); });
+  return L.sort((a,b)=>b[0]*b[1]-a[0]*a[1]||b[0]-a[0]);
+}
+function placements(){
+  const L=[];
+  if(!S.mix||!S.mixSizes.length){
+    for(let j=0;j<rows;j++) for(let i=0;i<cols;i++){ const p=cellParams(i,j); if(!p.skip) L.push(p); }
+    return L;
+  }
+  const n=cols*rows, taken=new Uint8Array(n), top=new Int32Array(n).fill(-1), blocks=[];
+  const prob=Math.min(0.9,0.003*Math.pow(200,S.mixAmount/100)), spread=Math.round(S.mixWhere/100*(S.nBands-1));
+  /* a big block has fewer slots to land in, so it gets a little more chance in each */
+  for(const [w,h] of mixShapes()){ const salt=11+w*7+h*3+S.mixSeed*1.618, pk=Math.min(0.9,prob*Math.sqrt(w*h/4));
+    for(let y=0;y+h<=rows;y+=h) for(let x=0;x+w<=cols;x+=w){
+      if(rnd(x,y,salt)>=pk) continue;
+      let ok=true, lo=99, hi=-1, sum=0;
+      for(let dy=0;dy<h&&ok;dy++) for(let dx=0;dx<w;dx++){ const q=(y+dy)*cols+x+dx;
+        if(taken[q]){ok=false;break;} const c=covAt(q); if(c<0.02){ok=false;break;}
+        const b=bandIndex(c); if(b<lo)lo=b; if(b>hi)hi=b; sum+=c; }
+      if(!ok||hi-lo>spread) continue;
+      for(let dy=0;dy<h;dy++) for(let dx=0;dx<w;dx++) taken[(y+dy)*cols+x+dx]=1;
+      top[y*cols+x]=blocks.length; blocks.push(blockParams(x,y,w,h,sum/(w*h)));
+    }
+  }
+  for(let j=0;j<rows;j++) for(let i=0;i<cols;i++){ const q=j*cols+i;
+    if(top[q]>=0) L.push(blocks[top[q]]);
+    else if(!taken[q]){ const p=cellParams(i,j); if(!p.skip) L.push(p); } }
+  return L;
+}
+function blockParams(x,y,w,h,cov){
+  const idx=bandIndex(cov), sf=(S.scale?(S.minsize+(1-S.minsize)*cov):1)*S.shapeScale;
+  const cx=(x+w/2)*cellX+(rnd(x,y,1)-0.5)*S.posJit*cellX, cy=(y+h/2)*cellY+(rnd(x,y,2)-0.5)*S.posJit*cellY;
+  return {idx,cx,cy,angle:S.baseRot+(rnd(x,y,3)-0.5)*S.rotJit,x,y,w,h,bw:w*cell*sf,bh:h*cell*sf,dsz:Math.min(w,h)*cell*sf};
+}
+/* a block's mark: the band's big mark if it has one, else its mark – an SVG stretched to the block,
+   the dot a circle in a square and a capsule in a bar */
+function blockSprite(idx,w,h){
+  const k=idx+':'+w+'x'+h; if(S.bsprites[k]) return S.bsprites[k];
+  const st=S.states[idx], u=Math.min(Math.max(24,cell*3),2048/Math.max(w,h)), cw=Math.round(u*w), ch=Math.round(u*h);
+  const c=document.createElement('canvas'); c.width=cw; c.height=ch; const x=c.getContext('2d'), im=st.bigImg||st.img;
+  if(im){
+    if(w===h){ const iw=im.width||100, ih=im.height||100, q=Math.min(cw/iw,ch/ih); x.drawImage(im,(cw-iw*q)/2,(ch-ih*q)/2,iw*q,ih*q); }
+    else x.drawImage(im,0,0,cw,ch);
+    if(!S.keepSvgColor){ x.globalCompositeOperation='source-in'; x.fillStyle=st.color; x.fillRect(0,0,cw,ch); }
+  }else{
+    const sh=Math.min(cw,ch), m=sh*0.08, r=(sh-2*m)/2;
+    x.beginPath(); x.roundRect?x.roundRect(m,m,cw-2*m,ch-2*m,r):capsule(x,m,m,cw-2*m,ch-2*m,r);
+    if(S.fill){ x.fillStyle=st.color; x.fill(); }
+    else{ x.lineWidth=sh*0.10; x.strokeStyle=st.color; x.beginPath(); const e=sh*0.05; x.roundRect?x.roundRect(m+e,m+e,cw-2*m-2*e,ch-2*m-2*e,r-e):capsule(x,m+e,m+e,cw-2*m-2*e,ch-2*m-2*e,r-e); x.stroke(); }
+  }
+  return S.bsprites[k]=c;
+}
+function capsule(x,l,t,w,h,r){ x.moveTo(l+r,t); x.arcTo(l+w,t,l+w,t+h,r); x.arcTo(l+w,t+h,l,t+h,r); x.arcTo(l,t+h,l,t,r); x.arcTo(l,t,l+w,t,r); x.closePath(); }
 function render(){
   if(!S.sample) return;
   octx.setTransform(1,0,0,1,0,0); octx.globalAlpha=1;
   octx.fillStyle=S.bg; octx.fillRect(0,0,out.width,out.height);
   octx.globalAlpha=S.opacity;
-  for(let j=0;j<rows;j++) for(let i=0;i<cols;i++){
-    const p=cellParams(i,j); if(p.skip)continue; const sp=S.sprites[p.idx]; if(!sp)continue;
+  for(const p of placements()){
+    if(p.w){ const sp=blockSprite(p.idx,p.w,p.h);
+      octx.save(); octx.translate(p.cx,p.cy); octx.rotate(p.angle); octx.drawImage(sp,-p.bw/2,-p.bh/2,p.bw,p.bh); octx.restore(); continue; }
+    const sp=S.sprites[p.idx]; if(!sp)continue;
     octx.save(); octx.translate(p.cx,p.cy); octx.rotate(p.angle);
     octx.drawImage(sp, -p.dsz/2, -p.dsz/2, p.dsz, p.dsz);
     octx.restore();
@@ -2044,10 +2209,10 @@ $('svgBtn').onclick=()=>{
   const W=out.width,H=out.height, op=S.opacity<1?' opacity="'+S.opacity+'"':'';
   let s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">';
   s+='<rect width="'+W+'" height="'+H+'" fill="'+S.bg+'"/>';
-  for(let j=0;j<rows;j++) for(let i=0;i<cols;i++){
-    const p=cellParams(i,j); if(p.skip)continue;
+  for(const p of placements()){
     const st=S.states[p.idx], deg=(p.angle*180/Math.PI).toFixed(2);
     const rot=(p.angle!==0)?' transform="rotate('+deg+' '+p.cx.toFixed(2)+' '+p.cy.toFixed(2)+')"':'';
+    if(p.w){ s+=svgBlock(p,st,rot,op); continue; }
     if(st.inner){
       const fill=(!S.keepSvgColor)?' fill="'+st.color+'"':'';
       s+='<g'+rot+op+fill+'><svg x="'+(p.cx-p.dsz/2).toFixed(2)+'" y="'+(p.cy-p.dsz/2).toFixed(2)+'" width="'+p.dsz.toFixed(2)+'" height="'+p.dsz.toFixed(2)+'" viewBox="'+st.vb+'" preserveAspectRatio="xMidYMid meet">'+st.inner+'</svg></g>';
@@ -2061,6 +2226,18 @@ $('svgBtn').onclick=()=>{
   const name=fname('svg'); saveBlob(name,new Blob([s],{type:'image/svg+xml'})); status('Saved '+name);
 };
 
+/* a block in the SVG: as on the canvas – the big mark or the mark, stretched in a bar; a circle or a capsule */
+function svgBlock(p,st,rot,op){
+  const x=(p.cx-p.bw/2), y=(p.cy-p.bh/2), f=n=>n.toFixed(2), inner=st.bigInner!=null?st.bigInner:st.inner, vb=st.bigInner!=null?st.bigVb:st.vb;
+  if(inner!=null){
+    const fill=(!S.keepSvgColor)?' fill="'+st.color+'"':'';
+    return '<g'+rot+op+fill+'><svg x="'+f(x)+'" y="'+f(y)+'" width="'+f(p.bw)+'" height="'+f(p.bh)+'" viewBox="'+vb+'" preserveAspectRatio="'+(p.w===p.h?'xMidYMid meet':'none')+'">'+inner+'</svg></g>';
+  }
+  const sh=Math.min(p.bw,p.bh), m=sh*0.08;
+  if(S.fill) return '<rect'+rot+' x="'+f(x+m)+'" y="'+f(y+m)+'" width="'+f(p.bw-2*m)+'" height="'+f(p.bh-2*m)+'" rx="'+f(sh/2-m)+'" fill="'+st.color+'"'+op+'/>';
+  const e=sh*0.05;
+  return '<rect'+rot+' x="'+f(x+m+e)+'" y="'+f(y+m+e)+'" width="'+f(p.bw-2*m-2*e)+'" height="'+f(p.bh-2*m-2*e)+'" rx="'+f(sh/2-m-e)+'" fill="none" stroke="'+st.color+'" stroke-width="'+f(sh*0.10)+'"'+op+'/>';
+}
 /* presets */
 function getPreset(){
   return {app:'Tutti',v:VERSION,aspect:S.aspect,arW:S.arW,arH:S.arH,zoom:S.zoom,grid:S.grid,res:S.res,
@@ -2068,7 +2245,8 @@ function getPreset(){
     opacity:S.opacity,baseRot:S.baseRot,rotJit:S.rotJit,posJit:S.posJit,autoRotate:S.autoRotate,rotSpeed:S.rotSpeed,
     nBands:S.nBands,edges:S.edges.slice(),text:S.text,tsize:S.tsize,tlh:S.tlh,align:S.align,
     srcBlur:S.srcBlur,threshLever:S.threshLever,tracking:S.tracking,typeGrad:S.typeGrad,typeGradAngle:S.typeGradAngle,typeW:S.typeW,typeH:S.typeH,typeSlant:S.typeSlant,
-    states:S.states.map(s=>({color:s.color,userColor:s.userColor,inner:s.inner,vb:s.vb}))};
+    mix:S.mix,mixSizes:S.mixSizes.slice(),mixAmount:S.mixAmount,mixWhere:S.mixWhere,mixSeed:S.mixSeed,
+    states:S.states.map(s=>({color:s.color,userColor:s.userColor,inner:s.inner,vb:s.vb,key:s.key,bigInner:s.bigInner,bigVb:s.bigVb,bigKey:s.bigKey}))};
 }
 function syncUI(){
   $('aspect').value=S.aspect; $('customAR').style.display=(S.aspect==='custom')?'flex':'none';
@@ -2096,18 +2274,21 @@ function syncUI(){
   $('theight').value=S.typeH; $('theightV').textContent=S.typeH.toFixed(2)+'×';
   $('tslant').value=Math.round(S.typeSlant*180/Math.PI); $('tslantV').textContent=Math.round(S.typeSlant*180/Math.PI)+'°';
   $('gAngle').value=S.typeGradAngle; $('gAngleV').textContent=S.typeGradAngle+'°';
+  syncMix();
   $('tGrad').classList.toggle('on',S.typeGrad); $('gAngleRow').style.display=S.typeGrad?'flex':'none'; $('gAngle').style.display=S.typeGrad?'':'none';
 }
-const PRESET_KEYS=['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant'];
+const PRESET_KEYS=['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant','mix','mixAmount','mixWhere','mixSeed'];
 /* where things stand, and putting them back (6.3: Undo and the change dots, tutti/frame.js).
    A snapshot is the preset – every setting and the bands' colours and marks – with each band's
    drawn mark kept as it is, so stepping back never has to load an SVG again. */
-function snapState(){ const p=getPreset(); delete p.app; delete p.v; return {p:JSON.stringify(p),img:S.states.map(s=>s.img)}; }
+function snapState(){ const p=getPreset(); delete p.app; delete p.v; return {p:JSON.stringify(p),img:S.states.map(s=>[s.img,s.bigImg])}; }
 function putState(snap){
   const p=JSON.parse(snap.p);
   PRESET_KEYS.forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
   S.nBands=Math.max(MINB,Math.min(MAXB,p.nBands)); S.edges=p.edges.slice();
-  p.states.forEach((ps,i)=>{ const s=S.states[i]; s.color=ps.color; s.userColor=!!ps.userColor; s.inner=ps.inner||null; s.vb=ps.vb||null; s.img=snap.img[i]||null; });
+  if(Array.isArray(p.mixSizes)) S.mixSizes=p.mixSizes.slice();
+  p.states.forEach((ps,i)=>{ const s=S.states[i], im=snap.img[i]||[]; s.color=ps.color; s.userColor=!!ps.userColor; s.inner=ps.inner||null; s.vb=ps.vb||null; s.key=ps.key||null; s.img=im[0]||null;
+    s.bigInner=ps.bigInner||null; s.bigVb=ps.bigVb||null; s.bigKey=ps.bigKey||null; s.bigImg=im[1]||null; s._t=(s._t||0)+1; s._tb=(s._tb||0)+1; });
   buildStates(); buildEdgeUI(); syncUI(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
 }
 $('savePreset').onclick=()=>{
@@ -2120,11 +2301,13 @@ $('loadPreset').onchange=e=>{
     const p=JSON.parse(rd.result);
     PRESET_KEYS.forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
     if(p.nBands) S.nBands=Math.max(MINB,Math.min(MAXB,p.nBands));
+    if(Array.isArray(p.mixSizes)) S.mixSizes=p.mixSizes.slice(); if(p.mix===undefined) S.mix=false;   /* a preset from before 6.4 had none */
     S.edges=Array.isArray(p.edges)?p.edges.slice():evenEdges(S.nBands);
     if(Array.isArray(p.states)) p.states.forEach((ps,i)=>{ if(i>=MAXB)return;
       S.states[i].color=ps.color||S.states[i].color; S.states[i].userColor=!!ps.userColor;
-      S.states[i].img=null; S.states[i].inner=ps.inner||null; S.states[i].vb=ps.vb||null;
-      if(ps.inner) loadStateSVG(i,'<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+(ps.vb||'0 0 100 100')+'">'+ps.inner+'</svg>');
+      const st=S.states[i]; st.img=null; st.inner=ps.inner||null; st.vb=ps.vb||null; st.key=ps.key||null; st.bigImg=null; st.bigInner=ps.bigInner||null; st.bigVb=ps.bigVb||null; st.bigKey=ps.bigKey||null;
+      if(ps.inner) loadStateSVG(i,'<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+(ps.vb||'0 0 100 100')+'">'+ps.inner+'</svg>',false,ps.key);
+      if(ps.bigInner) loadStateSVG(i,'<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+(ps.bigVb||'0 0 100 100')+'">'+ps.bigInner+'</svg>',true,ps.bigKey);
     });
     buildStates(); buildEdgeUI(); syncUI(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
   }catch(err){ status('That preset file could not be read.'); } };
@@ -2301,7 +2484,7 @@ async function stopGif(silent){
   const SUM={
     source:()=>S.kind?($('srcName').textContent||''):'No source',
     canvas:()=>label($('aspect'))+' · Grid '+$('grid').value,
-    shape:()=>[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':''].filter(Boolean).join(' · '),
+    shape:()=>[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':'',S.mix?'Mixed sizes':''].filter(Boolean).join(' · '),
     mapping:()=>S.nBands+' bands',
     advanced:()=>'Opacity · Thresholds · Jitter · Presets'};   /* 13 Nov: a shut group says what it holds */
   function summaries(){$$('.card[data-id]').forEach(c=>{const sm=c.querySelector('.sum');if(!sm)return;let t='';try{t=(SUM[c.dataset.id]||(()=>''))();}catch(e){}if(sm.textContent!==t)sm.textContent=t;});}
@@ -2413,7 +2596,7 @@ async function stopGif(silent){
   const panel=$('panel'),RESET='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 6a3.4 3.4 0 1 0 1-2.4M2.4 1.8v2h2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const START=getPreset(),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
   const words=e=>e?e.textContent.replace(/\?/g,'').replace(/\s+/g,' ').trim():'';
-  const bandMoved=(p,i)=>!!p.states[i].inner||(p.states[i].userColor&&p.states[i].color.toLowerCase()!==rampColor(i,p.nBands));
+  const bandMoved=(p,i)=>!!p.states[i].inner||!!p.states[i].bigInner||(p.states[i].userColor&&p.states[i].color.toLowerCase()!==rampColor(i,p.nBands));
   const near=(a,b)=>a.length===b.length&&a.every((v,k)=>Math.abs(v-b[k])<1e-9);
   /* each control: where its dot goes, what it holds, how it's put back (on a copy of the snapshot) */
   const CTL=[];
@@ -2423,18 +2606,23 @@ async function stopGif(silent){
     const c={w,label,moved,back,b};w.append(b);CTL.push(c);return c;}
   const key=(w,label,ks)=>{ks=[].concat(ks);reg(w,label,p=>ks.some(k=>!same(p[k],START[k])),p=>ks.forEach(k=>p[k]=START[k]));};
   const RANGE={tsize:'tsize',tlh:'tlh',track:'tracking',gAngle:'typeGradAngle',twidth:'typeW',theight:'typeH',tslant:'typeSlant',grid:'grid',zoom:'zoom',sblur:'srcBlur',
-    minsize:'minsize',ssize:'shapeScale',opacity:'opacity',tlev:'threshLever',rot:'baseRot',rjit:'rotJit',pjit:'posJit'};
+    minsize:'minsize',ssize:'shapeScale',mixAmt:'mixAmount',mixWhere:'mixWhere',opacity:'opacity',tlev:'threshLever',rot:'baseRot',rjit:'rotJit',pjit:'posJit'};
   Object.keys(RANGE).forEach(id=>{const inp=$(id),w=inp&&inp.closest('.ctl.rng');if(w)key(w,words(w.querySelector('.lbl')),RANGE[id]);});
-  [['tGrad','typeGrad'],['tFill','fill'],['tInvert','invert'],['tScale','scale'],['tKeepSvg','keepSvgColor']].forEach(([id,k])=>{const t=$(id);if(t)key(t,words(t.querySelector('span')),k);});
+  [['tMix','mix'],['tGrad','typeGrad'],['tFill','fill'],['tInvert','invert'],['tScale','scale'],['tKeepSvg','keepSvgColor']].forEach(([id,k])=>{const t=$(id);if(t)key(t,words(t.querySelector('span')),k);});
   [['bgColor','bg'],['aspect','aspect'],['arW',['arW','arH']],['res','res']].forEach(([id,k])=>{const r=$(id)&&$(id).closest('.row');if(r)key(r,words(r.querySelector('.lbl')),k);});
   {const r=$('alignSeg')&&$('alignSeg').previousElementSibling;if(r&&r.classList.contains('row'))key(r,'Align','align');}
+  /* Mixed sizes (6.4): each row of sizes is its own setting; Shuffle's dot puts the first pattern back */
+  [['mixSq','Squares'],['mixBar','Bars']].forEach(([id,lb])=>{const g=$(id),r=g&&g.closest('.row');if(!r)return;const ks=[...g.querySelectorAll('button')].map(b=>b.dataset.s);
+    const part=a=>a.filter(k=>ks.includes(k)).join();
+    reg(r,lb,p=>part(p.mixSizes)!==part(START.mixSizes),p=>{p.mixSizes=Object.keys(MIXSIZES).filter(k=>ks.includes(k)?START.mixSizes.includes(k):p.mixSizes.includes(k));});});
+  {const t=$('mixShuffle')&&$('mixShuffle').parentElement;if(t)key(t,'Pattern','mixSeed');}
   {const t=$('typeText');if(t){const w=document.createElement('div');w.className='txt-wrap';t.parentNode.insertBefore(w,t);w.append(t);key(w,'Text','text');}}
   reg(document.querySelector('.stepper'),'Bands',p=>p.nBands!==START.nBands,p=>{p.nBands=START.nBands;p.edges=evenEdges(p.nBands);
     p.states.forEach((s,i)=>{if(!s.userColor)s.color=rampColor(i,p.nBands);});});
   reg($('resetEdges')&&$('resetEdges').parentElement,'Thresholds',p=>!near(p.edges,evenEdges(p.nBands)),p=>{p.edges=evenEdges(p.nBands);});
   /* the band rows are drawn again whenever the bands change: give each its dot again */
   function bandRows(){$$('#states .state').forEach((r,i)=>reg(r,words(r.querySelector('.meta b'))||('Band '+(i+1)),p=>i<p.nBands&&bandMoved(p,i),
-    (p,img)=>{const s=p.states[i];s.color=rampColor(i,p.nBands);s.userColor=false;s.inner=null;s.vb=null;img[i]=null;}));}
+    (p,img)=>{const s=p.states[i];s.color=rampColor(i,p.nBands);s.userColor=false;s.inner=null;s.vb=null;s.key=null;s.bigInner=null;s.bigVb=null;s.bigKey=null;img[i]=[null,null];}));}
   new MutationObserver(()=>{for(let k=CTL.length-1;k>=0;k--)if(!CTL[k].w.isConnected)CTL.splice(k,1);bandRows();paint();}).observe($('states'),{childList:true});bandRows();
   /* each card: a dot beside its title while shut, a Reset chip while open */
   $$('.card[data-id]').forEach(c=>{const h=c.querySelector(':scope>h2'),t=h&&h.querySelector('.card-toggle');if(!t)return;
@@ -2443,7 +2631,7 @@ async function stopGif(silent){
     r.setAttribute('aria-label','Put '+title+' back');r.title='Put everything here back to where it started';
     r.addEventListener('click',e=>{e.stopPropagation();const p=getPreset(),list=CTL.filter(x=>c.contains(x.w)&&shown(x.w)&&x.moved(p));
       /* the whole of Mapping back means every band, including any the count has hidden for now */
-      if(c.contains($('states')))list.push({back:(q,img)=>q.states.forEach((s,i)=>{s.color=rampColor(i,q.nBands);s.userColor=false;s.inner=null;s.vb=null;img[i]=null;})});
+      if(c.contains($('states')))list.push({back:(q,img)=>q.states.forEach((s,i)=>{s.color=rampColor(i,q.nBands);s.userColor=false;s.inner=null;s.vb=null;s.key=null;s.bigInner=null;s.bigVb=null;s.bigKey=null;img[i]=[null,null];})});
       restore(title+' put back',list);});h.append(r);});
   $$('.fold-head').forEach(h=>{const d=document.createElement('span');d.className='cdot';d.setAttribute('aria-hidden','true');h.querySelector('span').after(d);});
   /* a row counts only while it's there to see (Type's controls are away while a picture is the source) */
@@ -2459,7 +2647,7 @@ async function stopGif(silent){
   /* Undo: each settled change is a step. A drag, or typing with pauses under a second, is one. */
   const U=[],R=[],MAX=60;let cur=snapState(),pend=null,quiet=0,held=false;
   const nameOf=t=>{if(!t||!t.closest)return'';const x=t.closest('.ctl.rng,.toggle,.state,.stepper,.edges,.txt-wrap,.row,#alignSeg,.card-tools a,button,label.btn');if(!x)return'';
-    if(x.id==='alignSeg')return'Align';if(x.classList.contains('edges'))return'Thresholds';if(x.classList.contains('stepper'))return'Bands';if(x.classList.contains('txt-wrap'))return'Text';
+    if(x.closest('.markbox'))return'Mark';if(x.id==='alignSeg')return'Align';if(x.classList.contains('edges'))return'Thresholds';if(x.classList.contains('stepper'))return'Bands';if(x.classList.contains('txt-wrap'))return'Text';
     const l=x.querySelector('.lbl,.meta b,:scope>span');return words(l||x);};
   function note(e){if(!panel.contains(e.target))return;const n=nameOf(e.target),now=Date.now();
     /* a new gesture starts: whatever settled before it (a file read in, say) is its own step */

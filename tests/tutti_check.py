@@ -179,6 +179,45 @@ def run(p, eng, mode):
         return ev('document.getElementById("undoBtn").title')
     check(tag, 'Change dots, put back, card Reset, Undo and Redo', changes)
 
+    # --- 6.4: the placement list, Mixed sizes, the house marks and big marks
+    def mixed():
+        a = canvas_sig(); ev('window.__s64=snapState()')
+        L('.card[data-id="shape"] .card-toggle').evaluate('b=>{if(b.closest(".card").classList.contains("collapsed"))b.click()}')
+        L('#tMix').click(); wait_render()
+        if ev('document.getElementById("mixGrp").hidden'): raise Exception('the group did not open with its switch')
+        L('#mixBar button[data-s="1x2"]').click()
+        ev('(()=>{const r=document.getElementById("mixAmt");r.value=85;r.dispatchEvent(new Event("input",{bubbles:true}))})()'); wait_render()
+        r = ev("""(()=>{const P=placements(),B=P.filter(p=>p.w),seen=new Set();let bad='';
+          for(const b of B){const x=Math.round((b.cx-b.w/2*cellX)/cellX),y=Math.round((b.cy-b.h/2*cellY)/cellY);
+            if(S.posJit===0&&(x%b.w||y%b.h))bad='off its grid '+x+','+y+' '+b.w+'x'+b.h;}
+          const again=JSON.stringify(placements().map(p=>[p.cx,p.cy,p.w||1]));if(again!==JSON.stringify(P.map(p=>[p.cx,p.cy,p.w||1])))bad='not the same twice';
+          return {n:B.length,kinds:[...new Set(B.map(b=>b.w+'x'+b.h))].sort().join(' '),bad}})()""")
+        if r['bad']: raise Exception(r['bad'])
+        if r['n'] < 3 or '1x2' not in r['kinds'] or '2x1' not in r['kinds']: raise Exception(f'blocks {r}')
+        if canvas_sig() == a: raise Exception('Mixed sizes changed nothing on the canvas')
+        mixed_bands = ev("""(()=>{let bad=0;for(const b of placements().filter(p=>p.w)){const s=new Set();for(let dy=0;dy<b.h;dy++)for(let dx=0;dx<b.w;dx++)s.add(bandIndex(covAt((b.y+dy)*cols+b.x+dx)));if(s.size>1)bad++;}return bad})()""")
+        if mixed_bands: raise Exception(f'{mixed_bands} blocks cross bands with Where at Even')
+        p1 = ev('JSON.stringify(placements().filter(p=>p.w).map(p=>[p.cx,p.cy]))'); L('#mixShuffle').click(); wait_render()
+        if ev('JSON.stringify(placements().filter(p=>p.w).map(p=>[p.cx,p.cy]))') == p1: raise Exception('Shuffle kept the same pattern')
+        L(".markbtn").first.click(); pg.wait_for_timeout(150)
+        L('.markbox .mk[data-k="ring"]').click(); pg.wait_for_timeout(400)
+        if ev('S.states[0].key') != 'ring' or not ev('!!S.states[0].img'): raise Exception('house mark not set')
+        L('.markbox .markseg button[data-b="1"]').click(); pg.wait_for_timeout(150); L('.markbox .mk[data-k="checker"]').click(); pg.wait_for_timeout(400)
+        if ev('S.states[0].bigKey') != 'checker': raise Exception('big mark not set')
+        L('.card[data-id="advanced"] .card-toggle').evaluate('b=>{if(b.closest(".card").classList.contains("collapsed"))b.click()}')
+        n, data = save('#savePreset'); pr = json.loads(data)
+        if not pr.get('mix') or pr['states'][0].get('bigKey') != 'checker': raise Exception('preset lacks Mixed sizes or the big mark')
+        sheet(True); _, svgd = save('#svgBtn'); sheet(False)
+        if b'<rect' not in svgd or b'rx=' not in svgd: raise Exception('no bar or block in the SVG')
+        L('#undoBtn').click(); pg.wait_for_timeout(300)
+        if ev('S.states[0].bigKey'): raise Exception('Undo did not take the big mark back')
+        L('.card[data-id="shape"] h2 .reset').click(); L('.card[data-id="mapping"] h2 .reset').click(); wait_render()
+        if ev('S.mix') or ev('S.states[0].inner'): raise Exception('Reset left Mixed sizes or a mark')
+        ev('putState(window.__s64)'); wait_render()
+        if canvas_sig() != a: raise Exception('not back to the picture it started from')
+        return r['kinds']
+    check(tag, 'Mixed sizes, house marks, big marks', mixed)
+
     # --- the view
     def view():
         pg.keyboard.press('f'); pg.wait_for_timeout(300)

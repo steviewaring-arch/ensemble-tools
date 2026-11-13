@@ -22,7 +22,7 @@
   const SUM={
     source:()=>S.kind?($('srcName').textContent||''):'No source',
     canvas:()=>label($('aspect'))+' · Grid '+$('grid').value,
-    shape:()=>[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':''].filter(Boolean).join(' · '),
+    shape:()=>[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':'',S.mix?'Mixed sizes':''].filter(Boolean).join(' · '),
     mapping:()=>S.nBands+' bands',
     advanced:()=>'Opacity · Thresholds · Jitter · Presets'};   /* 13 Nov: a shut group says what it holds */
   function summaries(){$$('.card[data-id]').forEach(c=>{const sm=c.querySelector('.sum');if(!sm)return;let t='';try{t=(SUM[c.dataset.id]||(()=>''))();}catch(e){}if(sm.textContent!==t)sm.textContent=t;});}
@@ -134,7 +134,7 @@
   const panel=$('panel'),RESET='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 6a3.4 3.4 0 1 0 1-2.4M2.4 1.8v2h2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   const START=getPreset(),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
   const words=e=>e?e.textContent.replace(/\?/g,'').replace(/\s+/g,' ').trim():'';
-  const bandMoved=(p,i)=>!!p.states[i].inner||(p.states[i].userColor&&p.states[i].color.toLowerCase()!==rampColor(i,p.nBands));
+  const bandMoved=(p,i)=>!!p.states[i].inner||!!p.states[i].bigInner||(p.states[i].userColor&&p.states[i].color.toLowerCase()!==rampColor(i,p.nBands));
   const near=(a,b)=>a.length===b.length&&a.every((v,k)=>Math.abs(v-b[k])<1e-9);
   /* each control: where its dot goes, what it holds, how it's put back (on a copy of the snapshot) */
   const CTL=[];
@@ -144,18 +144,23 @@
     const c={w,label,moved,back,b};w.append(b);CTL.push(c);return c;}
   const key=(w,label,ks)=>{ks=[].concat(ks);reg(w,label,p=>ks.some(k=>!same(p[k],START[k])),p=>ks.forEach(k=>p[k]=START[k]));};
   const RANGE={tsize:'tsize',tlh:'tlh',track:'tracking',gAngle:'typeGradAngle',twidth:'typeW',theight:'typeH',tslant:'typeSlant',grid:'grid',zoom:'zoom',sblur:'srcBlur',
-    minsize:'minsize',ssize:'shapeScale',opacity:'opacity',tlev:'threshLever',rot:'baseRot',rjit:'rotJit',pjit:'posJit'};
+    minsize:'minsize',ssize:'shapeScale',mixAmt:'mixAmount',mixWhere:'mixWhere',opacity:'opacity',tlev:'threshLever',rot:'baseRot',rjit:'rotJit',pjit:'posJit'};
   Object.keys(RANGE).forEach(id=>{const inp=$(id),w=inp&&inp.closest('.ctl.rng');if(w)key(w,words(w.querySelector('.lbl')),RANGE[id]);});
-  [['tGrad','typeGrad'],['tFill','fill'],['tInvert','invert'],['tScale','scale'],['tKeepSvg','keepSvgColor']].forEach(([id,k])=>{const t=$(id);if(t)key(t,words(t.querySelector('span')),k);});
+  [['tMix','mix'],['tGrad','typeGrad'],['tFill','fill'],['tInvert','invert'],['tScale','scale'],['tKeepSvg','keepSvgColor']].forEach(([id,k])=>{const t=$(id);if(t)key(t,words(t.querySelector('span')),k);});
   [['bgColor','bg'],['aspect','aspect'],['arW',['arW','arH']],['res','res']].forEach(([id,k])=>{const r=$(id)&&$(id).closest('.row');if(r)key(r,words(r.querySelector('.lbl')),k);});
   {const r=$('alignSeg')&&$('alignSeg').previousElementSibling;if(r&&r.classList.contains('row'))key(r,'Align','align');}
+  /* Mixed sizes (6.4): each row of sizes is its own setting; Shuffle's dot puts the first pattern back */
+  [['mixSq','Squares'],['mixBar','Bars']].forEach(([id,lb])=>{const g=$(id),r=g&&g.closest('.row');if(!r)return;const ks=[...g.querySelectorAll('button')].map(b=>b.dataset.s);
+    const part=a=>a.filter(k=>ks.includes(k)).join();
+    reg(r,lb,p=>part(p.mixSizes)!==part(START.mixSizes),p=>{p.mixSizes=Object.keys(MIXSIZES).filter(k=>ks.includes(k)?START.mixSizes.includes(k):p.mixSizes.includes(k));});});
+  {const t=$('mixShuffle')&&$('mixShuffle').parentElement;if(t)key(t,'Pattern','mixSeed');}
   {const t=$('typeText');if(t){const w=document.createElement('div');w.className='txt-wrap';t.parentNode.insertBefore(w,t);w.append(t);key(w,'Text','text');}}
   reg(document.querySelector('.stepper'),'Bands',p=>p.nBands!==START.nBands,p=>{p.nBands=START.nBands;p.edges=evenEdges(p.nBands);
     p.states.forEach((s,i)=>{if(!s.userColor)s.color=rampColor(i,p.nBands);});});
   reg($('resetEdges')&&$('resetEdges').parentElement,'Thresholds',p=>!near(p.edges,evenEdges(p.nBands)),p=>{p.edges=evenEdges(p.nBands);});
   /* the band rows are drawn again whenever the bands change: give each its dot again */
   function bandRows(){$$('#states .state').forEach((r,i)=>reg(r,words(r.querySelector('.meta b'))||('Band '+(i+1)),p=>i<p.nBands&&bandMoved(p,i),
-    (p,img)=>{const s=p.states[i];s.color=rampColor(i,p.nBands);s.userColor=false;s.inner=null;s.vb=null;img[i]=null;}));}
+    (p,img)=>{const s=p.states[i];s.color=rampColor(i,p.nBands);s.userColor=false;s.inner=null;s.vb=null;s.key=null;s.bigInner=null;s.bigVb=null;s.bigKey=null;img[i]=[null,null];}));}
   new MutationObserver(()=>{for(let k=CTL.length-1;k>=0;k--)if(!CTL[k].w.isConnected)CTL.splice(k,1);bandRows();paint();}).observe($('states'),{childList:true});bandRows();
   /* each card: a dot beside its title while shut, a Reset chip while open */
   $$('.card[data-id]').forEach(c=>{const h=c.querySelector(':scope>h2'),t=h&&h.querySelector('.card-toggle');if(!t)return;
@@ -164,7 +169,7 @@
     r.setAttribute('aria-label','Put '+title+' back');r.title='Put everything here back to where it started';
     r.addEventListener('click',e=>{e.stopPropagation();const p=getPreset(),list=CTL.filter(x=>c.contains(x.w)&&shown(x.w)&&x.moved(p));
       /* the whole of Mapping back means every band, including any the count has hidden for now */
-      if(c.contains($('states')))list.push({back:(q,img)=>q.states.forEach((s,i)=>{s.color=rampColor(i,q.nBands);s.userColor=false;s.inner=null;s.vb=null;img[i]=null;})});
+      if(c.contains($('states')))list.push({back:(q,img)=>q.states.forEach((s,i)=>{s.color=rampColor(i,q.nBands);s.userColor=false;s.inner=null;s.vb=null;s.key=null;s.bigInner=null;s.bigVb=null;s.bigKey=null;img[i]=[null,null];})});
       restore(title+' put back',list);});h.append(r);});
   $$('.fold-head').forEach(h=>{const d=document.createElement('span');d.className='cdot';d.setAttribute('aria-hidden','true');h.querySelector('span').after(d);});
   /* a row counts only while it's there to see (Type's controls are away while a picture is the source) */
@@ -180,7 +185,7 @@
   /* Undo: each settled change is a step. A drag, or typing with pauses under a second, is one. */
   const U=[],R=[],MAX=60;let cur=snapState(),pend=null,quiet=0,held=false;
   const nameOf=t=>{if(!t||!t.closest)return'';const x=t.closest('.ctl.rng,.toggle,.state,.stepper,.edges,.txt-wrap,.row,#alignSeg,.card-tools a,button,label.btn');if(!x)return'';
-    if(x.id==='alignSeg')return'Align';if(x.classList.contains('edges'))return'Thresholds';if(x.classList.contains('stepper'))return'Bands';if(x.classList.contains('txt-wrap'))return'Text';
+    if(x.closest('.markbox'))return'Mark';if(x.id==='alignSeg')return'Align';if(x.classList.contains('edges'))return'Thresholds';if(x.classList.contains('stepper'))return'Bands';if(x.classList.contains('txt-wrap'))return'Text';
     const l=x.querySelector('.lbl,.meta b,:scope>span');return words(l||x);};
   function note(e){if(!panel.contains(e.target))return;const n=nameOf(e.target),now=Date.now();
     /* a new gesture starts: whatever settled before it (a file read in, say) is its own step */

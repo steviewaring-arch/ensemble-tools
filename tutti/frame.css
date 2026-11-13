@@ -208,3 +208,31 @@
   .txt-wrap{position:relative;margin-top:14px}
   .txt-wrap>textarea{margin-top:0!important;display:block}
 
+
+  /* 6.4: Mixed sizes – a switch that heads its group (the kit's .sw-grp) */
+  .mixgrp{padding-top:2px}
+  .mixgrp[hidden]{display:none}
+  .mixgrp .card-tools{margin:0 0 8px}
+  .mixgrp .row .seg{grid-column:2;display:flex;width:100%}
+  .mixgrp .row .seg button{flex:1;min-width:0;padding:0 4px}
+  .seg.multi button[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);font-weight:500;box-shadow:0 0 0 1px var(--k-raise-line)}
+  .card-body>.mixgrp>.row:not(.ctl-head){display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;min-height:var(--h-ctl);margin:0 0 10px}
+  .card-body>.mixgrp>.row:not(.ctl-head)>.lbl{font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .card-body>.toggle-row.sw-grp>.toggle{display:flex;grid-template-columns:none}
+  .card-body>.toggle-row.sw-grp>.toggle>span{order:0}
+
+  /* each band's mark: a drawer under its row – Mark or Big mark, then Dot, the house set and your own */
+  .markbox{margin:-2px 0 8px;padding:10px;border-radius:var(--r-card);background:var(--k-fill)}
+  .markbox .markseg{display:flex;width:100%;margin-bottom:10px;background:var(--k-card,var(--btn))}
+  .markbox .markseg button{flex:1}
+  .marks{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px}
+  .mk{height:40px;border:0;border-radius:var(--r-in);background:var(--k-card,var(--btn));color:var(--ink-strong);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;font:inherit;font-size:11px;box-shadow:inset 0 0 0 1px var(--keyline)}
+  .mk svg{width:22px;height:22px;fill:currentColor}
+  .mk:hover{box-shadow:inset 0 0 0 1px var(--ink)}
+  .mk.on{box-shadow:inset 0 0 0 2px var(--ink-strong)}
+  .mk span{line-height:1.1;text-align:center;padding:0 2px}
+  .mk.own,.marks .mk[data-k=same]{grid-column:span 2}
+  .card-body>.toggle-row.sw-grp>.toggle{width:100%}
+  .card-body>.toggle-row.sw-grp>.toggle>span{font-weight:700;color:var(--ink-strong)}
+  .mixgrp .card-tools{margin:-6px 0 6px}
+  button.svgbtn{border:0;font-family:inherit;line-height:1.2}

@@ -1,8 +1,8 @@
-"""Tutti audit (6.3): does every setting do something? For each set-up, every control that's showing in the
+"""Tutti audit (6.3): does every setting do something? For each set-up (6.4: six, one with Mixed sizes), every control that's showing in the
 panel is moved to its other values and the canvas – the export's own pixels – compared with before. Each change
 is taken back with putState (the same snapshot Undo uses) before the next.
 
-    python3 tests/audit/tutti.py            # Chromium, about two minutes
+    python3 tests/audit/tutti.py            # Chromium, about three minutes
 
 A "no effect" needs a reason, not always a fix: Rotation does nothing to a round dot, Own colours nothing until a
 band has an SVG mark – so a set-up with a mark is run too."""
@@ -39,8 +39,8 @@ async ()=>{
   panel.querySelectorAll('input.num').forEach(e=>{if(!seen(e))return;items.push({e,label:name(e),vals:[+e.value===7?2:7],set:v=>{e.value=v;fire(e,'input');}});});
   panel.querySelectorAll('textarea').forEach(e=>{if(!seen(e))return;items.push({e,label:'Text',vals:['Audit words'],set:v=>{e.value=v;fire(e,'input');}});});
   panel.querySelectorAll('.toggle').forEach(e=>{if(!seen(e))return;items.push({e,label:name(e),vals:[1],set:()=>e.click()});});
-  panel.querySelectorAll('.seg button').forEach(e=>{if(!seen(e)||e.classList.contains('on'))return;items.push({e,label:'Align › '+words(e),vals:[1],set:()=>e.click()});});
-  ['bandPlus','bandMinus','randomColors','resetShapes','randomAll','resetEdges'].forEach(id=>{const e=document.getElementById(id);if(e&&seen(e)&&!e.disabled)items.push({e,label:words(e)||id,vals:[1],set:()=>e.click()});});
+  panel.querySelectorAll('.seg button').forEach(e=>{if(!seen(e)||(e.classList.contains('on')&&!e.closest('.multi')))return;if(e.closest('.markbox'))return;items.push({e,label:(words(e.closest('.row,.seg').querySelector('.lbl'))||'Align')+' › '+words(e),vals:[1],set:()=>e.click()});});
+  ['bandPlus','bandMinus','randomColors','resetShapes','randomAll','resetEdges','mixShuffle'].forEach(id=>{const e=document.getElementById(id);if(e&&seen(e)&&!e.disabled)items.push({e,label:words(e)||id,vals:[1],set:()=>e.click()});});
   const res=[];const base=await sig();
   for(const it of items){const before=snapState();let alive=false,tried=0,err=null;
     for(const v of it.vals){try{it.set(v);tried++;if(await sig()!==base)alive=true;}catch(x){err=String(x);}putState(before);await wait(60);if(alive)break;}
@@ -54,6 +54,7 @@ SETUPS = [
     ('Image', "document.getElementById('fileIn')", PHOTO, None),
     ('Image, a band with an SVG mark', "document.getElementById('fileIn')", PHOTO, 'mark'),
     ('Image, Custom format', "document.getElementById('fileIn')", PHOTO, "aspect=custom"),
+    ('Image, Mixed sizes (all sizes, a ring mark and a big mark)', None, PHOTO, 'mix'),
     ('Type', None, None, 'type'),
     ('Type, Gradient fill', None, None, 'type+grad'),
 ]
@@ -69,6 +70,10 @@ def run(pg, name, how):
             for i in range(3): pg.locator('.stSvg').nth(i).set_input_files(MARK)
             pg.wait_for_timeout(700)
         if how == 'aspect=custom': pg.select_option('#aspect', 'custom')
+        if how == 'mix':
+            pg.click('#tMix')
+            for k in ['4', '5', '1x2', '1x3', '2x3']: pg.click(f'#mixSq button[data-s="{k}"],#mixBar button[data-s="{k}"]')
+            pg.evaluate("setMark(5,'ring',false);setMark(4,'checker',true)"); pg.wait_for_timeout(600)
     pg.evaluate("()=>{document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(b=>b.click());document.querySelectorAll('#panel .fold-head[aria-expanded=false]').forEach(b=>b.click());}")
     pg.wait_for_timeout(500)
     r = pg.evaluate(JS)
