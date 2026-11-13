@@ -351,6 +351,7 @@ TEMPO097 = "Tempo 0.9.7 gives the separator the room its setting asks for (by de
 RUBATO10 = "Rubato 1.0's Randomise reaches its new settings, so the draws differ – rubato_regress.py proves 1.0 against 0.9"
 ON_PURPOSE = {
     ('t1', 'Studio panel'): 'Rubato 1.0 regrouped the panel (Presets first, new controls)', ('t2', '? count'): 'Rubato 1.0 has more controls with tips',
+    ('t2', 'tooltip'): "Rubato 1.3 laid the panel out in the order of work, so the first ? is Canvas's, not Fonts's – that a tip shows at all is what this checks",
     ('t2', 'randomised (everything)'): RUBATO10, ('t2', 'settings after randomise'): RUBATO10, ('t2', 'settings after undo'): RUBATO10,
     ('t2', 'randomised (within limits, R key)'): RUBATO10, ('t2', 'settings after R'): RUBATO10, ('t2', 'randomise options'): RUBATO10,
     ('t3', 'screen saver HTML'): TEMPO03, ('t3', 'screen saver HTML (file name)'): 'Tempo 0.3 names the file after the screen saver, not Rubato\'s text',
