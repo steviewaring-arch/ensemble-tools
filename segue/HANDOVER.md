@@ -1,4 +1,4 @@
-# Segue – handover (13 November 2026, Segue 1.2)
+# Segue – handover (13 November 2026, Segue 1.3)
 
 For the Segue chat. Read this, then the repo's `README.md` and `HANDOVER.md` (how the repo, the build, storage and the other streams work). Segue is internal for now: built to `docs/segue/`, live at https://steviewaring-arch.github.io/ensemble-tools/segue/, and not linked from the index page.
 
@@ -94,6 +94,14 @@ The panel was audited as a whole in 0.7 because features had been bolted on piec
 - **No Additionals:** the tier's code and CSS are removed; the panel's order is set at the end of the cards (`canvas, media, layout, motion, captions, overlay`). The Position card is now the fold `place` – **Placement** – in Layout (`nudgeX`, `nudgeY`). Canvas is open by default.
 - **Stepping aside:** Pile up only when slides aren't full bleed (`plan` ignores `pile` there too); Overlay's Margin not for the middle place.
 - **Presets:** `x0` on a preset sets a key only where it's empty; Float with title uses `x:{ovOn:true,ovKind:'text'}` and `x0:{ovText:'Your title'}`.
+
+### 1.3 – a clip's time; the clean cut (13 Nov)
+
+Steve: "'plays' on media (MP4 / video) should better link to timing on screen. So when the timeline is adjusted (In / Out) it should update the 'on screen time'. Maybe needs to move up to that section. Further, an option to slow or speed to a specific time set … It says 'Plays' twice. Finally, ensure that the 'finish on a clean cut' does actually do this. If this overrides the length slider above, then grey that out."
+
+- **`it.timeBy`** (Slides, video only): undefined/`'loop'` as before; `'clip'` – `holdFor()` in the engine makes the hold `clipLen(it)` less the move in and the move out, so the plan follows In/Out; `'fit'` – the hold as set, and `vt()` in `scene` maps the time since it started arriving across the whole time it's in view (`P.gone[s] − P.arrive[s]`, wrapped) on to In→Out, once (clamped, so it never jumps back to In). `holdFor` replaces the three `holdOf`s in `plan0` / `pilePlan` / the single-slide case.
+- **Panel**: Timing holds The clip, On screen (greyed – `.ctl.off`, input disabled – while the clip sets it, and updated live by `trimBlock`'s new `onTrim`), the speed note for Fit, then the In/Out bar, Start at, End at, Transition, Movement. The "Whole clip" button is gone (Sets the time replaces it). `trimBlock` lost its own "Plays" sub-head; outside Slides the group is still called Plays.
+- **The clean cut**: measured for every preset – where a kind rests, the end lands at rest (speed at the end under 2% of the fastest move; the remainder is the slow Movement drift). It doesn't override Length – Length is the target, the cut is the nearest rest to it – so Length isn't greyed; its readout shows "asked → actual". `addToggle` takes `off` and `offTip`: Finish on a clean cut is greyed where `cutsOf(P)` is empty (the drifts).
 
 ### 1.2 – Blur behind, and the "?" marks (13 Nov)
 

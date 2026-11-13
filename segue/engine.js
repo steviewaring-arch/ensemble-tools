@@ -148,6 +148,14 @@ function slidesOf(items){const bases=[],layers=new Map();
 /* where a clip is at a moment d after its shape arrives: from Start at, looping between Start
    and End when an end is set (0.6) */
 function clipTime(it,d){const st=+it.start||0,en=+it.end||0;if(en>st+.05)return st+mod(d,en-st);return st+d;}
+/* 1.3 – a clip in Slides can set its own time (Steve, 13 Nov: "'plays' … should better link to timing on screen"):
+   timeBy 'clip' – on screen for as long as In to Out takes, at its own speed, so trimming it changes its time;
+   timeBy 'fit' – on screen for the time set, and In to Out sped up or slowed down to fill exactly that, once.
+   Otherwise (as before) it stays for the time set and loops between In and Out. */
+const clipLen=it=>{const st=+it.start||0,en=+it.end>st+.05?+it.end:(+it.dur||1);return Math.max(.05,en-st);};
+function holdFor(S,items,s,hold,dur){const N=items.length,it=items[mod(s,N)],mv=k=>arrivalOf(S,items,k)==='cut'?0:dur;
+  if(S.layout==='one'&&it&&it.kind==='video'&&it.timeBy==='clip')return Math.max(.2,clipLen(it)-mv(s)-(N>1?mv(s+1):0));
+  return it&&+it.hold>0?+it.hold:hold;}
 const opaOf=it=>it&&it.opa!=null&&it.opa!==''?clamp(+it.opa/100,0,1):1;
 function gcd(a,b){while(b){[a,b]=[b,a%b];}return a;}
 /* Frames: what each frame shows, in turn (0.16). A piece can be given a frame of its own (its `slot`, 1 up, reading
@@ -219,13 +227,13 @@ function plan0(S,items){
   const stops=stopsOf(S,N);
   if(mv==='still')return{kind:'still',L:still(),stops,N};
   /* a single slide has nothing to change to: it just stays, its movement going in and back out */
-  if(lay==='one'&&items.length===1&&!items[0].placeholder){const it=items[0],h=+it.hold>0?+it.hold:hold;return{kind:'still',L:Math.max(.5,h+dur),stops,N};}
+  if(lay==='one'&&items.length===1&&!items[0].placeholder){const h=holdFor(S,items,0,hold,dur);return{kind:'still',L:Math.max(.5,h+dur),stops,N};}
   if(mv==='drift')return{kind:'drift',L:Math.max(.2,stops*(+S.spsh||2.5)),stops,N};
   if(lay==='one'&&S.pile&&S.oneFit!=='bleed'&&stops>1)return pilePlan(S,items,stops,hold,dur);
   const pull=S.after==='pull'&&S.layout!=='grid'&&N>1;
   const segs=[];let t=0;
   const moveLen=s=>arrivalOf(S,items,s)==='cut'?0:dur;
-  const one=S.layout==='one',holdOf=s=>{const it=one?items[mod(s,N)]:null;return it&&+it.hold>0?+it.hold:hold;};
+  const one=S.layout==='one',holdOf=s=>one?holdFor(S,items,s,hold,dur):hold;
   for(let s=0;s<stops;s++){
     const hs=holdOf(s),h={k:'hold',s,t0:t,t1:t+hs};segs.push(h);t+=hs;
     if(s<stops-1||!pull){const d=moveLen(s+1);h.next=true;segs.push({k:'move',s,to:s+1,how:arrivalOf(S,items,s+1),t0:t,t1:t+d,i0:h.t0});t+=d;}
@@ -243,7 +251,7 @@ function plan0(S,items){
    comes in; Unbuild: they leave last first, each going back the way it came, faster by Unbuild speed, with a short rest
    between (a rest is 'rest', so the play bar's ticks are only the slides building). */
 function pilePlan(S,items,stops,hold,dur){
-  const N=items.length,holdOf=s=>{const it=items[mod(s,N)];return it&&+it.hold>0?+it.hold:hold;},moveLen=s=>arrivalOf(S,items,s)==='cut'?0:dur;
+  const N=items.length,holdOf=s=>holdFor(S,items,s,hold,dur),moveLen=s=>arrivalOf(S,items,s)==='cut'?0:dur;
   const end=['cover','clear','unbuild'].includes(S.pileEnd)?S.pileEnd:'cover',segs=[];let t=0;
   for(let s=0;s<stops;s++){const hs=holdOf(s),h={k:'hold',s,t0:t,t1:t+hs};segs.push(h);t+=hs;
     if(s<stops-1){const d=moveLen(s+1);h.next=true;segs.push({k:'move',s,to:s+1,how:arrivalOf(S,items,s+1),t0:t,t1:t+d,i0:h.t0});t+=d;}}
@@ -343,7 +351,11 @@ function scene(S,items,ctx,fonts,W,H,t){
   const G=geometry(S,list,ctx,fonts,W,H),P=plan(S,list),cam=cameraAt(P,S,t),N=list.length,ops=[];
   /* how long since shape i arrived – video plays from its start point then */
   const since=i=>{if(P.kind!=='step'||S.layout==='grid')return cam.tt;const d=cam.tt-P.arrive[mod(i,P.stops)];return mod(d+P.L/2,P.L)-P.L/2;};
-  const vt=i=>{const it=list[i];return it&&it.kind==='video'?clipTime(it,since(i)):null;};
+  const vt=i=>{const it=list[i];if(!it||it.kind!=='video')return null;
+    /* Fit: In to Out, once, across exactly the time it's in view – from starting to arrive to finishing leaving */
+    if(it.timeBy==='fit'&&S.layout==='one'){let V=P.L;if(P.kind==='step'&&P.gone){const s=mod(i,P.stops);V=mod(P.gone[s]-P.arrive[s],P.L)||P.L;}else if(P.kind==='still')V=P.L;
+      const st=+it.start||0,d=P.kind==='step'?mod(cam.tt-P.arrive[mod(i,P.stops)],P.L):mod(cam.tt,P.L);return st+clamp(d/V,0,.9999)*clipLen(it);}
+    return clipTime(it,since(i));};
   const reveal=i=>{if(!S.capOn||S.capReveal==='none'||P.kind!=='step')return 1;
     let d=cam.tt-P.arrive[mod(i,P.stops)];d=mod(d+P.L/2,P.L)-P.L/2;
     const seg=P.segs.find(g=>(g.k==='move'&&mod(g.to,P.stops)===mod(i,P.stops))||(g.k==='in'&&mod(i,P.stops)===0));
@@ -815,5 +827,5 @@ function drawBlock(ctx,S,b,x0,y0,sc,alpha,rev,seed,tt){
       draw(c.glyphs,cx+c.padX*sc,by,st.colour);}});
   ctx.restore();}
 
-return{cutsOf,endOf,frameSeqs,stripSeqs,stripWay,stripSpeed,stripBase,stripsOf,FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
+return{clipLen,holdFor,cutsOf,endOf,frameSeqs,stripSeqs,stripWay,stripSpeed,stripBase,stripsOf,FEEL,feel,SIZES,RATIOS,slidesOf,clipTime,BLEND,canvasSize,ratioOf,unitOf,dirOf,moveOf,kindOf,capWhereOf,moveKind,plan,cameraAt,wallCamera,wallMoves,geometry,scene,paint,capBlock,overlayBlock,parseRich,parsePairs,layLine,resetMeasure,even,clamp};
 })();

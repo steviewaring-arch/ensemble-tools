@@ -11,7 +11,7 @@ needs an example, look at Segue. The kit lives in `shared/kit.css`; the mock-ups
 reasoning are at `ui/review/` (round 4 at `ui/review/round4/`). The history of each
 rule is in `CHANGELOG.md`; this file says only what holds now.
 
-Last revised 13 November 2026 (Segue 1.2, Tempo 0.18.2, Rubato 1.3.1, Tutti 6.3) – Segue 1.2:
+Last revised 13 November 2026 (Segue 1.3, Tempo 0.18.2, Rubato 1.3.1, Tutti 6.3) – Segue 1.2:
 no "?" marks where rows explain themselves. Segue 1.1: drawings that don't move, in two colours;
 calm presets; a stand-in for big pictures. Before that, the 1.0 round: the bottom line that stays
 put, the house colour picker, one "More" per section, turning on the canvas, a short list of
@@ -399,6 +399,14 @@ Aktiv Grotesk (Adobe Fonts kit `rhx3hsl`), three weights with three jobs:
 
 UK English, en dashes with spaces, plain words. Name things by what people see.
 A button says what it does ("Download GIF"); status says what happened ("Saved …").
+
+## A setting another one sets
+
+When a setting is shown but something else is deciding it just now (a clip setting its own time on screen; a switch
+with nothing to act on), it stays where it is, **greyed** – not hidden, so nothing moves – and resting on it says
+what's deciding it. Its readout keeps showing the real value. Where two settings work together rather than one
+overriding the other (a Length and Finish on a clean cut), neither is greyed: the readout says what you asked for and
+what you got ("13.3 s → 12.9"). (Segue 1.3.)
 
 ## Notes on a setting
 

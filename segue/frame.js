@@ -307,8 +307,10 @@ function addToggle(parent,d){
   b.append(el('span','box'),el('span',null,d.label));w.append(b);const q=qMark(d);if(q)w.append(q);
   /* grp: a switch that heads a group of its own settings (0.16) – one way to turn anything optional on: its box, then its name in the group weight, its settings beneath while it's on */
   if(d.grp)w.classList.add('sw-grp');const on=()=>d.val?!!d.val(S):!!S[d.k];
-  b.onclick=()=>d.pick?d.pick(!on()):set(d.k,!S[d.k]);parent.append(w);
-  const c={d,w,update(){b.setAttribute('aria-checked',on());w.classList.toggle('on',on());}};controls.push(c);addCx(c,w);return c;}
+  /* off (1.3): shown, but has nothing to act on just now – greyed, and says why when you rest on it */
+  const off=()=>!!(d.off&&d.off(S));
+  b.onclick=()=>{if(off())return;d.pick?d.pick(!on()):set(d.k,!S[d.k]);};parent.append(w);
+  const c={d,w,update(){b.setAttribute('aria-checked',on());w.classList.toggle('on',on());const o=off();w.classList.toggle('off',o);b.setAttribute('aria-disabled',o?'true':'false');if(d.offTip)w.dataset.tip=o?d.offTip:(d.tip||'');}};controls.push(c);addCx(c,w);return c;}
 function addColour(parent,d){
   const w=el('div','colour-row'),lb=el('label',null,d.label),cw=el('div','cw'),hex=el('input'),sw=el('span','cswatch'),inp=el('input');
   hex.type='text';hex.className='hexin';hex.spellcheck=false;hex.setAttribute('aria-label',d.label+' – hex');

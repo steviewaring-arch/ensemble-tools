@@ -1,5 +1,15 @@
 # Changelog
 
+## 13 November 2026 – Segue 1.3: a clip's time, and the clean cut checked
+
+- **A clip's time and its In and Out are one thing.** In Slides, a video's In and Out now sit in its **Timing**, under a new choice, **The clip**:
+  - *Sets the time* – on screen for as long as In to Out takes, at its own speed. Trim it and the time follows, live; On screen is shown greyed, since the clip is setting it.
+  - *Fits the time set* – on screen for the time you give it, with In to Out sped up or slowed down to fill exactly that, once. A note says the speed ("plays at 0.40×").
+  - *Loops in the time set* – as before, and still the default.
+- "Plays" no longer says itself twice; in the other kinds a clip keeps a Plays group of its own. In Slides, Lift washed-out colours sits in Look.
+- **Finish on a clean cut, checked:** in every kind that comes to rest, it ends at rest. The Length is still what you ask for – the readout shows where it really ends ("13.3 s → 12.9"). Where nothing ever rests (the drifts), the switch is greyed out and says why.
+- Tests: Segue 205 of 205 (two new), 83 of 83.
+
 ## 13 November 2026 – Tutti 6.3: change dots, Reset, Undo and Redo; a settings audit
 
 - **What's moved shows.** A row moved from where it started has a blue dot at its end – click it to put that row back. An open card with anything moved has a **Reset** chip by its title; a shut card or group, a dot. "Where it started" is the value each setting had when the page opened.

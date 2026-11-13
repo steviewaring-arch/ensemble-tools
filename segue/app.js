@@ -70,13 +70,13 @@ const DB=(()=>{let p=null;const open=()=>p||(p=new Promise((res,rej)=>{const r=i
     all:st=>tx(st,'readonly',s=>s.getAll()),keys:st=>tx(st,'readonly',s=>s.getAllKeys())};})();
 /* ---------------- media ---------------- */
 let items=[];
-const META=['id','ref','name','kind','w','h','dur','start','end','title','line','tags','arrive','levels','fixed','hold','moves','px','py','zm','fz','ox','oy','rot','prot','slot','join','place','lfit','blend','opa','lin','lafter','lover'];
+const META=['id','ref','name','kind','w','h','dur','start','end','title','line','tags','arrive','timeBy','levels','fixed','hold','moves','px','py','zm','fz','ox','oy','rot','prot','slot','join','place','lfit','blend','opa','lin','lafter','lover'];
 function saveItems(){LS.set('items',items.map(it=>Object.fromEntries(META.map(k=>[k,it[k]]))));itemSteps();if(typeof projTouch==='function')projTouch();}
 /* undo for a piece's own settings (0.9): each save is compared with the one before, and what changed becomes a step –
    the same piece and setting within 0.8 s, or in one drag, join up. Adding, removing and reordering have their own. */
 const ITEM_KEYS=META.filter(k=>!['id','ref','name','kind','w','h','dur','fixed'].includes(k));
 const ITEM_LABEL={blend:'Blend',opa:'Opacity',px:'Crop',py:'Crop',zm:'Size',fz:'Size',rot:'Turn',prot:'Turn',slot:'Frame',ox:'Position',oy:'Position',start:'Start at',end:'End at',hold:'On screen',arrive:'Transition',moves:'Movement',
-  join:'Layer',place:'Order',lfit:'Fit',title:'Title',line:'Line',tags:'Tags',levels:'Lift washed-out colours',lin:'Arrives',lafter:'After',lover:'Over'};
+  join:'Layer',place:'Order',lfit:'Fit',title:'Title',line:'Line',tags:'Tags',levels:'Lift washed-out colours',timeBy:'The clip',lin:'Arrives',lafter:'After',lover:'Over'};
 let itemSnap=null,itemReplay=false,itemFold=false;   /* itemFold: what follows is part of the step just taken */
 const snapItems=()=>new Map(items.map(it=>[it.id,Object.fromEntries(ITEM_KEYS.map(k=>[k,it[k]]))]));
 const sameV=(a,b)=>{const na=a==null||a==='',nb=b==null||b==='';if(na||nb)return na&&nb;if(typeof a!==typeof b&&!isNaN(+a)&&!isNaN(+b))return same(+a,+b);return same(a,b);};
@@ -761,11 +761,20 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
     hint('Or drag it on the canvas – its corners size it, just outside a corner turns it; the arrow keys nudge it.');resetRow();}
   else{
     /* Slides: this slide's own time, transition and movement – each says what it falls back to */
-    if(one){G('timing','Timing',null,()=>[+it.hold>0?`${+(+it.hold).toFixed(2)} s`:'',it.arrive&&it.arrive!=='default'?optLabel(MOVES_ONE,it.arrive):'',it.moves&&it.moves!=='default'?optLabel(KB,it.moves):''].filter(Boolean).join(' · ')||'As set');
+    if(one){const vid=it.kind==='video',by=vid?(it.timeBy||'loop'):'loop',ownHold=()=>{const k=items.filter(x=>!isLayer(x,items.indexOf(x)));return E.holdFor(S,k,Math.max(0,k.indexOf(it)),+S.hold||0,+S.dur||0);};
+      G('timing','Timing',null,()=>[vid&&by==='clip'?`${ownHold().toFixed(2)} s · the clip’s`:vid&&by==='fit'?`${(+it.hold>0?+it.hold:+S.hold).toFixed(2)} s · fitted`:+it.hold>0?`${+(+it.hold).toFixed(2)} s`:'',it.arrive&&it.arrive!=='default'?optLabel(MOVES_ONE,it.arrive):'',it.moves&&it.moves!=='default'?optLabel(KB,it.moves):''].filter(Boolean).join(' · ')||'As set');
+      /* 1.3 – a clip's time and its In and Out are one thing (Steve, 13 Nov: "'plays' … should better link to timing on
+         screen … an option to slow or speed to a specific time set"). The clip either sets the time (at its own speed –
+         trim it and the time follows), fits the time set (sped up or slowed to fill it, once), or loops in it. */
+      if(vid)pick('The clip','timeBy',[['loop','Loops in the time set'],['clip','Sets the time'],['fit','Fits the time set']],'loop','Sets the time: on screen as long as In to Out takes, at its own speed – trim it and the time follows. Fits the time set: sped up or slowed so In to Out fills the time on screen exactly, once. Loops: stays for the time set and goes round between In and Out.',()=>{paintMediaKeepFocus();refreshAll();});
       const r=itemRange(cur,it,{label:'On screen',key:'hold',min:0,max:Math.max(12,Math.ceil(+it.dur||0)),step:.05,def:0,
-        fmt:v=>v>0?`${+v.toFixed(2)} s`:`As set · ${+(+S.hold).toFixed(2)} s`,after:refreshAll,tip:'This slide’s own time on screen. 0 – or double-click the name – for the time set in Motion.'});
-      if(it.kind==='video'){const row=el('div','btn-row'),b=el('button','pill small','Whole clip');b.type='button';b.dataset.tip='Stays on screen long enough for the clip to play from In to Out, transitions included';
-        b.onclick=()=>{const tr=S.oneMove==='cut'?0:+S.dur||0,st=+it.start||0,en=+it.end>st+.05?+it.end:+it.dur||1;r.put(Math.max(.2,+((en-st)-2*tr).toFixed(2)));};row.append(b);cur.append(row);}
+        fmt:v=>vid&&by==='clip'?`${ownHold().toFixed(2)} s · the clip’s`:v>0?`${+v.toFixed(2)} s`:`As set · ${+(+S.hold).toFixed(2)} s`,after:()=>{refreshAll();if(speedNote)speedNote();},tip:vid&&by==='clip'?'Set by the clip – In to Out, less the moves either side. Change The clip to set it yourself.':'This slide’s own time on screen. 0 – or double-click the name – for the time set in Motion.'});
+      /* while the clip sets it, the time is shown but can't be moved – greyed, and it follows In and Out live */
+      if(vid&&by==='clip'){r.inp.disabled=true;r.inp.closest('.ctl').classList.add('off');r.inp.value=ownHold();}
+      let speedNote=null;
+      if(vid&&by==='fit'){const p=hint('');speedNote=()=>{const P=planNow(),k=items.filter(x=>!isLayer(x,items.indexOf(x))),s=Math.max(0,k.indexOf(it));let V=P.L;if(P.gone&&P.arrive)V=((P.gone[s]-P.arrive[s])%P.L+P.L)%P.L||P.L;
+        const rate=E.clipLen(it)/Math.max(.05,V);p.textContent=`In to Out (${E.clipLen(it).toFixed(2)} s) plays at ${rate>=10?rate.toFixed(0):rate.toFixed(2)}× – it fills the ${V.toFixed(2)} s it’s in view, moves included.`;};speedNote();}
+      if(vid){trimBlock(cur,it,()=>{if(by==='clip'){r.inp.value=ownHold();r.val.textContent=`${ownHold().toFixed(2)} s · the clip’s`;refreshAll();}if(speedNote)speedNote();});}
       pick('Transition','arrive',[['default',`As set · ${optLabel(MOVES_ONE,S.oneMove)}`]].concat(MOVES_ONE.map(o=>[o[0],o[1]])),'default',null,()=>refreshAll());
       pick('Movement','moves',[['default',`As set · ${optLabel(KB,S.kb)}`]].concat(KB.filter(o=>o[0]!=='vary'&&!(S.oneFit==='bleed'&&o[0]==='parallax')).map(o=>[o[0],o[1]])),'default',null,()=>refreshAll());}
     /* where it sits: As it is moves the slide itself; anything cropped moves the picture inside its frame */
@@ -798,7 +807,9 @@ function itemDetail(it,i){const det=el('div','slot-det'),one=S.layout==='one',la
     hint(layer?(it.place==='behind'?`Behind ${b?b.name:'its slide'} – it shows where that’s see-through or blended.`:`Mixes with ${b?b.name:'its slide'}, beneath it.`):'Mixes with the background.');}
   itemRange(cur,it,{label:'Opacity',key:'opa',min:0,max:100,step:1,def:100,unit:'%',change:()=>paintMediaKeepFocus()});
   /* video: where it plays from and to, seen as frames (0.6) – and how its colours are read */
-  if(it.kind==='video'){G('plays','Plays',null,()=>{const a=+it.start||0,b=+it.end>a+.05?+it.end:+it.dur||0;return `${a.toFixed(1)}–${b.toFixed(1)} s`;});trimBlock(cur,it);
+  /* a clip's In and Out: in Slides they're part of Timing (above); elsewhere, a group of their own */
+  if(it.kind==='video'){if(!one){G('plays','Plays',null,()=>{const a=+it.start||0,b=+it.end>a+.05?+it.end:+it.dur||0;return `${a.toFixed(1)}–${b.toFixed(1)} s`;});trimBlock(cur,it);}
+    /* in Slides the colour switch sits in Look, with Blend and Opacity */
     const tr=el('div','toggle-row'),tb=el('button','toggle');tb.type='button';tb.setAttribute('role','switch');tb.setAttribute('aria-checked',!!it.levels);tb.setAttribute('aria-label','Lift washed-out colours');tb.append(el('span','box'),el('span',null,'Lift washed-out colours'));
     tb.onclick=()=>{it.levels=!it.levels;tb.setAttribute('aria-checked',it.levels);saveItems();dirty=true;};tr.append(tb);qm(tr,'Lift washed-out colours','For video whose greys look lifted and colours dull – it says it’s full range when it isn’t (Tempo’s promo MP4s up to 0.11.1). Reads it as video range.');cur.append(tr);}
   /* the caption – useful, but rarely: shut until opened, with a dot when it has words (a layer goes with its slide's) */
@@ -825,21 +836,21 @@ async function probeAt(v,t){if(v.readyState<2)await new Promise(r=>{const f=()=>
   const d=v.duration||1;t=clamp(t,0,Math.max(0,d-.03));if(Math.abs(v.currentTime-t)<.01)return;
   await new Promise(r=>{const f=()=>{v.removeEventListener('seeked',f);r();};v.addEventListener('seeked',f);v.currentTime=t;setTimeout(f,2000);});}
 function coverDraw(c,src,x0,w0){const x=c.getContext('2d'),iw=src.videoWidth||1,ih=src.videoHeight||1,W=w0||c.width,H=c.height,k=Math.max(W/iw,H/ih);x.save();x.beginPath();x.rect(x0||0,0,W,H);x.clip();x.drawImage(src,(x0||0)+(W-iw*k)/2,(H-ih*k)/2,iw*k,ih*k);x.restore();}
-function trimBlock(det,it){const dur=Math.max(.1,+it.dur||1);
+function trimBlock(det,it,onTrim){const dur=Math.max(.1,+it.dur||1);
   const box=el('div','trim'),bar=el('div','trim-bar'),strip=el('canvas','trim-strip'),win=el('div','trim-win'),head=el('span','trim-head');
   strip.width=320;strip.height=36;win.append(el('span','trim-h in'),el('span','trim-h out'));bar.append(strip,win,head);head.hidden=true;
   bar.setAttribute('role','group');bar.setAttribute('aria-label','Where the clip plays – drag its ends');bar.dataset.tip='The clip, start to end – the lit part plays. Drag an end, or the lit part to slide both.';
   const chips=el('div','trim-chips'),cIn=el('span','chip'),cOut=el('span','chip'),cLen=el('span','chip');chips.append(cIn,cOut,cLen);
   const frame=label=>{const w=el('div','trim-frame'),c=el('canvas');c.width=176;c.height=100;const t=el('span',null,label);w.append(c,t);return{w,c,t};},fIn=frame('In'),fOut=frame('Out');
   const fr=el('div','trim-frames');fr.append(fIn.w,fOut.w);
-  det.append(el('div','sub-head','Plays'));box.append(bar,chips,fr);det.append(box);
+  box.append(bar,chips,fr);det.append(box);   /* no sub-head: it sits under its group's title (1.3 – it said Plays twice) */
   const span=()=>{const st=clamp(+it.start||0,0,dur),en=+it.end>st+.05?Math.min(+it.end,dur):dur;return[st,en];};
   let fT=0;const frames=()=>{clearTimeout(fT);fT=setTimeout(()=>{const [a,b]=span();onProbe(it,async v=>{await probeAt(v,a);coverDraw(fIn.c,v);await probeAt(v,Math.max(a,b-.04));coverDraw(fOut.c,v);});},90);};
   const show=()=>{const [a,b]=span();win.style.left=(a/dur*100)+'%';win.style.width=((b-a)/dur*100)+'%';cIn.textContent=`In ${a.toFixed(2)} s`;cOut.textContent=`Out ${b.toFixed(2)} s`;
     cLen.textContent=`${(b-a).toFixed(2)} of ${dur.toFixed(1)} s`;fIn.t.textContent=`In · ${a.toFixed(2)} s`;fOut.t.textContent=`Out · ${b.toFixed(2)} s`;};
   /* see the piece on the canvas while setting it */
   const into=()=>{if(!(cur&&cur.ops.some(o=>o.item===it)))seekTo(it);selId=it.id;dirty=true;};
-  const changed=()=>{show();frames();into();};
+  const changed=()=>{show();frames();into();if(onTrim)onTrim();};
   const rs=itemRange(det,it,{label:'Start at',key:'start',min:0,max:dur,step:.04,def:0,fmt:v=>`${v.toFixed(2)} s`,after:changed,change:()=>paintMediaKeepFocus()});
   const re=itemRange(det,it,{label:'End at',key:'end',min:0,max:dur,step:.04,def:0,fmt:v=>v>(+it.start||0)+.05?`${v.toFixed(2)} s`:`The end · ${dur.toFixed(2)} s`,after:changed,change:()=>paintMediaKeepFocus(),tip:'Where it stops and loops back to Start at. 0 – or double-click the name – plays to the end of the clip.'});
   bar.onpointerdown=e=>{e.preventDefault();const bb=bar.getBoundingClientRect(),tAt=cx=>clamp((cx-bb.left)/bb.width,0,1)*dur,[a0,b0]=span(),t0=tAt(e.clientX),tol=10/bb.width*dur;
@@ -1157,8 +1168,10 @@ const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
     return `Ends at ${T.toFixed(1)} s`+(S.endAs==='length'&&S.endSnap!==false&&Math.abs(T-(+S.endLen||0))>.05?` – the clean cut nearest ${(+S.endLen).toFixed(1)} s`:'')+(r>1.02?` · ${r.toFixed(1)} times round`:r<.98?` · the loop would be ${L.toFixed(1)} s`:'');};
   const en=fold(b,'ending','Ending',null,false,s=>s.endAs==='loop'?'Loops':s.endAs==='once'?`Once · ${planNow().T.toFixed(1)} s`:`${planNow().T.toFixed(1)} s`);
   build(en,[{t:'seg',k:'endAs',label:'Ends',opts:ENDS},
-    {t:'range',k:'endLen',label:'Length',min:1,max:120,step:.5,unit:' s',show:s=>s.endAs==='length'},
-    {t:'toggle',k:'endSnap',label:'Finish on a clean cut',show:s=>s.endAs==='length',tip:'Stops as a rest ends – the nearest one to the length you set – rather than part-way through a move'}]);
+    /* the length is what's asked for; Finish on a clean cut moves the end to the nearest rest – so the two work together,
+       and the readout says where it really ends (1.3) */
+    {t:'range',k:'endLen',label:'Length',min:1,max:120,step:.5,unit:' s',show:s=>s.endAs==='length',fmt:v=>{const T=planNow().T;return S.endSnap!==false&&Math.abs(T-v)>.04?`${(+v).toFixed(1)} s → ${T.toFixed(1)}`:`${(+v).toFixed(1)} s`;}},
+    {t:'toggle',k:'endSnap',label:'Finish on a clean cut',show:s=>s.endAs==='length',off:()=>!E.cutsOf(planNow()).length,offTip:'Nothing in this one comes to rest – it drifts all the way – so there’s no cut to finish on; it ends at the Length',tip:'Ends as the rest nearest the Length finishes – never part-way through a move. The Length still sets where it looks; this only moves the end to the nearest cut.'}]);
   {const p=el('p','hint');const c=addCustom(en,s=>s.endAs!=='loop',p);c.update=()=>{const t=endNote();if(p.textContent!==t)p.textContent=t;};}
   SUMMARY.motion=s=>{const P=planNow(),k=KIND(s),m=k==='one'?optLabel(MOVES_ONE,s.oneMove)+(s.pile?' · Pile up':''):k==='frames'?(framesStatic(s)?'Still':optLabel(MOVES_FRAME,s.fMove)):k==='wall'&&mv(s)!=='still'?[`${Math.round(s.wCols)} × ${Math.round(s.wRows)}`,mv(s)==='drift'?'Drift':'',optLabel(PATHS,s.wPath)].filter(Boolean).join(' · '):optLabel(MOVES_TRACK,s.trackMove);
     return [m,k==='one'?(s.kb!=='none'?optLabel(KB,s.kb):''):stepping(s)?optLabel(FEELS,s.feel):'',s.endAs==='loop'?`${P.L.toFixed(1)} s loop`:`${P.T.toFixed(1)} s, once`].filter(Boolean).join(' · ');};}

@@ -509,8 +509,8 @@ with sync_playwright() as p:
         return h
     first_sh, second_sh, clip_sh = subheads(0), subheads(1), subheads(3)
     pg.evaluate("segue.items[2].join='on'"); layer_sh = subheads(2); pg.evaluate("segue.items[2].join='own'")
-    check('a piece’s detail (0.11): the “Layer on the piece above” switch first (from the second slide on), then groups – Timing, Crop, Look, (Plays), and the Caption shut; a layer’s: the switch, Layer, Position, Look',
-          first_sh == ['Timing', 'Crop', 'Look', 'Caption (shut)'] and second_sh == ['Layer switch', 'Timing', 'Crop', 'Look', 'Caption (shut)'] and clip_sh == ['Layer switch', 'Timing', 'Crop', 'Look', 'Plays', 'Caption (shut)']
+    check('a piece’s detail (0.11): the “Layer on the piece above” switch first (from the second slide on), then groups – Timing (a clip’s In and Out in it from 1.3), Crop, Look, and the Caption shut; a layer’s: the switch, Layer, Position, Look',
+          first_sh == ['Timing', 'Crop', 'Look', 'Caption (shut)'] and second_sh == ['Layer switch', 'Timing', 'Crop', 'Look', 'Caption (shut)'] and clip_sh == ['Layer switch', 'Timing', 'Crop', 'Look', 'Caption (shut)']
           and layer_sh == ['Layer switch', 'Layer', 'Position', 'Look'], f'{first_sh} {second_sh} {clip_sh} {layer_sh}')
     pg.evaluate("segue.set('capOn',false)")
 
@@ -1344,6 +1344,20 @@ with sync_playwright() as p:
     check('Focus (1.1): this one goes out of focus as the next comes into it – both softened part-way; Frosted is called Blur behind', v11['focus'] == [[1, True], [.5, True]] and v11['glass'] == ['Blur behind'], str(v11))
     check('The drawings don’t move, and are in the same two colours with no black (1.1)', not v11['moves'] and v11['ill'][0] != v11['ill'][1] and all(c not in ('rgb(0, 0, 0)', 'rgb(17, 17, 17)', 'rgb(43, 43, 43)') for c in v11['ill']), str(v11))
     check('Presets calmed (1.1): Posters has no border and rests longer, the Float’s title is over everything, Columns rests longer', v11['posters'][0] == 0 and v11['posters'][1] >= 2.5 and v11['float'] == 'top' and v11['cols'] >= 1.5, str(v11))
+    # ---- 1.3 (13 Nov): a clip's time and its In and Out; the clean cut ----
+    ct = q.evaluate("""()=>{const o={},E=segue.E,S=segue.S,c=document.createElement('canvas').getContext('2d');segue.applyPreset('Straight cuts');segue.set('oneMove','fade');segue.set('dur',.5);segue.set('hold',1);
+      const its=segue.items.slice(0,3).map((x,i)=>Object.assign({},x,i===0?{kind:'video',dur:6,start:0,end:0}:{}));const v=its[0],[W,H]=E.canvasSize(S),L=()=>+E.plan(S,its).L.toFixed(2);
+      o.loop=[L(),E.holdFor(S,its,0,1,.5)];v.timeBy='clip';o.clip=[L(),E.holdFor(S,its,0,1,.5)];v.end=2;o.trim=[L(),E.holdFor(S,its,0,1,.5)];
+      v.timeBy='fit';v.hold=4;const at=t=>{const x=E.scene(S,its,c,segue.fonts,W,H,t).ops.find(q=>q.item===v);return x?+x.time.toFixed(2):null;};o.fit=[L(),[0,2,4,4.45].map(at)];
+      for(const n of ['Straight cuts','Snap along','Wall snap','Posters','Float with title','Masonry drift']){segue.applyPreset(n);segue.set('endAs','length');segue.set('endLen',13.3);segue.set('endSnap',true);const P=segue.plan(),T=P.T;
+        const pos=t=>{const m=new Map();for(const x of E.scene(S,segue.items,c,segue.fonts,W,H,t).ops)if(x.item)m.set(x.key!=null?x.key:'i'+x.i,[x.rect.x,x.rect.y,x.rect.w]);return m;};
+        const sp=t=>{const a=pos(t-.03),b=pos(t);let m=0;for(const [k,w] of b){const u=a.get(k);if(u)m=Math.max(m,Math.abs(w[0]-u[0])+Math.abs(w[1]-u[1])+Math.abs(w[2]-u[2]));}return m;};
+        let mx=0;for(let t=.03;t<P.L;t+=P.L/120)mx=Math.max(mx,sp(t));o[n]=[E.cutsOf(P).length,+(sp(T-1e-4)/Math.max(1e-6,mx)).toFixed(3),segue.ui.controls.find(c=>c.d&&c.d.k==='endSnap').w.classList.contains('off')];}
+      segue.set('endAs','loop');segue.applyPreset('Straight cuts');return o;}""")
+    check('A clip’s time (1.3): it can loop in the time set (as before), set the time itself – In to Out at its own speed, so trimming it shortens the slide – or fit the time set, In to Out once across exactly the time it’s in view',
+          ct['loop'] == [4.5, 1] and ct['clip'] == [8.5, 5] and ct['trim'] == [4.5, 1] and ct['fit'][0] == 7.5 and ct['fit'][1][0] < ct['fit'][1][1] < ct['fit'][1][2] < ct['fit'][1][3] <= 2, str(ct))
+    check('Finish on a clean cut (checked 1.3): in every kind that rests it ends with nothing moving but the slow Movement drift (under 3% of the fastest move); where nothing ever rests the switch is greyed out',
+          all(ct[n][0] > 0 and ct[n][1] < .03 and not ct[n][2] for n in ['Straight cuts', 'Snap along', 'Wall snap', 'Posters', 'Float with title']) and ct['Masonry drift'][0] == 0 and ct['Masonry drift'][2], str(ct))
     check('no errors on the page through the 1.0 checks', not errs3, '; '.join(errs3[:3]))
     ctx3.close()
     check('no errors on the page', not errs, '; '.join(errs[:3]))

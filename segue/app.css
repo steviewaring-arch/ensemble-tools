@@ -280,3 +280,8 @@ body[data-theme="dark"]{--ill-1:#A5A4AA;--ill-2:#5A595F}
 .island .ebtn.icon{padding:0 8px;min-width:0}
 .island .ebtn.icon svg{width:12px;height:12px;display:block}
 .island .ebtn.icon[hidden]{display:none}
+/* 1.3 – a setting shown but set by something else (On screen while the clip sets the time): greyed, not hidden */
+.ctl.off{opacity:.45}
+.ctl.off input[type=range]{pointer-events:none}
+.toggle-row.off{opacity:.45}
+.toggle-row.off .toggle{cursor:default}
