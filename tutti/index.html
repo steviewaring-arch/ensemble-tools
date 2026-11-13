@@ -23,7 +23,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.2</span></div>
+      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.3</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls">
@@ -166,7 +166,11 @@
   <button class="panel-btn" id="panelBtn" type="button" aria-expanded="false" aria-controls="panelBox" aria-label="Show the panel"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="2.5" width="10.4" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg></button>
   <div class="topbar">
     <div class="stage-foot" id="foot"><span id="dims">–</span><span id="mode"></span></div>
-    <!-- the house top bar (from Segue 0.10): zoom, then guides. View settings live here. -->
+    <!-- the house top bar (from Segue 0.10): undo, zoom, then guides. View settings live here. -->
+    <div class="tools" id="historyTools">
+      <button id="undoBtn" type="button" aria-label="Undo – ⌘Z" title="Undo – ⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M5.2 3.3 2.6 5.9l2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.9h5.6a2.9 2.9 0 0 1 0 5.8H6.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button id="redoBtn" type="button" aria-label="Redo – ⇧⌘Z" title="Redo – ⇧⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="m8.8 3.3 2.6 2.6-2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 5.9H5.4a2.9 2.9 0 0 0 0 5.8h2.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
     <div class="tools" id="zoomTools">
       <button id="zoomOut" type="button" aria-label="Zoom out – ⌘−" title="Zoom out – ⌘−"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
       <button id="zoomVal" class="zval" type="button" aria-label="Zoom – click for 100% or to fit" title="Click for 100%, again to fit – ⌘0 fits">Fit</button>
@@ -220,7 +224,7 @@
 <script>
 /*{{shared-gif}}*/
 /*{{shared-view}}*/
-const VERSION="6.2", MAXB=7, MINB=2;
+const VERSION="6.3", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,
@@ -486,6 +490,9 @@ function computeDims(){
   if(out.height!==H) out.height=H;
   VZ.fit();
   cellX=W/cols; cellY=H/rows; cell=Math.min(cellX,cellY);
+  /* 6.3: the marks are drawn at three times the cell – a new cell size (Format, W:H, a portrait source) draws them again,
+     rather than stretching ones made for the last size */
+  if(cell!==S.spriteCell) S.spritesDirty=true;
   sampleCanvas.width=cols; sampleCanvas.height=rows;
   $('dims').textContent=W+' × '+H+' px';
 }
@@ -499,7 +506,7 @@ function drawCover(ctx,w,h){
   ctx.drawImage(el,(w-dw)/2,(h-dh)/2,dw,dh); return true;
 }
 function buildSprites(){
-  const spx=Math.max(24,cell*3); S.sprites=[];
+  const spx=Math.max(24,cell*3); S.sprites=[]; S.spriteCell=cell;
   for(let i=0;i<S.nBands;i++){
     const st=S.states[i];
     const c=document.createElement('canvas'); c.width=c.height=spx; const x=c.getContext('2d');
@@ -653,6 +660,18 @@ function syncUI(){
   $('gAngle').value=S.typeGradAngle; $('gAngleV').textContent=S.typeGradAngle+'°';
   $('tGrad').classList.toggle('on',S.typeGrad); $('gAngleRow').style.display=S.typeGrad?'flex':'none'; $('gAngle').style.display=S.typeGrad?'':'none';
 }
+const PRESET_KEYS=['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant'];
+/* where things stand, and putting them back (6.3: Undo and the change dots, tutti/frame.js).
+   A snapshot is the preset – every setting and the bands' colours and marks – with each band's
+   drawn mark kept as it is, so stepping back never has to load an SVG again. */
+function snapState(){ const p=getPreset(); delete p.app; delete p.v; return {p:JSON.stringify(p),img:S.states.map(s=>s.img)}; }
+function putState(snap){
+  const p=JSON.parse(snap.p);
+  PRESET_KEYS.forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
+  S.nBands=Math.max(MINB,Math.min(MAXB,p.nBands)); S.edges=p.edges.slice();
+  p.states.forEach((ps,i)=>{ const s=S.states[i]; s.color=ps.color; s.userColor=!!ps.userColor; s.inner=ps.inner||null; s.vb=ps.vb||null; s.img=snap.img[i]||null; });
+  buildStates(); buildEdgeUI(); syncUI(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
+}
 $('savePreset').onclick=()=>{
   const blob=new Blob([JSON.stringify(getPreset(),null,2)],{type:'application/json'});
   const name='Tutti_byENSEMBLE_preset-'+Date.now()+'.json'; saveBlob(name,blob); status('Saved '+name);
@@ -661,7 +680,7 @@ $('loadPreset').onchange=e=>{
   const f=e.target.files[0]; if(!f)return; const rd=new FileReader();
   rd.onload=()=>{ try{
     const p=JSON.parse(rd.result);
-    ['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant'].forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
+    PRESET_KEYS.forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
     if(p.nBands) S.nBands=Math.max(MINB,Math.min(MAXB,p.nBands));
     S.edges=Array.isArray(p.edges)?p.edges.slice():evenEdges(S.nBands);
     if(Array.isArray(p.states)) p.states.forEach((ps,i)=>{ if(i>=MAXB)return;

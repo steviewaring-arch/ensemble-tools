@@ -201,3 +201,10 @@
   .ep-sublabel{font-weight:500;color:var(--ink-strong)}
   .pp .ppdot{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair)}
   #status{border-radius:var(--r-ctl)}
+
+  /* 6.3: the change column on Tutti's own rows (the kit's .cx, placed for rows it doesn't know) */
+  .cxm{position:relative}
+  .cxm>.cx{top:50%;margin-top:-8px}
+  .txt-wrap{position:relative;margin-top:14px}
+  .txt-wrap>textarea{margin-top:0!important;display:block}
+

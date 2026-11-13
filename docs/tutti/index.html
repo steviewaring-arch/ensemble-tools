@@ -1144,6 +1144,13 @@
   .ep-sublabel{font-weight:500;color:var(--ink-strong)}
   .pp .ppdot{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair)}
   #status{border-radius:var(--r-ctl)}
+
+  /* 6.3: the change column on Tutti's own rows (the kit's .cx, placed for rows it doesn't know) */
+  .cxm{position:relative}
+  .cxm>.cx{top:50%;margin-top:-8px}
+  .txt-wrap{position:relative;margin-top:14px}
+  .txt-wrap>textarea{margin-top:0!important;display:block}
+
 </style>
 </head>
 <body data-theme="light">
@@ -1158,7 +1165,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.2</span></div>
+      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.3</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls">
@@ -1301,7 +1308,11 @@
   <button class="panel-btn" id="panelBtn" type="button" aria-expanded="false" aria-controls="panelBox" aria-label="Show the panel"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="2.5" width="10.4" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg></button>
   <div class="topbar">
     <div class="stage-foot" id="foot"><span id="dims">–</span><span id="mode"></span></div>
-    <!-- the house top bar (from Segue 0.10): zoom, then guides. View settings live here. -->
+    <!-- the house top bar (from Segue 0.10): undo, zoom, then guides. View settings live here. -->
+    <div class="tools" id="historyTools">
+      <button id="undoBtn" type="button" aria-label="Undo – ⌘Z" title="Undo – ⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M5.2 3.3 2.6 5.9l2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.9h5.6a2.9 2.9 0 0 1 0 5.8H6.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button id="redoBtn" type="button" aria-label="Redo – ⇧⌘Z" title="Redo – ⇧⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="m8.8 3.3 2.6 2.6-2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 5.9H5.4a2.9 2.9 0 0 0 0 5.8h2.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
     <div class="tools" id="zoomTools">
       <button id="zoomOut" type="button" aria-label="Zoom out – ⌘−" title="Zoom out – ⌘−"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
       <button id="zoomVal" class="zval" type="button" aria-label="Zoom – click for 100% or to fit" title="Click for 100%, again to fit – ⌘0 fits">Fit</button>
@@ -1651,7 +1662,7 @@ function mountGuides(o){
   paint();
   return{draw,paint};
 }
-const VERSION="6.2", MAXB=7, MINB=2;
+const VERSION="6.3", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,
@@ -1917,6 +1928,9 @@ function computeDims(){
   if(out.height!==H) out.height=H;
   VZ.fit();
   cellX=W/cols; cellY=H/rows; cell=Math.min(cellX,cellY);
+  /* 6.3: the marks are drawn at three times the cell – a new cell size (Format, W:H, a portrait source) draws them again,
+     rather than stretching ones made for the last size */
+  if(cell!==S.spriteCell) S.spritesDirty=true;
   sampleCanvas.width=cols; sampleCanvas.height=rows;
   $('dims').textContent=W+' × '+H+' px';
 }
@@ -1930,7 +1944,7 @@ function drawCover(ctx,w,h){
   ctx.drawImage(el,(w-dw)/2,(h-dh)/2,dw,dh); return true;
 }
 function buildSprites(){
-  const spx=Math.max(24,cell*3); S.sprites=[];
+  const spx=Math.max(24,cell*3); S.sprites=[]; S.spriteCell=cell;
   for(let i=0;i<S.nBands;i++){
     const st=S.states[i];
     const c=document.createElement('canvas'); c.width=c.height=spx; const x=c.getContext('2d');
@@ -2084,6 +2098,18 @@ function syncUI(){
   $('gAngle').value=S.typeGradAngle; $('gAngleV').textContent=S.typeGradAngle+'°';
   $('tGrad').classList.toggle('on',S.typeGrad); $('gAngleRow').style.display=S.typeGrad?'flex':'none'; $('gAngle').style.display=S.typeGrad?'':'none';
 }
+const PRESET_KEYS=['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant'];
+/* where things stand, and putting them back (6.3: Undo and the change dots, tutti/frame.js).
+   A snapshot is the preset – every setting and the bands' colours and marks – with each band's
+   drawn mark kept as it is, so stepping back never has to load an SVG again. */
+function snapState(){ const p=getPreset(); delete p.app; delete p.v; return {p:JSON.stringify(p),img:S.states.map(s=>s.img)}; }
+function putState(snap){
+  const p=JSON.parse(snap.p);
+  PRESET_KEYS.forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
+  S.nBands=Math.max(MINB,Math.min(MAXB,p.nBands)); S.edges=p.edges.slice();
+  p.states.forEach((ps,i)=>{ const s=S.states[i]; s.color=ps.color; s.userColor=!!ps.userColor; s.inner=ps.inner||null; s.vb=ps.vb||null; s.img=snap.img[i]||null; });
+  buildStates(); buildEdgeUI(); syncUI(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
+}
 $('savePreset').onclick=()=>{
   const blob=new Blob([JSON.stringify(getPreset(),null,2)],{type:'application/json'});
   const name='Tutti_byENSEMBLE_preset-'+Date.now()+'.json'; saveBlob(name,blob); status('Saved '+name);
@@ -2092,7 +2118,7 @@ $('loadPreset').onchange=e=>{
   const f=e.target.files[0]; if(!f)return; const rd=new FileReader();
   rd.onload=()=>{ try{
     const p=JSON.parse(rd.result);
-    ['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant'].forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
+    PRESET_KEYS.forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
     if(p.nBands) S.nBands=Math.max(MINB,Math.min(MAXB,p.nBands));
     S.edges=Array.isArray(p.edges)?p.edges.slice():evenEdges(S.nBands);
     if(Array.isArray(p.states)) p.states.forEach((ps,i)=>{ if(i>=MAXB)return;
@@ -2377,6 +2403,86 @@ async function stopGif(silent){
     if(q)rt=setTimeout(()=>{rq=q;q.dispatchEvent(new MouseEvent('mouseover',{bubbles:true}));},500);});
   /* buttons that carry their meaning in a title get it as a tooltip too */
   $$('#appearance button,#exportOpen').forEach(b=>{if(!b.title)b.title=b.getAttribute('aria-label')||b.textContent;});
+
+  /* ---- 6.3: what's moved, putting it back, and Undo (the house rules, as Segue and Rubato) ----
+     Where it started is each setting's value when the page opened. A row that's moved gets a blue
+     dot in the change column – click it to put that row back; a card with anything moved gets a
+     Reset chip while open and a dot while shut. Every change is a step Undo can take back
+     (⌘Z, ⇧⌘Z for Redo, or the arrows in the top bar). It all goes through snapState/putState in
+     index.html, the same set a preset holds, so nothing here reaches what a export draws. */
+  const panel=$('panel'),RESET='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 6a3.4 3.4 0 1 0 1-2.4M2.4 1.8v2h2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const START=getPreset(),same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+  const words=e=>e?e.textContent.replace(/\?/g,'').replace(/\s+/g,' ').trim():'';
+  const bandMoved=(p,i)=>!!p.states[i].inner||(p.states[i].userColor&&p.states[i].color.toLowerCase()!==rampColor(i,p.nBands));
+  const near=(a,b)=>a.length===b.length&&a.every((v,k)=>Math.abs(v-b[k])<1e-9);
+  /* each control: where its dot goes, what it holds, how it's put back (on a copy of the snapshot) */
+  const CTL=[];
+  function reg(w,label,moved,back){if(!w||w._cx)return;w._cx=1;w.classList.add('cxm');const b=document.createElement('button');b.type='button';b.className='cx';
+    b.setAttribute('aria-label',label+' – changed; put it back');b.title='Changed – click to put it back';
+    b.addEventListener('click',e=>{e.stopPropagation();e.preventDefault();restore(label+' put back',[c]);});
+    const c={w,label,moved,back,b};w.append(b);CTL.push(c);return c;}
+  const key=(w,label,ks)=>{ks=[].concat(ks);reg(w,label,p=>ks.some(k=>!same(p[k],START[k])),p=>ks.forEach(k=>p[k]=START[k]));};
+  const RANGE={tsize:'tsize',tlh:'tlh',track:'tracking',gAngle:'typeGradAngle',twidth:'typeW',theight:'typeH',tslant:'typeSlant',grid:'grid',zoom:'zoom',sblur:'srcBlur',
+    minsize:'minsize',ssize:'shapeScale',opacity:'opacity',tlev:'threshLever',rot:'baseRot',rjit:'rotJit',pjit:'posJit'};
+  Object.keys(RANGE).forEach(id=>{const inp=$(id),w=inp&&inp.closest('.ctl.rng');if(w)key(w,words(w.querySelector('.lbl')),RANGE[id]);});
+  [['tGrad','typeGrad'],['tFill','fill'],['tInvert','invert'],['tScale','scale'],['tKeepSvg','keepSvgColor']].forEach(([id,k])=>{const t=$(id);if(t)key(t,words(t.querySelector('span')),k);});
+  [['bgColor','bg'],['aspect','aspect'],['arW',['arW','arH']],['res','res']].forEach(([id,k])=>{const r=$(id)&&$(id).closest('.row');if(r)key(r,words(r.querySelector('.lbl')),k);});
+  {const r=$('alignSeg')&&$('alignSeg').previousElementSibling;if(r&&r.classList.contains('row'))key(r,'Align','align');}
+  {const t=$('typeText');if(t){const w=document.createElement('div');w.className='txt-wrap';t.parentNode.insertBefore(w,t);w.append(t);key(w,'Text','text');}}
+  reg(document.querySelector('.stepper'),'Bands',p=>p.nBands!==START.nBands,p=>{p.nBands=START.nBands;p.edges=evenEdges(p.nBands);
+    p.states.forEach((s,i)=>{if(!s.userColor)s.color=rampColor(i,p.nBands);});});
+  reg($('resetEdges')&&$('resetEdges').parentElement,'Thresholds',p=>!near(p.edges,evenEdges(p.nBands)),p=>{p.edges=evenEdges(p.nBands);});
+  /* the band rows are drawn again whenever the bands change: give each its dot again */
+  function bandRows(){$$('#states .state').forEach((r,i)=>reg(r,words(r.querySelector('.meta b'))||('Band '+(i+1)),p=>i<p.nBands&&bandMoved(p,i),
+    (p,img)=>{const s=p.states[i];s.color=rampColor(i,p.nBands);s.userColor=false;s.inner=null;s.vb=null;img[i]=null;}));}
+  new MutationObserver(()=>{for(let k=CTL.length-1;k>=0;k--)if(!CTL[k].w.isConnected)CTL.splice(k,1);bandRows();paint();}).observe($('states'),{childList:true});bandRows();
+  /* each card: a dot beside its title while shut, a Reset chip while open */
+  $$('.card[data-id]').forEach(c=>{const h=c.querySelector(':scope>h2'),t=h&&h.querySelector('.card-toggle');if(!t)return;
+    const d=document.createElement('span');d.className='cdot';d.setAttribute('aria-hidden','true');const sp=t.querySelector('span');sp.after(d);
+    const title=words(sp),r=document.createElement('button');r.type='button';r.className='pill small reset';r.innerHTML=RESET+'<span>Reset</span>';
+    r.setAttribute('aria-label','Put '+title+' back');r.title='Put everything here back to where it started';
+    r.addEventListener('click',e=>{e.stopPropagation();const p=getPreset(),list=CTL.filter(x=>c.contains(x.w)&&shown(x.w)&&x.moved(p));
+      /* the whole of Mapping back means every band, including any the count has hidden for now */
+      if(c.contains($('states')))list.push({back:(q,img)=>q.states.forEach((s,i)=>{s.color=rampColor(i,q.nBands);s.userColor=false;s.inner=null;s.vb=null;img[i]=null;})});
+      restore(title+' put back',list);});h.append(r);});
+  $$('.fold-head').forEach(h=>{const d=document.createElement('span');d.className='cdot';d.setAttribute('aria-hidden','true');h.querySelector('span').after(d);});
+  /* a row counts only while it's there to see (Type's controls are away while a picture is the source) */
+  function shown(w){for(let n=w;n&&!n.classList.contains('card');n=n.parentElement){if(n.classList.contains('fold-body')||n.classList.contains('card-anim'))continue;
+    if(n.hidden||getComputedStyle(n).display==='none')return false;}return true;}
+  function paint(){const p=getPreset();
+    CTL.forEach(c=>{c.on=c.moved(p);if(c.w.classList.contains('chg')!==c.on)c.w.classList.toggle('chg',c.on);});
+    $$('.card[data-id]').forEach(sec=>sec.classList.toggle('chg',CTL.some(c=>c.on&&sec.contains(c.w)&&shown(c.w))));
+    $$('.fold-head').forEach(h=>{const b=h.nextElementSibling;h.classList.toggle('chg',!!b&&CTL.some(c=>c.on&&b.contains(c.w)&&shown(c.w)));});}
+  function restore(label,list){if(!list.some(c=>c.moved))return;commit();const s=snapState(),p=JSON.parse(s.p),img=s.img.slice();
+    list.forEach(c=>c.back(p,img));step(label,{p:JSON.stringify(p),img});status(label);}
+
+  /* Undo: each settled change is a step. A drag, or typing with pauses under a second, is one. */
+  const U=[],R=[],MAX=60;let cur=snapState(),pend=null,quiet=0,held=false;
+  const nameOf=t=>{if(!t||!t.closest)return'';const x=t.closest('.ctl.rng,.toggle,.state,.stepper,.edges,.txt-wrap,.row,#alignSeg,.card-tools a,button,label.btn');if(!x)return'';
+    if(x.id==='alignSeg')return'Align';if(x.classList.contains('edges'))return'Thresholds';if(x.classList.contains('stepper'))return'Bands';if(x.classList.contains('txt-wrap'))return'Text';
+    const l=x.querySelector('.lbl,.meta b,:scope>span');return words(l||x);};
+  function note(e){if(!panel.contains(e.target))return;const n=nameOf(e.target),now=Date.now();
+    /* a new gesture starts: whatever settled before it (a file read in, say) is its own step */
+    if(e.type!=='input'&&(!pend||pend.n!==n||now-quiet>700))commit();
+    if(n)pend={n,t:now};quiet=now;}
+  function commit(){const s=snapState();if(s.p===cur.p)return false;U.push({s:cur,label:pend&&Date.now()-pend.t<5000?pend.n:'Change'});if(U.length>MAX)U.shift();R.length=0;cur=s;pend=null;hist();return true;}
+  function step(label,s){commit();U.push({s:cur,label});if(U.length>MAX)U.shift();R.length=0;putState(s);cur=snapState();hist();paint();}
+  function go(from,to,verb){commit();const e=from.pop();if(!e){status('Nothing to '+verb.toLowerCase());return;}to.push({s:cur,label:e.label});putState(e.s);cur=snapState();
+    status((verb==='Undo'?'Undone':'Redone')+' – '+e.label);hist();paint();}
+  const ub=$('undoBtn'),rb=$('redoBtn');
+  function hist(){ub.disabled=!U.length;rb.disabled=!R.length;const u=U[U.length-1],r=R[R.length-1];
+    ub.title=u?'Undo '+u.label+' – ⌘Z':'Nothing to undo';rb.title=r?'Redo '+r.label+' – ⇧⌘Z':'Nothing to redo';}
+  ub.addEventListener('click',()=>go(U,R,'Undo'));rb.addEventListener('click',()=>go(R,U,'Redo'));
+  panel.addEventListener('input',note,true);panel.addEventListener('pointerdown',e=>{held=true;note(e);},true);panel.addEventListener('keydown',note,true);
+  window.addEventListener('pointerup',()=>{held=false;},true);window.addEventListener('pointercancel',()=>{held=false;},true);
+  panel.addEventListener('change',()=>setTimeout(()=>{commit();paint();},0),true);
+  panel.addEventListener('click',()=>setTimeout(()=>{commit();paint();},0));
+  /* anything settled a moment later – a mark's SVG read in, a preset loaded, typing that's paused */
+  setInterval(()=>{const q=Date.now()-quiet;if(!held&&q>700&&q<15000&&commit())paint();},250);
+  window.addEventListener('keydown',e=>{if(!(e.metaKey||e.ctrlKey)||e.altKey)return;const k=e.key.toLowerCase();if(k!=='z'&&k!=='y')return;
+    const tg=e.target,typing=tg&&(tg.tagName==='TEXTAREA'||tg.isContentEditable||(tg.tagName==='INPUT'&&/text|number|search/.test(tg.type)));if(typing)return;
+    e.preventDefault();if(e.shiftKey||k==='y')go(R,U,'Redo');else go(U,R,'Undo');},true);
+  hist();paint();setInterval(paint,400);
 
   layout();summaries();requestAnimationFrame(()=>{syncRanges();layout();});
 })();

@@ -145,6 +145,40 @@ def run(p, eng, mode):
         return n
     check(tag, 'Presets save and load', presets)
 
+    # --- 6.3: the change column, card Reset, Undo and Redo (house rules)
+    def changes():
+        chg = lambda sel: ev(f'(()=>{{const e=document.querySelector({json.dumps(sel)});return !!e&&e.classList.contains("chg")}})()')
+        ctl = '#grid'; wrap = 'document.getElementById("grid").closest(".ctl")'
+        L('.card[data-id="canvas"] .card-toggle').evaluate('b=>{if(b.closest(".card").classList.contains("collapsed"))b.click()}')
+        g0 = ev('S.grid'); L(ctl).focus(); pg.keyboard.press('ArrowRight'); pg.wait_for_timeout(350)
+        g1 = ev('S.grid')
+        if g1 != g0 + 1: raise Exception(f'grid {g0}->{g1}')
+        if not ev(wrap + '.classList.contains("chg")'): raise Exception('no dot on a moved row')
+        if ev('document.getElementById("undoBtn").disabled'): raise Exception('Undo off with something to undo')
+        L('#undoBtn').click(); pg.wait_for_timeout(250)
+        if ev('S.grid') != g0: raise Exception('Undo did not take the step back')
+        L('#redoBtn').click(); pg.wait_for_timeout(250)
+        if ev('S.grid') != g1: raise Exception('Redo did not put it again')
+        L(ctl).focus(); pg.keyboard.press('Control+z'); pg.wait_for_timeout(250)
+        if ev('S.grid') != g0: raise Exception('Ctrl+Z did not undo')
+        pg.keyboard.press('Control+Shift+z'); pg.wait_for_timeout(250)
+        if ev('S.grid') != g1: raise Exception('Ctrl+Shift+Z did not redo')
+        L('#grid').evaluate('e=>e.closest(".ctl").querySelector(".cx").click()'); pg.wait_for_timeout(300)
+        if ev('S.grid') != 72 or ev(wrap + '.classList.contains("chg")'): raise Exception('the dot did not put Grid back')
+        L('#tInvert').click(); pg.wait_for_timeout(300)
+        inv = ev('S.invert'); dot = chg('#tInvert')
+        if dot != inv: raise Exception('toggle dot does not follow the toggle')
+        if not chg('.card[data-id="mapping"]'):   # Randomise has been before this: the bands have moved
+            L('#randomColors').click(); pg.wait_for_timeout(300)
+        L('.card[data-id="mapping"] .card-toggle').evaluate('b=>{if(b.closest(".card").classList.contains("collapsed"))b.click()}')
+        L('.card[data-id="mapping"] h2 .reset').click(); pg.wait_for_timeout(350)
+        if chg('.card[data-id="mapping"]') or ev('S.nBands') != 6: raise Exception('Mapping Reset left something moved')
+        if ev('document.querySelectorAll("#states .state").length') != ev('document.querySelectorAll("#states .state .cx").length'): raise Exception('a band row without its dot')
+        L('#undoBtn').click(); pg.wait_for_timeout(300)
+        if not chg('.card[data-id="mapping"]'): raise Exception('Undo did not bring the Mapping back')
+        return ev('document.getElementById("undoBtn").title')
+    check(tag, 'Change dots, put back, card Reset, Undo and Redo', changes)
+
     # --- the view
     def view():
         pg.keyboard.press('f'); pg.wait_for_timeout(300)
