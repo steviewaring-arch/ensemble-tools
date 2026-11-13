@@ -41,7 +41,7 @@ ARCHIVE = [('rubato', '0.9', 'archive/rubato-0.9.html', "const APP='rubato';", "
 # the exported page), and the app files that go inside the shared wrapper.
 APPS = {
     'rubato': dict(
-        title='Rubato – by Ensemble', version='1.2.1',
+        title='Rubato – by Ensemble', version='1.3',
         body='rubato/app.html', css='rubato/app.css',
         tagged=[('rubato-engine', 'rubato/engine.js')],
         before='shared/gif.js',
@@ -102,7 +102,7 @@ def build_app(name, cfg):
         main += read('shared/colour.js') + '\n'   # the house colour picker (Segue 1.0) – a colour swatch opens it, not the browser's
     main += "(()=>{\n'use strict';\nconst $=s=>document.querySelector(s);\n"
     main += f"const APP='{name}';\n"
-    main += read('shared/core.js')
+    main += read('shared/core.js') + read('shared/view.js')
     for p in cfg['parts']:
         main += read(p)
     main += read('shared/core-end.js') + '})();'
@@ -204,6 +204,7 @@ def main():
     html = read('tutti/index.html')
     for mark, text in [('/*{{shared-css}}*/', read('shared/tokens.css') + read('shared/components.css') + read('shared/kit.css')),
                        ('/*{{tutti-css}}*/', read('tutti/frame.css')), ('/*{{tutti-frame}}*/', read('tutti/frame.js')),
+                       ('/*{{shared-view}}*/', read('shared/view.js')),
                        ('/*{{shared-gif}}*/', read('shared/gif.js') + '\n' + read('shared/colour.js'))]:
         assert html.count(mark) == 1, mark
         html = html.replace(mark, strip1(text))

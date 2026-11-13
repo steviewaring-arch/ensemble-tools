@@ -270,6 +270,21 @@ function card(id,title,show,tab){
   controls.push({d:{show:s=>(tab==='both'||s.tab===tab)&&(!show||show(s))},w:c,update(){},card:id});
   return body;
 }
+/* A group (level 2) inside a card: one hairline, a 13 Bold title, a chevron, and – when shut –
+   a quiet line saying what it holds. The house group; Segue has the same in its own frame.
+   (Tempo still declares its own fold() further down, which wins there until it takes this one.) */
+const GROUPS=Object.assign({},LS.get('groups')||{});
+function fold(parent,id,title,show,shut){
+  const box=el('div','fold'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');
+  head.type='button';chev.innerHTML=CHEV;
+  const open=GROUPS[id]!=null?GROUPS[id]:!shut;
+  const paint=o=>{body.hidden=!o;head.setAttribute('aria-expanded',o);if(o)requestAnimationFrame(()=>syncRanges(body));};
+  paint(open);
+  head.onclick=()=>{const o=body.hidden;GROUPS[id]=o;LS.set('groups',GROUPS);paint(o);};
+  head.append(label,chev);box.append(head,body);addCustom(parent,show||null,box);
+  return body;
+}
+
 /* What a shut card says: the choices made in it, or the app's own line (SUMMARY[id]). */
 const SUMMARY={};
 function optLabel(opts,v){const o=(opts||[]).find(o=>o[0]===v);return o?o[1]:null;}
@@ -442,8 +457,11 @@ function addSeg(parent,d){
 function addToggle(parent,d){
   const w=el('div','toggle-row'),b=el('button','toggle');b.setAttribute('role','switch');b.setAttribute('aria-label',d.label);d.group=d.group||curGroup;
   b.append(el('span','box'),el('span',null,d.label));w.append(b);const q=qMark(d);if(q)w.append(q);
+  /* grp: a switch that heads a group of its own settings – its box, then its name in the group's
+     weight, its settings beneath while it's on. One way to turn anything optional on. */
+  if(d.grp)w.classList.add('sw-grp');
   b.onclick=()=>d.onToggle?d.onToggle(!S[d.k]):set(d.k,!S[d.k]);parent.append(w);
-  const c={d,w,update(){b.setAttribute('aria-checked',!!S[d.k]);}};controls.push(c);return c;
+  const c={d,w,update(){b.setAttribute('aria-checked',!!S[d.k]);w.classList.toggle('on',!!S[d.k]);}};controls.push(c);return c;
 }
 function addColour(parent,d){
   const w=el('div','colour-row'),lb=el('label',null,d.label),cw=el('div','cw'),hex=el('span','val'),sw=el('span','cswatch'),inp=el('input');

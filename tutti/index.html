@@ -56,13 +56,17 @@
         <div class="toggle" id="tGrad" style="margin-top:4px"><div class="box"></div><span>Gradient fill<i class="q" data-tip="Fills the type with a tonal gradient so the bands sweep across the word.">?</i></span></div>
         <div class="row" id="gAngleRow" style="display:none"><label class="lbl">Gradient angle</label><span class="val" id="gAngleV">0°</span></div>
         <input type="range" id="gAngle" min="0" max="360" step="1" value="0" style="display:none">
-        <div class="subttl" style="margin:8px 0 10px">Warp</div>
+        <div class="fold">
+        <button class="fold-head" type="button" data-group="warp" aria-expanded="true"><span>Warp</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+        <div class="fold-body">
         <div class="row"><label class="lbl">Width</label><span class="val" id="twidthV">1.00×</span></div>
         <input type="range" id="twidth" min="0.4" max="2" step="0.01" value="1">
         <div class="row"><label class="lbl">Height</label><span class="val" id="theightV">1.00×</span></div>
         <input type="range" id="theight" min="0.4" max="2" step="0.01" value="1">
         <div class="row"><label class="lbl">Slant</label><span class="val" id="tslantV">0°</span></div>
         <input type="range" id="tslant" min="-40" max="40" step="1" value="0">
+        </div>
+        </div>
       </div>
       </div>
     </section>
@@ -162,6 +166,17 @@
   <button class="panel-btn" id="panelBtn" type="button" aria-expanded="false" aria-controls="panelBox" aria-label="Show the panel"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="2.5" width="10.4" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg></button>
   <div class="topbar">
     <div class="stage-foot" id="foot"><span id="dims">–</span><span id="mode"></span></div>
+    <!-- the house top bar (from Segue 0.10): zoom, then guides. View settings live here. -->
+    <div class="tools" id="zoomTools">
+      <button id="zoomOut" type="button" aria-label="Zoom out – ⌘−" title="Zoom out – ⌘−"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button id="zoomVal" class="zval" type="button" aria-label="Zoom – click for 100% or to fit" title="Click for 100%, again to fit – ⌘0 fits">Fit</button>
+      <button id="zoomIn" type="button" aria-label="Zoom in – ⌘+" title="Zoom in – ⌘+"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7M7 3.5v7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="tools" id="guideTools">
+      <button id="guidesBtn" type="button" aria-pressed="false" aria-label="Guides – ⌘;" title="Guides – ⌘;"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="1.8" width="10.4" height="10.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5.3 2v10M8.7 2v10M2 7h10" stroke="currentColor" stroke-width="1" stroke-dasharray="1.4 1.2"/></svg></button>
+      <button id="guidesMore" class="more" type="button" aria-expanded="false" aria-controls="guidePop" aria-label="Guide settings" title="Margin and cells"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="m4.2 5.6 2.8 2.8 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="pop" id="guidePop" hidden role="dialog" aria-label="Guides"></div>
+    </div>
     <div class="tools" id="appearance">
       <button id="previewBtn" type="button" aria-pressed="false" aria-label="Preview – fill the window – F"></button>
       <button id="themeBtn" type="button" aria-label="Light or dark"><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.8a5.2 5.2 0 0 1 0 10.4z" fill="currentColor"/></svg></button>
@@ -204,6 +219,7 @@
 
 <script>
 /*{{shared-gif}}*/
+/*{{shared-view}}*/
 const VERSION="6.2", MAXB=7, MINB=2;
 
 const S={
@@ -218,6 +234,13 @@ const S={
 };
 const $=id=>document.getElementById(id);
 const out=$('out'), octx=out.getContext('2d');
+/* the view's zoom and guides: the house parts in shared/view.js. They size and overlay the
+   canvas on screen only – the canvas keeps the export's pixels, so no PNG, SVG or recording
+   can tell. */
+let GD=null;
+const VZ=mountZoom({view:document.getElementById('view'),canvas:out,size:()=>[out.width,out.height],after:()=>{if(GD)GD.draw();}});
+GD=mountGuides({view:document.getElementById('view'),canvas:out,key:'tutti'});
+if(window.ResizeObserver){let rt=0;new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(()=>{if(VZ)VZ.fit();},60);}).observe(document.getElementById('view'));}
 const srcVid=$('src'), srcImg=$('srcimg');
 const sampleCanvas=document.createElement('canvas'), sctx=sampleCanvas.getContext('2d',{willReadFrequently:true});
 const typeSrc=document.createElement('canvas');
@@ -461,6 +484,7 @@ function computeDims(){
   let W,H; if(ar>=1){ W=S.res; H=Math.max(1,Math.round(S.res/ar)); } else { H=S.res; W=Math.max(1,Math.round(S.res*ar)); }
   if(out.width!==W) out.width=W;
   if(out.height!==H) out.height=H;
+  VZ.fit();
   cellX=W/cols; cellY=H/rows; cell=Math.min(cellX,cellY);
   sampleCanvas.width=cols; sampleCanvas.height=rows;
   $('dims').textContent=W+' × '+H+' px';

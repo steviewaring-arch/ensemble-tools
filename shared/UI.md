@@ -6,15 +6,16 @@ look. These rules are the brief for every future build; when a tool and this fil
 disagree, the tool is wrong.
 
 Settled with Steve over rounds 1–4 (October–November 2026) and then worked hard in
-Segue (0.5 to 1.0, 5–12 November), which is the reference build: where a rule here
+Segue (0.5 to 1.1, 5–13 November), which is the reference build: where a rule here
 needs an example, look at Segue. The kit lives in `shared/kit.css`; the mock-ups and
 reasoning are at `ui/review/` (round 4 at `ui/review/round4/`). The history of each
 rule is in `CHANGELOG.md`; this file says only what holds now.
 
-Last revised 13 November 2026 (Segue 1.1, Tempo 0.18.1, Rubato 1.2.1, Tutti 6.2) – 1.1: drawings
-that don't move, in two colours; calm presets; a stand-in for big pictures. Before that, the 1.0 round:
-the bottom line that stays put, the house colour picker, one "More" per section, turning on the
-canvas, drawings that only do what the choice does, a short list of presets, 15 px section titles.
+Last revised 13 November 2026 (Segue 1.1, Tempo 0.18.1, Rubato 1.3, Tutti 6.3) – Segue 1.1:
+drawings that don't move, in two colours; calm presets; a stand-in for big pictures. Before
+that, the 1.0 round: the bottom line that stays put, the house colour picker, one "More" per
+section, turning on the canvas, a short list of presets, 15 px section titles. And on the 13th,
+one corner logic across all four, with zoom and guides shared by every tool.
 What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `claude/ui-todo.md`).
 
 ## Principles
@@ -65,6 +66,14 @@ What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `cl
   Esc. Anything up there you can act on says so when you point at it, and everything
   up there can be acted on: the value types, the facts take you to the section that
   sets them.
+- **Zoom is the same part in every tool** – `shared/view.js` (`mountZoom`): Fit, or a
+  set size, a screen pixel for each canvas pixel so 100% is actual size. ⌘ and a
+  scroll zooms where the pointer is, ⌘+ and ⌘− step, ⌘0 fits; past the view's edge
+  the view scrolls. It sizes the canvas on screen and nothing else – the canvas keeps
+  its own pixels, so no render and no export can tell. A tool passes its view, its
+  canvas and its size, and calls `fit()` wherever it used to size the canvas itself.
+  (Rubato 1.3 and Tutti 6.3 took it on 11 November; Segue has its own, from which it
+  came.)
 - **Island**, bottom left, beside the panel: what changes the view (Play, Show, scrub)
   and **Export**, which opens its sheet upward. Status and Undo show here. A play bar
   is long enough to aim at (300 px, less on a narrow window), with a fine tick where
@@ -160,6 +169,54 @@ Don't invent a fifth level. A plain label acting as a mini-heading ("Spacing",
 
 Sheets speak the same language: the sheet's title is set as a section title
 (15 Bold), its groups as labels (13 Medium) with one rule between groups.
+
+### Where a new thing goes
+
+Work down these questions; the first yes decides it. This is the whole of the
+hierarchy logic – there is no judgement call left over, and no new shape to invent.
+
+1. **Is it a setting of something already in the panel?** Then it goes with that
+   thing – in its section, its group, or inside its row – however far down the panel
+   that is. Never at the end because the end had room.
+2. **Is it optional, with settings of its own?** Then it is a **switch** that heads
+   those settings (below), at whichever level they sit: a switch section, a switch
+   group or a switch row. Never a tick beside a slider that does the same job.
+3. **Does it belong to the view rather than the work?** (zoom, guides, Preview,
+   light or dark, what the canvas shows while you work.) Then it is in the **top
+   bar**, and it never reaches an export.
+4. **Is it a new chapter of the work?** Then it is a **section**, placed in the
+   order of work – not appended. Adding a section means reading the whole panel
+   again (see The panel, as a whole).
+5. **Is it one of several things of the same kind?** Then it is a **row in a list**,
+   and its own settings open inside that row as a detail.
+6. **Otherwise it is a setting** – one row, in the group it belongs to.
+
+And two that decide the component, not the place:
+
+- **Same kind, same control.** Two things you switch on are both switches; two
+  amounts are both sliders; two choices are both segmented (or both menus, if they
+  don't fit). The shape is set by what a thing *is*, never by how much room is left.
+- **If it needs a heading to hold it, the structure is wrong.** "More", "Advanced",
+  "Additionals", "Other", "Options" – each of these is the panel telling you a
+  setting has no home. Find its home; the heading goes.
+
+### Naming, before building
+
+A name is part of the hierarchy: two levels that share a word read as one. Before
+anything is built, write the section and group names out and check:
+
+- **One word, one idea, across all four tools.** Format is the canvas's size and
+  shape; Shape is a thing on it. Transition is getting from one to the next;
+  Movement is what happens within one. Placement moves a whole layout; Position is
+  one piece's own. Colour is a colour; Look is a set of them.
+- **No word twice in one panel** unless the two sit in different, named groups
+  (Border › Width, Edge › Width), and never a section repeating a word of another
+  section's group.
+- **A label is one or two words that fit the label column.** If it wraps, rewrite
+  it; the sentence goes in its tooltip. "Sequence of texts" is a wrapped label;
+  "Sequence" with a tooltip is a label.
+- **A group says what it holds**, not what sort of thing it is: "Kerning", not
+  "Spacing"; "Repeat rows", not "More".
 
 ## Switches – one way to turn a thing on
 
@@ -344,10 +401,15 @@ A button says what it does ("Download GIF"); status says what happened ("Saved �
 
 ## Colour
 
-Neutral greys only: panel `#F4F4F4`, card `#FFFFFF`, controls `#F2F2F2`,
-hover `#ECECEC`, a slider's value `#E2E2E2`, grey text ≥ 4.5:1. Black for the main
-action. Blue `#2F6BFF` (dark `#6B95FF`) for "changed". Dark mode mirrors these
-(`body[data-theme=dark]` in `kit.css`).
+**One grey, and the tones under it.** The base is Steve's `#F6F5F4` (6 November) – a
+touch warm. Every other grey is that same colour darkened, never a neutral grey
+mixed in beside it: panel `#F6F5F4`, card `#FFFFFF`, controls `#F4F3F1`, hover
+`#EEEDEB`, a slider's value `#E4E3E0`. Grey text ≥ 4.5:1. Black for the main action.
+Blue `#2F6BFF` (dark `#6B95FF`) for "changed", and nothing else is blue. Dark mode
+mirrors the set (`body[data-theme=dark]` in `kit.css`).
+
+Where a tone is missing, derive it from the base rather than picking a new one: the
+warmth has to run all the way through, or the hovers read pink against the panel.
 
 **The colour picker is the house's own** (`shared/colour.js`, Segue 1.0) – never the
 browser's. A swatch opens it beside itself: a field of shade and strength, a hue
@@ -367,7 +429,15 @@ Open with Steve: his sampled base grey
 
 - **Corners step down with the levels:** panel and surfaces 12, cards 10, controls
   8, anything 2 px inside a control 6 (and chips), swatches and thumbnails 4.
-  Only true dots are round. No lozenges.
+  Only true dots are round. No lozenges – a slider is a control, so it takes the
+  control's corner.
+- **A corner inside a corner follows it:** the inner radius is the outer one less
+  the gap between them. A pill 2 px inside an 8 px group is 6. Nothing is exempt
+  for being wider or taller than usual: a row of choices that runs on to a second
+  row is still a control, not a lozenge. This is worth a machine's eye rather than
+  a designer's – read every radius on the page and compare each one with its
+  parent's, less the inset, because it was a leftover calc nobody looked at that
+  put a 6 px pill inside a 17 px box in two tools (Steve, 12 November).
 - **Space** on a 4/8 px step: 10 between settings, 6 from a label to a control
   under it, 20 before a group, 10 between cards, 16 inside a card (plus the change
   column on the right), 18 inside a sheet.
@@ -392,6 +462,30 @@ Open with Steve: his sampled base grey
    WebKit probe, `tests/webkit_probe.py`; Safari 17 is the one that bites).
 5. **Tutti is live on weareensemble.co.uk** – check `/tutti` and `/tutti/app` after
    any change to it or to the shared files it takes (`tokens.css`, `components.css`).
+
+## Taking a tool onto the house style
+
+For a tool that already exists – the order to work in, because each step makes the
+next one obvious. Nothing here changes what the tool makes.
+
+1. **Read the panel out loud, top to bottom.** Write down every section, group and
+   label in order. Most of what's wrong is visible in that list alone: words doing
+   two jobs, a section that's really a group, a group called "More".
+2. **Put the sections in the order of work** – someone starting cold works down the
+   panel once and has made something. Move whole sections before touching anything
+   inside them.
+3. **Fix the names** (above), and change each one in its test in the same commit:
+   labels and accessible names are the contract with the tests.
+4. **Flatten the fifth level** – plain labels used as mini-headings become groups or
+   go away.
+5. **One way to switch things on** – every optional thing with settings of its own
+   becomes a switch that heads them.
+6. **Take the house parts** from the reference build rather than writing them again:
+   the kit's components, the top bar, the change column and undo, the pasteboard,
+   the long-job button. If a part has to be written twice, it belongs in
+   `shared/kit.css` or `shared/core.js` first.
+7. **Audit the settings by machine**, then check the tool (below). Fix what the
+   audit finds before polishing anything.
 
 ## Building a tool
 

@@ -9,9 +9,11 @@
    Every control resets on a double-click of its label. Controls marked
    `more:true` go into the card's folded More section. */
 
+/* A card's second group: the rest of a thing's settings, named for what it holds – never "More"
+   (house rules: if the panel needs a heading like More or Advanced, the structure is wrong). */
 const MORE=Object.assign({},LS.get('more')||{});
-function moreSection(parent,id){
-  const row=el('button','more-toggle'),lab=el('span',null,'More'),chev=el('span','chev');chev.innerHTML=CHEV;row.append(lab,chev);row.type='button';
+function moreSection(parent,id,title){
+  const row=el('button','more-toggle'),lab=el('span',null,title||'More'),chev=el('span','chev');chev.innerHTML=CHEV;row.append(lab,chev);row.type='button';
   const inner=el('div','more-body'),kids=[];
   const paint=()=>{const on=!!MORE[id];inner.hidden=!on;row.setAttribute('aria-expanded',on);if(on)requestAnimationFrame(()=>syncRanges(inner));};
   row.onclick=()=>{MORE[id]=!MORE[id];LS.set('more',MORE);paint();};
@@ -163,12 +165,17 @@ function addPad(parent,d){
   const c={d:{show:d.show,group:d.group},w,update:paint};controls.push(c);return c;
 }
 
-/* build a list of controls; items with more:true go into the card's More section */
+/* Build a list of controls. `{ui:'group'}` opens a house group (level 2) and everything after it
+   goes inside until `{ui:'end'}`; items with more:true still go into a card's More section where
+   one is passed. There is no fifth level: a heading is a group or it isn't a heading. */
 function buildR(parent,list,more){
+  let grp=null;
   for(const d of list){
-    let host=parent;if(d.more&&more){host=more.inner;more.kids.push(d);}
+    if(d.ui==='group'){grp=fold(parent,d.id,d.title,d.show,d.shut!==false);continue;}
+    if(d.ui==='end'){grp=null;continue;}
+    let host=grp||parent;if(d.more&&more){host=more.inner;more.kids.push(d);}
     if(d.ui==='stepper')addStepper(host,d);else if(d.ui==='dial')addDial(host,d);else if(d.ui==='pair')addPair(host,d);
-    else if(d.ui==='bar')addLoopBar(host,d);else if(d.ui==='pad')addPad(host,d);else if(d.ui==='head')addCustom(host,d.show,el('div','sub-head',d.text));
+    else if(d.ui==='bar')addLoopBar(host,d);else if(d.ui==='pad')addPad(host,d);
     else build(host,[d]);
   }
 }

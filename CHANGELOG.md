@@ -43,6 +43,43 @@ Steve's "hitlist before pushing Segue to 1.0", nineteen points with three record
 - **Rubato 1.2.1, Tempo 0.18.1**: the island is anchored bottom left and no longer slides when Presets opens; the stray window scrollbar is gone; section titles 15 px. **Rubato and Tutti** take the house colour picker (Tempo keeps its own, which has CMYK – merging the two is on the list). **Tutti** otherwise unchanged; its 12 export hashes are identical.
 - House rules (`shared/UI.md`) revised; `shared/UI-TODO.md` says what's done and what still wants a yes.
 - Tests: Segue 198 of 198 (12 new, 10 updated) and 83 of 83; Rubato 45 of 45 and 14 looks identical; Tempo 125 of 125; Tutti 87 of 87, hashes identical; WebKit probe clean.
+## 13 November 2026 – one corner logic, and the Segue list through every tool
+
+Steve: "spotted this in the latest version of Tempo – corner discrepancy. Need to ensure we are super consistent across the board on any new and existing tools developed... Run the list from the Segue chat through too – functionality such as zoom etc. ensure all caught."
+
+**The corner he spotted, and the three others nobody had.** A row of choices that runs on to a second row kept `calc(h/2 + 2)` = 17 px from before the kit, so 6 px pills sat inside a 17 px box – in Tempo and in Rubato. Read by machine rather than by eye, three more were off the ladder: Rubato's XY pad at 14, Segue's placement spots at 5, and every plain slider still a lozenge (Steve, 5 Nov: "rounded corners, not lozenges. consistent corner logic"). All four are on the house ladder now – 4 · 6 · 8 · 10 · 12, and round only where a thing is a dot, a knob or a switch.
+
+**`tests/corner_check.py`** reads all 468 corners across the four tools and fails on two things: a radius off the ladder, and a corner inside a corner that doesn't follow its parent (inner = outer less the inset). `shared/UI.md` carries the nesting rule in words. It drifted because nobody could see 17 against 16; a machine can.
+
+**Zoom, now in all four.** Tempo took `shared/view.js` as Rubato and Tutti did on 11 November: Fit or a set size, 100% being actual size, ⌘ and a scroll to zoom where the pointer is, ⌘0 to fit. It sizes the canvas on screen only – no preview frame, GIF or MP4 can tell.
+
+**Guides, the other half of the 6 November note** – margins and a grid to marry the work up with artwork made elsewhere. `mountGuides` in `shared/view.js` lays them over the canvas rather than drawing them into it, so Tutti, Rubato and Tempo all have the same one and no export has them: a margin as a share of each way across (None, 5%, 8%, 10%) and cells inside it (None, 4, 6, 12), kept near square. ⌘; turns them on. Segue keeps its own, because it also snaps pieces to them.
+
+**The pop is a house part now** – the small panel under a top-bar button lived in `segue/app.css`, which is why the first guides pop in Tutti had no surface under it at all. It is in the kit with the rest.
+
+**Tests.** Corners 468 of 468. Tutti 84 of 84 with the 12 export hashes byte-identical, Tempo 124 of 124, Rubato features 43 of 43 and 14 looks identical to 0.9, split 15 of 15, Segue 186 of 186 and 83 of 83, licence 4 of 4. `tests/parity.py` takes Rubato's renamed switches under either name, so it can still drive v0.8.1 and 1.3 from one script.
+
+## 11 November 2026 – the house style through Tutti (6.3) and Rubato (1.3)
+
+Steve: "following the latest release of Segue, we need to update the house UI style, consolidating rules, hierarchy logic and anything else to ensure a robust guide on any new developments or updates. equally, these should be rolled through Tutti and Rubato, with testing (especially on Tutti as that is live)."
+
+**The rules first.** `shared/UI.md` is now the whole guide rather than a list of decisions: the ladder of levels (section → group → setting → detail, and no fifth), **where a new thing goes** – six questions that settle it before anything is built – **naming before building**, and **taking a tool onto the house style**, the seven steps in the order they pay. The house parts Segue proved are lifted out of it and into the kit, so a tool takes them rather than copying them: the pasteboard's dots, switch groups, the long-job button, the note, the group (`fold()` in `shared/core.js`), and the view's zoom (`shared/view.js`).
+
+**Zoom, in every tool** (Steve, 6 Nov: "add in zoom functionality across the board, as standard – with actual size button"). One part, `shared/view.js`: Fit or a set size, 100% being actual size, ⌘ and a scroll to zoom where the pointer is, ⌘0 to fit; past the view's edge, the view scrolls. It sizes the canvas on screen only – no render and no export can tell.
+
+**Tutti**
+- **Warp** was a plain label used as a heading – the fifth level the rules forbid. It is a group now, and groups remember whether they are open.
+- **The band rows have room** left and right (Steve's 6 Nov note).
+- The labels and the colour picker came from the Segue chat's 13 November round, which Steve approved; "Advanced" is **Fine tuning** there rather than dissolved. The house rule would put its settings with what they are settings of – left as an open question in `shared/UI-TODO.md` rather than decided here.
+
+**Rubato 1.3**
+- **The panel is in the order of work:** Canvas (format, background, transparent) → Text → Fonts → Layout → Motion → Variants → Physics. The canvas's format was "Shape" inside Layout and its background was in a Colour card at the foot; both now sit where they are set.
+- **No fifth level:** Spacing, Kerning, Glyphs, Repeat, Picture and the variable axis are groups with a rule and a title; the three sections called "More" say what they hold – Shaping, How they change – and Physics's is dissolved.
+- **Switches head what they turn on:** Sequence, Repeat rows, Pull apart.
+- **Undo and Redo are in the top bar**, where the house keeps them, with ⌘Z and ⇧⌘Z; the bottom line no longer carries an Undo.
+- **The dial starts where every control starts** – its name in the label column, the dial in the control column (Steve, 6 Nov).
+
+**Tests.** `tests/tutti_check.py` 84 of 84 with the 12 export hashes byte-identical to 6.2 (the one line that opened "Advanced" now opens Presets, and two names in its messages). `tests/rubato_features.py` 43 of 43 (the panel's order, and the Sequence switch by its new name), `tests/rubato_regress.py` 14 looks still identical to 0.9, `tests/split_check.py` 15 of 15 (Rubato opens on Canvas now). `tests/parity.py` takes the Sequence switch under either name and undoes with the key, since the bottom line has no Undo in 1.3.
 
 ## 11 November 2026 – Segue 0.18: stepping slide by slide, corners that hold still, strips that share
 

@@ -121,10 +121,10 @@ def run(p, eng, mode):
         L('.stSvg').first.set_input_files(MARK); pg.wait_for_timeout(700)
         if not ev('!!S.states[0].inner'): raise Exception('mark not loaded')
         a = canvas_sig(); L('#tKeepSvg').click(); wait_render(); b2 = canvas_sig(); L('#tKeepSvg').click(); wait_render()
-        if a == b2: raise Exception('Keep SVG colours changed nothing')
+        if a == b2: raise Exception('Own colours changed nothing')
         L('#resetShapes').click(); wait_render()
         if ev('!!S.states[0].inner'): raise Exception('Reset shapes left the mark')
-    check(tag, 'SVG mark, Keep SVG colours, Reset shapes', svg_mark)
+    check(tag, 'SVG mark, Own colours, Reset shapes', svg_mark)
     def randoms():
         a = canvas_sig(); L('#randomColors').click(); wait_render(); b2 = canvas_sig(); L('#randomAll').click(); wait_render()
         if a == b2: raise Exception('Random changed nothing')

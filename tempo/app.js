@@ -1493,14 +1493,19 @@ document.addEventListener('click',function(){if(!document.fullscreenElement&&doc
 /* ---------------- preview ---------------- */
 /* The preview takes the shape of the screen Tempo is open on. */
 function screenShape(){const w=Math.round((window.screen&&screen.width)||0),h=Math.round((window.screen&&screen.height)||0);return w>99&&h>99?[w,h]:[1680,1050];}
+/* the view's zoom is the house part in shared/view.js: Fit, or a set size, with the
+   buttons in the top bar. It sizes the canvas on screen; the canvas keeps the screen's
+   own pixels, so no preview frame, GIF or MP4 can tell. */
+let VZ=null,GD=null;
 function fitCanvas(){
   const [W,H]=screenShape();if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
-  const v=$('#view'),cs=getComputedStyle(v);
-  const aw=v.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=v.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
-  const s=Math.max(.01,Math.min(aw/W,ah/H));cv.style.width=Math.floor(W*s)+'px';cv.style.height=Math.floor(H*s)+'px';
+  if(!VZ){VZ=mountZoom({view:$('#view'),canvas:cv,size:screenShape,after:()=>{if(GD)GD.draw();}});
+    GD=mountGuides({view:$('#view'),canvas:cv,key:'tempo'});}
+  VZ.fit();
   cv.classList.toggle('checker',!!S.transparent);
   const dm=$('#dims');dm.textContent=W+' × '+H;dm.title='Preview at '+W+' × '+H+', the shape of this screen, showing your local time';dirty=true;
 }
+if(window.ResizeObserver){let rt=0;new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(()=>{if(VZ)VZ.fit();},60);}).observe($('#view'));}
 let pEng=null,saver=null,pFonts=-1;
 function previewFrame(now,dt){
   if(!pEng)pEng=createEngine();

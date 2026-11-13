@@ -9,6 +9,15 @@
   /* cards: a title that folds the card; shut, it says what's set */
   $$('.card-toggle').forEach(b=>b.addEventListener('click',()=>{const c=b.closest('.card'),open=!c.classList.toggle('collapsed');
     b.setAttribute('aria-expanded',open);if(open)requestAnimationFrame(()=>syncRanges(c));}));
+  /* groups inside a card: a hairline and a Bold title that says what it holds.
+     Shut or open is remembered, like the cards. */
+  const GK='tutti:groups';let GRP={};try{GRP=JSON.parse(localStorage.getItem(GK)||'{}')||{};}catch(e){}
+  $$('.fold-head').forEach(b=>{const id=b.dataset.group,body=b.nextElementSibling;
+    const set=open=>{b.setAttribute('aria-expanded',open);if(body)body.hidden=!open;};
+    if(id&&Object.prototype.hasOwnProperty.call(GRP,id))set(!!GRP[id]);
+    b.addEventListener('click',()=>{const open=b.getAttribute('aria-expanded')!=='true';set(open);
+      if(id){GRP[id]=open;try{localStorage.setItem(GK,JSON.stringify(GRP));}catch(e){}}
+      if(open)requestAnimationFrame(()=>syncRanges(b.closest('.card')));});});
   const label=sel=>{const o=sel&&sel.options[sel.selectedIndex];return o?o.text.replace(/\s*:\s*/,':').replace('…',''):'';};
   const SUM={
     source:()=>S.kind?($('srcName').textContent||''):'No source',

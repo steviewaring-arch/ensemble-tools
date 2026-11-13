@@ -18,22 +18,35 @@ Done in the Segue chat, in one pass, because the parts are shared. Nothing here 
 - **13 Nov – Tutti's C1, C2, C3 and C5 are done** (Steve: "yes, implement"): Colour, Format, Scale, Solid fill, Invert, Size by tone, Shape size, Own colours; "Advanced" is **Fine tuning** and says what it holds; band rows have more room. Words and padding only – ids, behaviour and the 12 export hashes unchanged, 87 of 87. **C6 is still open** (change dots and undo, top-bar zoom and guides, pasteboard dots – new parts, not labels). Was: untouched – label wraps, "Advanced", "Ratio"/"Zoom" names, band rows, change dots. They rename labels on a live public tool, so they still want Steve's yes; C4 is done.
 - Rubato: turning and sizing a lockup on the canvas could take Segue's handles (corner sizes, outside a corner turns) – its Tilt dial is the candidate.
 
+## Done 13 Nov – one corner logic, and zoom and guides everywhere (this chat)
+
+- **One corner logic.** A wrapped row of choices kept a 17 px lozenge radius from before the kit (Steve spotted it in Tempo, 12 Nov); Rubato's XY pad was 14, Segue's placement spots 5, and every plain slider was still a lozenge. All on the ladder now. **`tests/corner_check.py`** reads every radius in all four tools and fails on one off the ladder, or one that doesn't follow its parent – this is not a thing to check by eye.
+- **Zoom in all four** – `shared/view.js` (`mountZoom`); Tempo took it on the 13th, Rubato and Tutti on the 11th.
+- **Guides in Tutti, Rubato and Tempo** – `mountGuides` lays a margin and cells over the canvas rather than drawing them in, so no export has them. Segue keeps its own, because it also snaps to them.
+- **The pop is in the kit** – the small panel under a top-bar button was Segue-only CSS, so the first guides pop in Tutti had no surface under it at all.
+- **Rubato 1.3** – the panel in the order of work (Canvas, Text, Fonts, Layout, Motion, Variants, Physics), groups instead of plain headings, the More sections named, switches heading what they turn on, Undo and Redo in the top bar, the dial out of the label column.
+- **Tutti** – Warp is a group rather than a plain label used as a heading; the band rows keep their room.
+
+**Open question for Steve:** C2 has two readings. The Segue chat renamed "Advanced" to **Fine tuning** and you said yes on the 13th; the house rule as written says a section named for how much you care is a structure fault, and would put Opacity in Shape, Rotation and Thresholds in groups, and Presets in a section of its own. The rename is what shipped. Say the word and the dissolve is half an hour.
+
 ## GO: the house sync (Steve, 10 Nov 23:30 – "after this run, I think now is the time")
 
-Segue is in place (0.17, 11 Nov): every setting audited by machine, the panel in the order of work, one way to switch things on, no bolt-on tier, the export as one control and the work on the bottom line. `shared/UI.md` was rewritten on 11 Nov as the current house rules (the Project's `claude/house-ui-rules.md` is the same file) – read it first; it now has ten principles and three new sections (The panel as a whole, Switches, On the canvas, Checking a tool).
+Steve, 11 Nov: "following the latest release of Segue, we need to update the house UI style, consolidating rules, hierarchy logic and anything else to ensure a robust guide on any new developments or updates. equally, these should be rolled through Tutti and Rubato, with testing (especially on Tutti as that is live)."
 
-Run this in one pass across **Rubato** (first – it's being shared next), **Tempo** and **Tutti**. Not Decentish or Patch – they're websites. Segue is the reference: copy its parts, don't reinvent them.
+`shared/UI.md` (the Project's `claude/house-ui-rules.md`) is the guide – read it first. It now carries the ladder of levels, **Where a new thing goes**, **Naming, before building** and **Taking a tool onto the house style**. Segue is still the reference build; the parts it proved are in the kit now, so take them, don't rebuild them.
 
-**First:** `git pull`; read `shared/UI.md`, Segue's `frame.js`, `app.css` and the kit; take baselines of every suite on main (11 Nov: Tutti 84/84, Tempo 124/124, Rubato features 43/43 and 14 looks identical, Segue 171/171 and 83/83).
+### Done, 13 November
 
-### A. Bring Segue's house parts across (all three tools)
+- **One corner logic.** A wrapped row of choices kept a 17 px lozenge radius from before the kit (Steve spotted it in Tempo, 12 Nov); Rubato's XY pad was 14, Segue's placement spots 5, and every plain slider was still a lozenge. All on the ladder now. **`tests/corner_check.py`** reads every radius in all four tools and fails on one off the ladder, or one that doesn't follow its parent – this is not a thing to check by eye.
+- **Zoom in Tempo**, so all four have `shared/view.js`.
+- **Guides in Tutti, Rubato and Tempo** – `mountGuides` lays a margin and cells over the canvas rather than drawing them in, so no export has them. Segue keeps its own, because it also snaps to them.
+- **The pop is in the kit** – the small panel under a top-bar button was Segue-only CSS, so the first guides pop in Tutti had no surface under it at all.
 
-0. **New since this list was written (Segue 0.17, 11 Nov)** – all four of these are house rules now:
-   - **The bottom line**: the project chip moves out of the top left and on to the bottom line with the play bar and the presets, the same height and shape; the line gives way in order (project name, then the play bar, then a note – never one with an Undo). Tempo and Rubato have no projects yet, so this is Segue-only until they do.
-   - **The guide, top left** (`#selHint` + `topFit` in Segue's `frame.js`): one line saying what the selected thing does under the pointer; the panel's rows say the keyboard. Rubato's canvas (kerning, dragging a lockup) is the obvious next home for it.
-   - **Long jobs** (Export): the opening button carries a chevron; the doing button becomes the progress (fill, per cent, time left) with Stop beside it at the same height; the job runs from a copy so the person can carry on; a note top right (`notice()` in Segue's `frame.js`) when the sheet is shut as it ends. Tutti's recorder and Rubato's exports both want this; `notice()` and the `.run` button CSS should move to the shared kit when the second tool needs them.
-   - **Drawings that move** on hover (preset pictures, Kind tiles). Rubato's Movement and Order drawings are the candidates.
+### Done, 11 November
 
+- **The kit holds the house parts** – the pasteboard's dots, switch groups (`.toggle-row.sw-grp`), the long-job button and its note, the group (`fold()` in `shared/core.js`, `grp:true` on a switch), the base grey `#F6F5F4` and its darker tones, the slider handle that fades where it crosses a bar's words, and the view's zoom (`shared/view.js`).
+- **Tutti 6.3** – Advanced dissolved (Opacity into Shape, Rotation a group, Thresholds a group in Mapping, Presets its own section); Warp a group instead of a plain heading; the renames (Format, Colour, Source zoom, Filled, Invert, Size by tone, Smallest, Mark size, Opacity, SVG colours); the house colour row (hex field and swatch); room in the band rows; the top bar's zoom.
+- **Rubato 1.3** – the panel in the order of work (Canvas, Text, Fonts, Layout, Motion, Variants, Physics); groups instead of plain headings; the "More" sections named; switches heading what they turn on; Undo and Redo in the top bar with ⇧⌘Z; the dial out of the label column; the top bar's zoom.
 
 1. **Top bar** – keyline groups top right: info chips, Undo and Redo, zoom (−, value, +; fit and 100%), Guides (on/off, an arrow to Margin, Grid, Snap). View settings live here, never in exports.
 2. **Change dots and undo** – blue `--k-dot`, click to put back, section Reset, ⌘Z / ⇧⌘Z and the top-bar buttons. Each tool needs "where a setting started": Tempo – the preset open, else defaults; Rubato – defaults; Tutti – each input's starting value.
@@ -44,24 +57,24 @@ Run this in one pass across **Rubato** (first – it's being shared next), **Tem
 7. **The order of work** – lay each panel out again from the top (see B–D).
 8. **A settings audit** for each tool, on the model of `tests/audit/` – every setting changed and the output compared. Fix or hide what it finds before polishing anything.
 
-### B. Rubato 1.2 – action points (reviewed 11 Nov against the rules)
+**Change dots and undo** – the one house part none of the three has yet. Each tool needs "where a setting started": Tutti – each input's starting value; Rubato – defaults (undo and redo are in its top bar now, the dots are not); Tempo – the preset open, else defaults. With it come the blue dot per changed setting, click to put back, and a section Reset.
 
-Nothing is broken; this is structure, names and the missing house parts. In order of value:
+**Rubato**
+1. **Long choice grids become menus** – Movement (six), Order (five), Swap (five); with a drawing where the choice has a shape (Movement, Order).
+2. **Kerning by drag** on the canvas – it is keyboard only; keep the keys as the extra.
+3. **The guide, top left** (`#selHint`) – Rubato's canvas (kerning, dragging a lockup) is the obvious home for it.
+4. **Three settings called "Stretch"** – the Layout switch and the two Variants ranges. One word, one idea.
 
-1. **Order of work.** Now: Fonts, Text, Layout, Motion, Variants, Physics, Colour. The canvas's format is "Shape" inside Layout and its background is in Colour, at the foot. Proposed: **Canvas** (Format, Background, Transparent) → **Text** (the words; type colour here) → **Fonts** → **Layout** → **Motion** → Variants → Physics.
-2. **Names doing two jobs across the tools.** "Shape" is the canvas's format (Segue: Format; Shapes are the pieces). "Position" (Top / Middle / Bottom) – Segue's Placement. "Size" (Fit / Fill width / Manual) reads as a canvas size.
-3. **A fifth level.** "Spacing", "Kerning", "Repeat", "Glyphs", "Image" are plain labels used as mini-headings – make them groups (rule, 13 Bold, saying what they hold) or drop them.
-4. **Three groups called "More".** Name each by what's in it.
-5. **Switches.** Physics is a section whose only first row is "Pull apart" – a switch section. "Sequence of texts", "Repeat rows", "Stretch to fill", "Transparent background" – switch rows or groups by the rule.
-6. **Labels that wrap:** "Sequence of texts", "Transparent background" – shorten.
-7. **Kerning on the canvas** is keyboard only (click between two letters, then arrow keys) – add a drag; keep the keys as the extra.
-8. **Long choice grids** (Movement: six; Order: five; Swap: five) – menus, with a drawing where the choice has a shape (Movement, Order).
-9. **Missing house parts:** top-bar Undo/Redo and zoom (Undo is a disabled button in the island now), change dots, pasteboard dots, Tilt's dial off the label column.
-10. **Safari 17:** done 11 Nov – the sheet fallback is in `shared/core.js`.
+**Tutti**
+5. **The colour picker in house terms** (Steve, 6 Nov) – the hex field and swatch are in; what opens from the swatch is still the browser's own.
 
-### C. Tutti 6.2 – action points (live on weareensemble.co.uk – change with care, hashes identical)
+**Tempo**
+6. Section names repeat (four "Change", five "Colour") – one word, one idea; fifteen-plus sections – the order of work, and what could be groups.
+7. The colour picker, as above.
 
-Tutti is the simplest and the closest to the rules; nothing urgent, nothing broken.
+**Every tool**
+8. **The machine's eye, wider than corners.** `tests/corner_check.py` is the model: read what is on the page and compare it with the house, rather than looking. Heights, type sizes and the greys would all take the same treatment.
+9. **A settings audit** on the model of `tests/audit/` – every setting changed and the output compared – for Tutti, Rubato and Tempo. Segue has one.
 
 1. **Labels that wrap:** "Canvas colour" (inside Canvas → "Colour"), "Fill shapes solid", "Invert mapping", "Scale with midtones", "Shape size / overlap", "Keep SVG colours".
 2. **"Advanced"** – a section named for nothing; name it by what's in it or move its settings to what they're settings of.
@@ -70,28 +83,17 @@ Tutti is the simplest and the closest to the rules; nothing urgent, nothing brok
 5. **Mapping's band rows** – more room left and right (Steve's 6 Nov note).
 6. **Missing house parts:** change dots and undo, top-bar zoom and guides, pasteboard dots.
 
-### D. Tempo 0.16 – seen in passing (not asked for; for the pass)
-
-Section names repeat (four "Change", five "Colour", "From your other designs" × 5) – one word, one idea; fifteen-plus sections – check the order of work and what could be groups.
-
-### E. Steve's open list from 6 Nov (every tool)
-
-- **Slider handle over words** – fade or sort the line where it crosses a bar's text (his grab: Tutti's Edges).
-- **Colour picker in house terms** – Tutti's and Tempo's; function unchanged.
-- **Base grey #F6F5F4** (sampled 246, 245, 244; a touch warm) – derive the darker tones from it; update `kit.css` tokens and `UI.md`. Still to confirm with Steve: `UI.md` says neutral greys.
-- Done since: sparse dots behind the canvas (Segue 0.11 – bring across); list rows' room (Segue 0.11's lane; Tutti's bands still to do).
-
-**Checks before release:** every suite green against the baselines; Tutti's 12 export hashes identical; Tempo and Rubato exports unchanged; WebKit probe (Safari); screenshots light, dark, phone; Tutti on weareensemble.co.uk/tutti and /tutti/app. Then push, confirm live, report as hitlist / to-do / status / versions.
+Every suite green against the baselines on main, `tests/corner_check.py` included (11 Nov: Tutti 84/84 with its 12 export hashes identical, Tempo 124/124, Rubato features 43/43 and 14 looks identical to 0.9, split 15/15, parity all results match, Segue 186/186 and 83/83, licence 4/4); the WebKit probe on GitHub Actions; screenshots light, dark and phone; Tutti on weareensemble.co.uk/tutti and /tutti/app. Then push, confirm live, and report as hitlist / to-do / status / versions.
 
 ## Who does what
 
-- The **UI stream chat** runs this sync (it owns `shared/` and the panels' layout). Behaviour stays with each tool's chat.
-- The **Segue chat** keeps `shared/UI.md` current as Segue moves, and wrote this list.
-- Renaming a section or label needs its test changed in the same commit, and the tool's own chat told (labels are the tests' contract).
+- The **UI stream chat** owns `shared/` and the panels' layout. Behaviour stays with each tool's chat.
+- The **Segue chat** keeps `shared/UI.md` current as Segue moves.
+- Renaming a section or label needs its test changed in the same commit, and the tool's own chat told – labels are the tests' contract.
 
 ## History
 
-- **13 Nov:** Segue 1.1 – stand-ins for big pictures, Glass, Focus, packed Lines, still two-colour drawings, calmer presets; Tutti's labels (C1–C3, C5).
+- **13 Nov:** one corner logic across all four; `tests/corner_check.py`; zoom in Tempo; guides in Tutti, Rubato and Tempo; the pop lifted into the kit. Segue 1.1 – stand-ins for big pictures, Glass, Focus, packed Lines, still two-colour drawings, calmer presets; Tutti's labels (C1–C3, C5).
 - **12 Nov:** Segue 1.0 – the hitlist (turning, endings, a video behind, frosted type, own shapes everywhere, the deck, the house picker, a still bottom line, sixteen presets). The shared parts taken to Rubato 1.2.1, Tempo 0.18.1 and Tutti in the same pass; `UI.md` revised.
 - **11 Nov:** Segue 0.11–0.17 (in the Segue chat) – blends that make layers, the project chip, Layout apart from Motion, Pile up, cropping by double-click, the settings audit, switch groups, no Additionals, the export as one control and the bottom line. `shared/UI.md` rewritten. Safari 17 sheet fallback shared with Rubato and Tempo.
 - **10 Nov 12:03:** Steve: "wait for now until Segue is in a place, then we can run through the hitlist above on all in one clean go."

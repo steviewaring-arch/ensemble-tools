@@ -45,7 +45,7 @@
   .kind:focus-visible,.spot:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   /* the overlay's place: a 3 × 3 pad */
   .place{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,22px);gap:2px;background:var(--k-fill);border-radius:var(--r-ctl);padding:3px;width:max-content}
-  .spot{border:0;background:transparent;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap)}
+  .spot{border:0;background:transparent;border-radius:var(--r-in);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap)}
   .spot:hover{background:var(--k-fill-hover)}
   .spot i{width:5px;height:5px;border-radius:50%;background:var(--muted);opacity:.55}
   .spot:hover i{opacity:1}
@@ -164,25 +164,14 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .card>h2>.head-sw{position:absolute;left:16px;top:50%;margin-top:-8px;width:16px;height:16px;padding:0;min-height:0;z-index:1}
 .card>h2>.head-sw .box{margin:0}
 .card.off>h2>.card-toggle>span:first-child{color:var(--muted)}
-/* 0.10: zoom – the view scrolls when the canvas is bigger than it; the canvas centred when it's smaller */
-#cv{margin:auto;flex:none}
-.view.zoomed{overflow:auto;justify-content:flex-start;align-items:flex-start;scrollbar-width:thin}
+/* 0.10: zoom – the scrolling view, the canvas centred and the top bar's groups are in the kit now
+   (shared/kit.css, 11 Nov), so every tool takes them. Only Segue's own grab cursor stays here. */
 .view.grabbing,.view.grabbing #cv{cursor:grabbing}
-/* the top bar's groups: undo and redo, zoom, guides – each a keyline group like the theme's */
-.topbar .tools button:disabled{opacity:.35;cursor:default;background:transparent}
-#zoomTools .zval{width:auto;min-width:44px;padding:0 6px;border-radius:var(--r-in);font-size:var(--fs-small);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0}
-#zoomTools .zval[aria-pressed="true"]{background:transparent;color:var(--ink-strong)}
-#zoomTools .zval:hover{background:var(--btn-hover)}
 #guideTools{position:relative}
 #guideTools .more{width:18px}
 #guideTools .more svg{width:12px;height:12px}
 #guideTools .more[aria-expanded="true"]{color:var(--ink);background:var(--btn-hover)}
-/* a small panel under its button: the panel's own surface and rows */
-.pop{position:absolute;top:calc(100% + 8px);right:0;width:300px;z-index:20;padding:14px calc(12px + var(--gutter)) 10px 14px;border-radius:var(--r-surface);
-  background:var(--k-card);box-shadow:0 0 0 1px var(--keyline);color:var(--ink);text-align:left;--lc:96px}
-.pop[hidden]{display:none}
-.pop-title{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);margin:0 0 12px}
-.pop .hint{margin:8px 0 2px}
+/* the pop – a small panel under its button – is in the kit now (11 Nov), so every tool has it. */
 @media (max-width:860px){#zoomTools,#historyTools{display:none}}
 /* the project (0.11): top left of the stage, in line with the top bar – a chip with its name and how it's saved */
 /* 0.17 – the project sits on the bottom line with the play bar and the presets, the same height and shape as both:
@@ -229,10 +218,6 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .proj-row.on{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
 .proj-row .tag{flex:none;font-size:11.5px;color:var(--muted)}
 .proj-pop .hint{margin:12px 0 0}
-/* 0.11: the pasteboard – very sparse, very faint dots round the canvas, so it's plain what's canvas and what isn't */
-.view{background-image:radial-gradient(circle,color-mix(in srgb,var(--ink) 15%,transparent) 0 .75px,transparent 1.05px);background-size:24px 24px;background-position:center}
-.app.preview .view{background-image:none}
-.layer-sw{margin-bottom:12px}
 /* the play bar (0.11): longer, with a faint tick where each slide begins */
 .scrubw{position:relative;display:inline-flex;align-items:center;flex:none}
 /* the scrub's width is worked out in layoutUI, so the project, the play bar and the presets share the line */
@@ -270,43 +255,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 /* 0.15 – Captions and Overlay: the box (or the name) turns it on and opens it; no arrow */
 .card.has-sw>h2 .chev{display:none}
 
-/* 0.16 – a switch that heads a group: the group's rule and weight, its box first. One way to turn anything optional on. */
-.toggle-row.sw-grp{border-top:1px solid var(--keyline);margin:20px 0 6px;padding-top:6px}
-.toggle-row.sw-grp .toggle{display:flex;gap:10px;align-items:center;min-height:38px;width:auto}
-.toggle-row.sw-grp .toggle>span:last-child{order:0;font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);letter-spacing:-0.008em}
-.toggle-row.sw-grp>.q{position:static;margin:0 0 0 2px}
-.toggle-row.sw-grp:not(.on){margin-bottom:0}
-.card-body>.toggle-row.sw-grp:first-child{border-top:0;margin-top:0;padding-top:0}
-
 /* ---------------- 0.17: the export as one control, chips of one family, a note when something finishes ---------------- */
-/* Export opens a sheet – the chevron says so – and becomes the progress while it works: its fill, the per cent and
-   the time left, so the sheet can be shut and the work carried on. Stop sits beside it, the same height. */
-.ebtn.xopen .chev{width:10px;height:10px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
-.ebtn.xopen[aria-expanded="true"] .chev{transform:rotate(180deg)}
-.ebtn.xopen:hover .chev{color:var(--ink)}
-.ebtn.run,.pill.xgo.run{position:relative;overflow:hidden;background:var(--k-fill);color:var(--ink);font-variant-numeric:tabular-nums;cursor:default}
-.ebtn.run::before,.pill.xgo.run::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);background:var(--k-fill-hover);transition:width .2s linear}
-.ebtn.run::after,.pill.xgo.run::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:var(--p,0%);background:var(--fill-ink);transition:width .2s linear}
-.ebtn.run>*,.pill.xgo.run{z-index:1}
-.ebtn.run>.chev{display:none}
-.pill.xgo.run>*{position:relative;z-index:1}
-.xrun{display:flex;gap:6px}
-.xrun .xgo{flex:1 1 auto}
-.ctl.btn-row.xrun>.xstop{flex:none;height:var(--h-ctl);padding:0 13px}
-.sheet .btn-row.xrun>.pill{height:36px}
-#exportStop{flex:none}
-/* the note: something finished while you were working elsewhere. It goes by itself; a click sends it sooner. */
-.notice{position:absolute;right:var(--gap);top:calc(var(--gap)*2 + var(--h-chip));z-index:9;display:flex;align-items:center;gap:10px;max-width:320px;padding:10px 14px 10px 12px;border-radius:var(--r-surface);
-  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline),0 8px 28px rgba(0,0,0,.1);
-  cursor:pointer;animation:noteIn .32s var(--e-smooth)}
-.notice.out{opacity:0;transform:translateY(-6px);transition:opacity .24s,transform .24s}
-.notice .n-ic{flex:none;width:22px;height:22px;border-radius:50%;background:var(--fill-ink);color:var(--on-ink);display:flex;align-items:center;justify-content:center}
-.notice.quiet .n-ic{background:var(--k-fill);color:var(--muted)}
-.notice .n-ic svg{width:12px;height:12px}
-.notice .n-tx{min-width:0;display:flex;flex-direction:column;gap:1px;line-height:1.3}
-.notice .n-tx b{font-size:var(--fs-small);font-weight:500;color:var(--ink-strong)}
-.notice .n-tx span{font-size:var(--fs-small);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-@keyframes noteIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 /* one family of chips: the ones over the canvas and the ones in the export sheet – same height, shape, type and
    numerals. The ones over the canvas keep their keyline, because they sit on the picture. */
 .stage-foot span{height:var(--h-chip);padding:0 10px;border-radius:var(--r-ctl);font-size:var(--fs-small);font-weight:500;color:var(--ink);letter-spacing:-0.005em}

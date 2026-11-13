@@ -45,7 +45,7 @@ def main():
         pg.reload(); time.sleep(1)
         check('Rubato has no Screensaver tab', btn(pg, 'Screensaver', True).count() == 0)
         check('Rubato opens on Studio even if v0.8.1 was left on Screensaver',
-              pg.locator('section.card:visible h2').first.inner_text().startswith(('Presets', 'Fonts')) and pg.locator('section.card:visible h2', has_text='Motion').count() == 1 and pg.locator('#scrub').is_visible())
+              pg.locator('section.card:visible h2').first.inner_text().startswith(('Presets', 'Canvas')) and pg.locator('section.card:visible h2', has_text='Motion').count() == 1 and pg.locator('#scrub').is_visible())
         pg.set_input_files('#fontfile', POP); time.sleep(1.5)
         pg.evaluate(expand)
         reveal(pg.get_by_label('Preset name')).fill('Night look')

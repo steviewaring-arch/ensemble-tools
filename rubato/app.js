@@ -93,14 +93,20 @@ Object.assign(TIPS,{
 });
 /* ---------------- preview loop ---------------- */
 let playing=true,phase=0,busy=false;
+/* the view's zoom is the house part in shared/view.js: Fit, or a set size, with
+   the buttons in the top bar. It sizes the canvas on screen; the canvas itself is
+   always the frame's own pixels, so nothing here reaches a render or an export. */
+let VZ=null,GD=null;
 function fitCanvas(){
   const [W,H]=frameSize();if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
-  const v=$('#view'),cs=getComputedStyle(v);
-  const aw=v.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=v.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
-  const s=Math.max(.01,Math.min(aw/W,ah/H));cv.style.width=Math.floor(W*s)+'px';cv.style.height=Math.floor(H*s)+'px';
+  if(!VZ){VZ=mountZoom({view:$('#view'),canvas:cv,size:frameSize,after:()=>{if(GD)GD.draw();}});
+    GD=mountGuides({view:$('#view'),canvas:cv,key:'rubato'});}
+  VZ.fit();
   cv.classList.toggle('checker',!!S.transparent);
   $('#dims').textContent=`${W} × ${H} px`;dirty=true;
 }
+/* the window changing shape re-fits the canvas (and so does leaving Preview) */
+if(window.ResizeObserver){let rt=0;new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(()=>{if(VZ)VZ.fit();},60);}).observe($('#view'));}
 const scrub=$('#scrub');
 function tick(now){
   const dt=lastT?Math.min(100,now-lastT):0;lastT=now;
@@ -172,12 +178,40 @@ function applyPreset(n){
 
 /* Text – blocks, sequence, spacing, kerning */
 let textsHost,kernHost;
+let imgNameEl,imgRemove;   /* the Picture group in Canvas, built before refreshImageCard is defined */
+/* Canvas – the page: its format, what's behind the type, and a picture to blend with it.
+   First in the order of work (house rules, 11 Nov): set the page, then the words. */
+{const b=card('canvas','Canvas');
+  buildR(b,[{t:'seg',k:'aspect',label:'Format',opts:[['1:1','1:1'],['4:5','4:5'],['9:16','9:16'],['16:9','16:9'],['3:2','3:2'],['2:3','2:3'],['custom','Custom']]}]);
+  const pair=el('div','ctl pair');const mk=(k,lab)=>{const i=el('input');i.type='number';i.min=64;i.max=4096;i.step=1;i.setAttribute('aria-label',lab);i.onchange=()=>set(k,clamp(Math.round(+i.value)||1080,64,4096));return i;};
+  const iw=mk('cw','Width in pixels'),ih=mk('ch','Height in pixels');pair.append(iw,ih);
+  addCustom(b,s=>s.aspect==='custom',pair).update=()=>{iw.value=S.cw;ih.value=S.ch;};
+  buildR(b,[
+    {t:'colour',k:'bg',label:'Background'},
+    {t:'toggle',k:'transparent',label:'Transparent'},
+    {t:'hint',text:'Transparency applies to PNG, SVG and WebM. GIFs always use the background colour.',show:s=>s.transparent},
+  ]);
+  /* a picture behind, above or inside the type – a switch group once one is loaded */
+  const imgGrp=fold(b,'image','Picture',null,true);
+  const ir=el('div','img-row');imgNameEl=el('div','slot-name');const ld=el('button','pill small','Load');imgRemove=el('button','pill small','Remove');
+  ld.onclick=()=>$('#imgfile').click();imgRemove.onclick=clearImage;ir.append(imgNameEl,ld,imgRemove);imgGrp.append(ir);
+  const has=()=>!!img;
+  buildR(imgGrp,[
+    {t:'seg',k:'iPlace',label:'Place',group:'image',opts:[['behind','Behind type'],['above','Above type'],['inside','Inside type']],show:has},
+    {t:'seg',k:'iBlend',label:'Blend',group:'image',opts:[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['difference','Difference']],show:has},
+    {t:'range',k:'iScale',label:'Scale',group:'image',min:.2,max:3,step:.01,fmt:v=>v.toFixed(2)+'×',show:has},
+    {t:'range',k:'iOpacity',label:'Opacity',group:'image',min:0,max:1,step:.01,fmt:pct,show:has},
+    {ui:'dial',k:'iSway',label:'Sway',group:'image',min:0,max:45,step:.5,dispK:2,show:has},
+    {t:'range',k:'iRise',label:'Rise',group:'image',min:0,max:25,step:.5,unit:'%',show:has},
+    {t:'hint',text:'Pictures stay in this browser and aren’t saved in presets. SVG export leaves the picture out.',show:has},
+  ]);
+}
+
 {const b=card('text','Text');
-  buildR(b,[{t:'toggle',k:'seq',label:'Sequence of texts',show:s=>!multi(s),onToggle:v=>{if(v&&S.texts.length<2)S.texts.push('');set('seq',v);renderTextFields();if(v){const f=textsHost.querySelectorAll('textarea');const last=f[f.length-1];if(last&&!last.value)last.focus();}}}]);
-  textsHost=el('div');b.append(textsHost);
+  buildR(b,[{t:'toggle',k:'seq',label:'Sequence',grp:true,show:s=>!multi(s),onToggle:v=>{if(v&&S.texts.length<2)S.texts.push('');set('seq',v);renderTextFields();if(v){const f=textsHost.querySelectorAll('textarea');const last=f[f.length-1];if(last&&!last.value)last.focus();}}}]);
+  textsHost=el('div');b.insertBefore(textsHost,b.firstChild);   /* the words first; the Sequence switch heads its own settings below them */
   const on=s=>s.seq&&!multi(s),r=s=>s.qStyle==='roll',st=s=>s.qStyle==='stretch',g=s=>s.qStyle==='glide';
   buildR(b,[
-    {ui:'head',text:'Handover',show:on},
     {t:'seg',k:'qStyle',label:'Transition',group:'sequence',show:on,opts:[['roll','Roll'],['stretch','Stretch'],['glide','Glide'],['fade','Fade'],['cut','Cut']]},
     {t:'hint',text:'Glide stacks your texts as a list. Each new one arrives at the bottom and the stack moves up.',show:both(on,g)},
     {t:'seg',k:'qClear',label:'Handover',group:'sequence',opts:[[true,'One after the other'],[false,'Together']],show:both(on,s=>!g(s))},
@@ -188,13 +222,21 @@ let textsHost,kernHost;
     {t:'range',k:'qStagger',label:'Stagger',group:'sequence',min:0,max:.95,step:.01,fmt:pct,show:both(on,s=>!g(s)),rnd:[0,.5]},
     {ui:'stepper',k:'qStack',label:'Items in stack',group:'sequence',min:2,max:8,step:1,show:both(on,g)},
     {t:'range',k:'qTrail',label:'Dim older items',group:'sequence',min:0,max:1,step:.01,fmt:pct,show:both(on,g)},
-    {ui:'head',text:'Spacing'},
+    {ui:'group',id:'spacing',title:'Spacing',shut:false},
     {t:'range',k:'tracking',label:'Tracking',group:'layout',min:-150,max:400,step:5,fmt:v=>(v>0?'+':'')+Math.round(v),rnd:[-30,60]},
     {t:'range',k:'leading',label:'Line spacing',group:'layout',min:.6,max:2,step:.01,fmt:v=>v.toFixed(2),rnd:[.9,1.2]},
   ]);
-  b.append(el('div','sub-head','Kerning'));
-  b.append(el('p','hint','Click between two letters on the preview, then use ← and → to kern. Hold Shift for bigger steps, Esc to finish.'));
-  kernHost=el('div','kern-list');b.append(kernHost);
+  /* the type's own look – colour, and whether it's drawn filled or as an outline */
+  buildR(b,[
+    {ui:'group',id:'look',title:'Look',shut:false},
+    {t:'colour',k:'ink',label:'Colour'},
+    {t:'seg',k:'style',label:'Render',opts:[['fill','Fill'],['outline','Outline']]},
+    {t:'range',k:'stroke',label:'Stroke',min:2,max:120,step:1,fmt:v=>Math.round(v)+'/1000 em',show:s=>s.style==='outline'},
+    {ui:'end'},
+  ]);
+  const kernGrp=fold(b,'kerning','Kerning',null,true);
+  kernGrp.append(el('p','hint','Click between two letters on the preview, then drag, or use ← and → to kern. Hold Shift for bigger steps, Esc to finish.'));
+  kernHost=el('div','kern-list');kernGrp.append(kernHost);
 }
 let textSig='';
 function fontOptions(sel,cur,first){sel.textContent='';if(first){const o=el('option',null,first);o.value='';sel.append(o);}
@@ -260,34 +302,29 @@ function refreshKernList(){
 
 /* Layout – frame, size, alignment; Repeat rows */
 {const b=card('layout','Layout');
-  buildR(b,[{t:'seg',k:'aspect',label:'Shape',opts:[['1:1','1:1'],['4:5','4:5'],['9:16','9:16'],['16:9','16:9'],['3:2','3:2'],['2:3','2:3'],['custom','Custom']]}]);
-  const pair=el('div','ctl pair');const mk=(k,lab)=>{const i=el('input');i.type='number';i.min=64;i.max=4096;i.step=1;i.setAttribute('aria-label',lab);i.onchange=()=>set(k,clamp(Math.round(+i.value)||1080,64,4096));return i;};
-  const iw=mk('cw','Width in pixels'),ih=mk('ch','Height in pixels');pair.append(iw,ih);
-  addCustom(b,s=>s.aspect==='custom',pair).update=()=>{iw.value=S.cw;ih.value=S.ch;};
   const rep=s=>s.rOn&&!glide(s)&&!multi(s);
   buildR(b,[
     {t:'seg',k:'fit',label:'Size',opts:[['block','Fit'],['lines','Fill width'],['manual','Manual']],show:s=>!rep(s),rnd:['block','lines']},
-    {t:'range',k:'size',label:'Size',min:2,max:150,step:.5,fmt:v=>roundTo(v,.5)+'% of width',show:s=>s.fit==='manual'&&!rep(s)},
-    {t:'toggle',k:'stretch',label:'Stretch to fill',show:s=>!glide(s)&&!(multi(s)&&s.fit==='lines')},
+    {t:'range',k:'size',label:'Scale',min:2,max:150,step:.5,fmt:v=>roundTo(v,.5)+'% of width',show:s=>s.fit==='manual'&&!rep(s)},
+    {t:'toggle',k:'stretch',label:'Stretch',show:s=>!glide(s)&&!(multi(s)&&s.fit==='lines')},
     {t:'hint',text:'Letters are stretched to reach the edges. Turn off to keep their true proportions.',show:s=>s.stretch&&!glide(s)&&!(multi(s)&&s.fit==='lines')},
     {t:'hint',text:'Repeat sets the size from its row count.',show:rep},
     {t:'seg',k:'align',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],rnd:['left','centre','right']},
-    {t:'seg',k:'valign',label:'Position',opts:[['top','Top'],['middle','Middle'],['bottom','Bottom']],show:s=>!s.rOn||glide(s)||multi(s),rnd:['top','middle','bottom']},
-    {t:'range',k:'lkGap',label:'Gap between blocks',min:0,max:1.5,step:.01,fmt:v=>v.toFixed(2)+' em',show:multi,rnd:[.15,.6]},
+    {t:'seg',k:'valign',label:'Placement',opts:[['top','Top'],['middle','Middle'],['bottom','Bottom']],show:s=>!s.rOn||glide(s)||multi(s),rnd:['top','middle','bottom']},
+    {t:'range',k:'lkGap',label:'Block gap',min:0,max:1.5,step:.01,fmt:v=>v.toFixed(2)+' em',show:multi,rnd:[.15,.6]},
     {t:'range',k:'margin',label:'Margin',min:0,max:40,step:.5,fmt:v=>roundTo(v,.5)+'%',rnd:[4,14]},
   ]);
   /* Repeat rows, folded in from its own card */
   const on=rep;
   buildR(b,[
-    {ui:'head',text:'Repeat',show:s=>!multi(s)},
-    {t:'toggle',k:'rOn',label:'Repeat rows',group:'repeat',show:s=>!multi(s)},
+    {t:'toggle',k:'rOn',label:'Repeat rows',grp:true,group:'repeat',show:s=>!multi(s)},
     {t:'hint',text:'Repeat is paused while the sequence uses Glide.',show:s=>s.rOn&&glide(s)&&!multi(s)},
-    {ui:'stepper',k:'rRows',label:'Rows in frame',group:'repeat',min:1,max:16,step:1,show:on,rnd:[2,8]},
+    {ui:'stepper',k:'rRows',label:'Rows',group:'repeat',min:1,max:16,step:1,show:on,rnd:[2,8]},
     {t:'range',k:'rGap',label:'Row gap',group:'repeat',min:0,max:100,step:1,fmt:v=>Math.round(v)+'% em',show:on},
     {t:'seg',k:'rMix',label:'Rows show',group:'repeat',opts:[['alternate','Alternating texts'],['same','The same text']],show:s=>on(s)&&s.seq},
     {ui:'stepper',k:'rScroll',label:'Scroll',group:'repeat',min:-4,max:4,step:1,fmt:perLoop,show:on,rnd:[-2,2]},
     {ui:'stepper',k:'rMarq',label:'Slide sideways',group:'repeat',min:-4,max:4,step:1,fmt:perLoop,show:on,rnd:[-1,1]},
-    {t:'toggle',k:'rAlt',label:'Alternate rows slide opposite ways',group:'repeat',show:s=>on(s)&&Math.round(s.rMarq)!==0},
+    {t:'toggle',k:'rAlt',label:'Opposite ways',group:'repeat',show:s=>on(s)&&Math.round(s.rMarq)!==0},
     {t:'range',k:'rDelay',label:'Row offset',group:'repeat',min:0,max:.5,step:.005,fmt:ofLoop,show:on,rnd:[0,.1]},
   ]);
 }
@@ -299,7 +336,7 @@ function refreshKernList(){
   const row=el('div','ctl switch-row seed-row');const lab=el('span');const btn=el('button','pill small','New seed');btn.title='The seed fixes every random choice, so a look you like stays put.';
   btn.onclick=()=>{pushUndo();set('seed',(Math.random()*99999|0)+1);};
   row.append(lab,btn);addCustom(b,null,row).update=()=>{lab.textContent='Seed '+S.seed;};
-  const more=moreSection(b,'motion');
+  const more=moreSection(b,'motion','Shaping');
   buildR(b,[
     {t:'seg',k:'mode',label:'Movement',opts:[['none','Still'],['fluid','Fluid'],['snappy','Snappy'],['transit','Transitional'],['jitter','Jitter'],['assemble','Assemble']]},
     /* Fluid */
@@ -315,7 +352,7 @@ function refreshKernList(){
     {ui:'pad',kx:'sX',ky:'sY',label:'Reach',tip:TIPS.sReach,nx:'Shift',ny:'Jump',maxX:80,maxY:80,step:.5,fmt:v=>roundTo(v,.5)+'%',shape:'box',show:isS,rndX:[0,10],rndY:[0,24]},
     {ui:'dial',k:'sRot',label:'Twist',min:0,max:90,step:.5,show:isS,rnd:[0,12]},
     {t:'range',k:'sStagger',label:'Stagger',min:0,max:1,step:.01,fmt:pct,show:isS,rnd:[0,.6]},
-    {t:'toggle',k:'sRest',label:'Return to rest between steps',show:isS,rnd:.6,more:true},
+    {t:'toggle',k:'sRest',label:'Back to rest',show:isS,rnd:.6,more:true},
     {t:'range',k:'sScale',label:'Scale',min:0,max:80,step:.5,unit:'%',show:isS,rnd:[0,15],more:true},
     {t:'range',k:'sStretch',label:'Stretch',min:0,max:150,step:1,unit:'%',show:isS,rnd:[0,60],more:true},
     {t:'range',k:'sUnison',label:'Unison',min:0,max:1,step:.01,fmt:pct,show:isS,rnd:[0,.7],more:true},
@@ -346,7 +383,7 @@ function refreshKernList(){
     {t:'seg',k:'aFeel',label:'Feel',opts:[['magnet','Magnetic'],['smooth','Smooth'],['elastic','Elastic']],show:isA,rnd:['magnet','smooth','elastic']},
     {t:'range',k:'aStagger',label:'Stagger',min:0,max:.95,step:.01,fmt:pct,show:isA,rnd:[.2,.7],more:true},
     {t:'seg',k:'aExit',label:'Exit',opts:[['scatter','Scatter'],['reverse','Go back']],show:isA,rnd:['scatter','reverse'],more:true},
-    {t:'toggle',k:'aFade',label:'Fade while scattered',show:isA,more:true},
+    {t:'toggle',k:'aFade',label:'Fade',show:isA,more:true},
     /* shared */
     {t:'seg',k:'order',label:'Order',opts:[['ltr','Left to right'],['rtl','Right to left'],['centre','Centre out'],['edges','Edges in'],['random','Random']],rnd:['ltr','rtl','centre','edges','random']},
     {t:'seg',k:'anchor',label:'Anchor',opts:[['centre','Centre'],['baseline','Baseline']],rnd:['centre','baseline'],show:s=>s.mode!=='none'||s.vStyle==='stretch'||s.vStyle==='flip'||(s.seq&&s.qStyle==='stretch'),more:true},
@@ -356,9 +393,9 @@ function refreshKernList(){
   const AXf=()=>{const f=F(eng.baseSlot());return f.axes&&(f.axes.find(a=>a.tag===S.axTag)||f.axes[0]);};
   const axFmt=v=>{const a=AXf();return a?String(Math.round(a.min+(a.max-a.min)*v)):pct(v);};
   b.append(more.inner.previousSibling,more.inner);
-  addCustom(b,axOK,el('div','sub-head','Variable axis'));
+  /* the variable axis is a group, not a bare label */
   buildR(b,[
-    {t:'toggle',k:'axOn',label:'Animate an axis',show:axOK},
+    {t:'toggle',k:'axOn',label:'Animate an axis',grp:true,show:axOK},
     {t:'segdyn',k:'axTag',label:'Axis',optsFn:()=>{const f=F(eng.baseSlot());return (f.axes||[]).map(a=>[a.tag,a.name]);},show:axOn},
     {ui:'pair',k1:'axFrom',k2:'axTo',label:'Range',tip:TIPS.axRange,min:0,max:1,step:.005,fmt:axFmt,show:axOn,rnd1:[0,.4],rnd2:[.6,1]},
     {ui:'stepper',k:'axCycles',label:'Cycles per loop',min:1,max:6,step:1,show:axOn,rnd:[1,2]},
@@ -372,7 +409,7 @@ let pickHost;
   const on=s=>s.vMode!=='off'&&s.vMode!=='scramble',rnd=s=>on(s)&&s.vPattern==='random',cyc=s=>on(s)&&s.vPattern==='cycle',sc=s=>s.vMode==='scramble';
   buildR(b,[{t:'seg',k:'vMode',label:'Swap',opts:[['off','Off'],['alts','Alternates'],['weights','Styles'],['both','Both'],['scramble','Scramble']]}]);
   const note=el('p','hint');addCustom(b,null,note);window.variantNote=note;
-  const mv=moreSection(b,'variants');
+  const mv=moreSection(b,'variants','How they change');
   buildR(b,[
     {t:'seg',k:'vPattern',label:'Pattern',opts:[['cycle','Cycle in order'],['random','Random']],show:on,rnd:['cycle','random']},
     {t:'seg',k:'vStyle',label:'Change',opts:[['roll','Roll'],['stretch','Stretch'],['cut','Cut'],['fade','Fade'],['flip','Flip']],show:on,rnd:['roll','roll','stretch','cut','fade','flip']},
@@ -384,22 +421,24 @@ let pickHost;
     {t:'range',k:'scStagger',label:'Stagger',min:0,max:1,step:.01,fmt:pct,show:sc,rnd:[.3,.9],more:true},
     {t:'range',k:'vDur',label:'Change length',min:.05,max:1,step:.01,fmt:ofStep,show:on,rnd:[.2,.6],more:true},
     {t:'range',k:'vStagger',label:'Stagger',min:0,max:1,step:.01,fmt:pct,show:on,rnd:[0,.6],more:true},
-    {t:'toggle',k:'vOffset',label:'Offset repeated letters',show:cyc,more:true},
-    {t:'toggle',k:'vRest',label:'Return to default between changes',show:rnd,more:true},
-    {t:'toggle',k:'vReflow',label:'Respace as widths change',show:on,more:true},
+    {t:'toggle',k:'vOffset',label:'Offset repeats',show:cyc,more:true},
+    {t:'toggle',k:'vRest',label:'Back to default',show:rnd,more:true},
+    {t:'toggle',k:'vReflow',label:'Respace',show:on,more:true},
   ],mv);
   b.append(mv.inner.previousSibling,mv.inner);
-  const head=el('div','sub-head','Glyphs');const hint=el('p','hint');
+  /* which alternates a font may use – a group of its own, not a bare label */
+  const glyphs=fold(b,'glyphs','Glyphs',null,true);
+  const hint=el('p','hint');
   const reset=el('button','pill small','Use all');reset.onclick=()=>{S.picks={};optCache.clear();autosave();dirty=true;schedulePicker(0);};
-  const hr=el('div','switch-row');hr.append(head,reset);
+  const hr=el('div','switch-row');hr.append(reset);
   const wrap=el('div');wrap.append(hr,hint);pickHost=el('div','pick-host');wrap.append(pickHost);
-  addCustom(b,null,wrap);window.pickHint=hint;window.pickReset=reset;window.pickWrap=wrap;
+  glyphs.append(wrap);window.pickHint=hint;window.pickReset=reset;window.pickWrap=wrap;
 }
 /* Physics – pull a lockup apart and let it snap back */
 {const b=card('physics','Physics');
   const on=s=>s.phOn;
   buildR(b,[
-    {t:'toggle',k:'phOn',label:'Pull apart'},
+    {t:'toggle',k:'phOn',label:'Pull apart',grp:true},
     {t:'hint',text:'Add blocks in Text to pull a lockup apart. On its own, a block drifts to its point and back.',show:s=>on(s)&&!multi(s)},
   ]);
   /* where each block goes: a 3×3 pad of points in the frame, or Auto */
@@ -413,48 +452,18 @@ let pickHost;
       POS.forEach(p=>{const c=el('button','dest-pt'+(bk.dest==='auto'&&goes===p?' auto':''));c.type='button';c.setAttribute('aria-label',NAMES[p]);c.setAttribute('aria-pressed',bk.dest===p);c.onclick=()=>{bk.dest=p;autosave();dirty=true;pokeGuides();refreshDestUI();};grid.append(c);});
       const auto=el('button','pill small','Auto');auto.setAttribute('aria-pressed',bk.dest==='auto');auto.title='Each block to its own corner';auto.onclick=()=>{bk.dest='auto';autosave();dirty=true;pokeGuides();refreshDestUI();};
       row.append(nm,grid,auto);destHost.append(row);}};
-  const mp=moreSection(b,'physics');
   buildR(b,[
     {t:'seg',k:'phFeel',label:'Feel',group:'physics',opts:[['magnet','Magnetic'],['smooth','Smooth'],['elastic','Elastic']],show:on,rnd:['magnet','smooth','elastic']},
     {ui:'bar',keys:['phIn','phHold','phOut'],names:['Pull','Apart','Return'],label:'Timing',tip:TIPS.phTiming,group:'physics',mins:[.05,0,.05],maxs:[1,1,1],show:on,rnd:[[.15,.3],[.15,.35],[.15,.3]]},
     {t:'range',k:'phSpace',label:'Personal space',group:'physics',min:0,max:20,step:.25,fmt:v=>v?roundTo(v,.25)+'% of frame':'Off',show:s=>on(s)&&multi(s),rnd:[0,6]},
-    {t:'range',k:'phPull',label:'Distance',group:'physics',min:0,max:1,step:.01,fmt:pct,show:on,rnd:[.6,1],more:true},
-    {t:'range',k:'phStagger',label:'Stagger',group:'physics',min:0,max:.95,step:.01,fmt:pct,show:s=>on(s)&&multi(s),rnd:[0,.6],more:true},
-  ],mp);
-  b.append(mp.inner.previousSibling,mp.inner);
+    {t:'range',k:'phPull',label:'Distance',group:'physics',min:0,max:1,step:.01,fmt:pct,show:on,rnd:[.6,1]},
+    {t:'range',k:'phStagger',label:'Stagger',group:'physics',min:0,max:.95,step:.01,fmt:pct,show:s=>on(s)&&multi(s),rnd:[0,.6]},
+  ]);
   buildR(b,[{t:'hint',text:'Hover over this card to see each block’s point and space on the preview.',show:on}]);
   const cardEl=b.parentElement;cardEl.addEventListener('pointerenter',()=>{guideHover=true;dirty=true;});cardEl.addEventListener('pointerleave',()=>{guideHover=false;dirty=true;});
   cardEl.addEventListener('input',pokeGuides);cardEl.addEventListener('pointerup',pokeGuides);
 }
 /* Colour – colours, render, image */
-let imgNameEl,imgRemove;
-{const b=card('colour','Colour');
-  const row=el('div','ctl btn-row pairs');
-  [['Black on white','#000000','#ffffff'],['White on black','#ffffff','#000000'],['Black on grey','#000000','#f2f2f2']].forEach(([t,ink,bg])=>{const p=el('button','pill small',t);p.onclick=()=>{S.ink=ink;S.bg=bg;set('transparent',false);schedulePicker(0);};row.append(p);});
-  const sw=el('button','pill small','Swap');sw.onclick=()=>{const t=S.ink;S.ink=S.bg;set('bg',t);};row.append(sw);
-  addCustom(b,null,row);
-  buildR(b,[
-    {t:'colour',k:'ink',label:'Type'},
-    {t:'colour',k:'bg',label:'Background'},
-    {t:'toggle',k:'transparent',label:'Transparent background'},
-    {t:'hint',text:'Transparency applies to PNG, SVG and WebM. GIFs always use the background colour.',show:s=>s.transparent},
-    {t:'seg',k:'style',label:'Render',opts:[['fill','Fill'],['outline','Outline']]},
-    {t:'range',k:'stroke',label:'Stroke',min:2,max:120,step:1,fmt:v=>Math.round(v)+'/1000 em',show:s=>s.style==='outline'},
-  ]);
-  b.append(el('div','sub-head','Image'));
-  const ir=el('div','img-row');imgNameEl=el('div','slot-name');const ld=el('button','pill small','Load');imgRemove=el('button','pill small','Remove');
-  ld.onclick=()=>$('#imgfile').click();imgRemove.onclick=clearImage;ir.append(imgNameEl,ld,imgRemove);b.append(ir);
-  const has=()=>!!img;
-  buildR(b,[
-    {t:'seg',k:'iPlace',label:'Place',group:'image',opts:[['behind','Behind type'],['above','Above type'],['inside','Inside type']],show:has},
-    {t:'seg',k:'iBlend',label:'Blend',group:'image',opts:[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['difference','Difference']],show:has},
-    {t:'range',k:'iScale',label:'Scale',group:'image',min:.2,max:3,step:.01,fmt:v=>v.toFixed(2)+'×',show:has},
-    {t:'range',k:'iOpacity',label:'Opacity',group:'image',min:0,max:1,step:.01,fmt:pct,show:has},
-    {ui:'dial',k:'iSway',label:'Sway',group:'image',min:0,max:45,step:.5,dispK:2,show:has},
-    {t:'range',k:'iRise',label:'Rise',group:'image',min:0,max:25,step:.5,unit:'%',show:has},
-    {t:'hint',text:'Images stay in this browser and aren’t saved in presets. SVG export leaves the image out.',show:has},
-  ]);
-}
 function refreshImageCard(){if(!imgNameEl)return;imgNameEl.textContent=img?imgName:'Add a PNG, JPG or WebP to blend with the type';imgNameEl.classList.toggle('empty',!img);imgRemove.hidden=!img;}
 /* Export */
 {const b=card('export','Export',null,'studio');
@@ -528,10 +537,17 @@ function refreshNotes(){
 }
 
 /* ---------------- undo + randomise ---------------- */
-const undoStack=[];
-function pushUndo(){undoStack.push(JSON.stringify(S));if(undoStack.length>30)undoStack.shift();$('#undo').disabled=false;}
-function undo(){const s=undoStack.pop();if(!s)return;S=Object.assign(fresh(),sanitiseR(JSON.parse(s)));eng.use(S);autosave();reloadAll();$('#undo').disabled=!undoStack.length;}
-$('#undo').onclick=undo;
+const undoStack=[],redoStack=[];
+function paintHistory(){const u=$('#undoBtn'),r=$('#redoBtn');
+  if(u){u.disabled=!undoStack.length;u.title=undoStack.length?'Undo \u2013 \u2318Z':'Nothing to undo';}
+  if(r){r.disabled=!redoStack.length;r.title=redoStack.length?'Redo \u2013 \u21e7\u2318Z':'Nothing to redo';}}
+function pushUndo(){undoStack.push(JSON.stringify(S));if(undoStack.length>30)undoStack.shift();redoStack.length=0;paintHistory();}
+function putState(str){S=Object.assign(fresh(),sanitiseR(JSON.parse(str)));eng.use(S);autosave();reloadAll();paintHistory();}
+function undo(){const s=undoStack.pop();if(!s)return;redoStack.push(JSON.stringify(S));putState(s);}
+function redo(){const s=redoStack.pop();if(!s)return;undoStack.push(JSON.stringify(S));putState(s);}
+if($('#undoBtn'))$('#undoBtn').onclick=undo;
+if($('#redoBtn'))$('#redoBtn').onclick=redo;
+paintHistory();
 const RAND_GROUPS=[['motion','Motion'],['variants','Variants'],['sequence','Sequence'],['repeat','Repeat'],['physics','Physics'],['layout','Layout'],['colour','Colour']];
 const RAND0={level:'gentle',groups:{motion:true,variants:true,sequence:true,repeat:true,physics:false,layout:false,colour:false}};
 const RS=Object.assign({},RAND0,LS.get('rand')||{});RS.groups=Object.assign({},RAND0.groups,RS.groups||{});
@@ -577,10 +593,16 @@ function randomise(){
 $('#rand').onclick=randomise;
 window.addEventListener('keydown',e=>{
   const tg=e.target,typing=tg&&(tg.tagName==='TEXTAREA'||tg.tagName==='SELECT'||(tg.tagName==='INPUT'&&/text|number/.test(tg.type)));
-  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!typing){e.preventDefault();undo();return;}
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!typing){e.preventDefault();if(e.shiftKey)redo();else undo();return;}
   if(typing||e.metaKey||e.ctrlKey||e.altKey)return;
   if(e.code==='Space'&&tg.tagName!=='BUTTON'&&!(tg.getAttribute&&tg.getAttribute('role')==='slider')){e.preventDefault();setPlaying(!playing);}
   else if(e.key==='r'||e.key==='R')randomise();
 });
 /* ---------------- start ---------------- */
-function appStart(){refreshFontCard();refreshImageCard();renderTextFields();applyTab();refreshAll();fitCanvas();refreshPicker();}
+/* The order of work (house rules): set the page, write the words, choose the faces, lay it out,
+   move it, then the extras. Fonts is built by the shared core, so the order is set here once
+   every card exists, rather than by where each happens to be built. */
+const PANEL_ORDER=['canvas','text','font','layout','motion','variants','physics'];
+function orderPanel(){const p=$('#panel');PANEL_ORDER.forEach(id=>{const sec=p.querySelector(`:scope>section.card[data-id="${id}"]`);if(sec)p.append(sec);});
+  p.querySelectorAll(':scope>section.card').forEach(sec=>{if(!PANEL_ORDER.includes(sec.dataset.id))p.append(sec);});}
+function appStart(){orderPanel();refreshFontCard();refreshImageCard();renderTextFields();applyTab();refreshAll();fitCanvas();refreshPicker();}

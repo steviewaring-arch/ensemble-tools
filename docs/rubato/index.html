@@ -450,7 +450,7 @@
   .lbar-legend .lg::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--fill-ink);opacity:.45}
   .lbar-legend .lg.hold::before{opacity:.8}
   /* pad: a path – orbit or box */
-  .pad{position:relative;height:96px;background:var(--btn);border:1px solid var(--keyline);border-radius:14px;cursor:crosshair;touch-action:none;outline:none}
+  .pad{position:relative;height:96px;background:var(--btn);border:1px solid var(--keyline);border-radius:var(--r-ctl);cursor:crosshair;touch-action:none;outline:none}
   .pad:focus-visible{box-shadow:0 0 0 2px var(--focus)}
   .pad svg{position:absolute;inset:0;width:100%;height:100%}
   .p-axis{stroke:var(--keyline);stroke-width:1;fill:none}
@@ -528,9 +528,10 @@
     --h-ctl:30px; --h-sm:24px; --h-chip:28px;
     --r-frame:12px; --r-card:8px; --r-inner:6px;
     --r-surface:12px; --r-ctl:8px; --r-in:6px; --r-chip:6px; --r-sw:4px;
-    /* pure greys (no warmth), kept quiet: the panel a 4% grey, each section's controls on a white card */
-    --k-panel:#f4f4f4; --k-card:#ffffff;
-    --k-fill:#f2f2f2; --k-fill-2:#e2e2e2; --k-fill-hover:#ececec; --k-raise:#ffffff; --k-raise-line:rgba(0,0,0,.13);
+    /* One grey, and the tones under it. Steve's base (6 Nov) is #F6F5F4 – a touch warm; every other
+       grey is that colour darkened, so nothing on screen reads cool against it. Cards stay white. */
+    --k-panel:#f6f5f4; --k-card:#ffffff;
+    --k-fill:#f4f3f1; --k-fill-2:#e4e3e0; --k-fill-hover:#eeedeb; --k-raise:#ffffff; --k-raise-line:rgba(0,0,0,.13);
     --k-num:#a6a6a6; --k-handle:#1d1d1f; --k-dot:#2f6bff;
     --pw:320px;
     /* motion: three curves, named for what they do */
@@ -630,7 +631,10 @@
   .rng-tick{top:7px;bottom:7px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--k-handle);left:calc(5px + (100% - 10px) * var(--p));transition:transform var(--t-snap) var(--e-snap),background var(--t-snap)}
   .rng-tick.away{opacity:1;transform:none}
   /* where it would cross the words it becomes two short ticks, so it never cuts a letter */
-  .rng-tick.split{background:linear-gradient(var(--k-handle) 0 3px,transparent 3px calc(100% - 3px),var(--k-handle) calc(100% - 3px));top:3px;bottom:3px}
+  /* Where the handle crosses the words it fades behind them rather than breaking into two stubs
+     (Steve, 6 Nov: "the line looks clunky behind any bars that have text in") – one line, still
+     readable as a position, with the label and the value clear on top of it. */
+  .rng-tick.split{background:linear-gradient(var(--k-handle) 0 4px,color-mix(in srgb,var(--k-handle) 20%,transparent) 8px calc(100% - 8px),var(--k-handle) calc(100% - 4px));top:5px;bottom:5px}
   .rng-box:hover .rng-tick,.rng-box.drag .rng-tick{transform:scaleY(1.18)}
   .rng-notch{position:absolute;bottom:0;width:1px;height:5px;margin-left:-.5px;background:var(--ink);opacity:.32;left:calc(5px + (100% - 10px) * var(--b,0));pointer-events:none}
   .rng-box .ctl-head{padding:0 3px 0 10px}
@@ -808,8 +812,7 @@
   }
   @media (prefers-reduced-motion: reduce){.rng-box.ease{transition:none}}
 
-  /* ================= Structure (0.5.2) – one ladder of levels, one row grammar =================
-     1 Section  – a white card on the panel's 4% grey: number and title (14, Bold), chevron, Reset when changed.
+  /* ================= Structure (0.5.2) – one ladder of levels, one row grammar ==========     1 Section  – a white card on the panel's 4% grey: number and title (14, Bold), chevron, Reset when changed.
      2 Group    – inside a card, under a hairline: title (13, Bold), chevron.
      3 Setting  – one row: its label (13, Medium) in a fixed column on the left, its control on the right,
                   30 px high. When the control needs the full width – choices that won't fit beside the label,
@@ -897,6 +900,16 @@
   .xinfo .chip{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--r-chip);background:var(--k-fill);font-size:12px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
   .xinfo .chip:first-child{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line);color:var(--ink-strong)}
   /* choices that won't fit one row: an even grid (Tempo, Rubato), the white following into its row */
+  /* a choice group on two rows is still a control, not a lozenge: components.css gave it
+     calc(h/2 + 2) = 17px from before the kit, which left 6px pills inside a 17px box
+     (Steve, 12 Nov: "corner discrepancy"). One ladder: 4 · 6 · 8 · 10 · 12. */
+  .seg.wrap,.btn-row.choice.wrap{border-radius:var(--r-ctl)}
+  /* a slider is a control, so it takes the control's corner – not a lozenge
+     (Steve, 5 Nov: "rounded corners, not lozenges. consistent corner logic").
+     The panel's sliders are .rng-box and already were; this catches the plain
+     ones the island uses for the play bar. */
+  input[type=range],input[type=range]::-webkit-slider-runnable-track{border-radius:var(--r-ctl)}
+  .rng-box input[type=range]{border-radius:inherit}
   .seg.wrap{display:grid;grid-auto-flow:row;grid-template-columns:repeat(var(--cols),minmax(0,1fr))}
   .seg.wrap>.pill{flex:none;min-width:0}
   .seg.loose{display:flex;flex-direction:column}
@@ -907,7 +920,16 @@
   .fold-head,.more-toggle{border-top:1px solid var(--keyline);margin-top:20px;padding-top:6px}
   .fold>.fold-head{border-top:0;margin-top:0;padding-top:0}
   .card-body>.fold-head:first-child,.card-body>.more-toggle:first-child{border-top:0;margin-top:0;padding-top:0}
-  /* Rubato's own parts in house terms: the stepper, the dial's label */
+  /* Rubato's own parts in house terms: the stepper, the dial's label.
+     The dial starts where every other control starts – its name in the label column,
+     its value after it (Steve, 6 Nov: the dial was sitting in the label column). */
+  .dial-row{display:grid;grid-template-columns:var(--lc) auto minmax(0,1fr);column-gap:10px;align-items:center}
+  .dial-row>.dial-info,.dial-row>.dial-info>.ctl-head{display:contents}
+  .dial-row>.dial{grid-column:2;grid-row:1;justify-self:start}
+  .dial-row>.dial-info>.ctl-head>label{grid-column:1;grid-row:1;font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2;cursor:ns-resize}
+  .dial-row>.dial-info>.ctl-head>.val{grid-column:3;grid-row:1;justify-self:start;text-align:left}
+  .dial-row>.dial-info>.ctl-head>.q{grid-column:1;grid-row:1;justify-self:end;position:static;margin:0}
+  /* the stepper, and the dial's label */
   .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
   .st-label{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2}
   .st-box{margin-left:0;justify-self:start;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px;gap:2px}
@@ -943,6 +965,84 @@
     #island .island-row{justify-content:flex-start}
     #pcap .pc-row{justify-content:flex-end}
   }
+=======
+
+  /* ============ House parts every tool takes (lifted out of Segue, 11 Nov) ============
+     These were written in Segue and proved there; they are the house's, not Segue's. */
+
+  /* 0.11: the pasteboard – very sparse, very faint dots round the canvas, so it's plain what's canvas and what isn't */
+  .view{background-image:radial-gradient(circle,color-mix(in srgb,var(--ink) 15%,transparent) 0 .75px,transparent 1.05px);background-size:24px 24px;background-position:center}
+  .app.preview .view{background-image:none}
+  .layer-sw{margin-bottom:12px}
+
+  /* 0.10: the view's zoom – the view scrolls when the canvas is bigger than it, the canvas
+     stays centred when it's smaller. The buttons are a keyline group in the top bar. */
+  .view>canvas,.view>.canvas-wrap{margin:auto;flex:none}
+  .view.zoomed{overflow:auto;justify-content:flex-start;align-items:flex-start;scrollbar-width:thin}
+  /* guides over the work (shared/view.js): the margin as one hairline box, the grid inside it.
+     Drawn over the canvas and never into it – no export has them. */
+  .guide-ov{position:absolute;pointer-events:none;z-index:2}
+  .guide-ov::before{content:"";position:absolute;inset:var(--gm-y) var(--gm-x);box-shadow:0 0 0 1px color-mix(in srgb,var(--k-dot) 55%,transparent)}
+  .guide-ov.has-grid::after{content:"";position:absolute;inset:var(--gm-y) var(--gm-x);
+    background-image:repeating-linear-gradient(to right,color-mix(in srgb,var(--k-dot) 28%,transparent) 0 1px,transparent 1px var(--gc)),
+                     repeating-linear-gradient(to bottom,color-mix(in srgb,var(--k-dot) 28%,transparent) 0 1px,transparent 1px var(--gr))}
+  .app.preview .guide-ov{display:none}
+  /* a small panel under its button: the card's surface, the panel's rows. Lifted out of Segue. */
+  .pop{position:absolute;top:calc(100% + 8px);right:0;width:300px;z-index:20;padding:14px calc(12px + var(--gutter)) 10px 14px;border-radius:var(--r-surface);
+    background:var(--k-card);box-shadow:0 0 0 1px var(--keyline);color:var(--ink);text-align:left;--lc:96px}
+  .pop[hidden]{display:none}
+  .pop-title{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);margin:0 0 12px}
+  .pop .hint{margin:8px 0 2px}
+  #guideTools{position:relative}
+  /* the pop's rows are the panel's rows: the name in the label column, the control beside it */
+  #guideTools .pop{width:300px;--lc:64px;padding:14px 14px 10px}
+  #guideTools .pop .ctl{display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;margin-bottom:8px}
+  #guideTools .pop .ctl-head{margin:0}
+  #guideTools .pop .ctl-head span{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong)}
+  #guideTools .pop .seg{flex-wrap:nowrap}
+  #guideTools .pop .seg>.pill{min-width:0;padding:0 4px}
+  .topbar .tools button:disabled{opacity:.35;cursor:default;background:transparent}
+  #zoomTools .zval{width:auto;min-width:44px;padding:0 6px;border-radius:var(--r-in);font-size:var(--fs-small);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0}
+  #zoomTools .zval[aria-pressed="true"]{background:transparent;color:var(--ink-strong)}
+  #zoomTools .zval:hover{background:var(--btn-hover)}
+
+  /* 0.16 – a switch that heads a group: the group's rule and weight, its box first. One way to turn anything optional on. */
+  .toggle-row.sw-grp{border-top:1px solid var(--keyline);margin:20px 0 6px;padding-top:6px}
+  .toggle-row.sw-grp .toggle{display:flex;gap:10px;align-items:center;min-height:38px;width:auto}
+  .toggle-row.sw-grp .toggle>span:last-child{order:0;font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);letter-spacing:-0.008em}
+  .toggle-row.sw-grp>.q{position:static;margin:0 0 0 2px}
+  .toggle-row.sw-grp:not(.on){margin-bottom:0}
+  .card-body>.toggle-row.sw-grp:first-child{border-top:0;margin-top:0;padding-top:0}
+
+  /* Export opens a sheet – the chevron says so – and becomes the progress while it works: its fill, the per cent and
+   the time left, so the sheet can be shut and the work carried on. Stop sits beside it, the same height. */
+  .ebtn.xopen .chev{width:10px;height:10px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
+  .ebtn.xopen[aria-expanded="true"] .chev{transform:rotate(180deg)}
+  .ebtn.xopen:hover .chev{color:var(--ink)}
+  .ebtn.run,.pill.xgo.run{position:relative;overflow:hidden;background:var(--k-fill);color:var(--ink);font-variant-numeric:tabular-nums;cursor:default}
+  .ebtn.run::before,.pill.xgo.run::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);background:var(--k-fill-hover);transition:width .2s linear}
+  .ebtn.run::after,.pill.xgo.run::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:var(--p,0%);background:var(--fill-ink);transition:width .2s linear}
+  .ebtn.run>*,.pill.xgo.run{z-index:1}
+  .ebtn.run>.chev{display:none}
+  .pill.xgo.run>*{position:relative;z-index:1}
+  .xrun{display:flex;gap:6px}
+  .xrun .xgo{flex:1 1 auto}
+  .ctl.btn-row.xrun>.xstop{flex:none;height:var(--h-ctl);padding:0 13px}
+  .sheet .btn-row.xrun>.pill{height:36px}
+  #exportStop{flex:none}
+
+  /* the note: something finished while you were working elsewhere. It goes by itself; a click sends it sooner. */
+  .notice{position:absolute;right:var(--gap);top:calc(var(--gap)*2 + var(--h-chip));z-index:9;display:flex;align-items:center;gap:10px;max-width:320px;padding:10px 14px 10px 12px;border-radius:var(--r-surface);
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline),0 8px 28px rgba(0,0,0,.1);
+  cursor:pointer;animation:noteIn .32s var(--e-smooth)}
+  .notice.out{opacity:0;transform:translateY(-6px);transition:opacity .24s,transform .24s}
+  .notice .n-ic{flex:none;width:22px;height:22px;border-radius:50%;background:var(--fill-ink);color:var(--on-ink);display:flex;align-items:center;justify-content:center}
+  .notice.quiet .n-ic{background:var(--k-fill);color:var(--muted)}
+  .notice .n-ic svg{width:12px;height:12px}
+  .notice .n-tx{min-width:0;display:flex;flex-direction:column;gap:1px;line-height:1.3}
+  .notice .n-tx b{font-size:var(--fs-small);font-weight:500;color:var(--ink-strong)}
+  .notice .n-tx span{font-size:var(--fs-small);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @keyframes noteIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.js"></script>
 </head>
@@ -953,7 +1053,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Rubato</span><span class="ver">1.2.1</span></div>
+      <div class="bline"><span class="mark">Rubato</span><span class="ver">1.3</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -962,6 +1062,21 @@
   <button class="panel-btn" id="panelBtn" type="button" aria-expanded="false" aria-controls="panelBox" aria-label="Show the panel"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="2.5" width="10.4" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg></button>
   <div class="topbar">
     <div class="stage-foot"><span id="dims"></span><span id="note"></span><span id="knote"></span></div>
+    <!-- the house top bar (from Segue 0.10): undo and redo, then zoom. View settings live here. -->
+    <div class="tools" id="historyTools">
+      <button id="undoBtn" type="button" aria-label="Undo – ⌘Z" title="Undo – ⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M5.2 3.3 2.6 5.9l2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.9h5.6a2.9 2.9 0 0 1 0 5.8H6.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button id="redoBtn" type="button" aria-label="Redo – ⇧⌘Z" title="Redo – ⇧⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="m8.8 3.3 2.6 2.6-2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 5.9H5.4a2.9 2.9 0 0 0 0 5.8h2.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="tools" id="zoomTools">
+      <button id="zoomOut" type="button" aria-label="Zoom out – ⌘−" title="Zoom out – ⌘−"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button id="zoomVal" class="zval" type="button" aria-label="Zoom – click for 100% or to fit" title="Click for 100%, again to fit – ⌘0 fits">Fit</button>
+      <button id="zoomIn" type="button" aria-label="Zoom in – ⌘+" title="Zoom in – ⌘+"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7M7 3.5v7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="tools" id="guideTools">
+      <button id="guidesBtn" type="button" aria-pressed="false" aria-label="Guides – ⌘;" title="Guides – ⌘;"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="1.8" width="10.4" height="10.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5.3 2v10M8.7 2v10M2 7h10" stroke="currentColor" stroke-width="1" stroke-dasharray="1.4 1.2"/></svg></button>
+      <button id="guidesMore" class="more" type="button" aria-expanded="false" aria-controls="guidePop" aria-label="Guide settings" title="Margin and grid"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="m4.2 5.6 2.8 2.8 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="pop" id="guidePop" hidden role="dialog" aria-label="Guides"></div>
+    </div>
     <div class="tools" id="appearance">
       <button id="previewBtn" type="button" aria-pressed="false" aria-label="Preview – fill the window – F"></button>
       <button id="themeBtn" type="button" aria-label="Light or dark"><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.8a5.2 5.2 0 0 1 0 10.4z" fill="currentColor"/></svg></button>
@@ -976,7 +1091,6 @@
         <span class="act-main studio-only" id="time">0.00 / 3.00 s</span>
         <span class="ep-div studio-only"></span>
         <button class="ebtn studio-only" id="rand" title="Randomise (R)">Randomise</button><button class="ebtn icon studio-only" id="randOpt" aria-label="Randomise options" aria-expanded="false" title="Randomise options"><svg viewBox="0 0 12 12" width="11" height="11" aria-hidden="true"><path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <button class="ebtn studio-only" id="undo" title="Undo (Ctrl/Cmd+Z)" disabled>Undo</button>
       </div><span class="ep-div"></span>
       <div class="status" id="toast" role="status" aria-live="polite"></div>
       <button class="ebtn primary" id="exportOpen" type="button" aria-expanded="false" aria-controls="islandSheets" hidden>Export</button>
@@ -1925,6 +2039,21 @@ function card(id,title,show,tab){
   controls.push({d:{show:s=>(tab==='both'||s.tab===tab)&&(!show||show(s))},w:c,update(){},card:id});
   return body;
 }
+/* A group (level 2) inside a card: one hairline, a 13 Bold title, a chevron, and – when shut –
+   a quiet line saying what it holds. The house group; Segue has the same in its own frame.
+   (Tempo still declares its own fold() further down, which wins there until it takes this one.) */
+const GROUPS=Object.assign({},LS.get('groups')||{});
+function fold(parent,id,title,show,shut){
+  const box=el('div','fold'),head=el('button','fold-head'),label=el('span',null,title),chev=el('span','chev'),body=el('div','fold-body');
+  head.type='button';chev.innerHTML=CHEV;
+  const open=GROUPS[id]!=null?GROUPS[id]:!shut;
+  const paint=o=>{body.hidden=!o;head.setAttribute('aria-expanded',o);if(o)requestAnimationFrame(()=>syncRanges(body));};
+  paint(open);
+  head.onclick=()=>{const o=body.hidden;GROUPS[id]=o;LS.set('groups',GROUPS);paint(o);};
+  head.append(label,chev);box.append(head,body);addCustom(parent,show||null,box);
+  return body;
+}
+
 /* What a shut card says: the choices made in it, or the app's own line (SUMMARY[id]). */
 const SUMMARY={};
 function optLabel(opts,v){const o=(opts||[]).find(o=>o[0]===v);return o?o[1]:null;}
@@ -2097,8 +2226,11 @@ function addSeg(parent,d){
 function addToggle(parent,d){
   const w=el('div','toggle-row'),b=el('button','toggle');b.setAttribute('role','switch');b.setAttribute('aria-label',d.label);d.group=d.group||curGroup;
   b.append(el('span','box'),el('span',null,d.label));w.append(b);const q=qMark(d);if(q)w.append(q);
+  /* grp: a switch that heads a group of its own settings – its box, then its name in the group's
+     weight, its settings beneath while it's on. One way to turn anything optional on. */
+  if(d.grp)w.classList.add('sw-grp');
   b.onclick=()=>d.onToggle?d.onToggle(!S[d.k]):set(d.k,!S[d.k]);parent.append(w);
-  const c={d,w,update(){b.setAttribute('aria-checked',!!S[d.k]);}};controls.push(c);return c;
+  const c={d,w,update(){b.setAttribute('aria-checked',!!S[d.k]);w.classList.toggle('on',!!S[d.k]);}};controls.push(c);return c;
 }
 function addColour(parent,d){
   const w=el('div','colour-row'),lb=el('label',null,d.label),cw=el('div','cw'),hex=el('span','val'),sw=el('span','cswatch'),inp=el('input');
@@ -2193,6 +2325,128 @@ function axisControls(st){
   const r=el('div','ctl btn-row');const add=el('button','pill small','+ Another instance');add.onclick=()=>addInstance(st.id);r.append(add);box.append(r);
   return box;
 }
+/* The view's zoom – a house part, lifted out of Segue 0.10 (11 November).
+   Fit, or a set size: a screen pixel for each canvas pixel, so 100% is actual
+   size. Bigger than the view and it scrolls; ⌘ and a scroll (or a pinch) zooms
+   where the pointer is; ⌘+ and ⌘− step, ⌘0 fits. Nothing here reaches an
+   export – the view is the view. A tool passes its own canvas and size, and
+   gets back a fit() to call wherever it used to size the canvas itself. */
+function mountZoom(o){
+  const ZOOMS=[.1,.125,.167,.25,.333,.5,.667,.75,1,1.25,1.5,2,3,4];
+  const g=s=>document.getElementById(s);
+  const view=o.view,cv=o.canvas,size=o.size,after=o.after||function(){};
+  const app=document.querySelector('.app');
+  const previewing=()=>!!(app&&app.classList.contains('preview'));
+  let z=null;
+  function fitScale(){const s=size(),W=s[0],H=s[1],cs=getComputedStyle(view);
+    const aw=view.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),
+          ah=view.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+    return Math.max(.01,Math.min(aw/W,ah/H));}
+  const now=()=>z==null||previewing()?fitScale():z;
+  function paint(){const b=g('zoomVal');if(!b)return;const t=Math.round(now()*100)+'%';
+    if(b.textContent!==t)b.textContent=t;b.setAttribute('aria-pressed',z!=null);
+    b.setAttribute('aria-label','Zoom '+t+(z==null?', fitted':'')+' – click for 100% or to fit');}
+  function fit(){const s=size(),W=s[0],H=s[1],k=now(),
+    cw=Math.max(1,Math.floor(W*k)),ch=Math.max(1,Math.floor(H*k));
+    cv.style.width=cw+'px';cv.style.height=ch+'px';
+    view.classList.toggle('zoomed',z!=null&&!previewing());paint();after(cw,ch,k);return k;}
+  function set(v,at){const r=cv.getBoundingClientRect(),f=fitScale();
+    if(v!=null&&v<=f*1.001&&v>=f*.999)v=null;
+    z=v==null?null:Math.max(.05,Math.min(8,v));
+    const vr=view.getBoundingClientRect(),px=at?at[0]:vr.left+vr.width/2,py=at?at[1]:vr.top+vr.height/2,
+          fx=r.width?(px-r.left)/r.width:.5,fy=r.height?(py-r.top)/r.height:.5;
+    fit();
+    if(z!=null){const r2=cv.getBoundingClientRect();
+      view.scrollLeft+=(r2.left+fx*r2.width)-px;view.scrollTop+=(r2.top+fy*r2.height)-py;}}
+  function step(dir,at){const c=now();
+    let n=dir>0?ZOOMS.find(x=>x>c*1.02):[...ZOOMS].reverse().find(x=>x<c/1.02);
+    if(n==null)n=dir>0?ZOOMS[ZOOMS.length-1]:ZOOMS[0];
+    if(dir<0&&n<fitScale()&&c>fitScale()*1.001)n=null;set(n,at);}
+  view.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
+    e.preventDefault();set(now()*Math.exp(-e.deltaY*.006),[e.clientX,e.clientY]);},{passive:false});
+  const zi=g('zoomIn'),zo=g('zoomOut'),zv=g('zoomVal');
+  if(zi)zi.onclick=()=>step(1);
+  if(zo)zo.onclick=()=>step(-1);
+  if(zv)zv.onclick=()=>set(z==null?1:null);   /* 100%, then back to fit */
+  document.addEventListener('keydown',e=>{
+    if(!(e.metaKey||e.ctrlKey)||e.altKey||e.shiftKey)return;
+    const a=document.activeElement;
+    if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;
+    if(e.key==='='||e.key==='+'){e.preventDefault();step(1);}
+    else if(e.key==='-'||e.key==='_'){e.preventDefault();step(-1);}
+    else if(e.key==='0'){e.preventDefault();set(null);}});
+  paint();
+  return{fit,set,step,get zoom(){return z;},get scale(){return now();},fitScale};
+}
+
+/* Guides – the house part, so margins and a grid can be laid over the work to
+   marry it up with artwork made elsewhere (Steve, 6 November). They are drawn
+   over the canvas, not into it: nothing of them reaches a render or an export.
+   Segue draws its own in its scene, because it also snaps pieces to them. */
+function mountGuides(o){
+  const g=s=>document.getElementById(s);
+  const view=o.view,cv=o.canvas,key=(o.key||'app')+':guides';
+  const btn=g('guidesBtn'),more=g('guidesMore'),pop=g('guidePop');
+  if(!btn||!cv)return null;
+  let G={on:false,margin:5,cells:0};
+  try{G=Object.assign(G,JSON.parse(localStorage.getItem(key)||'{}'));}catch(e){}
+  const save=()=>{try{localStorage.setItem(key,JSON.stringify(G));}catch(e){}};
+  const ov=document.createElement('div');ov.className='guide-ov';ov.setAttribute('aria-hidden','true');
+  view.appendChild(ov);
+  if(getComputedStyle(view).position==='static')view.style.position='relative';
+  function draw(){
+    ov.hidden=!G.on;
+    if(!G.on)return;
+    const w=cv.offsetWidth,h=cv.offsetHeight;
+    ov.style.left=cv.offsetLeft+'px';ov.style.top=cv.offsetTop+'px';
+    ov.style.width=w+'px';ov.style.height=h+'px';
+    const m=Math.max(0,Math.min(45,+G.margin||0)),mx=w*m/100,my=h*m/100;
+    ov.style.setProperty('--gm-x',mx+'px');ov.style.setProperty('--gm-y',my+'px');
+    const n=Math.max(0,Math.min(24,Math.round(+G.cells||0)));
+    ov.classList.toggle('has-grid',n>0);
+    if(n>0){const iw=w-mx*2,ih=h-my*2,cw=iw/n,rows=Math.max(1,Math.round(ih/cw));
+      ov.style.setProperty('--gc',(iw/n)+'px');ov.style.setProperty('--gr',(ih/rows)+'px');}
+  }
+  let draw2=()=>{};
+  function paint(){btn.setAttribute('aria-pressed',!!G.on);draw();}
+  btn.onclick=()=>{G.on=!G.on;save();paint();};
+  if(pop&&more){
+    /* the choices are the house's segmented control, the same part the panels use –
+       a margin and a grid you pick, rather than a dial to fiddle with */
+    const seg=(label,vals,get,set)=>{
+      const w=document.createElement('div');w.className='ctl';
+      const hd=document.createElement('div');hd.className='ctl-head';
+      const sp=document.createElement('span');sp.textContent=label;hd.append(sp);
+      const sg=document.createElement('div');sg.className='seg';sg.setAttribute('role','group');sg.setAttribute('aria-label',label);
+      const bs=vals.map(([v,t])=>{const b=document.createElement('button');b.type='button';b.className='pill';b.textContent=t;
+        b.onclick=()=>{set(v);G.on=true;save();paint();draw2();};sg.append(b);return[v,b];});
+      w.append(hd,sg);pop.append(w);
+      return()=>{bs.forEach(([v,b])=>b.setAttribute('aria-pressed',get()===v));
+        /* where the tool keeps a sliding highlight on its choices, move ours with it */
+        if(typeof placeHL==='function')placeHL(sg,true);};};
+    const t=document.createElement('div');t.className='pop-title';t.textContent='Guides';pop.append(t);
+    /* four each, so a row holds them; "Cells" rather than Columns or Grid, which
+       both already mean something else in these panels */
+    const u1=seg('Margin',[[0,'None'],[5,'5%'],[8,'8%'],[10,'10%']],()=>+G.margin,v=>{G.margin=v;});
+    const u2=seg('Cells',[[0,'None'],[4,'4'],[6,'6'],[12,'12']],()=>+G.cells,v=>{G.cells=v;});
+    const h=document.createElement('p');h.className='hint';
+    h.textContent='Over the preview only \u2013 nothing of them goes into an export. The margin is a share of each way across; the cells sit inside it, kept near square.';
+    pop.append(h);
+    draw2=()=>{u1();u2();};
+    draw2();
+    const show=open=>{pop.hidden=!open;more.setAttribute('aria-expanded',open);if(open)draw2();};
+    more.onclick=e=>{e.stopPropagation();show(pop.hidden);};
+    document.addEventListener('pointerdown',e=>{if(!pop.hidden&&!pop.contains(e.target)&&!more.contains(e.target))show(false);},true);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pop.hidden){show(false);more.focus();}});
+  }
+  document.addEventListener('keydown',e=>{
+    if(!(e.metaKey||e.ctrlKey)||e.key!==';'||e.altKey||e.shiftKey)return;
+    const a=document.activeElement;
+    if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;
+    e.preventDefault();btn.click();});
+  paint();
+  return{draw,paint};
+}
 /* Rubato – extra controls (1.0).
    One kind of control per kind of value, so the panel isn't a wall of sliders:
      slider    continuous amounts                (core addRange)
@@ -2204,9 +2458,11 @@ function axisControls(st){
    Every control resets on a double-click of its label. Controls marked
    `more:true` go into the card's folded More section. */
 
+/* A card's second group: the rest of a thing's settings, named for what it holds – never "More"
+   (house rules: if the panel needs a heading like More or Advanced, the structure is wrong). */
 const MORE=Object.assign({},LS.get('more')||{});
-function moreSection(parent,id){
-  const row=el('button','more-toggle'),lab=el('span',null,'More'),chev=el('span','chev');chev.innerHTML=CHEV;row.append(lab,chev);row.type='button';
+function moreSection(parent,id,title){
+  const row=el('button','more-toggle'),lab=el('span',null,title||'More'),chev=el('span','chev');chev.innerHTML=CHEV;row.append(lab,chev);row.type='button';
   const inner=el('div','more-body'),kids=[];
   const paint=()=>{const on=!!MORE[id];inner.hidden=!on;row.setAttribute('aria-expanded',on);if(on)requestAnimationFrame(()=>syncRanges(inner));};
   row.onclick=()=>{MORE[id]=!MORE[id];LS.set('more',MORE);paint();};
@@ -2358,12 +2614,17 @@ function addPad(parent,d){
   const c={d:{show:d.show,group:d.group},w,update:paint};controls.push(c);return c;
 }
 
-/* build a list of controls; items with more:true go into the card's More section */
+/* Build a list of controls. `{ui:'group'}` opens a house group (level 2) and everything after it
+   goes inside until `{ui:'end'}`; items with more:true still go into a card's More section where
+   one is passed. There is no fifth level: a heading is a group or it isn't a heading. */
 function buildR(parent,list,more){
+  let grp=null;
   for(const d of list){
-    let host=parent;if(d.more&&more){host=more.inner;more.kids.push(d);}
+    if(d.ui==='group'){grp=fold(parent,d.id,d.title,d.show,d.shut!==false);continue;}
+    if(d.ui==='end'){grp=null;continue;}
+    let host=grp||parent;if(d.more&&more){host=more.inner;more.kids.push(d);}
     if(d.ui==='stepper')addStepper(host,d);else if(d.ui==='dial')addDial(host,d);else if(d.ui==='pair')addPair(host,d);
-    else if(d.ui==='bar')addLoopBar(host,d);else if(d.ui==='pad')addPad(host,d);else if(d.ui==='head')addCustom(host,d.show,el('div','sub-head',d.text));
+    else if(d.ui==='bar')addLoopBar(host,d);else if(d.ui==='pad')addPad(host,d);
     else build(host,[d]);
   }
 }
@@ -2572,14 +2833,20 @@ Object.assign(TIPS,{
 });
 /* ---------------- preview loop ---------------- */
 let playing=true,phase=0,busy=false;
+/* the view's zoom is the house part in shared/view.js: Fit, or a set size, with
+   the buttons in the top bar. It sizes the canvas on screen; the canvas itself is
+   always the frame's own pixels, so nothing here reaches a render or an export. */
+let VZ=null,GD=null;
 function fitCanvas(){
   const [W,H]=frameSize();if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
-  const v=$('#view'),cs=getComputedStyle(v);
-  const aw=v.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),ah=v.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
-  const s=Math.max(.01,Math.min(aw/W,ah/H));cv.style.width=Math.floor(W*s)+'px';cv.style.height=Math.floor(H*s)+'px';
+  if(!VZ){VZ=mountZoom({view:$('#view'),canvas:cv,size:frameSize,after:()=>{if(GD)GD.draw();}});
+    GD=mountGuides({view:$('#view'),canvas:cv,key:'rubato'});}
+  VZ.fit();
   cv.classList.toggle('checker',!!S.transparent);
   $('#dims').textContent=`${W} × ${H} px`;dirty=true;
 }
+/* the window changing shape re-fits the canvas (and so does leaving Preview) */
+if(window.ResizeObserver){let rt=0;new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(()=>{if(VZ)VZ.fit();},60);}).observe($('#view'));}
 const scrub=$('#scrub');
 function tick(now){
   const dt=lastT?Math.min(100,now-lastT):0;lastT=now;
@@ -2651,12 +2918,40 @@ function applyPreset(n){
 
 /* Text – blocks, sequence, spacing, kerning */
 let textsHost,kernHost;
+let imgNameEl,imgRemove;   /* the Picture group in Canvas, built before refreshImageCard is defined */
+/* Canvas – the page: its format, what's behind the type, and a picture to blend with it.
+   First in the order of work (house rules, 11 Nov): set the page, then the words. */
+{const b=card('canvas','Canvas');
+  buildR(b,[{t:'seg',k:'aspect',label:'Format',opts:[['1:1','1:1'],['4:5','4:5'],['9:16','9:16'],['16:9','16:9'],['3:2','3:2'],['2:3','2:3'],['custom','Custom']]}]);
+  const pair=el('div','ctl pair');const mk=(k,lab)=>{const i=el('input');i.type='number';i.min=64;i.max=4096;i.step=1;i.setAttribute('aria-label',lab);i.onchange=()=>set(k,clamp(Math.round(+i.value)||1080,64,4096));return i;};
+  const iw=mk('cw','Width in pixels'),ih=mk('ch','Height in pixels');pair.append(iw,ih);
+  addCustom(b,s=>s.aspect==='custom',pair).update=()=>{iw.value=S.cw;ih.value=S.ch;};
+  buildR(b,[
+    {t:'colour',k:'bg',label:'Background'},
+    {t:'toggle',k:'transparent',label:'Transparent'},
+    {t:'hint',text:'Transparency applies to PNG, SVG and WebM. GIFs always use the background colour.',show:s=>s.transparent},
+  ]);
+  /* a picture behind, above or inside the type – a switch group once one is loaded */
+  const imgGrp=fold(b,'image','Picture',null,true);
+  const ir=el('div','img-row');imgNameEl=el('div','slot-name');const ld=el('button','pill small','Load');imgRemove=el('button','pill small','Remove');
+  ld.onclick=()=>$('#imgfile').click();imgRemove.onclick=clearImage;ir.append(imgNameEl,ld,imgRemove);imgGrp.append(ir);
+  const has=()=>!!img;
+  buildR(imgGrp,[
+    {t:'seg',k:'iPlace',label:'Place',group:'image',opts:[['behind','Behind type'],['above','Above type'],['inside','Inside type']],show:has},
+    {t:'seg',k:'iBlend',label:'Blend',group:'image',opts:[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['difference','Difference']],show:has},
+    {t:'range',k:'iScale',label:'Scale',group:'image',min:.2,max:3,step:.01,fmt:v=>v.toFixed(2)+'×',show:has},
+    {t:'range',k:'iOpacity',label:'Opacity',group:'image',min:0,max:1,step:.01,fmt:pct,show:has},
+    {ui:'dial',k:'iSway',label:'Sway',group:'image',min:0,max:45,step:.5,dispK:2,show:has},
+    {t:'range',k:'iRise',label:'Rise',group:'image',min:0,max:25,step:.5,unit:'%',show:has},
+    {t:'hint',text:'Pictures stay in this browser and aren’t saved in presets. SVG export leaves the picture out.',show:has},
+  ]);
+}
+
 {const b=card('text','Text');
-  buildR(b,[{t:'toggle',k:'seq',label:'Sequence of texts',show:s=>!multi(s),onToggle:v=>{if(v&&S.texts.length<2)S.texts.push('');set('seq',v);renderTextFields();if(v){const f=textsHost.querySelectorAll('textarea');const last=f[f.length-1];if(last&&!last.value)last.focus();}}}]);
-  textsHost=el('div');b.append(textsHost);
+  buildR(b,[{t:'toggle',k:'seq',label:'Sequence',grp:true,show:s=>!multi(s),onToggle:v=>{if(v&&S.texts.length<2)S.texts.push('');set('seq',v);renderTextFields();if(v){const f=textsHost.querySelectorAll('textarea');const last=f[f.length-1];if(last&&!last.value)last.focus();}}}]);
+  textsHost=el('div');b.insertBefore(textsHost,b.firstChild);   /* the words first; the Sequence switch heads its own settings below them */
   const on=s=>s.seq&&!multi(s),r=s=>s.qStyle==='roll',st=s=>s.qStyle==='stretch',g=s=>s.qStyle==='glide';
   buildR(b,[
-    {ui:'head',text:'Handover',show:on},
     {t:'seg',k:'qStyle',label:'Transition',group:'sequence',show:on,opts:[['roll','Roll'],['stretch','Stretch'],['glide','Glide'],['fade','Fade'],['cut','Cut']]},
     {t:'hint',text:'Glide stacks your texts as a list. Each new one arrives at the bottom and the stack moves up.',show:both(on,g)},
     {t:'seg',k:'qClear',label:'Handover',group:'sequence',opts:[[true,'One after the other'],[false,'Together']],show:both(on,s=>!g(s))},
@@ -2667,13 +2962,21 @@ let textsHost,kernHost;
     {t:'range',k:'qStagger',label:'Stagger',group:'sequence',min:0,max:.95,step:.01,fmt:pct,show:both(on,s=>!g(s)),rnd:[0,.5]},
     {ui:'stepper',k:'qStack',label:'Items in stack',group:'sequence',min:2,max:8,step:1,show:both(on,g)},
     {t:'range',k:'qTrail',label:'Dim older items',group:'sequence',min:0,max:1,step:.01,fmt:pct,show:both(on,g)},
-    {ui:'head',text:'Spacing'},
+    {ui:'group',id:'spacing',title:'Spacing',shut:false},
     {t:'range',k:'tracking',label:'Tracking',group:'layout',min:-150,max:400,step:5,fmt:v=>(v>0?'+':'')+Math.round(v),rnd:[-30,60]},
     {t:'range',k:'leading',label:'Line spacing',group:'layout',min:.6,max:2,step:.01,fmt:v=>v.toFixed(2),rnd:[.9,1.2]},
   ]);
-  b.append(el('div','sub-head','Kerning'));
-  b.append(el('p','hint','Click between two letters on the preview, then use ← and → to kern. Hold Shift for bigger steps, Esc to finish.'));
-  kernHost=el('div','kern-list');b.append(kernHost);
+  /* the type's own look – colour, and whether it's drawn filled or as an outline */
+  buildR(b,[
+    {ui:'group',id:'look',title:'Look',shut:false},
+    {t:'colour',k:'ink',label:'Colour'},
+    {t:'seg',k:'style',label:'Render',opts:[['fill','Fill'],['outline','Outline']]},
+    {t:'range',k:'stroke',label:'Stroke',min:2,max:120,step:1,fmt:v=>Math.round(v)+'/1000 em',show:s=>s.style==='outline'},
+    {ui:'end'},
+  ]);
+  const kernGrp=fold(b,'kerning','Kerning',null,true);
+  kernGrp.append(el('p','hint','Click between two letters on the preview, then drag, or use ← and → to kern. Hold Shift for bigger steps, Esc to finish.'));
+  kernHost=el('div','kern-list');kernGrp.append(kernHost);
 }
 let textSig='';
 function fontOptions(sel,cur,first){sel.textContent='';if(first){const o=el('option',null,first);o.value='';sel.append(o);}
@@ -2739,34 +3042,29 @@ function refreshKernList(){
 
 /* Layout – frame, size, alignment; Repeat rows */
 {const b=card('layout','Layout');
-  buildR(b,[{t:'seg',k:'aspect',label:'Shape',opts:[['1:1','1:1'],['4:5','4:5'],['9:16','9:16'],['16:9','16:9'],['3:2','3:2'],['2:3','2:3'],['custom','Custom']]}]);
-  const pair=el('div','ctl pair');const mk=(k,lab)=>{const i=el('input');i.type='number';i.min=64;i.max=4096;i.step=1;i.setAttribute('aria-label',lab);i.onchange=()=>set(k,clamp(Math.round(+i.value)||1080,64,4096));return i;};
-  const iw=mk('cw','Width in pixels'),ih=mk('ch','Height in pixels');pair.append(iw,ih);
-  addCustom(b,s=>s.aspect==='custom',pair).update=()=>{iw.value=S.cw;ih.value=S.ch;};
   const rep=s=>s.rOn&&!glide(s)&&!multi(s);
   buildR(b,[
     {t:'seg',k:'fit',label:'Size',opts:[['block','Fit'],['lines','Fill width'],['manual','Manual']],show:s=>!rep(s),rnd:['block','lines']},
-    {t:'range',k:'size',label:'Size',min:2,max:150,step:.5,fmt:v=>roundTo(v,.5)+'% of width',show:s=>s.fit==='manual'&&!rep(s)},
-    {t:'toggle',k:'stretch',label:'Stretch to fill',show:s=>!glide(s)&&!(multi(s)&&s.fit==='lines')},
+    {t:'range',k:'size',label:'Scale',min:2,max:150,step:.5,fmt:v=>roundTo(v,.5)+'% of width',show:s=>s.fit==='manual'&&!rep(s)},
+    {t:'toggle',k:'stretch',label:'Stretch',show:s=>!glide(s)&&!(multi(s)&&s.fit==='lines')},
     {t:'hint',text:'Letters are stretched to reach the edges. Turn off to keep their true proportions.',show:s=>s.stretch&&!glide(s)&&!(multi(s)&&s.fit==='lines')},
     {t:'hint',text:'Repeat sets the size from its row count.',show:rep},
     {t:'seg',k:'align',label:'Align',opts:[['left','Left'],['centre','Centre'],['right','Right']],rnd:['left','centre','right']},
-    {t:'seg',k:'valign',label:'Position',opts:[['top','Top'],['middle','Middle'],['bottom','Bottom']],show:s=>!s.rOn||glide(s)||multi(s),rnd:['top','middle','bottom']},
-    {t:'range',k:'lkGap',label:'Gap between blocks',min:0,max:1.5,step:.01,fmt:v=>v.toFixed(2)+' em',show:multi,rnd:[.15,.6]},
+    {t:'seg',k:'valign',label:'Placement',opts:[['top','Top'],['middle','Middle'],['bottom','Bottom']],show:s=>!s.rOn||glide(s)||multi(s),rnd:['top','middle','bottom']},
+    {t:'range',k:'lkGap',label:'Block gap',min:0,max:1.5,step:.01,fmt:v=>v.toFixed(2)+' em',show:multi,rnd:[.15,.6]},
     {t:'range',k:'margin',label:'Margin',min:0,max:40,step:.5,fmt:v=>roundTo(v,.5)+'%',rnd:[4,14]},
   ]);
   /* Repeat rows, folded in from its own card */
   const on=rep;
   buildR(b,[
-    {ui:'head',text:'Repeat',show:s=>!multi(s)},
-    {t:'toggle',k:'rOn',label:'Repeat rows',group:'repeat',show:s=>!multi(s)},
+    {t:'toggle',k:'rOn',label:'Repeat rows',grp:true,group:'repeat',show:s=>!multi(s)},
     {t:'hint',text:'Repeat is paused while the sequence uses Glide.',show:s=>s.rOn&&glide(s)&&!multi(s)},
-    {ui:'stepper',k:'rRows',label:'Rows in frame',group:'repeat',min:1,max:16,step:1,show:on,rnd:[2,8]},
+    {ui:'stepper',k:'rRows',label:'Rows',group:'repeat',min:1,max:16,step:1,show:on,rnd:[2,8]},
     {t:'range',k:'rGap',label:'Row gap',group:'repeat',min:0,max:100,step:1,fmt:v=>Math.round(v)+'% em',show:on},
     {t:'seg',k:'rMix',label:'Rows show',group:'repeat',opts:[['alternate','Alternating texts'],['same','The same text']],show:s=>on(s)&&s.seq},
     {ui:'stepper',k:'rScroll',label:'Scroll',group:'repeat',min:-4,max:4,step:1,fmt:perLoop,show:on,rnd:[-2,2]},
     {ui:'stepper',k:'rMarq',label:'Slide sideways',group:'repeat',min:-4,max:4,step:1,fmt:perLoop,show:on,rnd:[-1,1]},
-    {t:'toggle',k:'rAlt',label:'Alternate rows slide opposite ways',group:'repeat',show:s=>on(s)&&Math.round(s.rMarq)!==0},
+    {t:'toggle',k:'rAlt',label:'Opposite ways',group:'repeat',show:s=>on(s)&&Math.round(s.rMarq)!==0},
     {t:'range',k:'rDelay',label:'Row offset',group:'repeat',min:0,max:.5,step:.005,fmt:ofLoop,show:on,rnd:[0,.1]},
   ]);
 }
@@ -2778,7 +3076,7 @@ function refreshKernList(){
   const row=el('div','ctl switch-row seed-row');const lab=el('span');const btn=el('button','pill small','New seed');btn.title='The seed fixes every random choice, so a look you like stays put.';
   btn.onclick=()=>{pushUndo();set('seed',(Math.random()*99999|0)+1);};
   row.append(lab,btn);addCustom(b,null,row).update=()=>{lab.textContent='Seed '+S.seed;};
-  const more=moreSection(b,'motion');
+  const more=moreSection(b,'motion','Shaping');
   buildR(b,[
     {t:'seg',k:'mode',label:'Movement',opts:[['none','Still'],['fluid','Fluid'],['snappy','Snappy'],['transit','Transitional'],['jitter','Jitter'],['assemble','Assemble']]},
     /* Fluid */
@@ -2794,7 +3092,7 @@ function refreshKernList(){
     {ui:'pad',kx:'sX',ky:'sY',label:'Reach',tip:TIPS.sReach,nx:'Shift',ny:'Jump',maxX:80,maxY:80,step:.5,fmt:v=>roundTo(v,.5)+'%',shape:'box',show:isS,rndX:[0,10],rndY:[0,24]},
     {ui:'dial',k:'sRot',label:'Twist',min:0,max:90,step:.5,show:isS,rnd:[0,12]},
     {t:'range',k:'sStagger',label:'Stagger',min:0,max:1,step:.01,fmt:pct,show:isS,rnd:[0,.6]},
-    {t:'toggle',k:'sRest',label:'Return to rest between steps',show:isS,rnd:.6,more:true},
+    {t:'toggle',k:'sRest',label:'Back to rest',show:isS,rnd:.6,more:true},
     {t:'range',k:'sScale',label:'Scale',min:0,max:80,step:.5,unit:'%',show:isS,rnd:[0,15],more:true},
     {t:'range',k:'sStretch',label:'Stretch',min:0,max:150,step:1,unit:'%',show:isS,rnd:[0,60],more:true},
     {t:'range',k:'sUnison',label:'Unison',min:0,max:1,step:.01,fmt:pct,show:isS,rnd:[0,.7],more:true},
@@ -2825,7 +3123,7 @@ function refreshKernList(){
     {t:'seg',k:'aFeel',label:'Feel',opts:[['magnet','Magnetic'],['smooth','Smooth'],['elastic','Elastic']],show:isA,rnd:['magnet','smooth','elastic']},
     {t:'range',k:'aStagger',label:'Stagger',min:0,max:.95,step:.01,fmt:pct,show:isA,rnd:[.2,.7],more:true},
     {t:'seg',k:'aExit',label:'Exit',opts:[['scatter','Scatter'],['reverse','Go back']],show:isA,rnd:['scatter','reverse'],more:true},
-    {t:'toggle',k:'aFade',label:'Fade while scattered',show:isA,more:true},
+    {t:'toggle',k:'aFade',label:'Fade',show:isA,more:true},
     /* shared */
     {t:'seg',k:'order',label:'Order',opts:[['ltr','Left to right'],['rtl','Right to left'],['centre','Centre out'],['edges','Edges in'],['random','Random']],rnd:['ltr','rtl','centre','edges','random']},
     {t:'seg',k:'anchor',label:'Anchor',opts:[['centre','Centre'],['baseline','Baseline']],rnd:['centre','baseline'],show:s=>s.mode!=='none'||s.vStyle==='stretch'||s.vStyle==='flip'||(s.seq&&s.qStyle==='stretch'),more:true},
@@ -2835,9 +3133,9 @@ function refreshKernList(){
   const AXf=()=>{const f=F(eng.baseSlot());return f.axes&&(f.axes.find(a=>a.tag===S.axTag)||f.axes[0]);};
   const axFmt=v=>{const a=AXf();return a?String(Math.round(a.min+(a.max-a.min)*v)):pct(v);};
   b.append(more.inner.previousSibling,more.inner);
-  addCustom(b,axOK,el('div','sub-head','Variable axis'));
+  /* the variable axis is a group, not a bare label */
   buildR(b,[
-    {t:'toggle',k:'axOn',label:'Animate an axis',show:axOK},
+    {t:'toggle',k:'axOn',label:'Animate an axis',grp:true,show:axOK},
     {t:'segdyn',k:'axTag',label:'Axis',optsFn:()=>{const f=F(eng.baseSlot());return (f.axes||[]).map(a=>[a.tag,a.name]);},show:axOn},
     {ui:'pair',k1:'axFrom',k2:'axTo',label:'Range',tip:TIPS.axRange,min:0,max:1,step:.005,fmt:axFmt,show:axOn,rnd1:[0,.4],rnd2:[.6,1]},
     {ui:'stepper',k:'axCycles',label:'Cycles per loop',min:1,max:6,step:1,show:axOn,rnd:[1,2]},
@@ -2851,7 +3149,7 @@ let pickHost;
   const on=s=>s.vMode!=='off'&&s.vMode!=='scramble',rnd=s=>on(s)&&s.vPattern==='random',cyc=s=>on(s)&&s.vPattern==='cycle',sc=s=>s.vMode==='scramble';
   buildR(b,[{t:'seg',k:'vMode',label:'Swap',opts:[['off','Off'],['alts','Alternates'],['weights','Styles'],['both','Both'],['scramble','Scramble']]}]);
   const note=el('p','hint');addCustom(b,null,note);window.variantNote=note;
-  const mv=moreSection(b,'variants');
+  const mv=moreSection(b,'variants','How they change');
   buildR(b,[
     {t:'seg',k:'vPattern',label:'Pattern',opts:[['cycle','Cycle in order'],['random','Random']],show:on,rnd:['cycle','random']},
     {t:'seg',k:'vStyle',label:'Change',opts:[['roll','Roll'],['stretch','Stretch'],['cut','Cut'],['fade','Fade'],['flip','Flip']],show:on,rnd:['roll','roll','stretch','cut','fade','flip']},
@@ -2863,22 +3161,24 @@ let pickHost;
     {t:'range',k:'scStagger',label:'Stagger',min:0,max:1,step:.01,fmt:pct,show:sc,rnd:[.3,.9],more:true},
     {t:'range',k:'vDur',label:'Change length',min:.05,max:1,step:.01,fmt:ofStep,show:on,rnd:[.2,.6],more:true},
     {t:'range',k:'vStagger',label:'Stagger',min:0,max:1,step:.01,fmt:pct,show:on,rnd:[0,.6],more:true},
-    {t:'toggle',k:'vOffset',label:'Offset repeated letters',show:cyc,more:true},
-    {t:'toggle',k:'vRest',label:'Return to default between changes',show:rnd,more:true},
-    {t:'toggle',k:'vReflow',label:'Respace as widths change',show:on,more:true},
+    {t:'toggle',k:'vOffset',label:'Offset repeats',show:cyc,more:true},
+    {t:'toggle',k:'vRest',label:'Back to default',show:rnd,more:true},
+    {t:'toggle',k:'vReflow',label:'Respace',show:on,more:true},
   ],mv);
   b.append(mv.inner.previousSibling,mv.inner);
-  const head=el('div','sub-head','Glyphs');const hint=el('p','hint');
+  /* which alternates a font may use – a group of its own, not a bare label */
+  const glyphs=fold(b,'glyphs','Glyphs',null,true);
+  const hint=el('p','hint');
   const reset=el('button','pill small','Use all');reset.onclick=()=>{S.picks={};optCache.clear();autosave();dirty=true;schedulePicker(0);};
-  const hr=el('div','switch-row');hr.append(head,reset);
+  const hr=el('div','switch-row');hr.append(reset);
   const wrap=el('div');wrap.append(hr,hint);pickHost=el('div','pick-host');wrap.append(pickHost);
-  addCustom(b,null,wrap);window.pickHint=hint;window.pickReset=reset;window.pickWrap=wrap;
+  glyphs.append(wrap);window.pickHint=hint;window.pickReset=reset;window.pickWrap=wrap;
 }
 /* Physics – pull a lockup apart and let it snap back */
 {const b=card('physics','Physics');
   const on=s=>s.phOn;
   buildR(b,[
-    {t:'toggle',k:'phOn',label:'Pull apart'},
+    {t:'toggle',k:'phOn',label:'Pull apart',grp:true},
     {t:'hint',text:'Add blocks in Text to pull a lockup apart. On its own, a block drifts to its point and back.',show:s=>on(s)&&!multi(s)},
   ]);
   /* where each block goes: a 3×3 pad of points in the frame, or Auto */
@@ -2892,48 +3192,18 @@ let pickHost;
       POS.forEach(p=>{const c=el('button','dest-pt'+(bk.dest==='auto'&&goes===p?' auto':''));c.type='button';c.setAttribute('aria-label',NAMES[p]);c.setAttribute('aria-pressed',bk.dest===p);c.onclick=()=>{bk.dest=p;autosave();dirty=true;pokeGuides();refreshDestUI();};grid.append(c);});
       const auto=el('button','pill small','Auto');auto.setAttribute('aria-pressed',bk.dest==='auto');auto.title='Each block to its own corner';auto.onclick=()=>{bk.dest='auto';autosave();dirty=true;pokeGuides();refreshDestUI();};
       row.append(nm,grid,auto);destHost.append(row);}};
-  const mp=moreSection(b,'physics');
   buildR(b,[
     {t:'seg',k:'phFeel',label:'Feel',group:'physics',opts:[['magnet','Magnetic'],['smooth','Smooth'],['elastic','Elastic']],show:on,rnd:['magnet','smooth','elastic']},
     {ui:'bar',keys:['phIn','phHold','phOut'],names:['Pull','Apart','Return'],label:'Timing',tip:TIPS.phTiming,group:'physics',mins:[.05,0,.05],maxs:[1,1,1],show:on,rnd:[[.15,.3],[.15,.35],[.15,.3]]},
     {t:'range',k:'phSpace',label:'Personal space',group:'physics',min:0,max:20,step:.25,fmt:v=>v?roundTo(v,.25)+'% of frame':'Off',show:s=>on(s)&&multi(s),rnd:[0,6]},
-    {t:'range',k:'phPull',label:'Distance',group:'physics',min:0,max:1,step:.01,fmt:pct,show:on,rnd:[.6,1],more:true},
-    {t:'range',k:'phStagger',label:'Stagger',group:'physics',min:0,max:.95,step:.01,fmt:pct,show:s=>on(s)&&multi(s),rnd:[0,.6],more:true},
-  ],mp);
-  b.append(mp.inner.previousSibling,mp.inner);
+    {t:'range',k:'phPull',label:'Distance',group:'physics',min:0,max:1,step:.01,fmt:pct,show:on,rnd:[.6,1]},
+    {t:'range',k:'phStagger',label:'Stagger',group:'physics',min:0,max:.95,step:.01,fmt:pct,show:s=>on(s)&&multi(s),rnd:[0,.6]},
+  ]);
   buildR(b,[{t:'hint',text:'Hover over this card to see each block’s point and space on the preview.',show:on}]);
   const cardEl=b.parentElement;cardEl.addEventListener('pointerenter',()=>{guideHover=true;dirty=true;});cardEl.addEventListener('pointerleave',()=>{guideHover=false;dirty=true;});
   cardEl.addEventListener('input',pokeGuides);cardEl.addEventListener('pointerup',pokeGuides);
 }
 /* Colour – colours, render, image */
-let imgNameEl,imgRemove;
-{const b=card('colour','Colour');
-  const row=el('div','ctl btn-row pairs');
-  [['Black on white','#000000','#ffffff'],['White on black','#ffffff','#000000'],['Black on grey','#000000','#f2f2f2']].forEach(([t,ink,bg])=>{const p=el('button','pill small',t);p.onclick=()=>{S.ink=ink;S.bg=bg;set('transparent',false);schedulePicker(0);};row.append(p);});
-  const sw=el('button','pill small','Swap');sw.onclick=()=>{const t=S.ink;S.ink=S.bg;set('bg',t);};row.append(sw);
-  addCustom(b,null,row);
-  buildR(b,[
-    {t:'colour',k:'ink',label:'Type'},
-    {t:'colour',k:'bg',label:'Background'},
-    {t:'toggle',k:'transparent',label:'Transparent background'},
-    {t:'hint',text:'Transparency applies to PNG, SVG and WebM. GIFs always use the background colour.',show:s=>s.transparent},
-    {t:'seg',k:'style',label:'Render',opts:[['fill','Fill'],['outline','Outline']]},
-    {t:'range',k:'stroke',label:'Stroke',min:2,max:120,step:1,fmt:v=>Math.round(v)+'/1000 em',show:s=>s.style==='outline'},
-  ]);
-  b.append(el('div','sub-head','Image'));
-  const ir=el('div','img-row');imgNameEl=el('div','slot-name');const ld=el('button','pill small','Load');imgRemove=el('button','pill small','Remove');
-  ld.onclick=()=>$('#imgfile').click();imgRemove.onclick=clearImage;ir.append(imgNameEl,ld,imgRemove);b.append(ir);
-  const has=()=>!!img;
-  buildR(b,[
-    {t:'seg',k:'iPlace',label:'Place',group:'image',opts:[['behind','Behind type'],['above','Above type'],['inside','Inside type']],show:has},
-    {t:'seg',k:'iBlend',label:'Blend',group:'image',opts:[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['difference','Difference']],show:has},
-    {t:'range',k:'iScale',label:'Scale',group:'image',min:.2,max:3,step:.01,fmt:v=>v.toFixed(2)+'×',show:has},
-    {t:'range',k:'iOpacity',label:'Opacity',group:'image',min:0,max:1,step:.01,fmt:pct,show:has},
-    {ui:'dial',k:'iSway',label:'Sway',group:'image',min:0,max:45,step:.5,dispK:2,show:has},
-    {t:'range',k:'iRise',label:'Rise',group:'image',min:0,max:25,step:.5,unit:'%',show:has},
-    {t:'hint',text:'Images stay in this browser and aren’t saved in presets. SVG export leaves the image out.',show:has},
-  ]);
-}
 function refreshImageCard(){if(!imgNameEl)return;imgNameEl.textContent=img?imgName:'Add a PNG, JPG or WebP to blend with the type';imgNameEl.classList.toggle('empty',!img);imgRemove.hidden=!img;}
 /* Export */
 {const b=card('export','Export',null,'studio');
@@ -3007,10 +3277,17 @@ function refreshNotes(){
 }
 
 /* ---------------- undo + randomise ---------------- */
-const undoStack=[];
-function pushUndo(){undoStack.push(JSON.stringify(S));if(undoStack.length>30)undoStack.shift();$('#undo').disabled=false;}
-function undo(){const s=undoStack.pop();if(!s)return;S=Object.assign(fresh(),sanitiseR(JSON.parse(s)));eng.use(S);autosave();reloadAll();$('#undo').disabled=!undoStack.length;}
-$('#undo').onclick=undo;
+const undoStack=[],redoStack=[];
+function paintHistory(){const u=$('#undoBtn'),r=$('#redoBtn');
+  if(u){u.disabled=!undoStack.length;u.title=undoStack.length?'Undo \u2013 \u2318Z':'Nothing to undo';}
+  if(r){r.disabled=!redoStack.length;r.title=redoStack.length?'Redo \u2013 \u21e7\u2318Z':'Nothing to redo';}}
+function pushUndo(){undoStack.push(JSON.stringify(S));if(undoStack.length>30)undoStack.shift();redoStack.length=0;paintHistory();}
+function putState(str){S=Object.assign(fresh(),sanitiseR(JSON.parse(str)));eng.use(S);autosave();reloadAll();paintHistory();}
+function undo(){const s=undoStack.pop();if(!s)return;redoStack.push(JSON.stringify(S));putState(s);}
+function redo(){const s=redoStack.pop();if(!s)return;undoStack.push(JSON.stringify(S));putState(s);}
+if($('#undoBtn'))$('#undoBtn').onclick=undo;
+if($('#redoBtn'))$('#redoBtn').onclick=redo;
+paintHistory();
 const RAND_GROUPS=[['motion','Motion'],['variants','Variants'],['sequence','Sequence'],['repeat','Repeat'],['physics','Physics'],['layout','Layout'],['colour','Colour']];
 const RAND0={level:'gentle',groups:{motion:true,variants:true,sequence:true,repeat:true,physics:false,layout:false,colour:false}};
 const RS=Object.assign({},RAND0,LS.get('rand')||{});RS.groups=Object.assign({},RAND0.groups,RS.groups||{});
@@ -3056,13 +3333,19 @@ function randomise(){
 $('#rand').onclick=randomise;
 window.addEventListener('keydown',e=>{
   const tg=e.target,typing=tg&&(tg.tagName==='TEXTAREA'||tg.tagName==='SELECT'||(tg.tagName==='INPUT'&&/text|number/.test(tg.type)));
-  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!typing){e.preventDefault();undo();return;}
+  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='z'&&!typing){e.preventDefault();if(e.shiftKey)redo();else undo();return;}
   if(typing||e.metaKey||e.ctrlKey||e.altKey)return;
   if(e.code==='Space'&&tg.tagName!=='BUTTON'&&!(tg.getAttribute&&tg.getAttribute('role')==='slider')){e.preventDefault();setPlaying(!playing);}
   else if(e.key==='r'||e.key==='R')randomise();
 });
 /* ---------------- start ---------------- */
-function appStart(){refreshFontCard();refreshImageCard();renderTextFields();applyTab();refreshAll();fitCanvas();refreshPicker();}
+/* The order of work (house rules): set the page, write the words, choose the faces, lay it out,
+   move it, then the extras. Fonts is built by the shared core, so the order is set here once
+   every card exists, rather than by where each happens to be built. */
+const PANEL_ORDER=['canvas','text','font','layout','motion','variants','physics'];
+function orderPanel(){const p=$('#panel');PANEL_ORDER.forEach(id=>{const sec=p.querySelector(`:scope>section.card[data-id="${id}"]`);if(sec)p.append(sec);});
+  p.querySelectorAll(':scope>section.card').forEach(sec=>{if(!PANEL_ORDER.includes(sec.dataset.id))p.append(sec);});}
+function appStart(){orderPanel();refreshFontCard();refreshImageCard();renderTextFields();applyTab();refreshAll();fitCanvas();refreshPicker();}
 /* Rubato – PNG, SVG, GIF and video exports (GIF encoder in shared/gif.js). */
 /* file names: the shared namer predates Jitter and Assemble, so name those here */
 function rslug(){const m={jitter:'jitter',assemble:'assemble'}[S.mode];return m?slug().replace(/-motion$/,'-'+m):slug();}

@@ -1,11 +1,13 @@
-# Tutti – handover (v6.2)
+# Tutti – handover (v6.3)
 
-**6.2 (6 Nov 2026) – the house kit.** `build.py` adds `shared/kit.css` after the shared tokens and components; `tutti/frame.css` ends with Tutti's parts in kit terms (rows on the label column, switches, buttons, choices, bands, Edges, Advanced, the Export sheet); `tutti/frame.js` has the house slider (drag by distance, Shift finer, click to jump, label beside the bar; the Edges keep their label inside) and keyboard-only focus rings; the panel drags 280–480. It only moves and dresses controls – the 12 export hashes in `tests/tutti_check.py` match 6.1.1, and 84 of 84 checks pass, framed (`?embed`) and edge to edge (`?app`). Rules: `shared/UI.md`.
+**6.3 (11 Nov 2026) – the house style.** No section named for nothing: "Advanced" is gone – Opacity sits in **Shape**, **Rotation** is a group inside it, **Thresholds** a shut group inside Mapping, and **Presets** is a section of its own. **Warp** in Source is a group rather than a plain label used as a heading, and groups remember whether they are open. Names that fit the label column and say one thing: Ratio → **Format**, Canvas colour → **Colour**, Zoom → **Source zoom**, Fill shapes solid → **Filled**, Invert mapping → **Invert**, Scale with midtones → **Size by tone**, Min size → **Smallest**, Shape size / overlap → **Mark size**, Mark opacity → **Opacity**, Keep SVG colours → **SVG colours**. The colour row is the house's – a hex field you can type into with the swatch at its end – the Mapping band rows have room left and right, and the top bar carries the view's **zoom** (`shared/view.js`: Fit, 100%, ⌘ and a scroll). Nothing of this reaches a render: 84 of 84 checks pass and the 12 export hashes are byte-identical to 6.2. Rules: `shared/UI.md`.
+
+**6.2 (6 Nov 2026) – the house kit.** `build.py` adds `shared/kit.css` after the shared tokens and components; `tutti/frame.css` ends with Tutti's parts in kit terms (rows on the label column, switches, buttons, choices, bands, Edges, the Export sheet); `tutti/frame.js` has the house slider (drag by distance, Shift finer, click to jump, label beside the bar; the Edges keep their label inside) and keyboard-only focus rings; the panel drags 280–480. It only moves and dresses controls – the 12 export hashes in `tests/tutti_check.py` match 6.1.1, and 84 of 84 checks pass, framed (`?embed`) and edge to edge (`?app`). Rules: `shared/UI.md`.
 
 **Status, 6 October 2026:** step 1 of "Joining the repo" is done – `tutti/index.html` is Tutti 6.0 byte for byte, and `build.py` copies it to `docs/tutti/index.html` for GitHub Pages. Point the Squarespace embed at `https://<username>.github.io/ensemble-tools/tutti/`.
 
 ## Where things are
-- **Source:** `tutti/index.html` v6.2 – its own page and script; `build.py` adds the shared tokens and components, `tutti/frame.css` and `tutti/frame.js`, and the shared GIF encoder (`shared/gif.js`). Only the Adobe Fonts kit (`rhx3hsl`) is loaded from outside, for Aktiv Grotesk.
+- **Source:** `tutti/index.html` v6.3 – its own page and script; `build.py` adds the shared tokens and components, `tutti/frame.css` and `tutti/frame.js`, and the shared GIF encoder (`shared/gif.js`). Only the Adobe Fonts kit (`rhx3hsl`) is loaded from outside, for Aktiv Grotesk.
 - **Checks:** `python3 tests/tutti_check.py` (every part, on its own, framed and full screen; add `firefox webkit` for other engines) and `python3 tests/xbrowser.py` (Export across engines).
 - **Build history:** the chat "Building a pixel art converter tool" (started as a pixel/ASCII idea before becoming Tutti).
 - **Hosting:** GitHub Pages, iframe-embedded on weareensemble.co.uk (Squarespace).
@@ -13,10 +15,10 @@
 ## What it does
 A halftone tool: image, video, webcam or live type in; marks mapped from tone out. Panels:
 - **Source** – image/video file, camera, or Type (text, upload a typeface, size, line height, align, tracking, gradient fill, warp: width, height, slant).
-- **Canvas** – canvas colour, ratio (incl. custom W:H), grid, resolution, zoom, source blur.
-- **Shape** – the marks: tonal bands mapped to shapes (including custom SVGs), band count.
-- **Mapping** – min size, shape size/overlap, invert mapping, keep SVG colours.
-- **Advanced** – mark opacity, thresholds (master + per band, Even), rotation and jitter, presets.
+- **Canvas** – colour, format (incl. custom W:H), grid, resolution, source zoom, source blur.
+- **Shape** – filled or outline, invert, size by tone, smallest, mark size, opacity, and a **Rotation** group (rotation, rotation jitter, position jitter).
+- **Mapping** – the tonal bands (colour and shape, including custom SVGs), SVG colours, band count, and a **Thresholds** group (master, per band, Even).
+- **Presets** – save and load every setting as a JSON file.
 - **Export capsule** – Still (PNG, SVG) or Motion (MP4, GIF with ping-pong), countdown before recording.
 
 ## Its role in Ensemble Tools

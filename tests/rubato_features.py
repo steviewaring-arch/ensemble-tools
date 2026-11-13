@@ -57,7 +57,7 @@ def main():
         # 1. panel and presets
         fresh()
         titles = [t.strip() for t in pg.locator('section.card h2 .card-toggle span:first-child').all_inner_texts()]
-        check('Panel order (Presets in its capsule, Export in the island)', titles == ['Fonts', 'Text', 'Layout', 'Motion', 'Variants', 'Physics', 'Colour'] and pg.locator('#pcap').is_visible() and pg.locator('#exportOpen').is_visible(), ' / '.join(titles))
+        check('Panel order (Presets in its capsule, Export in the island)', titles == ['Canvas', 'Text', 'Fonts', 'Layout', 'Motion', 'Variants', 'Physics'] and pg.locator('#pcap').is_visible() and pg.locator('#exportOpen').is_visible(), ' / '.join(titles))
         sheet(pg, 'presets'); time.sleep(.6)
         drawn = pg.evaluate("[...document.querySelectorAll('.thumb canvas')].map(c=>{const d=c.getContext('2d').getImageData(0,0,c.width,c.height).data;let n=0;for(let i=0;i<d.length;i+=4)if(d[i]<128)n++;return n>50})")
         check('Twelve live preset tiles, all drawing', len(drawn) == 12 and all(drawn), f'{sum(drawn)} of {len(drawn)}')
@@ -71,7 +71,10 @@ def main():
         check('Add block', len(st['blocks']) == 2 and st['blocks'][1]['text'] == 'Friday 8 August')
         pg.get_by_label('Block 2 font').select_option(label='Poppins Bold'); st = S()
         check('A block can have its own font', st['blocks'][1]['font'] != '')
-        check('Sequence and Repeat step aside for blocks', pg.get_by_role('switch', name='Sequence of texts').count() == 0 or not pg.get_by_role('switch', name='Sequence of texts').is_visible())
+        # the switch is in the panel but out of the way – a hidden control is not in the a11y tree,
+        # so this looks at the DOM rather than the role
+        seq = pg.locator('.toggle-row button.toggle[aria-label="Sequence"]')
+        check('Sequence and Repeat step aside for blocks', seq.count() == 1 and not seq.is_visible())
         name, svg = download('SVG frame')
         check('Lockup exports both blocks to SVG', svg.decode().count('<path') == len('SUMMERSOCIAL') + len('Friday8August'), f"{svg.decode().count('<path')} paths")
 

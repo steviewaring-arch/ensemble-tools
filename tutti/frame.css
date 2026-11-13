@@ -179,8 +179,13 @@
   .card-tools a,.subttl-row a{height:24px;border-radius:var(--r-chip);box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 9px}
   .card-tools a:hover,.subttl-row a:hover{background:var(--k-fill);color:var(--ink-strong)}
   .svgbtn{border-radius:var(--r-chip);font-size:11.5px;font-weight:500}
+  /* the view's zoom sizes the canvas itself, so nothing may clamp it (kit: .view.zoomed scrolls) */
+  .canvas-wrap{max-width:none;max-height:none}
+  canvas#out{max-width:none;max-height:none}
+  .app.preview canvas#out{width:auto;height:auto}
   /* lists: the bands as soft rows */
-  .state{background:var(--k-fill);box-shadow:none;border-radius:var(--r-ctl);padding:8px 12px;margin-bottom:4px}   /* 13 Nov: more room left and right (Steve's 6 Nov note) */
+  .state{background:var(--k-fill);box-shadow:none;border-radius:var(--r-ctl);padding:8px 12px;gap:12px;margin-bottom:4px}
+  .state .idx{width:14px}   /* 13 Nov: more room left and right (Steve's 6 Nov note) */
   .state .swatch,.svgprev{border-radius:var(--r-sw)}
   .state .meta b{font-weight:500;color:var(--ink-strong)}
   .stepper{border-top:0;padding-top:0;margin-top:10px}

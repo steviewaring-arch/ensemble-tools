@@ -46,6 +46,17 @@ t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};
 let c=7;crypto.getRandomValues=function(arr){const u=new Uint8Array(arr.buffer,arr.byteOffset,arr.byteLength);
 for(let i=0;i<u.length;i++){c=(c*1103515245+12345)>>>0;u[i]=c>>>16&255;}return arr;};})();"""
 
+def either(pg, new_name, old_name):
+    """A switch 1.3 renamed: the new name if this build has it, else v0.8.1's."""
+    a = pg.get_by_role('switch', name=new_name, exact=True)
+    return a if a.count() else pg.get_by_role('switch', name=old_name, exact=True)
+
+
+def seq_switch(pg):
+    """The Sequence switch: "Sequence" in 1.3, "Sequence of texts" in v0.8.1."""
+    return either(pg, 'Sequence', 'Sequence of texts')
+
+
 class Run:
     """One build being driven. Collects every result under a name."""
     def __init__(self, browser, base, kind):
@@ -190,7 +201,7 @@ def t2(r):
     pg = r.page(); r.studio(); r.clear(); r.expand()
     r.fonts(POP, 1200)
     btn(pg, 'Still', True).click()
-    pg.get_by_role('switch', name='Sequence of texts').click(); r.wait(200)
+    seq_switch(pg).click(); r.wait(200)
     t = pg.locator('#panel textarea'); t.nth(0).fill('Lazaar'); t.nth(1).fill('Display')
     r.slider('c_qStagger', .5); r.slider('c_qDur', .6)
     tr = pg.get_by_role('group', name='Transition')
@@ -202,11 +213,14 @@ def t2(r):
     tr.get_by_role('button', name='Roll').click()
     for v in (300, 350, 400, 450):
         r.scrub(v); r.canvas(f'Together {v}')
-    pg.get_by_role('switch', name='Sequence of texts').click()
+    seq_switch(pg).click()
     pg.locator('#panel textarea').nth(0).fill('LOVE\nHATE')
-    for step, name in [('Stretch to fill', 'stretch on'), ('Stretch to fill', 'stretch off'),
-                       ('Repeat rows', 'repeat, stretch off'), ('Stretch to fill', 'repeat, stretch on')]:
-        pg.get_by_role('switch', name=step).click(); r.wait(200); r.canvas(name)
+    # "Stretch to fill" is "Stretch" from 1.3
+    for step, name in [('stretch', 'stretch on'), ('stretch', 'stretch off'),
+                       ('repeat', 'repeat, stretch off'), ('stretch', 'repeat, stretch on')]:
+        sw = either(pg, 'Stretch', 'Stretch to fill') if step == 'stretch' \
+            else pg.get_by_role('switch', name='Repeat rows', exact=True)
+        sw.click(); r.wait(200); r.canvas(name)
     q = pg.locator('.q').first; q.scroll_into_view_if_needed(); r.wait(300)
     pg.mouse.move(5, 5); r.wait(100); q.hover(); r.wait(300)
     r.put('tooltip', f"{pg.locator('.tip.on').count()} shown: {pg.locator('.tip').inner_text()}")
@@ -224,7 +238,8 @@ def t2(r):
     r.put('settings after randomise', pg.evaluate("localStorage.getItem('rubato:settings')"))
     pg.keyboard.press('Escape'); r.wait(100)
     r.put('menu after Escape', str(pg.locator('.rand-pop').is_visible()))
-    btn(pg, 'Undo', True).click(); r.wait(400)
+    # Undo moved to the top bar in 1.3 (the bottom line never carries one), so both builds take the key
+    pg.keyboard.press('Control+z'); r.wait(400)
     r.put('settings after undo', pg.evaluate("localStorage.getItem('rubato:settings')"))
     pg.click('#randOpt'); btn(pg, 'Within limits', True).click(); pg.keyboard.press('Escape')
     for i in range(5):

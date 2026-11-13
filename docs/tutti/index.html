@@ -419,9 +419,10 @@
     --h-ctl:30px; --h-sm:24px; --h-chip:28px;
     --r-frame:12px; --r-card:8px; --r-inner:6px;
     --r-surface:12px; --r-ctl:8px; --r-in:6px; --r-chip:6px; --r-sw:4px;
-    /* pure greys (no warmth), kept quiet: the panel a 4% grey, each section's controls on a white card */
-    --k-panel:#f4f4f4; --k-card:#ffffff;
-    --k-fill:#f2f2f2; --k-fill-2:#e2e2e2; --k-fill-hover:#ececec; --k-raise:#ffffff; --k-raise-line:rgba(0,0,0,.13);
+    /* One grey, and the tones under it. Steve's base (6 Nov) is #F6F5F4 – a touch warm; every other
+       grey is that colour darkened, so nothing on screen reads cool against it. Cards stay white. */
+    --k-panel:#f6f5f4; --k-card:#ffffff;
+    --k-fill:#f4f3f1; --k-fill-2:#e4e3e0; --k-fill-hover:#eeedeb; --k-raise:#ffffff; --k-raise-line:rgba(0,0,0,.13);
     --k-num:#a6a6a6; --k-handle:#1d1d1f; --k-dot:#2f6bff;
     --pw:320px;
     /* motion: three curves, named for what they do */
@@ -521,7 +522,10 @@
   .rng-tick{top:7px;bottom:7px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--k-handle);left:calc(5px + (100% - 10px) * var(--p));transition:transform var(--t-snap) var(--e-snap),background var(--t-snap)}
   .rng-tick.away{opacity:1;transform:none}
   /* where it would cross the words it becomes two short ticks, so it never cuts a letter */
-  .rng-tick.split{background:linear-gradient(var(--k-handle) 0 3px,transparent 3px calc(100% - 3px),var(--k-handle) calc(100% - 3px));top:3px;bottom:3px}
+  /* Where the handle crosses the words it fades behind them rather than breaking into two stubs
+     (Steve, 6 Nov: "the line looks clunky behind any bars that have text in") – one line, still
+     readable as a position, with the label and the value clear on top of it. */
+  .rng-tick.split{background:linear-gradient(var(--k-handle) 0 4px,color-mix(in srgb,var(--k-handle) 20%,transparent) 8px calc(100% - 8px),var(--k-handle) calc(100% - 4px));top:5px;bottom:5px}
   .rng-box:hover .rng-tick,.rng-box.drag .rng-tick{transform:scaleY(1.18)}
   .rng-notch{position:absolute;bottom:0;width:1px;height:5px;margin-left:-.5px;background:var(--ink);opacity:.32;left:calc(5px + (100% - 10px) * var(--b,0));pointer-events:none}
   .rng-box .ctl-head{padding:0 3px 0 10px}
@@ -699,8 +703,7 @@
   }
   @media (prefers-reduced-motion: reduce){.rng-box.ease{transition:none}}
 
-  /* ================= Structure (0.5.2) – one ladder of levels, one row grammar =================
-     1 Section  – a white card on the panel's 4% grey: number and title (14, Bold), chevron, Reset when changed.
+  /* ================= Structure (0.5.2) – one ladder of levels, one row grammar ==========     1 Section  – a white card on the panel's 4% grey: number and title (14, Bold), chevron, Reset when changed.
      2 Group    – inside a card, under a hairline: title (13, Bold), chevron.
      3 Setting  – one row: its label (13, Medium) in a fixed column on the left, its control on the right,
                   30 px high. When the control needs the full width – choices that won't fit beside the label,
@@ -788,6 +791,16 @@
   .xinfo .chip{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--r-chip);background:var(--k-fill);font-size:12px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
   .xinfo .chip:first-child{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line);color:var(--ink-strong)}
   /* choices that won't fit one row: an even grid (Tempo, Rubato), the white following into its row */
+  /* a choice group on two rows is still a control, not a lozenge: components.css gave it
+     calc(h/2 + 2) = 17px from before the kit, which left 6px pills inside a 17px box
+     (Steve, 12 Nov: "corner discrepancy"). One ladder: 4 · 6 · 8 · 10 · 12. */
+  .seg.wrap,.btn-row.choice.wrap{border-radius:var(--r-ctl)}
+  /* a slider is a control, so it takes the control's corner – not a lozenge
+     (Steve, 5 Nov: "rounded corners, not lozenges. consistent corner logic").
+     The panel's sliders are .rng-box and already were; this catches the plain
+     ones the island uses for the play bar. */
+  input[type=range],input[type=range]::-webkit-slider-runnable-track{border-radius:var(--r-ctl)}
+  .rng-box input[type=range]{border-radius:inherit}
   .seg.wrap{display:grid;grid-auto-flow:row;grid-template-columns:repeat(var(--cols),minmax(0,1fr))}
   .seg.wrap>.pill{flex:none;min-width:0}
   .seg.loose{display:flex;flex-direction:column}
@@ -798,7 +811,16 @@
   .fold-head,.more-toggle{border-top:1px solid var(--keyline);margin-top:20px;padding-top:6px}
   .fold>.fold-head{border-top:0;margin-top:0;padding-top:0}
   .card-body>.fold-head:first-child,.card-body>.more-toggle:first-child{border-top:0;margin-top:0;padding-top:0}
-  /* Rubato's own parts in house terms: the stepper, the dial's label */
+  /* Rubato's own parts in house terms: the stepper, the dial's label.
+     The dial starts where every other control starts – its name in the label column,
+     its value after it (Steve, 6 Nov: the dial was sitting in the label column). */
+  .dial-row{display:grid;grid-template-columns:var(--lc) auto minmax(0,1fr);column-gap:10px;align-items:center}
+  .dial-row>.dial-info,.dial-row>.dial-info>.ctl-head{display:contents}
+  .dial-row>.dial{grid-column:2;grid-row:1;justify-self:start}
+  .dial-row>.dial-info>.ctl-head>label{grid-column:1;grid-row:1;font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2;cursor:ns-resize}
+  .dial-row>.dial-info>.ctl-head>.val{grid-column:3;grid-row:1;justify-self:start;text-align:left}
+  .dial-row>.dial-info>.ctl-head>.q{grid-column:1;grid-row:1;justify-self:end;position:static;margin:0}
+  /* the stepper, and the dial's label */
   .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
   .st-label{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2}
   .st-box{margin-left:0;justify-self:start;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px;gap:2px}
@@ -834,6 +856,84 @@
     #island .island-row{justify-content:flex-start}
     #pcap .pc-row{justify-content:flex-end}
   }
+=======
+
+  /* ============ House parts every tool takes (lifted out of Segue, 11 Nov) ============
+     These were written in Segue and proved there; they are the house's, not Segue's. */
+
+  /* 0.11: the pasteboard – very sparse, very faint dots round the canvas, so it's plain what's canvas and what isn't */
+  .view{background-image:radial-gradient(circle,color-mix(in srgb,var(--ink) 15%,transparent) 0 .75px,transparent 1.05px);background-size:24px 24px;background-position:center}
+  .app.preview .view{background-image:none}
+  .layer-sw{margin-bottom:12px}
+
+  /* 0.10: the view's zoom – the view scrolls when the canvas is bigger than it, the canvas
+     stays centred when it's smaller. The buttons are a keyline group in the top bar. */
+  .view>canvas,.view>.canvas-wrap{margin:auto;flex:none}
+  .view.zoomed{overflow:auto;justify-content:flex-start;align-items:flex-start;scrollbar-width:thin}
+  /* guides over the work (shared/view.js): the margin as one hairline box, the grid inside it.
+     Drawn over the canvas and never into it – no export has them. */
+  .guide-ov{position:absolute;pointer-events:none;z-index:2}
+  .guide-ov::before{content:"";position:absolute;inset:var(--gm-y) var(--gm-x);box-shadow:0 0 0 1px color-mix(in srgb,var(--k-dot) 55%,transparent)}
+  .guide-ov.has-grid::after{content:"";position:absolute;inset:var(--gm-y) var(--gm-x);
+    background-image:repeating-linear-gradient(to right,color-mix(in srgb,var(--k-dot) 28%,transparent) 0 1px,transparent 1px var(--gc)),
+                     repeating-linear-gradient(to bottom,color-mix(in srgb,var(--k-dot) 28%,transparent) 0 1px,transparent 1px var(--gr))}
+  .app.preview .guide-ov{display:none}
+  /* a small panel under its button: the card's surface, the panel's rows. Lifted out of Segue. */
+  .pop{position:absolute;top:calc(100% + 8px);right:0;width:300px;z-index:20;padding:14px calc(12px + var(--gutter)) 10px 14px;border-radius:var(--r-surface);
+    background:var(--k-card);box-shadow:0 0 0 1px var(--keyline);color:var(--ink);text-align:left;--lc:96px}
+  .pop[hidden]{display:none}
+  .pop-title{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);margin:0 0 12px}
+  .pop .hint{margin:8px 0 2px}
+  #guideTools{position:relative}
+  /* the pop's rows are the panel's rows: the name in the label column, the control beside it */
+  #guideTools .pop{width:300px;--lc:64px;padding:14px 14px 10px}
+  #guideTools .pop .ctl{display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;margin-bottom:8px}
+  #guideTools .pop .ctl-head{margin:0}
+  #guideTools .pop .ctl-head span{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong)}
+  #guideTools .pop .seg{flex-wrap:nowrap}
+  #guideTools .pop .seg>.pill{min-width:0;padding:0 4px}
+  .topbar .tools button:disabled{opacity:.35;cursor:default;background:transparent}
+  #zoomTools .zval{width:auto;min-width:44px;padding:0 6px;border-radius:var(--r-in);font-size:var(--fs-small);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0}
+  #zoomTools .zval[aria-pressed="true"]{background:transparent;color:var(--ink-strong)}
+  #zoomTools .zval:hover{background:var(--btn-hover)}
+
+  /* 0.16 – a switch that heads a group: the group's rule and weight, its box first. One way to turn anything optional on. */
+  .toggle-row.sw-grp{border-top:1px solid var(--keyline);margin:20px 0 6px;padding-top:6px}
+  .toggle-row.sw-grp .toggle{display:flex;gap:10px;align-items:center;min-height:38px;width:auto}
+  .toggle-row.sw-grp .toggle>span:last-child{order:0;font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);letter-spacing:-0.008em}
+  .toggle-row.sw-grp>.q{position:static;margin:0 0 0 2px}
+  .toggle-row.sw-grp:not(.on){margin-bottom:0}
+  .card-body>.toggle-row.sw-grp:first-child{border-top:0;margin-top:0;padding-top:0}
+
+  /* Export opens a sheet – the chevron says so – and becomes the progress while it works: its fill, the per cent and
+   the time left, so the sheet can be shut and the work carried on. Stop sits beside it, the same height. */
+  .ebtn.xopen .chev{width:10px;height:10px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
+  .ebtn.xopen[aria-expanded="true"] .chev{transform:rotate(180deg)}
+  .ebtn.xopen:hover .chev{color:var(--ink)}
+  .ebtn.run,.pill.xgo.run{position:relative;overflow:hidden;background:var(--k-fill);color:var(--ink);font-variant-numeric:tabular-nums;cursor:default}
+  .ebtn.run::before,.pill.xgo.run::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);background:var(--k-fill-hover);transition:width .2s linear}
+  .ebtn.run::after,.pill.xgo.run::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:var(--p,0%);background:var(--fill-ink);transition:width .2s linear}
+  .ebtn.run>*,.pill.xgo.run{z-index:1}
+  .ebtn.run>.chev{display:none}
+  .pill.xgo.run>*{position:relative;z-index:1}
+  .xrun{display:flex;gap:6px}
+  .xrun .xgo{flex:1 1 auto}
+  .ctl.btn-row.xrun>.xstop{flex:none;height:var(--h-ctl);padding:0 13px}
+  .sheet .btn-row.xrun>.pill{height:36px}
+  #exportStop{flex:none}
+
+  /* the note: something finished while you were working elsewhere. It goes by itself; a click sends it sooner. */
+  .notice{position:absolute;right:var(--gap);top:calc(var(--gap)*2 + var(--h-chip));z-index:9;display:flex;align-items:center;gap:10px;max-width:320px;padding:10px 14px 10px 12px;border-radius:var(--r-surface);
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline),0 8px 28px rgba(0,0,0,.1);
+  cursor:pointer;animation:noteIn .32s var(--e-smooth)}
+  .notice.out{opacity:0;transform:translateY(-6px);transition:opacity .24s,transform .24s}
+  .notice .n-ic{flex:none;width:22px;height:22px;border-radius:50%;background:var(--fill-ink);color:var(--on-ink);display:flex;align-items:center;justify-content:center}
+  .notice.quiet .n-ic{background:var(--k-fill);color:var(--muted)}
+  .notice .n-ic svg{width:12px;height:12px}
+  .notice .n-tx{min-width:0;display:flex;flex-direction:column;gap:1px;line-height:1.3}
+  .notice .n-tx b{font-size:var(--fs-small);font-weight:500;color:var(--ink-strong)}
+  .notice .n-tx span{font-size:var(--fs-small);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @keyframes noteIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
   /* Tutti on the Ensemble tool system (UI stream, October 2026): the shared tokens and
      components come first (shared/tokens.css, shared/components.css); these are Tutti's own parts. */
   .view{flex-direction:column}
@@ -1015,8 +1115,13 @@
   .card-tools a,.subttl-row a{height:24px;border-radius:var(--r-chip);box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 9px}
   .card-tools a:hover,.subttl-row a:hover{background:var(--k-fill);color:var(--ink-strong)}
   .svgbtn{border-radius:var(--r-chip);font-size:11.5px;font-weight:500}
+  /* the view's zoom sizes the canvas itself, so nothing may clamp it (kit: .view.zoomed scrolls) */
+  .canvas-wrap{max-width:none;max-height:none}
+  canvas#out{max-width:none;max-height:none}
+  .app.preview canvas#out{width:auto;height:auto}
   /* lists: the bands as soft rows */
-  .state{background:var(--k-fill);box-shadow:none;border-radius:var(--r-ctl);padding:8px 12px;margin-bottom:4px}   /* 13 Nov: more room left and right (Steve's 6 Nov note) */
+  .state{background:var(--k-fill);box-shadow:none;border-radius:var(--r-ctl);padding:8px 12px;gap:12px;margin-bottom:4px}
+  .state .idx{width:14px}   /* 13 Nov: more room left and right (Steve's 6 Nov note) */
   .state .swatch,.svgprev{border-radius:var(--r-sw)}
   .state .meta b{font-weight:500;color:var(--ink-strong)}
   .stepper{border-top:0;padding-top:0;margin-top:10px}
@@ -1079,13 +1184,17 @@
         <div class="toggle" id="tGrad" style="margin-top:4px"><div class="box"></div><span>Gradient fill<i class="q" data-tip="Fills the type with a tonal gradient so the bands sweep across the word.">?</i></span></div>
         <div class="row" id="gAngleRow" style="display:none"><label class="lbl">Gradient angle</label><span class="val" id="gAngleV">0°</span></div>
         <input type="range" id="gAngle" min="0" max="360" step="1" value="0" style="display:none">
-        <div class="subttl" style="margin:8px 0 10px">Warp</div>
+        <div class="fold">
+        <button class="fold-head" type="button" data-group="warp" aria-expanded="true"><span>Warp</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+        <div class="fold-body">
         <div class="row"><label class="lbl">Width</label><span class="val" id="twidthV">1.00×</span></div>
         <input type="range" id="twidth" min="0.4" max="2" step="0.01" value="1">
         <div class="row"><label class="lbl">Height</label><span class="val" id="theightV">1.00×</span></div>
         <input type="range" id="theight" min="0.4" max="2" step="0.01" value="1">
         <div class="row"><label class="lbl">Slant</label><span class="val" id="tslantV">0°</span></div>
         <input type="range" id="tslant" min="-40" max="40" step="1" value="0">
+        </div>
+        </div>
       </div>
       </div>
     </section>
@@ -1185,6 +1294,17 @@
   <button class="panel-btn" id="panelBtn" type="button" aria-expanded="false" aria-controls="panelBox" aria-label="Show the panel"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="2.5" width="10.4" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg></button>
   <div class="topbar">
     <div class="stage-foot" id="foot"><span id="dims">–</span><span id="mode"></span></div>
+    <!-- the house top bar (from Segue 0.10): zoom, then guides. View settings live here. -->
+    <div class="tools" id="zoomTools">
+      <button id="zoomOut" type="button" aria-label="Zoom out – ⌘−" title="Zoom out – ⌘−"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button id="zoomVal" class="zval" type="button" aria-label="Zoom – click for 100% or to fit" title="Click for 100%, again to fit – ⌘0 fits">Fit</button>
+      <button id="zoomIn" type="button" aria-label="Zoom in – ⌘+" title="Zoom in – ⌘+"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7M7 3.5v7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+    <div class="tools" id="guideTools">
+      <button id="guidesBtn" type="button" aria-pressed="false" aria-label="Guides – ⌘;" title="Guides – ⌘;"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="1.8" width="10.4" height="10.4" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M5.3 2v10M8.7 2v10M2 7h10" stroke="currentColor" stroke-width="1" stroke-dasharray="1.4 1.2"/></svg></button>
+      <button id="guidesMore" class="more" type="button" aria-expanded="false" aria-controls="guidePop" aria-label="Guide settings" title="Margin and cells"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="m4.2 5.6 2.8 2.8 2.8-2.8" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <div class="pop" id="guidePop" hidden role="dialog" aria-label="Guides"></div>
+    </div>
     <div class="tools" id="appearance">
       <button id="previewBtn" type="button" aria-pressed="false" aria-label="Preview – fill the window – F"></button>
       <button id="themeBtn" type="button" aria-label="Light or dark"><svg viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M7 1.8a5.2 5.2 0 0 1 0 10.4z" fill="currentColor"/></svg></button>
@@ -1402,6 +1522,128 @@ document.addEventListener('click',e=>{const t=e.target&&e.target.closest?e.targe
   e.preventDefault();if(target===t&&box&&!box.hidden){close(true);return;}open(t);},true);
 window.EnsColour={open,close,get isOpen(){return!!box&&!box.hidden;}};
 })();
+/* The view's zoom – a house part, lifted out of Segue 0.10 (11 November).
+   Fit, or a set size: a screen pixel for each canvas pixel, so 100% is actual
+   size. Bigger than the view and it scrolls; ⌘ and a scroll (or a pinch) zooms
+   where the pointer is; ⌘+ and ⌘− step, ⌘0 fits. Nothing here reaches an
+   export – the view is the view. A tool passes its own canvas and size, and
+   gets back a fit() to call wherever it used to size the canvas itself. */
+function mountZoom(o){
+  const ZOOMS=[.1,.125,.167,.25,.333,.5,.667,.75,1,1.25,1.5,2,3,4];
+  const g=s=>document.getElementById(s);
+  const view=o.view,cv=o.canvas,size=o.size,after=o.after||function(){};
+  const app=document.querySelector('.app');
+  const previewing=()=>!!(app&&app.classList.contains('preview'));
+  let z=null;
+  function fitScale(){const s=size(),W=s[0],H=s[1],cs=getComputedStyle(view);
+    const aw=view.clientWidth-parseFloat(cs.paddingLeft)-parseFloat(cs.paddingRight),
+          ah=view.clientHeight-parseFloat(cs.paddingTop)-parseFloat(cs.paddingBottom);
+    return Math.max(.01,Math.min(aw/W,ah/H));}
+  const now=()=>z==null||previewing()?fitScale():z;
+  function paint(){const b=g('zoomVal');if(!b)return;const t=Math.round(now()*100)+'%';
+    if(b.textContent!==t)b.textContent=t;b.setAttribute('aria-pressed',z!=null);
+    b.setAttribute('aria-label','Zoom '+t+(z==null?', fitted':'')+' – click for 100% or to fit');}
+  function fit(){const s=size(),W=s[0],H=s[1],k=now(),
+    cw=Math.max(1,Math.floor(W*k)),ch=Math.max(1,Math.floor(H*k));
+    cv.style.width=cw+'px';cv.style.height=ch+'px';
+    view.classList.toggle('zoomed',z!=null&&!previewing());paint();after(cw,ch,k);return k;}
+  function set(v,at){const r=cv.getBoundingClientRect(),f=fitScale();
+    if(v!=null&&v<=f*1.001&&v>=f*.999)v=null;
+    z=v==null?null:Math.max(.05,Math.min(8,v));
+    const vr=view.getBoundingClientRect(),px=at?at[0]:vr.left+vr.width/2,py=at?at[1]:vr.top+vr.height/2,
+          fx=r.width?(px-r.left)/r.width:.5,fy=r.height?(py-r.top)/r.height:.5;
+    fit();
+    if(z!=null){const r2=cv.getBoundingClientRect();
+      view.scrollLeft+=(r2.left+fx*r2.width)-px;view.scrollTop+=(r2.top+fy*r2.height)-py;}}
+  function step(dir,at){const c=now();
+    let n=dir>0?ZOOMS.find(x=>x>c*1.02):[...ZOOMS].reverse().find(x=>x<c/1.02);
+    if(n==null)n=dir>0?ZOOMS[ZOOMS.length-1]:ZOOMS[0];
+    if(dir<0&&n<fitScale()&&c>fitScale()*1.001)n=null;set(n,at);}
+  view.addEventListener('wheel',e=>{if(!(e.ctrlKey||e.metaKey)||e.altKey)return;
+    e.preventDefault();set(now()*Math.exp(-e.deltaY*.006),[e.clientX,e.clientY]);},{passive:false});
+  const zi=g('zoomIn'),zo=g('zoomOut'),zv=g('zoomVal');
+  if(zi)zi.onclick=()=>step(1);
+  if(zo)zo.onclick=()=>step(-1);
+  if(zv)zv.onclick=()=>set(z==null?1:null);   /* 100%, then back to fit */
+  document.addEventListener('keydown',e=>{
+    if(!(e.metaKey||e.ctrlKey)||e.altKey||e.shiftKey)return;
+    const a=document.activeElement;
+    if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;
+    if(e.key==='='||e.key==='+'){e.preventDefault();step(1);}
+    else if(e.key==='-'||e.key==='_'){e.preventDefault();step(-1);}
+    else if(e.key==='0'){e.preventDefault();set(null);}});
+  paint();
+  return{fit,set,step,get zoom(){return z;},get scale(){return now();},fitScale};
+}
+
+/* Guides – the house part, so margins and a grid can be laid over the work to
+   marry it up with artwork made elsewhere (Steve, 6 November). They are drawn
+   over the canvas, not into it: nothing of them reaches a render or an export.
+   Segue draws its own in its scene, because it also snaps pieces to them. */
+function mountGuides(o){
+  const g=s=>document.getElementById(s);
+  const view=o.view,cv=o.canvas,key=(o.key||'app')+':guides';
+  const btn=g('guidesBtn'),more=g('guidesMore'),pop=g('guidePop');
+  if(!btn||!cv)return null;
+  let G={on:false,margin:5,cells:0};
+  try{G=Object.assign(G,JSON.parse(localStorage.getItem(key)||'{}'));}catch(e){}
+  const save=()=>{try{localStorage.setItem(key,JSON.stringify(G));}catch(e){}};
+  const ov=document.createElement('div');ov.className='guide-ov';ov.setAttribute('aria-hidden','true');
+  view.appendChild(ov);
+  if(getComputedStyle(view).position==='static')view.style.position='relative';
+  function draw(){
+    ov.hidden=!G.on;
+    if(!G.on)return;
+    const w=cv.offsetWidth,h=cv.offsetHeight;
+    ov.style.left=cv.offsetLeft+'px';ov.style.top=cv.offsetTop+'px';
+    ov.style.width=w+'px';ov.style.height=h+'px';
+    const m=Math.max(0,Math.min(45,+G.margin||0)),mx=w*m/100,my=h*m/100;
+    ov.style.setProperty('--gm-x',mx+'px');ov.style.setProperty('--gm-y',my+'px');
+    const n=Math.max(0,Math.min(24,Math.round(+G.cells||0)));
+    ov.classList.toggle('has-grid',n>0);
+    if(n>0){const iw=w-mx*2,ih=h-my*2,cw=iw/n,rows=Math.max(1,Math.round(ih/cw));
+      ov.style.setProperty('--gc',(iw/n)+'px');ov.style.setProperty('--gr',(ih/rows)+'px');}
+  }
+  let draw2=()=>{};
+  function paint(){btn.setAttribute('aria-pressed',!!G.on);draw();}
+  btn.onclick=()=>{G.on=!G.on;save();paint();};
+  if(pop&&more){
+    /* the choices are the house's segmented control, the same part the panels use –
+       a margin and a grid you pick, rather than a dial to fiddle with */
+    const seg=(label,vals,get,set)=>{
+      const w=document.createElement('div');w.className='ctl';
+      const hd=document.createElement('div');hd.className='ctl-head';
+      const sp=document.createElement('span');sp.textContent=label;hd.append(sp);
+      const sg=document.createElement('div');sg.className='seg';sg.setAttribute('role','group');sg.setAttribute('aria-label',label);
+      const bs=vals.map(([v,t])=>{const b=document.createElement('button');b.type='button';b.className='pill';b.textContent=t;
+        b.onclick=()=>{set(v);G.on=true;save();paint();draw2();};sg.append(b);return[v,b];});
+      w.append(hd,sg);pop.append(w);
+      return()=>{bs.forEach(([v,b])=>b.setAttribute('aria-pressed',get()===v));
+        /* where the tool keeps a sliding highlight on its choices, move ours with it */
+        if(typeof placeHL==='function')placeHL(sg,true);};};
+    const t=document.createElement('div');t.className='pop-title';t.textContent='Guides';pop.append(t);
+    /* four each, so a row holds them; "Cells" rather than Columns or Grid, which
+       both already mean something else in these panels */
+    const u1=seg('Margin',[[0,'None'],[5,'5%'],[8,'8%'],[10,'10%']],()=>+G.margin,v=>{G.margin=v;});
+    const u2=seg('Cells',[[0,'None'],[4,'4'],[6,'6'],[12,'12']],()=>+G.cells,v=>{G.cells=v;});
+    const h=document.createElement('p');h.className='hint';
+    h.textContent='Over the preview only \u2013 nothing of them goes into an export. The margin is a share of each way across; the cells sit inside it, kept near square.';
+    pop.append(h);
+    draw2=()=>{u1();u2();};
+    draw2();
+    const show=open=>{pop.hidden=!open;more.setAttribute('aria-expanded',open);if(open)draw2();};
+    more.onclick=e=>{e.stopPropagation();show(pop.hidden);};
+    document.addEventListener('pointerdown',e=>{if(!pop.hidden&&!pop.contains(e.target)&&!more.contains(e.target))show(false);},true);
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!pop.hidden){show(false);more.focus();}});
+  }
+  document.addEventListener('keydown',e=>{
+    if(!(e.metaKey||e.ctrlKey)||e.key!==';'||e.altKey||e.shiftKey)return;
+    const a=document.activeElement;
+    if(a&&(/INPUT|TEXTAREA|SELECT/.test(a.tagName)||a.isContentEditable))return;
+    e.preventDefault();btn.click();});
+  paint();
+  return{draw,paint};
+}
 const VERSION="6.2", MAXB=7, MINB=2;
 
 const S={
@@ -1416,6 +1658,13 @@ const S={
 };
 const $=id=>document.getElementById(id);
 const out=$('out'), octx=out.getContext('2d');
+/* the view's zoom and guides: the house parts in shared/view.js. They size and overlay the
+   canvas on screen only – the canvas keeps the export's pixels, so no PNG, SVG or recording
+   can tell. */
+let GD=null;
+const VZ=mountZoom({view:document.getElementById('view'),canvas:out,size:()=>[out.width,out.height],after:()=>{if(GD)GD.draw();}});
+GD=mountGuides({view:document.getElementById('view'),canvas:out,key:'tutti'});
+if(window.ResizeObserver){let rt=0;new ResizeObserver(()=>{clearTimeout(rt);rt=setTimeout(()=>{if(VZ)VZ.fit();},60);}).observe(document.getElementById('view'));}
 const srcVid=$('src'), srcImg=$('srcimg');
 const sampleCanvas=document.createElement('canvas'), sctx=sampleCanvas.getContext('2d',{willReadFrequently:true});
 const typeSrc=document.createElement('canvas');
@@ -1659,6 +1908,7 @@ function computeDims(){
   let W,H; if(ar>=1){ W=S.res; H=Math.max(1,Math.round(S.res/ar)); } else { H=S.res; W=Math.max(1,Math.round(S.res*ar)); }
   if(out.width!==W) out.width=W;
   if(out.height!==H) out.height=H;
+  VZ.fit();
   cellX=W/cols; cellY=H/rows; cell=Math.min(cellX,cellY);
   sampleCanvas.width=cols; sampleCanvas.height=rows;
   $('dims').textContent=W+' × '+H+' px';
@@ -2005,6 +2255,15 @@ async function stopGif(silent){
   /* cards: a title that folds the card; shut, it says what's set */
   $$('.card-toggle').forEach(b=>b.addEventListener('click',()=>{const c=b.closest('.card'),open=!c.classList.toggle('collapsed');
     b.setAttribute('aria-expanded',open);if(open)requestAnimationFrame(()=>syncRanges(c));}));
+  /* groups inside a card: a hairline and a Bold title that says what it holds.
+     Shut or open is remembered, like the cards. */
+  const GK='tutti:groups';let GRP={};try{GRP=JSON.parse(localStorage.getItem(GK)||'{}')||{};}catch(e){}
+  $$('.fold-head').forEach(b=>{const id=b.dataset.group,body=b.nextElementSibling;
+    const set=open=>{b.setAttribute('aria-expanded',open);if(body)body.hidden=!open;};
+    if(id&&Object.prototype.hasOwnProperty.call(GRP,id))set(!!GRP[id]);
+    b.addEventListener('click',()=>{const open=b.getAttribute('aria-expanded')!=='true';set(open);
+      if(id){GRP[id]=open;try{localStorage.setItem(GK,JSON.stringify(GRP));}catch(e){}}
+      if(open)requestAnimationFrame(()=>syncRanges(b.closest('.card')));});});
   const label=sel=>{const o=sel&&sel.options[sel.selectedIndex];return o?o.text.replace(/\s*:\s*/,':').replace('…',''):'';};
   const SUM={
     source:()=>S.kind?($('srcName').textContent||''):'No source',
