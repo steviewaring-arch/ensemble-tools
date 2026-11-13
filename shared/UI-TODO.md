@@ -15,7 +15,7 @@ Done in the Segue chat, in one pass, because the parts are shared. Nothing here 
 **Still open from this round:**
 - **One picker, not two.** Tempo's has CMYK and saved colours; the house one has the shade field, RGB typing and colours in use. Merge into `shared/colour.js` (add a CMYK tab and saved colours), then switch Tempo over (`picker=False` in `build.py` comes out).
 - **Rule change to carry:** one **More** per section is now allowed (UI.md, The panel). Rubato's three "More" groups (B4) are fine *if* each is the only one in its section and says what it holds; A4 below is amended.
-- **Tutti's list (C1–C3, C5, C6) is untouched** – label wraps, "Advanced", "Ratio"/"Zoom" names, band rows, change dots. They rename labels on a live public tool, so they still want Steve's yes; C4 is done.
+- **13 Nov – Tutti's C1, C2, C3 and C5 are done** (Steve: "yes, implement"): Colour, Format, Scale, Solid fill, Invert, Size by tone, Shape size, Own colours; "Advanced" is **Fine tuning** and says what it holds; band rows have more room. Words and padding only – ids, behaviour and the 12 export hashes unchanged, 87 of 87. **C6 is still open** (change dots and undo, top-bar zoom and guides, pasteboard dots – new parts, not labels). Was: untouched – label wraps, "Advanced", "Ratio"/"Zoom" names, band rows, change dots. They rename labels on a live public tool, so they still want Steve's yes; C4 is done.
 - Rubato: turning and sizing a lockup on the canvas could take Segue's handles (corner sizes, outside a corner turns) – its Tilt dial is the candidate.
 
 ## GO: the house sync (Steve, 10 Nov 23:30 – "after this run, I think now is the time")
@@ -91,6 +91,7 @@ Section names repeat (four "Change", five "Colour", "From your other designs" ×
 
 ## History
 
+- **13 Nov:** Segue 1.1 – stand-ins for big pictures, Glass, Focus, packed Lines, still two-colour drawings, calmer presets; Tutti's labels (C1–C3, C5).
 - **12 Nov:** Segue 1.0 – the hitlist (turning, endings, a video behind, frosted type, own shapes everywhere, the deck, the house picker, a still bottom line, sixteen presets). The shared parts taken to Rubato 1.2.1, Tempo 0.18.1 and Tutti in the same pass; `UI.md` revised.
 - **11 Nov:** Segue 0.11–0.17 (in the Segue chat) – blends that make layers, the project chip, Layout apart from Motion, Pile up, cropping by double-click, the settings audit, switch groups, no Additionals, the export as one control and the bottom line. `shared/UI.md` rewritten. Safari 17 sheet fallback shared with Rubato and Tempo.
 - **10 Nov 12:03:** Steve: "wait for now until Segue is in a place, then we can run through the hitlist above on all in one clean go."

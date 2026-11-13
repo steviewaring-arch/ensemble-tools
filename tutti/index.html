@@ -70,9 +70,9 @@
     <section class="card" data-id="canvas">
       <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Canvas</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
       <div class="card-body">
-      <div class="row"><label class="lbl">Canvas colour<i class="q" data-tip="The base colour the marks sit on – baked into your PNG and SVG exports.">?</i></label>
+      <div class="row"><label class="lbl">Colour<i class="q" data-tip="The base colour the marks sit on – baked into your PNG and SVG exports.">?</i></label>
         <div class="cswatch" id="bgSwatch"><input type="color" id="bgColor" value="#ffffff"></div></div>
-      <div class="row"><label class="lbl">Ratio<i class="q" data-tip="Shape of the canvas. Custom W:H is handy for type – set a tall poster or a wide banner.">?</i></label>
+      <div class="row"><label class="lbl">Format<i class="q" data-tip="Shape of the canvas. Custom W:H is handy for type – set a tall poster or a wide banner.">?</i></label>
         <select id="aspect" style="max-width:170px;margin-left:auto">
           <option value="orig">Original</option><option value="1">1 : 1</option>
           <option value="0.8">4 : 5</option><option value="1.7778">16 : 9</option>
@@ -88,7 +88,7 @@
         <select id="res" style="max-width:148px;margin-left:auto">
           <option value="1200">Standard</option><option value="2000">High</option><option value="2800">Max</option>
         </select></div>
-      <div class="row"><label class="lbl">Zoom<i class="q" data-tip="Zoom into the source within the frame.">?</i></label><span class="val" id="zoomV">1.00×</span></div>
+      <div class="row"><label class="lbl">Scale<i class="q" data-tip="How big the source is within the frame.">?</i></label><span class="val" id="zoomV">1.00×</span></div>
       <input type="range" id="zoom" min="1" max="3" step="0.01" value="1">
       <div class="row"><label class="lbl">Source blur<i class="q" data-tip="Softens the source before it's sampled – spreads flat areas like type or logos across more tonal bands.">?</i></label><span class="val" id="sblurV">0</span></div>
       <input type="range" id="sblur" min="0" max="40" step="1" value="0">
@@ -99,12 +99,12 @@
       <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Shape</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
       <div class="card-body">
       <div class="card-tools"><a id="randomAll" title="New shapes and settings, at random">Randomise</a></div>
-      <div class="toggle on" id="tFill"><div class="box"></div><span>Fill shapes solid<i class="q" data-tip="Fill each mark, or draw it as an outline.">?</i></span></div>
-      <div class="toggle" id="tInvert"><div class="box"></div><span>Invert mapping<i class="q" data-tip="Swap highlights and shadows – for light marks on a dark ground.">?</i></span></div>
-      <div class="toggle on" id="tScale"><div class="box"></div><span>Scale with midtones<i class="q" data-tip="Let mark size follow tone: darker areas get bigger marks.">?</i></span></div>
+      <div class="toggle on" id="tFill"><div class="box"></div><span>Solid fill<i class="q" data-tip="Fill each mark, or draw it as an outline.">?</i></span></div>
+      <div class="toggle" id="tInvert"><div class="box"></div><span>Invert<i class="q" data-tip="Swap highlights and shadows – for light marks on a dark ground.">?</i></span></div>
+      <div class="toggle on" id="tScale"><div class="box"></div><span>Size by tone<i class="q" data-tip="Let mark size follow tone: darker areas get bigger marks.">?</i></span></div>
       <div class="row" style="margin-top:8px"><label class="lbl">Min size<i class="q" data-tip="The smallest a mark can shrink to in the lightest areas.">?</i></label><span class="val" id="minV">8%</span></div>
       <input type="range" id="minsize" min="0" max="100" step="1" value="8">
-      <div class="row"><label class="lbl">Shape size / overlap<i class="q" data-tip="Scales every mark. Above 1× marks spill past their cell and overlap their neighbours.">?</i></label><span class="val" id="ssizeV">1.00×</span></div>
+      <div class="row"><label class="lbl">Shape size<i class="q" data-tip="Scales every mark. Above 1× marks spill past their cell and overlap their neighbours.">?</i></label><span class="val" id="ssizeV">1.00×</span></div>
       <input type="range" id="ssize" min="0.2" max="3" step="0.01" value="1">
       </div>
     </section>
@@ -113,7 +113,7 @@
       <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Mapping</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
       <div class="card-body">
       <div class="card-tools"><i class="q lead-q" data-tip="One shape and colour per tonal band, highlights through to shadows. Add or remove bands below; upload an SVG to swap the dot for your own mark.">?</i><a id="randomColors" title="Random colours for the bands">Random</a><a id="resetShapes" title="Back to dots for every band">Reset shapes</a></div>
-      <div class="toggle" id="tKeepSvg"><div class="box"></div><span>Keep SVG colours<i class="q" data-tip="When on, an uploaded SVG mark keeps its own colours instead of being recoloured to the band colour – for multi-colour marks.">?</i></span></div>
+      <div class="toggle" id="tKeepSvg"><div class="box"></div><span>Own colours<i class="q" data-tip="When on, an uploaded SVG mark keeps its own colours instead of being recoloured to the band colour – for multi-colour marks.">?</i></span></div>
       <div id="states"></div>
       <div class="stepper"><span>Bands</span>
         <div class="steps"><button id="bandMinus">–</button><span class="count" id="bandCount">6</span><button id="bandPlus">+</button></div>
@@ -122,7 +122,7 @@
     </section>
 
     <section class="card collapsed" data-id="advanced" id="advCard">
-      <h2><button class="card-toggle" type="button" id="advHead" aria-expanded="false"><span>Advanced</span><span class="sum"></span><span class="chev" id="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+      <h2><button class="card-toggle" type="button" id="advHead" aria-expanded="false"><span>Fine tuning</span><span class="sum"></span><span class="chev" id="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
       <div class="card-body">
         <div class="advsec">
           <div class="subttl">Opacity</div>

@@ -11,7 +11,8 @@ needs an example, look at Segue. The kit lives in `shared/kit.css`; the mock-ups
 reasoning are at `ui/review/` (round 4 at `ui/review/round4/`). The history of each
 rule is in `CHANGELOG.md`; this file says only what holds now.
 
-Last revised 12 November 2026 (Segue 1.0, Tempo 0.18.1, Rubato 1.2.1, Tutti 6.2) – the 1.0 round:
+Last revised 13 November 2026 (Segue 1.1, Tempo 0.18.1, Rubato 1.2.1, Tutti 6.2) – 1.1: drawings
+that don't move, in two colours; calm presets; a stand-in for big pictures. Before that, the 1.0 round:
 the bottom line that stays put, the house colour picker, one "More" per section, turning on the
 canvas, drawings that only do what the choice does, a short list of presets, 15 px section titles.
 What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `claude/ui-todo.md`).
@@ -251,7 +252,7 @@ both).
   Inside a frame (after the double-click) the same gesture turns the picture, which
   grows just enough to keep the frame covered. Every one of these also has a row in
   the panel (Turn, Size, Position) for typing.
-- **An empty slot is designed too**: its number sits top left in Aktiv Regular, the
+- **An empty slot is designed too**: its number sits top left in Aktiv Bold, the
   same tight margin across as down.
 - **Moving a row in a list**: the row in hand fades; where it will land is a slim
   line in the gap, the full width, in the focus colour. The grip has room either side.
@@ -302,17 +303,18 @@ size) is white; the rest grey. A chip's sentence goes in its tooltip.
 
 ## Drawings that move
 
-A drawing that stands for a choice – a preset's picture, a Kind's tile – does a
-little of what it is when you point at it: about two seconds, subtle, looping, and
-only under the pointer or focus. Slides swap over, strips and grids travel the way
-they go, a pile builds. **It does only what the choice does** (Segue 1.0): a step, a
-rest, a step back – no general wobble, and nothing moves that the choice doesn't
-move. If a drawing has nothing true to do, it stays still. Nothing moves for anyone
-who has asked for less motion.
+A drawing that stands for a choice – a preset's picture, a Kind's tile, a transition's
+or a curve's sketch – **doesn't move** (Segue 1.1; Steve, 12 Nov: "remove animations to
+the little illustrations"). They tried moving on hover from 0.17 to 1.0 and read as
+motion for its own sake. And they are drawn in **two colours and no black**, the same
+two everywhere (`--ill-1` for the piece in question, `--ill-2` for the rest; flat
+fills, nothing part-see-through in between).
 
 ## Presets
 
 A short list: about three to a group, each one a thing someone would actually pick –
+calm by default (long rests, unhurried moves – it's easier to speed one up than to see
+past one that's frantic) –
 a reference, a request, or the plainest good version of that kind. Named for what
 they do. A preset retired from the list still resolves by name, so older work knows
 where its settings started.

@@ -38,9 +38,9 @@
   .kind:hover{background:var(--k-fill-hover);color:var(--ink)}
   .kind:active{transform:scale(.97)}
   .kind svg{width:40px;height:28px;display:block;overflow:hidden}
-  .kind svg rect{fill:currentColor}
-  .kind svg rect.dim{opacity:.38}
-  .kind svg rect.line{fill:none;stroke:currentColor;stroke-width:1.2;opacity:.55}
+  .kind svg rect{fill:var(--ill-1)}
+  .kind svg rect.dim{fill:var(--ill-2)}
+  .kind svg rect.line{fill:none;stroke:var(--ill-2);stroke-width:1.2}
   .kind[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:0 0 0 1px var(--k-raise-line);font-weight:500}
   .kind:focus-visible,.spot:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   /* the overlay's place: a 3 × 3 pad */
@@ -99,29 +99,29 @@
 /* 0.7: what a Feel draws – lined up with the controls, under the Feel row */
 .feel-pic,.path-pic,.trans-pic{margin:-2px 0 14px;padding-left:calc(var(--lc) + 10px)}
 .feel-pic svg,.path-pic svg,.trans-pic svg{display:block;width:100%;height:44px;border-radius:var(--r-ctl);background:var(--k-fill)}
-.feel-pic .fp-base{fill:none;stroke:var(--hair);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
+.feel-pic .fp-base{fill:none;stroke:var(--ill-2);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
 .feel-pic .fp-base,.feel-pic .fp-curve{vector-effect:non-scaling-stroke}
-.feel-pic .fp-curve{fill:none;stroke:var(--ink-strong);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.feel-pic .fp-curve{fill:none;stroke:var(--ill-1);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .feel-pic .fp-cap,.path-pic .fp-cap,.trans-pic .fp-cap{display:block;margin-top:6px;font-size:12px;line-height:1.4;color:var(--muted)}
 
-.path-pic .pp-dot{fill:var(--muted);opacity:.35}
-.path-pic .pp-stop{fill:var(--ink-strong);opacity:.6}
+.path-pic .pp-dot{fill:var(--ill-2)}
+.path-pic .pp-stop{fill:var(--ill-1)}
 .path-pic .pp-stop.first{opacity:1}
-.path-pic .pp-line{fill:none;stroke:var(--ink-strong);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.path-pic .pp-line{fill:none;stroke:var(--ill-1);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .trans-pic .tp-bg{fill:var(--k-raise);stroke:var(--hair);stroke-width:1}
-.trans-pic .tp-a{fill:var(--muted)}
-.trans-pic .tp-b{fill:var(--ink-strong)}
-.trans-pic .tp-o{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 2}
-.trans-pic .tp-go{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.trans-pic .tp-a{fill:var(--ill-2)}
+.trans-pic .tp-b{fill:var(--ill-1)}
+.trans-pic .tp-o{fill:none;stroke:var(--ill-1);stroke-width:1;stroke-dasharray:2 2}
+.trans-pic .tp-go{fill:none;stroke:var(--ill-1);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
 .preset-row .pk{width:44px;height:30px}
 .preset-row .pk svg{width:44px;height:30px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--hair)}
 /* 0.9: preset drawings in the interface's greys – one ground for all, the piece in focus dark */
 .pk svg rect.pd-bg{fill:var(--k-card)}
-.pk svg rect.pd-a{fill:var(--ink-strong);opacity:.86}
-.pk svg rect.pd-b{fill:var(--ink-strong);opacity:.24}
-.pk svg rect.pd-b.pd-out{opacity:.1}
-.pk svg rect.pd-f{fill:none;stroke:var(--ink-strong);stroke-width:1;opacity:.45}
-.pk svg rect.pd-o{fill:none;stroke:var(--ink-strong);stroke-dasharray:2 1.6;opacity:.5}
+.pk svg rect{fill-opacity:1}
+.pk svg rect.pd-a{fill:var(--ill-1)}
+.pk svg rect.pd-b,.pk svg rect.pd-b.pd-out{fill:var(--ill-2)}
+.pk svg rect.pd-f{fill:none;stroke:var(--ill-2);stroke-width:1}
+.pk svg rect.pd-o{fill:none;stroke:var(--ill-1);stroke-dasharray:2 1.6}
 .path-pic svg{height:56px}
 /* on a touch screen the small round buttons keep their look but get a hand-sized target */
 @media (pointer:coarse){.pill.small.icon{position:relative}.pill.small.icon::after{content:'';position:absolute;inset:-9px}}
@@ -320,45 +320,12 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .card.flash{animation:cardFlash .9s var(--e-smooth)}
 @keyframes cardFlash{0%,100%{box-shadow:none}25%{box-shadow:0 0 0 2px var(--k-dot)}}
 .stage-foot .val-in{width:5.5em;height:22px;text-align:center;font-size:var(--fs-small);font-variant-numeric:tabular-nums}
-/* ---------------- the drawings move when you point at them ---------------- */
-/* A preset's picture and a Kind's tile show what they do; on hover they do a little of it. Subtle, two seconds,
-   and never while the pointer is away – a label you can read, not a thing playing at you. */
-@media (prefers-reduced-motion:no-preference){
-  /* 1.0 – each tile does a little of what its kind does: a step, a rest, a step back. Nothing moves that the kind
-     doesn't move (the general nudge is gone – Steve: "movement added for the sake of it"). */
-  .kind[data-k="one"]:hover svg rect:nth-child(1){animation:kOneA 2.4s var(--e-smooth) infinite}
-  .kind[data-k="one"]:hover svg rect:nth-child(2){animation:kOneB 2.4s var(--e-smooth) infinite}
-  .kind[data-k="line"]:hover svg rect,.kind[data-k="wall"]:hover svg rect{animation:kLeft 2.4s var(--e-smooth) infinite}
-  .kind[data-k="grid"]:hover svg rect{animation:kUp 2.4s var(--e-smooth) infinite}
-  .kind[data-k="columns"]:hover svg rect{animation:kUp 2.4s var(--e-smooth) infinite}
-  .kind[data-k="columns"]:hover svg rect:nth-child(3),.kind[data-k="columns"]:hover svg rect:nth-child(4){animation-name:kDown}
-  .kind[data-k="rows"]:hover svg rect{animation:kLeft 2.4s var(--e-smooth) infinite}
-  .kind[data-k="rows"]:hover svg rect:nth-child(n+4):nth-child(-n+6){animation-name:kRight}
-  .kind[data-k="frames"]:hover svg rect:not(.line){animation:kUp 2.4s var(--e-smooth) infinite}
-  .kind[data-k="frames"]:hover svg rect:nth-child(4){animation-delay:.12s}
-  .kind[data-k="frames"]:hover svg rect:nth-child(6){animation-delay:.24s}
-  .kind[data-k="float"]:hover svg rect{animation:kUp 2.4s var(--e-smooth) infinite}
-  .kind[data-k="float"]:hover svg rect:nth-child(even){animation-name:kUpFar}
-  .preset-row:hover .pk[data-anim="swap"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-a{animation:pA 2.2s var(--e-smooth) infinite}
-  .preset-row:hover .pk[data-anim="swap"] svg rect.pd-b,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-b{animation:pB 2.2s var(--e-smooth) infinite}
-  .preset-row:hover .pk[data-anim="shift"] svg rect,.preset-row:focus-within .pk[data-anim="shift"] svg rect{animation:pShift 2.2s var(--e-smooth) infinite}
-  .preset-row:hover .pk[data-anim="shift"] svg rect.pd-bg,.preset-row:hover .pk[data-anim="shift"] svg rect.pd-f,.preset-row:hover .pk[data-anim="shift"] svg rect.pd-o{animation:none}
-  .preset-row:hover .pk[data-anim="pile"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="pile"] svg rect.pd-a{animation:pPile 2.2s var(--e-smooth) infinite}
-  .preset-row:hover .pk svg rect.pd-bg{animation:none}
-}
-
-/* Slides: this one, then the next – a change of which is in front, never an empty tile */
-@keyframes kOneA{0%,22%{opacity:1}52%,74%{opacity:.38}100%{opacity:1}}
-@keyframes kOneB{0%,22%{opacity:.38}52%,74%{opacity:1}100%{opacity:.38}}
-@keyframes kLeft{0%,10%,90%,100%{transform:none}36%,64%{transform:translateX(-2.6px)}}
-@keyframes kRight{0%,10%,90%,100%{transform:none}36%,64%{transform:translateX(2.6px)}}
-@keyframes kUp{0%,10%,90%,100%{transform:none}36%,64%{transform:translateY(-2.2px)}}
-@keyframes kUpFar{0%,10%,90%,100%{transform:none}36%,64%{transform:translateY(-4px)}}
-@keyframes kDown{0%,10%,90%,100%{transform:none}36%,64%{transform:translateY(2.2px)}}
-@keyframes pA{0%,20%{opacity:.86}55%,75%{opacity:.24}100%{opacity:.86}}
-@keyframes pB{0%,20%{opacity:.24}55%,75%{opacity:.86}100%{opacity:.24}}
-@keyframes pShift{0%,14%,100%{transform:none;opacity:inherit}50%,64%{transform:translate(var(--dx,0),var(--dy,0))}}
-@keyframes pPile{0%,12%{transform:translateY(5px);opacity:0}48%,100%{transform:none;opacity:.86}}
+/* ---------------- the drawings ---------------- */
+/* 1.1 – they don't move (Steve, 12 Nov: "remove animations to the little illustrations in presets and layout"), and
+   they're drawn in two colours and no black, the same two everywhere: --ill-1 for the piece in question, --ill-2
+   for the rest. Flat fills – no part-see-through tones in between. */
+:root{--ill-1:#8E8D92;--ill-2:#D2D1D5}
+body[data-theme="dark"]{--ill-1:#A5A4AA;--ill-2:#5A595F}
 
 /* 0.18 – stepping either side of Play: the same chip as the other round controls, just narrower */
 .island .ebtn.icon{padding:0 8px;min-width:0}

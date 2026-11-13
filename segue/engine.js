@@ -133,7 +133,7 @@ function capBlock(ctx,S,item,fonts){
   b={rows,w,h:y};capCache.set(key,b);if(capCache.size>4000)capCache.clear();return b;}
 /* the overlay's text: lines measured to the font's cap height, so it sits on its margin optically */
 function overlayBlock(ctx,S,fonts){
-  const st=styleOf(S,'O',fonts),key=['ov',st.font,st.track,st.lead,st.casing,S.kern,S.pairs,S.accent,S.ovText].join('\u0002');
+  const st=styleOf(S,'O',fonts),key=['ov',st.font,st.colour,st.track,st.lead,st.casing,S.kern,S.pairs,S.accent,S.ovText].join('\u0002');
   let b=capCache.get(key);if(b)return b;
   const pairs=parsePairs(S.pairs),lines=String(S.ovText||'').split('\n').map(ln=>layLine(ctx,ln,st,S,pairs));
   b={st,lines,lh:st.size*st.lead,ch:capHeight(ctx,st.font),w:Math.max(0,...lines.map(l=>l.width))};capCache.set(key,b);return b;}
@@ -277,7 +277,7 @@ function cameraAt(P,S,t){
   const cr=glides(S)?creepOf(S):0;
   if(g.k==='hold'){const p=cr?(1-cr)*g.s+cr*linAt(P,g,tt):g.s;return{tt,p,z:0,k:0,seg:g};}
   if(g.k==='unmove'||g.k==='rest')return{tt,p:g.k==='rest'?g.s:g.s,z:0,k,seg:g};
-  if(g.k==='move'){const how=g.how,e=(how==='fade'||how==='dip'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(k);let p=(S.layout==='one'&&how!=='slide')?g.s:g.s+e;if(cr)p=(1-cr)*p+cr*linAt(P,g,tt);return{tt,p,z:0,k,e,seg:g,how};}
+  if(g.k==='move'){const how=g.how,e=(how==='fade'||how==='dip'||how==='focus'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(k);let p=(S.layout==='one'&&how!=='slide')?g.s:g.s+e;if(cr)p=(1-cr)*p+cr*linAt(P,g,tt);return{tt,p,z:0,k,e,seg:g,how};}
   const ez=feel(S.zFeel||'soft');
   if(g.k==='out')return{tt,p:g.s,z:ez(k),k,seg:g};
   if(g.k==='grid')return{tt,p:g.s,z:1,k,seg:g};
@@ -320,7 +320,15 @@ function geometry(S,items,ctx,fonts,W,H){
   let rel=null;
   if(lay==='one'&&S.oneFit==='own'&&S.ownScale==='true'){let k=Infinity;for(const it of items)if(it&&it.w&&it.h)k=Math.min(k,Math.min(sw/it.w,sh/it.h));
     if(isFinite(k))rel=it=>it&&it.w&&it.h?k/Math.min(sw/it.w,sh/it.h):1;}
-  return{W,H,u,r,sw,sh,slotW,slotH,reserve,capH,pitch,gap,dir:d,sgn:sgnOf(d),hz,lay,rel,cx:W/2+(+S.nudgeX||0),cy:H/2+(+S.nudgeY||0)};}
+  /* 1.1 – a Line of pieces each their own shape is packed: every piece its own width (or height, in a column) and the
+     same gap between each pair (Steve, 12 Nov: "the margins should be equal on this one") – not equal slots with
+     unequal gaps. pack.c is each piece's middle along the line, pack.L the length of one time round. */
+  let pack=null;
+  if((lay==='row'||lay==='column')&&S.ratio==='media'&&items.length&&items.every(it=>it&&!it.placeholder&&it.w&&it.h)){
+    const e=items.map(it=>lay==='row'?sh*clamp(it.w/it.h,.05,20):sw/clamp(it.w/it.h,.05,20)+reserve),c=[];let x=0;
+    for(let i=0;i<e.length;i++){c.push(x+e[i]/2);x+=e[i]+gap;}
+    pack={e,c,L:x,min:Math.min(...e),max:Math.max(...e)};}
+  return{W,H,u,r,sw,sh,slotW,slotH,reserve,capH,pitch,gap,dir:d,sgn:sgnOf(d),hz,lay,rel,pack,cx:W/2+(+S.nudgeX||0),cy:H/2+(+S.nudgeY||0)};}
 /* a shape's rectangle inside its slot (the slot holds the caption too) */
 function shapeIn(G,S,cx,cy,sc){const w=G.sw*sc,h=G.sh*sc,top=cy-G.slotH*sc/2;
   const y=S.capOn&&capWhereOf(S)==='above'&&G.reserve?top+G.reserve*sc:top;return{x:cx-w/2,y,w,h};}
@@ -376,6 +384,11 @@ function ownShapes(S,ops){const v=S.ownV||'mid',h=S.ownH||'mid';
     o.slot=r;o.rect={x:h==='start'?r.x:h==='end'?r.x+r.w-w:r.x+(r.w-w)/2,y:v==='start'?r.y:v==='end'?r.y+r.h-hh:r.y+(r.h-hh)/2,w,h:hh};}}
 function placeholders(n,S){return Array.from({length:n},(_,i)=>({placeholder:true,n:i+1,kind:'image'}));}
 function trackScene(S,G,P,cam,N,push){
+  if(G.pack&&G.pack.c.length===N){const K=G.pack,ext=G.hz?G.W:G.H,p=cam.p,C=k=>Math.floor(k/N)*K.L+K.c[mod(k,N)],at=q=>{const f=Math.floor(q),t=q-f;return C(f)+(C(f+1)-C(f))*t;};
+    const mp=Math.max(1,K.min+G.gap),span=Math.min(400,Math.ceil((ext/2+K.max)/mp)+1),vis=Math.ceil((ext/2+K.max/2)/mp),lg=lagger(S,P,cam,vis,vis+1),above=S.capOn&&capWhereOf(S)==='above'&&G.reserve;
+    for(let k=Math.floor(p)-span;k<=Math.ceil(p)+span;k++){const pk=lg?lg.at(k):p,off=(C(k)-at(pk))*G.sgn,e=K.e[mod(k,N)],cx=G.hz?G.cx+off:G.cx,cy=G.hz?G.cy:G.cy+off,r0=shapeIn(G,S,cx,cy,1);
+      const r=G.hz?{x:cx-e/2,y:r0.y,w:e,h:r0.h}:{x:r0.x,y:cy-e/2+(above?G.reserve:0),w:r0.w,h:e-G.reserve};
+      if(r.x>=G.W||r.x+r.w<=0||r.y-G.reserve>=G.H||r.y+r.h+G.reserve<=0)continue;push(mod(k,N),r,{key:'t'+k,k});}return;}
   const ext=G.hz?G.W:G.H,slot=G.hz?G.slotW:G.slotH,span=Math.ceil((ext/2+slot)/G.pitch)+1,p=cam.p;
   const vis=Math.ceil((ext/2+slot/2)/G.pitch),lg=lagger(S,P,cam,vis,vis+1);
   for(let k=Math.floor(p)-span;k<=Math.ceil(p)+span;k++){
@@ -393,6 +406,8 @@ function oneMove(S,G,cam,N,push){
      grown bigger), this one fades as it goes, so nothing is left showing round the edge */
   const own=S.oneFit==='own',bleed=bleedOf(S);
   if(how==='fade'){push(a,at(1),{capAlpha:1-e,alpha:own?1-e:1,k:ka});push(b,at(1),{alpha:e,k:kb});return;}
+  /* focus (1.1, Steve's first recording of 12 Nov): this one goes out of focus as the next comes into it */
+  if(how==='focus'){const B=.05*Math.min(G.W,G.H);push(a,at(1),{capAlpha:1-e,alpha:own?1-e:1,blur:B*e,k:ka});push(b,at(1),{alpha:e,blur:B*(1-e),k:kb});return;}
   /* dip: out to the background, then the next up from it */
   if(how==='dip'){if(e<.5)push(a,at(1),{alpha:1-smooth(e*2),k:ka});else push(b,at(1),{alpha:smooth(e*2-1),k:kb});return;}
   /* wipe: a straight edge crosses the canvas, the next on one side of it, this one on the other */
@@ -412,7 +427,7 @@ function oneMove(S,G,cam,N,push){
    Scatter's up – the same for a slide every time it comes round); the newest arrives by its own transition. Keep: only
    so many – the one dropping off fades as the next lands on it. No dimming. */
 function pileScene(S,G,P,cam,N,push){
-  const tt=cam.tt,stops=P.stops,ease=(how,q)=>(how==='fade'||how==='dip'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(clamp(q,0,1));
+  const tt=cam.tt,stops=P.stops,ease=(how,q)=>(how==='fade'||how==='dip'||how==='focus'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(clamp(q,0,1));
   const q=g=>g.t1>g.t0?(tt-g.t0)/(g.t1-g.t0):1;
   /* each slide's progress, 0 (not here) to 1 (landed), and how it came or goes */
   const e=new Array(stops+1).fill(0),how=new Array(stops+1).fill('cut');e[0]=1;
@@ -426,7 +441,7 @@ function pileScene(S,G,P,cam,N,push){
   let top=-1;for(let s=0;s<stops;s++)if(e[s]>0)top=s;
   const put=(k,ek,hw,o)=>{const i=mod(k,N),[dx,dy,rot]=scat(i);o=Object.assign({k,rot},o);let x=dx,y=dy,scl=1,a=o.alpha==null?1:o.alpha;
     if(hw==='slide'||hw==='stack'){const off=(1-ek)*G.pitch*sg;if(hz)x+=off;else y+=off;}
-    else if(hw==='fade'||hw==='dip')a*=ek;
+    else if(hw==='fade'||hw==='dip'||hw==='focus')a*=ek;
     else if(hw==='zoom'){scl=.9+.1*ek;a*=smooth(ek*1.15);}
     else if(hw==='through')scl=Math.pow(.12,1-ek);
     else if(hw==='wipe'){const W=G.W,H=G.H,d=G.dir,cx=d==='left'?W*(1-ek):W*ek,cy=d==='up'?H*(1-ek):H*ek;
@@ -438,7 +453,7 @@ function pileScene(S,G,P,cam,N,push){
   /* Deck (1.0, Steve's reference of 12 Nov): the pile reads as a deck of cards – each one beneath the top sits a step
      back the way the cards come from, a touch smaller, so their edges show; up to three show, the next fades. With
      Cover the deck goes round for ever: under the first are the last few, so the loop joins with nothing changing. */
-  const deck=clamp(+S.pileDeck||0,0,100)/100,dStep=deck*.075*Math.min(G.sw,G.sh),dSc=n=>1-.045*deck*n,dA=n=>clamp(4-n,0,1);
+  const deck=clamp(+S.pileDeck||0,0,100)/100,dStep=deck*.11*Math.min(G.sw,G.sh),dSc=n=>1-.085*deck*n,   /* 1.1: each one back is clearly narrower, so its sides step in – depth */dA=n=>clamp(4-n,0,1);
   if(deck>0&&end==='cover'){let k=top<0?0:top,ek=1,hw='cut';
     if(eEnd>0){k=stops;ek=eEnd;hw=how[stops];}else if(top>=0&&e[top]<1){ek=e[top];hw=how[top];}
     const depth=Math.min(keep?keep:4,4,N-1);
@@ -682,9 +697,14 @@ function paint(ctx,SC,S,fonts,opt){
   if(opt.transparent)ctx.clearRect(0,0,W,H);else{ctx.fillStyle=S.bg||'#F5F5F3';ctx.fillRect(0,0,W,H);}
   if(opt.bgImg&&S.bgImgOn!==false){ctx.save();ctx.globalAlpha=clamp(S.bgImgA==null?1:+S.bgImgA/100,0,1);placeImg(ctx,opt.bgImg,0,0,W,H,S.bgFit);ctx.restore();}
   const rad=Math.max(0,+S.radius||0),mat=Math.max(0,+S.mat||0),matR=Math.max(0,+S.matR||0);let ovDone=false;
-  SC.ops.forEach((o,oi)=>{
-    if(oi===SC.mid&&S.ovZ==='mid'){drawOverlay(ctx,S,SC,fonts,opt);ovDone=true;}
+  /* Focus (1.1): a piece out of focus is drawn on its own, softened (shrunk and grown again – no canvas filter, so
+     Safari's the same), then laid in at its opacity */
+  const main=ctx;
+  const one=(ctx,o)=>{
     if(o.alpha<=0)return;
+    if(o.blur>.5&&ctx===main&&ctx.canvas&&ctx.canvas.width&&typeof document!=='undefined'){const cw=ctx.canvas.width,chh=ctx.canvas.height,T=ctx.getTransform(),kk=Math.hypot(T.a,T.b)||1,Dv=frostCanvases(cw,chh)[3],x=Dv.getContext('2d');
+      x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';x.clearRect(0,0,cw,chh);x.setTransform(T);one(x,Object.assign({},o,{blur:0,alpha:1}));x.setTransform(1,0,0,1,0,0);
+      const out=softCopy(Dv,cw,chh,Math.max(1,o.blur*kk/2.2));ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=clamp(o.alpha,0,1);ctx.drawImage(out,0,0);ctx.restore();return;}
     if(o.layer){drawLayer(ctx,o,opt,W,H);return;}
     const r=o.rect,sc=o.scale,m=Math.min(mat*sc,r.w/3,r.h/3);
     const inn=m>0?{x:r.x+m,y:r.y+m,w:r.w-2*m,h:r.h-2*m}:r,iR=m>0?matR*sc:rad*sc;
@@ -698,15 +718,16 @@ function paint(ctx,SC,S,fonts,opt){
     /* its own blend and opacity (0.6): drawn straight onto what's beneath, without the shape's colour */
     const it=o.item,bl=!it.placeholder&&it.blend&&it.blend!=='normal'?BLEND[it.blend]:null,op=it.placeholder?1:opaOf(it);
     if(!(bl||op<1||o.noFill)){ctx.fillStyle=it.placeholder?(lum(S.bg)>.5?'#d9d8d4':'#3a3940'):(S.shapeBg||'#e6e6e3');ctx.fillRect(mr.x,mr.y,mr.w,mr.h);}
-    if(o.item.placeholder){ctx.fillStyle=lum(S.bg)>.5?'#8f8d88':'#77757f';/* 1.0 – an empty card's number sits top left, in Aktiv Regular, the same tight margin across as down (the cap height is .72 of the size) */
-      const fs=clamp(Math.min(mr.w,mr.h)*.12,9,56),m=fs*.55;ctx.font=`400 ${fs}px "aktiv-grotesk", "Aktiv Grotesk", Helvetica, Arial, sans-serif`;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(String(o.item.n),mr.x+m,mr.y+m+fs*.72);}
+    if(o.item.placeholder){ctx.fillStyle=lum(S.bg)>.5?'#8f8d88':'#77757f';/* 1.0 – an empty card's number sits top left, in Aktiv Bold (1.1), the same tight margin across as down (the cap height is .72 of the size) */
+      const fs=clamp(Math.min(mr.w,mr.h)*.12,9,56),m=fs*.55;ctx.font=`700 ${fs}px "aktiv-grotesk", "Aktiv Grotesk", Helvetica, Arial, sans-serif`;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(String(o.item.n),mr.x+m,mr.y+m+fs*.72);}
     else if(opt.media){if(bl||op<1){ctx.save();ctx.globalAlpha*=op;if(bl)ctx.globalCompositeOperation=bl;opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');ctx.restore();}
       else opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');}
     ctx.restore();
     if(S.edge&&(+S.edgeW||0)>0&&o.frame!==false){const lw=(+S.edgeW)*sc;ctx.lineWidth=lw;ctx.strokeStyle=S.edgeC||'#000000';rr(ctx,r.x+lw/2,r.y+lw/2,r.w-lw,r.h-lw,Math.max(0,rad*sc-lw/2));ctx.stroke();}
     ctx.restore();
     if(S.capOn&&capWhereOf(S)!=='fixed'&&!o.item.placeholder){const b=capBlock(ctx,S,o.item,fonts);if(b)drawCap(ctx,S,b,o,r,SC);}
-    ctx.restore();});
+    ctx.restore();};
+  SC.ops.forEach((o,oi)=>{if(oi===SC.mid&&S.ovZ==='mid'){drawOverlay(ctx,S,SC,fonts,opt);ovDone=true;}one(ctx,o);});
   if(SC.fixed&&SC.fixed.alpha>0){const it=SC.list[SC.fixed.i],b=capBlock(ctx,S,it,fonts);if(b)drawFixed(ctx,S,b,SC.fixed,SC);}
   if(!ovDone)drawOverlay(ctx,S,SC,fonts,opt);
   ctx.restore();}
@@ -733,7 +754,7 @@ function drawOverlay(ctx,S,SC,fonts,opt){
     const base0=(v==='t'?m+b.ch:v==='b'?H-m-(n-1)*b.lh:(H-hb)/2+b.ch)+ny;
     const glyphs=(c,solid)=>{c.font=b.st.font;try{c.fontKerning='none';}catch(e){}c.textBaseline='alphabetic';c.textAlign='left';
       b.lines.forEach((L,j)=>{const x=hx(L.width),y=base0+j*b.lh;for(const g of L.glyphs){if(!g.ch.trim())continue;c.fillStyle=solid||g.c||b.st.colour;c.fillText(g.ch,x+g.x,y);}});};
-    /* Frosted (1.0): the letters are frosted glass – what's beneath shows through them, blurred, with the text's
+    /* Glass (1.0 as Frosted; renamed 1.1): the letters are glass – what's beneath shows through them, blurred, with the text's
        colour laid over as a tint. The blur is made by shrinking the frame and growing it again (no canvas filter, so
        it's the same in Safari), then cut to the letters and put back. */
     const fr=S.ovFrost?clamp(+S.ovBlur||0,0,200):0;
@@ -747,11 +768,22 @@ function drawOverlay(ctx,S,SC,fonts,opt){
       if(us!==C){c.drawImage(us,0,0,uw,uh,0,0,cw,chh);}
       c.globalCompositeOperation='destination-in';c.setTransform(T);glyphs(c,'#000');c.setTransform(1,0,0,1,0,0);
       ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(C,0,0);ctx.restore();
-      ctx.globalAlpha*=clamp(S.ovTint==null?.3:+S.ovTint/100,0,1);}
-    glyphs(ctx);}
+      /* Glass (1.1): it's glass whatever the Blend says – the tint lies straight over the blur, and a hair of light
+         round each letter is what makes it read as a pane rather than a smudge */
+      const a0=ctx.globalAlpha;ctx.globalCompositeOperation='source-over';
+      ctx.globalAlpha=a0*clamp(S.ovTint==null?.2:+S.ovTint/100,0,1);glyphs(ctx);
+      ctx.globalAlpha=a0*.5;ctx.lineJoin='round';ctx.lineWidth=Math.max(1/k,b.st.size*.006);ctx.strokeStyle='#FFFFFF';ctx.font=b.st.font;
+      b.lines.forEach((L,j)=>{const x=hx(L.width),y=base0+j*b.lh;for(const g of L.glyphs){if(g.ch.trim())ctx.strokeText(g.ch,x+g.x,y);}});}
+    else glyphs(ctx);}
   ctx.restore();}
 let FROST=null;
-function frostCanvases(w,h){if(!FROST)FROST=[0,1,2].map(()=>document.createElement('canvas'));for(const c of FROST)if(c.width!==w||c.height!==h){c.width=w;c.height=h;}return FROST;}
+function frostCanvases(w,h){if(!FROST)FROST=[0,1,2,3].map(()=>document.createElement('canvas'));for(const c of FROST)if(c.width!==w||c.height!==h){c.width=w;c.height=h;}return FROST;}
+/* a soft copy of a canvas: halved d times over, then doubled back up – returns the third of the kept canvases */
+function softCopy(srcC,cw,chh,d){const [A,B,C]=frostCanvases(cw,chh),a=A.getContext('2d'),bb=B.getContext('2d'),c=C.getContext('2d');
+  for(const x of [a,bb,c]){x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='copy';x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';}
+  let w=cw,h=chh,src=srcC,n=0,f=d;while(f>1.001&&w>2&&h>2){const s=Math.min(2,f),nw=Math.max(1,Math.round(w/s)),nh=Math.max(1,Math.round(h/s)),dst=n%2?bb:a;dst.drawImage(src,0,0,w,h,0,0,nw,nh);src=dst.canvas;w=nw;h=nh;f/=s;n++;}
+  let uw=w,uh=h,us=src;while(uw<cw||uh<chh){const nw=Math.min(cw,uw*2),nh=Math.min(chh,uh*2),last=nw===cw&&nh===chh,dst=last?c:(us===A?bb:a);dst.drawImage(us,0,0,uw,uh,0,0,nw,nh);us=dst.canvas;uw=nw;uh=nh;if(last)break;}
+  if(us!==C)c.drawImage(us,0,0,uw,uh,0,0,cw,chh);return C;}
 function capOrigin(S,b,r,sc){const sp=(+S.capSpace||0)*sc,al=S.capAlign||'left',bw=b.w*sc,where=capWhereOf(S);let x,y;
   if(where==='over'){x=al==='left'?r.x+sp:al==='right'?r.x+r.w-sp-bw:r.x+(r.w-bw)/2;y=r.y+r.h-sp-b.h*sc;}
   else if(where==='above'){x=al==='left'?r.x:al==='right'?r.x+r.w-bw:r.x+(r.w-bw)/2;y=r.y-sp-b.h*sc;}

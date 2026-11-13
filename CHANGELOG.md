@@ -1,5 +1,19 @@
 # Changelog
 
+## 13 November 2026 – Segue 1.1: lots of pictures, Glass, Focus, calmer – and Tutti's labels
+
+- **Lots of big pictures.** The Media list redraws about twenty times faster (thumbnails are kept, not redrawn from the full picture), and each picture has a smaller stand-in for the moving preview so Safari isn't decoding full-size pictures every frame. Paused, and in every export, it's the picture itself.
+- **Fixed:** the overlay's text now changes colour when you pick one.
+- **Glass** (was Frosted): the letters blur what's behind them, with a light tint and a fine edge of light – whatever the Blend is set to.
+- **Focus** – a new transition: one slide goes out of focus as the next comes into it. Works the same in Safari and Chrome.
+- **Deck**: the cards behind are clearly narrower and step back further, so it reads as depth.
+- **A row or column of mixed shapes is packed** – each piece its own width, the same gap between every pair.
+- **The little drawings don't move**, and are in two greys throughout – no black.
+- **Presets calmed**: longer rests, slower moves and drifts; Posters has no border; the Float's title sits over everything.
+- Empty cards' numbers are Aktiv Bold.
+- **Tutti**: labels shortened so none wrap (Colour, Format, Scale, Solid fill, Invert, Size by tone, Shape size, Own colours); "Advanced" is Fine tuning and says what's in it; the band rows have more room. Nothing it makes has changed – 12 export hashes identical.
+- Tests: Segue 203 of 203 and 83 of 83; Tutti 87 of 87.
+
 ## 12 November 2026 – Segue 1.0: the hitlist – and the shared parts taken to Rubato, Tempo and Tutti
 
 Steve's "hitlist before pushing Segue to 1.0", nineteen points with three recordings, then: "run any and all aspects that may impact Tutti and Rubato through their UI, test and update the house style accordingly."

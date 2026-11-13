@@ -13,9 +13,9 @@
   const SUM={
     source:()=>S.kind?($('srcName').textContent||''):'No source',
     canvas:()=>label($('aspect'))+' · Grid '+$('grid').value,
-    shape:()=>[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Scale with midtones':''].filter(Boolean).join(' · '),
+    shape:()=>[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':''].filter(Boolean).join(' · '),
     mapping:()=>S.nBands+' bands',
-    advanced:()=>''};
+    advanced:()=>'Opacity · Thresholds · Jitter · Presets'};   /* 13 Nov: a shut group says what it holds */
   function summaries(){$$('.card[data-id]').forEach(c=>{const sm=c.querySelector('.sum');if(!sm)return;let t='';try{t=(SUM[c.dataset.id]||(()=>''))();}catch(e){}if(sm.textContent!==t)sm.textContent=t;});}
 
   /* the house slider (UI round 4, Nov 2026 – as Segue and Tempo): a bar with its value inside and its label

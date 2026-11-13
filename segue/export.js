@@ -13,7 +13,7 @@ const cloneVid=async el=>{const v=document.createElement('video');v.muted=true;v
 async function xBegin(){XS=JSON.parse(JSON.stringify(S));XP=Object.assign({},PICS);
   if(PICS.bg&&PICS.bg.el){const v=await cloneVid(PICS.bg.el);XP.bg=Object.assign({},PICS.bg,{el:v,src:v,own:true});}
   XI=await Promise.all(items.map(async it=>{const c=Object.assign({},it);if(it.kind==='video'&&it.el){const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';
-    await new Promise(res=>{let d=false;const fin=()=>{if(!d){d=true;res();}};v.onloadeddata=fin;v.onerror=fin;setTimeout(fin,8000);v.src=it.el.currentSrc||it.el.src;v.load();});c.el=v;c.src=v;}return c;}));}
+    await new Promise(res=>{let d=false;const fin=()=>{if(!d){d=true;res();}};v.onloadeddata=fin;v.onerror=fin;setTimeout(fin,8000);v.src=it.el.currentSrc||it.el.src;v.load();});c.el=v;c.src=v;}else if(it.full)c.src=it.full;return c;}));}   /* exports draw the picture itself, never its stand-in */
 function xEnd(){for(const it of XI||[])if(it.kind==='video'&&it.el){try{it.el.removeAttribute('src');it.el.load();}catch(e){}}
   if(XP&&XP.bg&&XP.bg.own){try{XP.bg.el.removeAttribute('src');XP.bg.el.load();}catch(e){}}XS=S;XI=null;XP=PICS;}
 /* how many times round the MP4 goes: only a loop goes round more than once */
@@ -24,7 +24,7 @@ async function frameAt(c,x,W,H,t,k){
   for(const [it,tm] of want){const v=it.el,d=Math.max(.01,it.dur||v.duration||1),tt=Math.min(d-1e-3,((tm%d)+d)%d);if(Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
   /* a video background: at this moment of its own length */
   if(XP.bg&&XP.bg.el&&XS.bgImgOn!==false){const v=XP.bg.el,d=Math.max(.01,XP.bg.dur||v.duration||1),tt=Math.min(d-1e-3,((t%d)+d)%d);if(v.readyState<2||Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
-  crispNow=XS.xCrisp!==false;try{E.paint(x,sc,XS,FONTS,{scale:k||1,media:drawMedia,bgImg:XP.bg,ovImg:XP.ov});}finally{crispNow=false;}}
+  crispNow=XS.xCrisp!==false;fullNow=true;try{E.paint(x,sc,XS,FONTS,{scale:k||1,media:drawMedia,bgImg:XP.bg,ovImg:XP.ov});}finally{crispNow=false;fullNow=false;}}
 async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>XS[r+'F']));if(XS.ovOn&&XS.ovKind==='text')used.add(XS.OF);
   await Promise.all([...used].map(id=>FONTS[id]?document.fonts.load(fontStr(FONTS[id])).catch(()=>null):null));await document.fonts.ready;E.resetMeasure();}
 let stopFlag=false;
@@ -326,7 +326,7 @@ let xInfo,xGo,xStop;
   if(sh)new MutationObserver(()=>{if(!sh.hidden)steady();}).observe(sh,{attributes:true,attributeFilter:['hidden']});}
 const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
 /* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
-function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
+function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','focus','dip','wipe','open'].includes(s.oneMove);}
 function exportInfo(){if(!xInfo||busy)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?xLoopsOf(S):1,once=(S.endAs||'loop')!=='loop';
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
   /* what you'll get, as a row of chips – a detail, not a sentence */

@@ -180,7 +180,7 @@
   .card-tools a:hover,.subttl-row a:hover{background:var(--k-fill);color:var(--ink-strong)}
   .svgbtn{border-radius:var(--r-chip);font-size:11.5px;font-weight:500}
   /* lists: the bands as soft rows */
-  .state{background:var(--k-fill);box-shadow:none;border-radius:var(--r-ctl);padding:6px 8px;margin-bottom:4px}
+  .state{background:var(--k-fill);box-shadow:none;border-radius:var(--r-ctl);padding:8px 12px;margin-bottom:4px}   /* 13 Nov: more room left and right (Steve's 6 Nov note) */
   .state .swatch,.svgprev{border-radius:var(--r-sw)}
   .state .meta b{font-weight:500;color:var(--ink-strong)}
   .stepper{border-top:0;padding-top:0;margin-top:10px}

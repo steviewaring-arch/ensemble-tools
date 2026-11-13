@@ -473,7 +473,7 @@ with sync_playwright() as p:
     ov = outline('overlay', True)
     check('Overlay: what goes over, its Type, Position (the pad, margin and nudge together), then Blend and opacity – on and off by the box in its head (0.10)',
           ov[:2] == ['What', 'Text'] and [x for x in ov if x.startswith('▸')] == ['▸ Type', '▸ Position', '▸ Blend and opacity']
-          and group(ov, 'Position') in (['Place', 'Margin', 'Across', 'Up and down'], ['Place', 'Across', 'Up and down']) and group(ov, 'Blend and opacity') == ['Blend', 'Opacity', 'Frosted'], str(ov))
+          and group(ov, 'Position') in (['Place', 'Margin', 'Across', 'Up and down'], ['Place', 'Across', 'Up and down']) and group(ov, 'Blend and opacity') == ['Blend', 'Opacity', 'Glass'], str(ov))
     pg.evaluate("segue.set('ovOn',false);segue.set('capOn',false)")
     mo = outline('motion')
     check('Motion: After the last holds the choice; Pull back, its settings, appears as a group of its own only when you pull back',
@@ -1276,9 +1276,11 @@ with sync_playwright() as p:
     ow = q.evaluate("""()=>{const o={},E=segue.E,S=segue.S,c=document.createElement('canvas').getContext('2d');const its=[[600,900],[1200,700],[800,800],[500,1000]].map(([w,h],i)=>Object.assign({},segue.items[i],{w,h}));
       for(const lay of ['row','column','grid','wall','frames']){const S2=Object.assign({},S,{layout:lay,ratio:'media',ownV:'start',ownH:'start',trackMove:'still',fMove:'still'}),[W,H]=E.canvasSize(S2),ops=E.scene(S2,its,c,segue.fonts,W,H,0).ops.filter(x=>x.item&&x.slot);
         o[lay]=[ops.length,ops.every(x=>Math.abs(x.rect.w/x.rect.h-x.item.w/x.item.h)<.01),ops.every(x=>Math.abs(x.rect.y-x.slot.y)<.01&&Math.abs(x.rect.x-x.slot.x)<.01&&x.rect.w<=x.slot.w+.01&&x.rect.h<=x.slot.h+.01)];}
-      segue.set('layout','wall');segue.set('ratio','media');o.ctl=['ownV','ownH'].map(k=>segue.ui.controls.some(c=>c.d&&c.d.k===k&&!c.w.hidden));segue.set('layout','row');o.rowCtl=['ownV','ownH'].map(k=>segue.ui.controls.some(c=>c.d&&c.d.k===k&&!c.w.hidden));segue.set('ratio','4:5');return o;}""")
-    check('Each media’s own shape in every kind (1.0): in the kinds that tile, each piece is fitted inside its slot at its own shape, and Align puts it top, middle or bottom, left, centre or right',
-          all(v[0] > 0 and v[1] and v[2] for k, v in ow.items() if k in ('row', 'column', 'grid', 'wall', 'frames')) and ow['ctl'] == [True, True] and ow['rowCtl'] == [True, False], str(ow))
+      segue.set('layout','wall');segue.set('ratio','media');o.ctl=['ownV','ownH'].map(k=>segue.ui.controls.some(c=>c.d&&c.d.k===k&&!c.w.hidden));{const S2=Object.assign({},S,{layout:'row',ratio:'media',trackMove:'still',gap:30}),[W,H]=E.canvasSize(S2),ops=E.scene(S2,its,c,segue.fonts,W,H,0).ops.filter(x=>x.item).sort((a,b)=>a.rect.x-b.rect.x),gaps=ops.slice(1).map((x,i)=>+(x.rect.x-(ops[i].rect.x+ops[i].rect.w)).toFixed(2));
+        o.packed=gaps.length>0&&gaps.every(g=>Math.abs(g-gaps[0])<.05)&&new Set(ops.map(x=>x.rect.w.toFixed(1))).size>1&&new Set(ops.map(x=>x.rect.h.toFixed(1))).size===1;o.gaps=gaps;}
+      segue.set('layout','row');o.rowCtl=['ownV','ownH'].map(k=>segue.ui.controls.some(c=>c.d&&c.d.k===k&&!c.w.hidden));segue.set('ratio','4:5');return o;}""")
+    check('Each media’s own shape in every kind (1.0): in the kinds that tile, each piece is fitted inside its slot at its own shape, and Align puts it top, middle or bottom, left, centre or right; a Line of them is packed – every piece its own width, the same gap between each pair (1.1)',
+          all(v[0] > 0 and v[1] and v[2] for k, v in ow.items() if k in ('row', 'column', 'grid', 'wall', 'frames')) and ow['ctl'] == [True, True] and ow['rowCtl'] == [False, False] and ow['packed'], str(ow))
     dk = q.evaluate("""()=>{const o={},E=segue.E,S=segue.S;segue.applyPreset('Deck');const c=document.createElement('canvas').getContext('2d'),[W,H]=E.canvasSize(S),P=segue.plan();
       const at=t=>E.scene(S,segue.items,c,segue.fonts,W,H,t).ops.filter(x=>x.item).map(x=>x.i+':'+x.rect.x.toFixed(1)+','+x.rect.y.toFixed(1)+','+x.rect.w.toFixed(1)+':'+(x.alpha==null?1:x.alpha).toFixed(2));
       const a=at(.3);o.n=a.length;o.join=at(1e-4).join('|')===at(P.L+1e-4).join('|');const ops=E.scene(S,segue.items,c,segue.fonts,W,H,.3).ops.filter(x=>x.item);o.top=ops[ops.length-1].rect.w;o.under=ops[ops.length-2].rect.w;o.up=ops[ops.length-2].rect.y<ops[ops.length-1].rect.y;return o;}""")
@@ -1320,6 +1322,22 @@ with sync_playwright() as p:
       o.title=parseFloat(getComputedStyle(document.querySelector('#panel .card-toggle')).fontSize);return o;}""")
     check('Tidied (1.0): Border, Edge and Placement sit in Layout’s More; no kind has more than four presets; the pasteboard’s dots can be switched off in Guides; section titles are 15 px',
           lm['in'] == ['More', 'More', 'More'] and max(lm['per'].values()) <= 4 and lm['dots'] == 'none' and lm['dots2'] and lm['title'] == 15, str(lm))
+    # ---- 1.1 (12–13 Nov): stand-ins for big pictures, text colour, Glass, Focus, still drawings, calmer presets ----
+    v11 = q.evaluate("""()=>{const o={},E=segue.E,S=segue.S;const it=segue.items[0];o.proxy=[it.src!==it.full,!!it.full,it.src.tagName,Math.max(it.src.width,it.src.height)<=1280,it.w===(it.full.naturalWidth||it.full.width)];
+      segue.applyPreset('Straight cuts');for(const [k,v] of [['ovOn',true],['ovKind','text'],['ovText','MMMM'],['OS',300],['OC','#00FF00'],['ovFrost',false]])segue.set(k,v);
+      const cv=document.createElement('canvas'),[W,H]=E.canvasSize(S);cv.width=W;cv.height=H;const c=cv.getContext('2d');
+      return (async()=>{const count=async(r,g,b)=>{await segue.frameAt(cv,c,W,H,.2,1);const d=c.getImageData(0,0,W,H).data;let n=0;for(let i=0;i<d.length;i+=28)if(d[i]===r&&d[i+1]===g&&d[i+2]===b)n++;return n;};
+        o.green=await count(0,255,0);segue.set('OC','#FF0000');o.red=await count(255,0,0);o.greenAfter=await count(0,255,0);segue.set('ovOn',false);
+        segue.set('oneMove','focus');segue.set('dur',.8);segue.set('hold',1);const ops=E.scene(S,segue.items,c,segue.fonts,W,H,1.4).ops;o.focus=ops.map(x=>[+x.alpha.toFixed(2),x.blur>1]);await segue.frameAt(cv,c,W,H,1.4,1);
+        o.glass=segue.ui.controls.filter(c=>c.d&&c.d.k==='ovFrost').map(c=>c.d.label);o.moves=[...document.styleSheets].some(ss=>{try{return [...ss.cssRules].some(r=>r.type===7&&/^(k|p)[A-Z]/.test(r.name));}catch(e){return false;}});
+        const fill=sel=>{const n=document.querySelector(sel);return n?getComputedStyle(n).fill:null;};o.ill=[fill('.kind svg rect:not(.dim):not(.line)'),fill('.kind svg rect.dim')];
+        segue.applyPreset('Posters');o.posters=[S.mat,S.hold];segue.applyPreset('Float with title');o.float=S.ovZ;segue.applyPreset('Columns up and down');o.cols=S.hold;segue.applyPreset('Straight cuts');return o;})();}""")
+    check('Big pictures have a stand-in for the moving preview (1.1) – a canvas no more than 1,280 px long, the picture itself kept for pausing and exports, its size still the picture’s own',
+          v11['proxy'][1] and v11['proxy'][3] and v11['proxy'][4] and (v11['proxy'][2] == 'CANVAS' or not v11['proxy'][0]), str(v11['proxy']))
+    check('The overlay’s text changes colour when its Colour does (1.1 – it was kept from before)', v11['green'] > 500 and v11['red'] > 500 and v11['greenAfter'] == 0, str(v11))
+    check('Focus (1.1): this one goes out of focus as the next comes into it – both softened part-way; Frosted is called Glass', v11['focus'] == [[1, True], [.5, True]] and v11['glass'] == ['Glass'], str(v11))
+    check('The drawings don’t move, and are in the same two colours with no black (1.1)', not v11['moves'] and v11['ill'][0] != v11['ill'][1] and all(c not in ('rgb(0, 0, 0)', 'rgb(17, 17, 17)', 'rgb(43, 43, 43)') for c in v11['ill']), str(v11))
+    check('Presets calmed (1.1): Posters has no border and rests longer, the Float’s title is over everything, Columns rests longer', v11['posters'][0] == 0 and v11['posters'][1] >= 2.5 and v11['float'] == 'top' and v11['cols'] >= 1.5, str(v11))
     check('no errors on the page through the 1.0 checks', not errs3, '; '.join(errs3[:3]))
     ctx3.close()
     check('no errors on the page', not errs, '; '.join(errs[:3]))

@@ -1,4 +1,4 @@
-# Segue – handover (12 November 2026, Segue 1.0)
+# Segue – handover (13 November 2026, Segue 1.1)
 
 For the Segue chat. Read this, then the repo's `README.md` and `HANDOVER.md` (how the repo, the build, storage and the other streams work). Segue is internal for now: built to `docs/segue/`, live at https://steviewaring-arch.github.io/ensemble-tools/segue/, and not linked from the index page.
 
@@ -95,6 +95,21 @@ The panel was audited as a whole in 0.7 because features had been bolted on piec
 - **Stepping aside:** Pile up only when slides aren't full bleed (`plan` ignores `pile` there too); Overlay's Margin not for the middle place.
 - **Presets:** `x0` on a preset sets a key only where it's empty; Float with title uses `x:{ovOn:true,ovKind:'text'}` and `x0:{ovText:'Your title'}`.
 
+### 1.1 – after 1.0 (12–13 Nov)
+
+Steve, on 1.0: "a lot of images in a test run. it's very laggy"; "frosted is not working – and frosted is not the right term. I want a sort of glass overlay to text that blurs what is behind within the text itself"; "remove animations to the little illustrations in presets and layout. remove black and use two colours, consistently"; Deck "needs to move the image that replaces it back, smoothly so the vertical edges do not match and it gives the perception of dimension"; "colour on text does not change when I pick another – and on float sits under some images and above others … seems a glitch"; empty-card numbers Aktiv Bold; Slides' four presets fine; "remove borders from posters. slow drift ones down. slow pause state on columns. just calm them down a little bit across the board"; Tutti's list "yes, implement"; the focus pull "if chrome is the suggested native, could work in?"; mixed shapes in a row: "the margins should be equal".
+
+- **Lag with many pictures.** Measured with 120 pictures of 3,600 × 2,400 in WebKit: the Media list took 2.1 s to redraw (every thumbnail drawn from its full picture on every change) – now each is drawn once and kept (`it._th`), 0.1 s. And Safari doesn't keep big pictures decoded once there are many, so each frame decoded one again: every picture now has a **stand-in** for the moving preview (`proxyOf`, a canvas ≤ 1,280 px on its long side, `it.src`), with the picture itself in `it.full`, used whenever it's crisp (paused) and for every export frame (`fullNow` in `frameAt`, and `xBegin` maps `src` to `full`). `it.w` / `it.h` are still the picture's own. The engine already skipped pieces off the canvas. Headless WebKit here can't show a frame rate (it's 16 fps with four pictures), so the playback gain is by reasoning, not measured – **ask Steve how it feels**.
+- **The overlay's colour** wasn't in its measure-cache key (`overlayBlock`) – so a new colour only showed after something else changed. It is now.
+- **Glass** (was Frosted; same keys `ovFrost`, `ovBlur`, `ovTint`): ignores the Blend (it's glass whatever the blend), tint 20% by default, blur 36, and a hair of light round each letter.
+- **Focus** – a transition (`oneMove:'focus'`): this one goes out of focus as the next comes into it. A piece with `o.blur` is drawn on its own canvas, softened by `softCopy` (halve and double – no canvas filter, so it's the same in Safari and Chrome), and laid in. Two full-canvas softenings a frame during the move; fine at preview size.
+- **A Line of own shapes is packed** (`G.pack` in `geometry`, used by `trackScene`): each piece its own width (height in a column), the same gap between each pair; the camera goes from middle to middle. Align isn't offered there (nothing to align).
+- **Deck**: each card back is 8.5% narrower and steps 11% (at Deck 100), so the sides step in.
+- **Drawings**: no hover animation anywhere; `--ill-1` / `--ill-2`, no black – Kind tiles, preset pictures, the transition, feel and path sketches.
+- **Presets calmed**: longer rests and slower moves throughout, drifts about 1.7× slower; Posters without its border; Float with title's words over everything (Among the shapes is still an option).
+- Empty slots' numbers in Aktiv Bold.
+- Tests: 203 of 203 (5 new), 83 of 83.
+
 ### 1.0 – the hitlist (12 Nov)
 
 **The three recordings** (166 × 164, 7–14 s): (1) full-bleed hard cuts, under a second each → the **Straight cuts** preset (hold now 0.8 s); (2) all the work in a grid, in to the first, along the row a piece at a time, back out to the grid → **Overview** (a Line with After the last › Pull back – nothing new was needed); (3) a deck of cards, each new one rising over the last, whose top edges still show behind → **Pile up › Deck** and the **Deck** preset. No new section: all three are things the kinds already did, or one slider short of it.
@@ -124,7 +139,7 @@ The panel was audited as a whole in 0.7 because features had been bolted on piec
 - A set length may be longer than the loop: it goes round. A GIF always repeats, so for a GIF "once" only sets its length.
 - A row of mixed shapes uses equal slots (the middle shape), not a packed strip of unequal widths – the camera's stops stay even. A packed strip would be the next step if the gaps bother anyone.
 - Frosted needs the tint below 100% to read as glass; it starts at 30.
-- Not done: a "focus pull" blur as a transition (recording 1 may have a touch of it) – a canvas blur at full size every frame is slow, and Safari has no canvas filter.
+- (Done in 1.1: the Focus transition.)
 
 ### Stepping, corners, one row, strips that share (0.18)
 - **Stepping** (`stepMoments`, `stepBy`, `stepBtns` in `app.js`; `#stepBack`/`#stepOn` either side of `#play`): the moments are the `hold`/`grid` segment starts, or the cycle (`hold+dur`) for a `…step` plan with none; a plan with neither has no moments and the buttons hide. A press pauses, seeks to the moment plus a hair, and in Slides selects the base piece for that stop. Keys: `,` `.` and Alt with the arrows.

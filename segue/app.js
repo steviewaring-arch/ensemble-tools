@@ -21,7 +21,7 @@ const D={
   TF:'inter8',TS:54,TTr:-20,TLd:1.0,TC:'#111111',TCase:'upper',
   LF:'plex',LS:17,LTr:0,LLd:1.4,LC:'#6B6A66',LCase:'as',
   GF:'plex',GS:13,GTr:20,GLd:1.2,GC:'#111111',GCase:'as',
-  ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',ovFrost:false,ovBlur:24,ovTint:30,
+  ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',ovFrost:false,ovBlur:36,ovTint:20,
   name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false,xCrisp:true,xQ:'high',xScale:1,
   guides:false,guM:64,guN:6,guSnap:true,guDots:true};
 /* the look: what a preset carries. Size, frame rate, the file name and what's over the top
@@ -102,7 +102,14 @@ function loadVideo(blob){return new Promise((res,rej)=>{const v=document.createE
 async function mediaFrom(blob,meta){
   if(meta.kind==='video'){const v=await loadVideo(blob);meta.w=v.videoWidth;meta.h=v.videoHeight;meta.dur=v.duration||1;meta.src=v;meta.el=v;
     v.addEventListener('seeked',()=>{dirty=true;});return meta;}
-  const im=await loadImage(blob);meta.w=im.width||im.naturalWidth;meta.h=im.height||im.naturalHeight;meta.src=im;return meta;}
+  const im=await loadImage(blob);meta.w=im.width||im.naturalWidth;meta.h=im.height||im.naturalHeight;meta.full=im;meta.src=proxyOf(im,meta.w,meta.h);return meta;}
+/* 1.1 – a lot of big pictures (Steve, 12 Nov: "a lot of images … very laggy"). Safari doesn't keep big pictures
+   decoded once there are many of them, so every frame decoded one again – 15 frames a second with 120. Each picture now
+   has a stand-in for the moving preview, no more than 1,280 px on its long side, kept as a canvas (which is never
+   decoded again). The picture itself (it.full) is used whenever it's crisp: paused, and in every export. */
+const PROXY=1280;
+function proxyOf(im,w,h){try{const k=Math.min(1,PROXY/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+    const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(im,0,0,c.width,c.height);return c;}catch(e){return im;}}
 /* Video that says one thing in the file and another in the stream (Tempo's promo MP4s up to
    0.11.1: the file says video range, the H.264 stream says full range) plays with lifted greys
    in some players. When the two disagree, Segue makes the stream agree with the file before
@@ -189,7 +196,7 @@ const protOf=(o,mode)=>mode==='cover'&&!o.whole?(+o.item.prot||0)*Math.PI/180:0;
 const turnBox=(r,th)=>{const c=Math.abs(Math.cos(th)),s=Math.abs(Math.sin(th)),w=r.w*c+r.h*s,h=r.w*s+r.h*c;return{x:-w/2,y:-h/2,w,h};};
 function drawMedia(ctx,o,r,mode){const th=protOf(o,mode);if(!th)return drawMedia0(ctx,o,r,mode);
   ctx.save();ctx.translate(r.x+r.w/2,r.y+r.h/2);ctx.rotate(th);try{drawMedia0(ctx,o,turnBox(r,th),mode);}finally{ctx.restore();}}
-function drawMedia0(ctx,o,r,mode){const it=o.item,src=it.src;if(!src||!it.w||!it.h)return;if(it.kind==='video'&&src.readyState<2)return;
+function drawMedia0(ctx,o,r,mode){const it=o.item,src=(crispNow||fullNow)&&it.full?it.full:it.src;if(!src||!it.w||!it.h)return;if(it.kind==='video'&&src.readyState<2)return;
   /* cropped: its own zoom, and which part shows (−100…100% of what's to spare each way) */
   const crop=mode==='cover'&&!o.whole,z=crop?Math.max(1,(+it.zm||100)/100):1;
   const s=(mode==='cover'?Math.max(r.w/it.w,r.h/it.h):Math.min(r.w/it.w,r.h/it.h))*z,dw=it.w*s,dh=it.h*s,sx=(dw-r.w)/2,sy=(dh-r.h)/2;
@@ -215,7 +222,7 @@ function drawMedia0(ctx,o,r,mode){const it=o.item,src=it.src;if(!src||!it.w||!it
      position on a canvas lined up with the pixel grid, then sharpened – half strength when
      shrunk, as Photoshop's Bicubic Sharper, a third when enlarged – and copied on 1:1.
    Stills at rest are kept, so a slide that sits still costs nothing after its first frame. */
-let crispNow=false;
+let crispNow=false,fullNow=false;   /* fullNow: an export frame – the picture itself, never its stand-in, crisp or not */
 const CR=[document.createElement('canvas'),document.createElement('canvas'),document.createElement('canvas')],crCache=new Map(),halfCache=new Map(),onGrid=new Map();
 function halved(src,it,DW,DH){let cur=src,w=it.w,h=it.h,flip=0,n=0;while(w/2>=DW&&h/2>=DH){w=Math.max(1,Math.round(w/2));h=Math.max(1,Math.round(h/2));n++;}
   if(!n)return src;const key=it.kind==='video'?null:`${it.id}|${n}`;if(key&&halfCache.has(key))return halfCache.get(key);
@@ -646,8 +653,14 @@ const openRows=new Set();let mediaBox;
   addHint(b,'Drag a row to change the order. Video plays from its start point as its shape arrives.',()=>items.length>1);
   addHint(b,'Open a row to give that slide its own time, transition or movement – or switch on Layer on above, to sit it over (or under) that slide.',s=>s.layout==='one'&&items.length>0);
   SUMMARY.media=()=>!items.length?'No media yet':`${items.length} · `+(()=>{const v=items.filter(i=>i.kind==='video').length,i=items.length-v;return [v?`${v} video`:'',i?`${i} image${i>1?'s':''}`:''].filter(Boolean).join(', ');})();}
-function thumbOf(it){const c=el('canvas');c.width=88;c.height=64;const x=c.getContext('2d');x.fillStyle='#ddd';x.fillRect(0,0,88,64);
-  try{if(it.src&&(it.kind!=='video'||it.src.readyState>=2)){const s=Math.max(88/it.w,64/it.h);x.drawImage(it.src,(88-it.w*s)/2,(64-it.h*s)/2,it.w*s,it.h*s);}}catch(e){}return c;}
+/* a picture's thumbnail is drawn from it once and kept (1.1) – the Media list was redrawing every one from the full
+   picture each time anything changed: two seconds, with 120 */
+function thumbOf(it){const c=el('canvas');c.width=88;c.height=64;const x=c.getContext('2d');
+  if(it._th){x.drawImage(it._th,0,0);return c;}
+  x.fillStyle='#ddd';x.fillRect(0,0,88,64);let ok=false;
+  try{if(it.src&&(it.kind!=='video'||it.src.readyState>=2)){const s=Math.max(88/it.w,64/it.h);x.drawImage(it.src,(88-it.w*s)/2,(64-it.h*s)/2,it.w*s,it.h*s);ok=true;}}catch(e){}
+  if(ok&&it.kind==='image'&&it.id){const k=el('canvas');k.width=88;k.height=64;k.getContext('2d').drawImage(c,0,0);try{Object.defineProperty(it,'_th',{value:k,enumerable:false,configurable:true});}catch(e){}}
+  return c;}
 let dragId=null,trims=[];
 const isLayer=(it,i)=>S.layout==='one'&&i>0&&it.join==='on';
 const BLENDS=[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['darken','Darken'],['lighten','Lighten'],['difference','Difference']];
@@ -866,7 +879,7 @@ function pickKind(k){if(k==='line')k=['up','down'].includes(S.dir)?'column':'row
 function kindTiles(parent){const w=el('div','ctl kinds-ctl'),hd=el('div','ctl-head'),g=el('div','kinds');hd.append(el('span',null,'Kind'));g.setAttribute('role','group');g.setAttribute('aria-label','Kind');
   const bs=KINDS.map(([v,t,tip])=>{const b=el('button','kind');b.type='button';b.dataset.k=v;b.innerHTML=KIND_ICON[v];b.append(el('span',null,t));b.dataset.tip=tip;b.onclick=()=>pickKind(v);g.append(b);return[v,b];});
   w.append(hd,g);parent.append(w);controls.push({d:{},w,update(){const k=KIND(S);bs.forEach(([v,b])=>b.setAttribute('aria-pressed',v===k));}});}
-const MOVES_ONE=[['cut','Cut','Straight to the next'],['fade','Fade','One into the next'],['dip','Dip','Out to the background, then up into the next'],['wipe','Wipe','A straight edge crosses the canvas'],
+const MOVES_ONE=[['cut','Cut','Straight to the next'],['fade','Fade','One into the next'],['focus','Focus','This one goes out of focus as the next comes into it'],['dip','Dip','Out to the background, then up into the next'],['wipe','Wipe','A straight edge crosses the canvas'],
   ['slide','Push','The next pushes this one out'],['stack','Cover','The next slides in over this one'],['open','Open','A window opens from the middle onto the next'],['zoom','Zoom','This one grows away as the next fades up'],
   ['through','Through','The next comes up from a small card in the middle as this one carries on past – it has its own curve, so there’s no Feel']];
 const KB=[['none','None'],['in','Zoom in'],['out','Zoom out'],['drift','Drift','Across, the way Direction says'],['parallax','Parallax','The frame one way, the picture the other'],['vary','Vary','Takes turns: in, across, out, back']];
@@ -957,7 +970,7 @@ function transMid(how,e,fw,fh,d,full){
   const tw=full?fw:fw*.6,th=full?fh:fh*.72,x=(fw-tw)/2,y=(fh-th)/2,u=DV[d]||DV.left,r=full?0:2,out=[];
   const T=(c,dx,dy,sc,o)=>{const w=tw*sc,h=th*sc;out.push({c,x:x+(tw-w)/2+dx,y:y+(th-h)/2+dy,w,h,o:o==null?1:o,r});};
   if(how==='cut')T('a',0,0,1);
-  else if(how==='fade'){T('a',0,0,1,1-e);T('b',0,0,1,e);}
+  else if(how==='fade'||how==='focus'){T('a',0,0,1,1-e);T('b',0,0,1,e);}
   else if(how==='dip')out.push({c:'o',x,y,w:tw,h:th,o:1,r});
   else if(how==='wipe'){const hz=u[1]===0,hf=(hz?fw:fh)/2;
     out.push(hz?{c:'a',x:u[0]<0?0:fw-hf,y:0,w:hf,h:fh,o:1,r:0}:{c:'a',x:0,y:u[1]<0?0:fh-hf,w:fw,h:hf,o:1,r:0},
@@ -1038,7 +1051,7 @@ const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
   /* 1.0 – Steve: "in all settings always allow the image / video to be its own size". Every kind does now: the strips
      and Float size each piece by its shape; the kinds that tile fit each piece inside its slot, and Align says where
      in the slot it sits – so a row of mixed pieces can share a top, a middle or a bottom. */
-  const alignV=s=>s.ratio==='media'&&(s.layout==='row'||isK('grid','wall','frames')(s)||(isK('one')(s)&&s.oneFit==='shape')),alignH=s=>s.ratio==='media'&&(s.layout==='column'||isK('grid','wall','frames')(s)||(isK('one')(s)&&s.oneFit==='shape'));
+  const alignV=s=>s.ratio==='media'&&(isK('grid','wall','frames')(s)||(isK('one')(s)&&s.oneFit==='shape')),alignH=s=>s.ratio==='media'&&(isK('grid','wall','frames')(s)||(isK('one')(s)&&s.oneFit==='shape'));
   const alignOwn=s=>isK('one')(s)&&s.oneFit==='own';
   const RATIO_REST=[['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']];
   build(sf,[{t:'select',k:'ratio',label:'Shape',show:s=>!ownFit(s),
@@ -1217,11 +1230,11 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
   build(po,[{t:'range',k:'ovM',label:'Margin',min:0,max:400,step:1,unit:' px',show:s=>s.ovPos!=='mc'},
     {t:'range',k:'ovX',label:'Across',min:-600,max:600,step:1,unit:' px'},{t:'range',k:'ovY',label:'Up and down',min:-600,max:600,step:1,unit:' px'},
     {t:'seg',k:'ovZ',label:'Sits',opts:[['top','Over everything'],['mid','Among the shapes']],show:s=>isK('float')(s)&&(+s.depth||0)>0}]);
-  const bl=fold(b,'ovLook','Blend and opacity',on,true,s=>[s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):'',+s.ovA<100?`${Math.round(s.ovA)}%`:'',s.ovFrost&&s.ovKind==='text'?'Frosted':''].filter(Boolean).join(' · ')||'Normal, full');
+  const bl=fold(b,'ovLook','Blend and opacity',on,true,s=>[s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):'',+s.ovA<100?`${Math.round(s.ovA)}%`:'',s.ovFrost&&s.ovKind==='text'?'Glass':''].filter(Boolean).join(' · ')||'Normal, full');
   build(bl,[{t:'seg',k:'ovBlend',label:'Blend',opts:[['normal','Normal'],['difference','Difference'],['multiply','Multiply'],['screen','Screen']]},
     {t:'range',k:'ovA',label:'Opacity',min:0,max:100,step:1,unit:'%'},
-    /* Frosted (1.0): the letters as frosted glass – what's beneath shows through, blurred, under a tint of the colour */
-    {t:'toggle',grp:true,k:'ovFrost',label:'Frosted',show:txt,tip:'The letters become frosted glass: what’s beneath shows through them, blurred, with the text’s colour over it as a tint'},
+    /* Glass (1.0 as "Frosted"; Steve, 12 Nov: "frosted is not the right term … a sort of glass overlay to text that blurs what is behind within the text itself") */
+    {t:'toggle',grp:true,k:'ovFrost',label:'Glass',show:txt,tip:'The letters become glass: what’s behind shows through them, blurred, with the text’s colour over it as a tint'},
     {t:'range',k:'ovBlur',label:'Blur',min:1,max:120,step:1,unit:' px',show:s=>txt(s)&&s.ovFrost},
     {t:'range',k:'ovTint',label:'Tint',min:0,max:100,step:1,unit:'%',show:s=>txt(s)&&s.ovFrost,tip:'How much of the text’s colour lies over the blur – 0 is clear glass'}]);
   SUMMARY.overlay=s=>!s.ovOn?'Off':[s.ovKind==='image'?(PICS.ov?'Image':'Image – none yet'):(String(s.ovText||'').trim()?`“${String(s.ovText).split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,'').slice(0,18)}”`:'Text – none yet'),
@@ -1236,23 +1249,23 @@ for(const id of ['canvas','media','layout','motion','captions','overlay']){const
    reference, 5 Nov); they also set the export to GIF. Phone swipe, Columns up and down, Masonry
    drift, Posters and Float with title come from his 4 Nov references. */
 const BUILTIN=[
-  {name:'Straight cuts',tip:'Straight cuts, full bleed, nothing moving, under a second each – the classic showcase GIF, and the smallest file',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'cut',hold:.8,kb:'none',after:'carry',capOn:false}},
-  {name:'Zoom through',tip:'Full bleed and fast – each slide comes up from a small card as the last carries on past',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'through',hold:.15,dur:.38,kb:'in',kbAmt:22,after:'carry',capOn:false,bg:'#111111'}},
-  {name:'Build up',tip:'Each one lands on the last and stays, scattered a little like dropped prints – then the pile clears and it starts again',s:{layout:'one',oneFit:'own',ownScale:'fit',size:62,radius:0,oneMove:'stack',dir:'up',feel:'snap',hold:.9,dur:.6,after:'carry',capOn:false,bg:'#EDEBE6',pile:true,pileScatter:40,pileEnd:'clear'}},
-  {name:'Deck',tip:'A deck of cards: each one comes up over the last, whose edges still show behind it – round and round',s:{layout:'one',oneFit:'shape',ratio:'1:1',size:64,radius:28,oneMove:'stack',dir:'up',feel:'coast',hold:.9,dur:.7,after:'carry',capOn:false,bg:'#0C0C0C',shapeBg:'#1C1C1C',pile:true,pileDeck:70,pileEnd:'cover'}},
-  {name:'Overview',tip:'All of it at once, then in to the first and along the row one at a time, and back out to all of it',s:{layout:'row',ratio:'4:3',size:100,gap:0,radius:0,trackMove:'step',dir:'left',feel:'glide',hold:.5,dur:.7,after:'pull',gCols:3,gGap:28,gSize:88,zOut:.9,gHold:1.3,zIn:.9,capOn:false,bg:'#000000',shapeBg:'#111111'}},
-  {name:'Snap along',tip:'Cards in a row, moving as one rigid piece: a long rest, a slow start, a fast throw across, a long settle – drifting a touch all the while',s:{layout:'row',ratio:'4:5',size:64,gap:36,radius:6,trackMove:'step',dir:'left',feel:'snap',hold:2.4,dur:.9,lag:0,creep:15,after:'carry',capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
-  {name:'Phone swipe',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.25,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
-  {name:'Rows up',tip:'Rows of shapes stepping up together, a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1,dur:.9,capOn:false}},
-  {name:'Columns up and down',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
-  {name:'Masonry drift',tip:'A wall of work in columns drifting down, up and down at their own speeds – 3, 4 and 7 times round a loop, as the reference – each piece its own shape, the outer columns running off the sides',s:{layout:'columns',cols:3,ratio:'media',size:128,gap:10,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:3,ss1:4,ss2:7,spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
-  {name:'Rows side to side',tip:'Rows stepping right and left in turn on the snap, each a beat after the last',s:{layout:'rows',cols:3,ratio:'16:10',size:100,gap:18,radius:6,trackMove:'step',colDir:'alt',colSpeed:'same',colLag:.3,colOff:50,feel:'snap',hold:1,dur:.9,capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
-  {name:'Rows drift',tip:'Rows of work drifting left and right, never stopping, each at its own speed, running off the top and bottom',s:{layout:'rows',cols:4,ratio:'media',size:118,gap:10,radius:4,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:2,ss1:3,ss2:2,ss3:4,spsh:3,colOff:40,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
-  {name:'Posters',tip:'Three mounted posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
-  {name:'Wall snap',tip:'A wall of posters, three across and two down, the whole of it thrown one tile along on the snap – then a long rest, drifting a touch',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:1,wOff:0,ratio:'3:4',size:94,gap:22,radius:4,trackMove:'step',dir:'left',feel:'snap',hold:1.7,dur:.9,creep:10,capOn:false,bg:'#0E0E0E',shapeBg:'#222222'}},
-  {name:'Brick wall',tip:'Alternate columns set down half a tile, like brickwork, the camera snapping along',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:2,wOff:50,ratio:'4:5',size:100,gap:14,radius:5,trackMove:'step',dir:'left',feel:'snap',hold:1.4,dur:1,creep:6,capOn:false,bg:'#161616',shapeBg:'#262626'}},
-  {name:'Float with title',tip:'Work floating up at three depths past a line of type – change the words in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.1,dur:1,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
-    ovBlend:'difference',ovZ:'mid',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'},
+  {name:'Straight cuts',tip:'Straight cuts, full bleed, nothing moving, a second each – the classic showcase GIF, and the smallest file',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'cut',hold:1,kb:'none',after:'carry',capOn:false}},
+  {name:'Zoom through',tip:'Full bleed and fast – each slide comes up from a small card as the last carries on past',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'through',hold:.3,dur:.5,kb:'in',kbAmt:22,after:'carry',capOn:false,bg:'#111111'}},
+  {name:'Build up',tip:'Each one lands on the last and stays, scattered a little like dropped prints – then the pile clears and it starts again',s:{layout:'one',oneFit:'own',ownScale:'fit',size:62,radius:0,oneMove:'stack',dir:'up',feel:'snap',hold:1.3,dur:.8,after:'carry',capOn:false,bg:'#EDEBE6',pile:true,pileScatter:40,pileEnd:'clear'}},
+  {name:'Deck',tip:'A deck of cards: each one comes up over the last, whose edges still show behind it – round and round',s:{layout:'one',oneFit:'shape',ratio:'1:1',size:64,radius:28,oneMove:'stack',dir:'up',feel:'coast',hold:1.4,dur:.95,after:'carry',capOn:false,bg:'#0C0C0C',shapeBg:'#1C1C1C',pile:true,pileDeck:80,pileEnd:'cover'}},
+  {name:'Overview',tip:'All of it at once, then in to the first and along the row one at a time, and back out to all of it',s:{layout:'row',ratio:'4:3',size:100,gap:0,radius:0,trackMove:'step',dir:'left',feel:'glide',hold:.9,dur:.95,after:'pull',gCols:3,gGap:28,gSize:88,zOut:1.1,gHold:1.8,zIn:1.1,capOn:false,bg:'#000000',shapeBg:'#111111'}},
+  {name:'Snap along',tip:'Cards in a row, moving as one rigid piece: a long rest, a slow start, a fast throw across, a long settle – drifting a touch all the while',s:{layout:'row',ratio:'4:5',size:64,gap:36,radius:6,trackMove:'step',dir:'left',feel:'snap',hold:2.4,dur:1.1,lag:0,creep:15,after:'carry',capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
+  {name:'Phone swipe',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.9,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
+  {name:'Rows up',tip:'Rows of shapes stepping up together, a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1.7,dur:1.2,capOn:false}},
+  {name:'Columns up and down',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:1.8,dur:1.4,capOn:false,bg:'#111111',shapeBg:'#222222'}},
+  {name:'Masonry drift',tip:'A wall of work in columns drifting down, up and down at their own speeds – 3, 4 and 7 times round a loop, as the reference – each piece its own shape, the outer columns running off the sides',s:{layout:'columns',cols:3,ratio:'media',size:128,gap:10,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:3,ss1:4,ss2:7,spsh:5.4,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
+  {name:'Rows side to side',tip:'Rows stepping right and left in turn on the snap, each a beat after the last',s:{layout:'rows',cols:3,ratio:'16:10',size:100,gap:18,radius:6,trackMove:'step',colDir:'alt',colSpeed:'same',colLag:.3,colOff:50,feel:'snap',hold:1.9,dur:1.2,capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
+  {name:'Rows drift',tip:'Rows of work drifting left and right, never stopping, each at its own speed, running off the top and bottom',s:{layout:'rows',cols:4,ratio:'media',size:118,gap:10,radius:4,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:2,ss1:3,ss2:2,ss3:4,spsh:5,colOff:40,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
+  {name:'Posters',tip:'Three posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,fMove:'push',dir:'up',feel:'glide',hold:2.8,dur:1.2,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
+  {name:'Wall snap',tip:'A wall of posters, three across and two down, the whole of it thrown one tile along on the snap – then a long rest, drifting a touch',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:1,wOff:0,ratio:'3:4',size:94,gap:22,radius:4,trackMove:'step',dir:'left',feel:'snap',hold:2.3,dur:1.1,creep:10,capOn:false,bg:'#0E0E0E',shapeBg:'#222222'}},
+  {name:'Brick wall',tip:'Alternate columns set down half a tile, like brickwork, the camera snapping along',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:2,wOff:50,ratio:'4:5',size:100,gap:14,radius:5,trackMove:'step',dir:'left',feel:'snap',hold:2.1,dur:1.2,creep:6,capOn:false,bg:'#161616',shapeBg:'#262626'}},
+  {name:'Float with title',tip:'Work floating up at three depths past a line of type – change the words in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.7,dur:1.4,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
+    ovBlend:'difference',ovZ:'top',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'},
     /* 0.16: it turns its title on – it used to say 'add it in Overlay' and show none. x0: only where there's nothing yet */
     x:{ovOn:true,ovKind:'text'},x0:{ovText:'Your title'}}];
 /* retired from the list at 1.0, kept by name: a project made with one still knows where its settings started */

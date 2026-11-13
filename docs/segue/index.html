@@ -877,9 +877,9 @@
   .kind:hover{background:var(--k-fill-hover);color:var(--ink)}
   .kind:active{transform:scale(.97)}
   .kind svg{width:40px;height:28px;display:block;overflow:hidden}
-  .kind svg rect{fill:currentColor}
-  .kind svg rect.dim{opacity:.38}
-  .kind svg rect.line{fill:none;stroke:currentColor;stroke-width:1.2;opacity:.55}
+  .kind svg rect{fill:var(--ill-1)}
+  .kind svg rect.dim{fill:var(--ill-2)}
+  .kind svg rect.line{fill:none;stroke:var(--ill-2);stroke-width:1.2}
   .kind[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:0 0 0 1px var(--k-raise-line);font-weight:500}
   .kind:focus-visible,.spot:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   /* the overlay's place: a 3 × 3 pad */
@@ -938,29 +938,29 @@
 /* 0.7: what a Feel draws – lined up with the controls, under the Feel row */
 .feel-pic,.path-pic,.trans-pic{margin:-2px 0 14px;padding-left:calc(var(--lc) + 10px)}
 .feel-pic svg,.path-pic svg,.trans-pic svg{display:block;width:100%;height:44px;border-radius:var(--r-ctl);background:var(--k-fill)}
-.feel-pic .fp-base{fill:none;stroke:var(--hair);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
+.feel-pic .fp-base{fill:none;stroke:var(--ill-2);stroke-width:1;stroke-dasharray:2 3;vector-effect:non-scaling-stroke}
 .feel-pic .fp-base,.feel-pic .fp-curve{vector-effect:non-scaling-stroke}
-.feel-pic .fp-curve{fill:none;stroke:var(--ink-strong);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+.feel-pic .fp-curve{fill:none;stroke:var(--ill-1);stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
 .feel-pic .fp-cap,.path-pic .fp-cap,.trans-pic .fp-cap{display:block;margin-top:6px;font-size:12px;line-height:1.4;color:var(--muted)}
 
-.path-pic .pp-dot{fill:var(--muted);opacity:.35}
-.path-pic .pp-stop{fill:var(--ink-strong);opacity:.6}
+.path-pic .pp-dot{fill:var(--ill-2)}
+.path-pic .pp-stop{fill:var(--ill-1)}
 .path-pic .pp-stop.first{opacity:1}
-.path-pic .pp-line{fill:none;stroke:var(--ink-strong);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.path-pic .pp-line{fill:none;stroke:var(--ill-1);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .trans-pic .tp-bg{fill:var(--k-raise);stroke:var(--hair);stroke-width:1}
-.trans-pic .tp-a{fill:var(--muted)}
-.trans-pic .tp-b{fill:var(--ink-strong)}
-.trans-pic .tp-o{fill:none;stroke:var(--muted);stroke-width:1;stroke-dasharray:2 2}
-.trans-pic .tp-go{fill:none;stroke:var(--muted);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.trans-pic .tp-a{fill:var(--ill-2)}
+.trans-pic .tp-b{fill:var(--ill-1)}
+.trans-pic .tp-o{fill:none;stroke:var(--ill-1);stroke-width:1;stroke-dasharray:2 2}
+.trans-pic .tp-go{fill:none;stroke:var(--ill-1);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
 .preset-row .pk{width:44px;height:30px}
 .preset-row .pk svg{width:44px;height:30px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--hair)}
 /* 0.9: preset drawings in the interface's greys – one ground for all, the piece in focus dark */
 .pk svg rect.pd-bg{fill:var(--k-card)}
-.pk svg rect.pd-a{fill:var(--ink-strong);opacity:.86}
-.pk svg rect.pd-b{fill:var(--ink-strong);opacity:.24}
-.pk svg rect.pd-b.pd-out{opacity:.1}
-.pk svg rect.pd-f{fill:none;stroke:var(--ink-strong);stroke-width:1;opacity:.45}
-.pk svg rect.pd-o{fill:none;stroke:var(--ink-strong);stroke-dasharray:2 1.6;opacity:.5}
+.pk svg rect{fill-opacity:1}
+.pk svg rect.pd-a{fill:var(--ill-1)}
+.pk svg rect.pd-b,.pk svg rect.pd-b.pd-out{fill:var(--ill-2)}
+.pk svg rect.pd-f{fill:none;stroke:var(--ill-2);stroke-width:1}
+.pk svg rect.pd-o{fill:none;stroke:var(--ill-1);stroke-dasharray:2 1.6}
 .path-pic svg{height:56px}
 /* on a touch screen the small round buttons keep their look but get a hand-sized target */
 @media (pointer:coarse){.pill.small.icon{position:relative}.pill.small.icon::after{content:'';position:absolute;inset:-9px}}
@@ -1159,45 +1159,12 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 .card.flash{animation:cardFlash .9s var(--e-smooth)}
 @keyframes cardFlash{0%,100%{box-shadow:none}25%{box-shadow:0 0 0 2px var(--k-dot)}}
 .stage-foot .val-in{width:5.5em;height:22px;text-align:center;font-size:var(--fs-small);font-variant-numeric:tabular-nums}
-/* ---------------- the drawings move when you point at them ---------------- */
-/* A preset's picture and a Kind's tile show what they do; on hover they do a little of it. Subtle, two seconds,
-   and never while the pointer is away – a label you can read, not a thing playing at you. */
-@media (prefers-reduced-motion:no-preference){
-  /* 1.0 – each tile does a little of what its kind does: a step, a rest, a step back. Nothing moves that the kind
-     doesn't move (the general nudge is gone – Steve: "movement added for the sake of it"). */
-  .kind[data-k="one"]:hover svg rect:nth-child(1){animation:kOneA 2.4s var(--e-smooth) infinite}
-  .kind[data-k="one"]:hover svg rect:nth-child(2){animation:kOneB 2.4s var(--e-smooth) infinite}
-  .kind[data-k="line"]:hover svg rect,.kind[data-k="wall"]:hover svg rect{animation:kLeft 2.4s var(--e-smooth) infinite}
-  .kind[data-k="grid"]:hover svg rect{animation:kUp 2.4s var(--e-smooth) infinite}
-  .kind[data-k="columns"]:hover svg rect{animation:kUp 2.4s var(--e-smooth) infinite}
-  .kind[data-k="columns"]:hover svg rect:nth-child(3),.kind[data-k="columns"]:hover svg rect:nth-child(4){animation-name:kDown}
-  .kind[data-k="rows"]:hover svg rect{animation:kLeft 2.4s var(--e-smooth) infinite}
-  .kind[data-k="rows"]:hover svg rect:nth-child(n+4):nth-child(-n+6){animation-name:kRight}
-  .kind[data-k="frames"]:hover svg rect:not(.line){animation:kUp 2.4s var(--e-smooth) infinite}
-  .kind[data-k="frames"]:hover svg rect:nth-child(4){animation-delay:.12s}
-  .kind[data-k="frames"]:hover svg rect:nth-child(6){animation-delay:.24s}
-  .kind[data-k="float"]:hover svg rect{animation:kUp 2.4s var(--e-smooth) infinite}
-  .kind[data-k="float"]:hover svg rect:nth-child(even){animation-name:kUpFar}
-  .preset-row:hover .pk[data-anim="swap"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-a{animation:pA 2.2s var(--e-smooth) infinite}
-  .preset-row:hover .pk[data-anim="swap"] svg rect.pd-b,.preset-row:focus-within .pk[data-anim="swap"] svg rect.pd-b{animation:pB 2.2s var(--e-smooth) infinite}
-  .preset-row:hover .pk[data-anim="shift"] svg rect,.preset-row:focus-within .pk[data-anim="shift"] svg rect{animation:pShift 2.2s var(--e-smooth) infinite}
-  .preset-row:hover .pk[data-anim="shift"] svg rect.pd-bg,.preset-row:hover .pk[data-anim="shift"] svg rect.pd-f,.preset-row:hover .pk[data-anim="shift"] svg rect.pd-o{animation:none}
-  .preset-row:hover .pk[data-anim="pile"] svg rect.pd-a,.preset-row:focus-within .pk[data-anim="pile"] svg rect.pd-a{animation:pPile 2.2s var(--e-smooth) infinite}
-  .preset-row:hover .pk svg rect.pd-bg{animation:none}
-}
-
-/* Slides: this one, then the next – a change of which is in front, never an empty tile */
-@keyframes kOneA{0%,22%{opacity:1}52%,74%{opacity:.38}100%{opacity:1}}
-@keyframes kOneB{0%,22%{opacity:.38}52%,74%{opacity:1}100%{opacity:.38}}
-@keyframes kLeft{0%,10%,90%,100%{transform:none}36%,64%{transform:translateX(-2.6px)}}
-@keyframes kRight{0%,10%,90%,100%{transform:none}36%,64%{transform:translateX(2.6px)}}
-@keyframes kUp{0%,10%,90%,100%{transform:none}36%,64%{transform:translateY(-2.2px)}}
-@keyframes kUpFar{0%,10%,90%,100%{transform:none}36%,64%{transform:translateY(-4px)}}
-@keyframes kDown{0%,10%,90%,100%{transform:none}36%,64%{transform:translateY(2.2px)}}
-@keyframes pA{0%,20%{opacity:.86}55%,75%{opacity:.24}100%{opacity:.86}}
-@keyframes pB{0%,20%{opacity:.24}55%,75%{opacity:.86}100%{opacity:.24}}
-@keyframes pShift{0%,14%,100%{transform:none;opacity:inherit}50%,64%{transform:translate(var(--dx,0),var(--dy,0))}}
-@keyframes pPile{0%,12%{transform:translateY(5px);opacity:0}48%,100%{transform:none;opacity:.86}}
+/* ---------------- the drawings ---------------- */
+/* 1.1 – they don't move (Steve, 12 Nov: "remove animations to the little illustrations in presets and layout"), and
+   they're drawn in two colours and no black, the same two everywhere: --ill-1 for the piece in question, --ill-2
+   for the rest. Flat fills – no part-see-through tones in between. */
+:root{--ill-1:#8E8D92;--ill-2:#D2D1D5}
+body[data-theme="dark"]{--ill-1:#A5A4AA;--ill-2:#5A595F}
 
 /* 0.18 – stepping either side of Play: the same chip as the other round controls, just narrower */
 .island .ebtn.icon{padding:0 8px;min-width:0}
@@ -1215,7 +1182,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Segue</span><span class="ver">1.0</span></div>
+      <div class="bline"><span class="mark">Segue</span><span class="ver">1.1</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -1413,7 +1380,7 @@ function capBlock(ctx,S,item,fonts){
   b={rows,w,h:y};capCache.set(key,b);if(capCache.size>4000)capCache.clear();return b;}
 /* the overlay's text: lines measured to the font's cap height, so it sits on its margin optically */
 function overlayBlock(ctx,S,fonts){
-  const st=styleOf(S,'O',fonts),key=['ov',st.font,st.track,st.lead,st.casing,S.kern,S.pairs,S.accent,S.ovText].join('\u0002');
+  const st=styleOf(S,'O',fonts),key=['ov',st.font,st.colour,st.track,st.lead,st.casing,S.kern,S.pairs,S.accent,S.ovText].join('\u0002');
   let b=capCache.get(key);if(b)return b;
   const pairs=parsePairs(S.pairs),lines=String(S.ovText||'').split('\n').map(ln=>layLine(ctx,ln,st,S,pairs));
   b={st,lines,lh:st.size*st.lead,ch:capHeight(ctx,st.font),w:Math.max(0,...lines.map(l=>l.width))};capCache.set(key,b);return b;}
@@ -1557,7 +1524,7 @@ function cameraAt(P,S,t){
   const cr=glides(S)?creepOf(S):0;
   if(g.k==='hold'){const p=cr?(1-cr)*g.s+cr*linAt(P,g,tt):g.s;return{tt,p,z:0,k:0,seg:g};}
   if(g.k==='unmove'||g.k==='rest')return{tt,p:g.k==='rest'?g.s:g.s,z:0,k,seg:g};
-  if(g.k==='move'){const how=g.how,e=(how==='fade'||how==='dip'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(k);let p=(S.layout==='one'&&how!=='slide')?g.s:g.s+e;if(cr)p=(1-cr)*p+cr*linAt(P,g,tt);return{tt,p,z:0,k,e,seg:g,how};}
+  if(g.k==='move'){const how=g.how,e=(how==='fade'||how==='dip'||how==='focus'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(k);let p=(S.layout==='one'&&how!=='slide')?g.s:g.s+e;if(cr)p=(1-cr)*p+cr*linAt(P,g,tt);return{tt,p,z:0,k,e,seg:g,how};}
   const ez=feel(S.zFeel||'soft');
   if(g.k==='out')return{tt,p:g.s,z:ez(k),k,seg:g};
   if(g.k==='grid')return{tt,p:g.s,z:1,k,seg:g};
@@ -1600,7 +1567,15 @@ function geometry(S,items,ctx,fonts,W,H){
   let rel=null;
   if(lay==='one'&&S.oneFit==='own'&&S.ownScale==='true'){let k=Infinity;for(const it of items)if(it&&it.w&&it.h)k=Math.min(k,Math.min(sw/it.w,sh/it.h));
     if(isFinite(k))rel=it=>it&&it.w&&it.h?k/Math.min(sw/it.w,sh/it.h):1;}
-  return{W,H,u,r,sw,sh,slotW,slotH,reserve,capH,pitch,gap,dir:d,sgn:sgnOf(d),hz,lay,rel,cx:W/2+(+S.nudgeX||0),cy:H/2+(+S.nudgeY||0)};}
+  /* 1.1 – a Line of pieces each their own shape is packed: every piece its own width (or height, in a column) and the
+     same gap between each pair (Steve, 12 Nov: "the margins should be equal on this one") – not equal slots with
+     unequal gaps. pack.c is each piece's middle along the line, pack.L the length of one time round. */
+  let pack=null;
+  if((lay==='row'||lay==='column')&&S.ratio==='media'&&items.length&&items.every(it=>it&&!it.placeholder&&it.w&&it.h)){
+    const e=items.map(it=>lay==='row'?sh*clamp(it.w/it.h,.05,20):sw/clamp(it.w/it.h,.05,20)+reserve),c=[];let x=0;
+    for(let i=0;i<e.length;i++){c.push(x+e[i]/2);x+=e[i]+gap;}
+    pack={e,c,L:x,min:Math.min(...e),max:Math.max(...e)};}
+  return{W,H,u,r,sw,sh,slotW,slotH,reserve,capH,pitch,gap,dir:d,sgn:sgnOf(d),hz,lay,rel,pack,cx:W/2+(+S.nudgeX||0),cy:H/2+(+S.nudgeY||0)};}
 /* a shape's rectangle inside its slot (the slot holds the caption too) */
 function shapeIn(G,S,cx,cy,sc){const w=G.sw*sc,h=G.sh*sc,top=cy-G.slotH*sc/2;
   const y=S.capOn&&capWhereOf(S)==='above'&&G.reserve?top+G.reserve*sc:top;return{x:cx-w/2,y,w,h};}
@@ -1656,6 +1631,11 @@ function ownShapes(S,ops){const v=S.ownV||'mid',h=S.ownH||'mid';
     o.slot=r;o.rect={x:h==='start'?r.x:h==='end'?r.x+r.w-w:r.x+(r.w-w)/2,y:v==='start'?r.y:v==='end'?r.y+r.h-hh:r.y+(r.h-hh)/2,w,h:hh};}}
 function placeholders(n,S){return Array.from({length:n},(_,i)=>({placeholder:true,n:i+1,kind:'image'}));}
 function trackScene(S,G,P,cam,N,push){
+  if(G.pack&&G.pack.c.length===N){const K=G.pack,ext=G.hz?G.W:G.H,p=cam.p,C=k=>Math.floor(k/N)*K.L+K.c[mod(k,N)],at=q=>{const f=Math.floor(q),t=q-f;return C(f)+(C(f+1)-C(f))*t;};
+    const mp=Math.max(1,K.min+G.gap),span=Math.min(400,Math.ceil((ext/2+K.max)/mp)+1),vis=Math.ceil((ext/2+K.max/2)/mp),lg=lagger(S,P,cam,vis,vis+1),above=S.capOn&&capWhereOf(S)==='above'&&G.reserve;
+    for(let k=Math.floor(p)-span;k<=Math.ceil(p)+span;k++){const pk=lg?lg.at(k):p,off=(C(k)-at(pk))*G.sgn,e=K.e[mod(k,N)],cx=G.hz?G.cx+off:G.cx,cy=G.hz?G.cy:G.cy+off,r0=shapeIn(G,S,cx,cy,1);
+      const r=G.hz?{x:cx-e/2,y:r0.y,w:e,h:r0.h}:{x:r0.x,y:cy-e/2+(above?G.reserve:0),w:r0.w,h:e-G.reserve};
+      if(r.x>=G.W||r.x+r.w<=0||r.y-G.reserve>=G.H||r.y+r.h+G.reserve<=0)continue;push(mod(k,N),r,{key:'t'+k,k});}return;}
   const ext=G.hz?G.W:G.H,slot=G.hz?G.slotW:G.slotH,span=Math.ceil((ext/2+slot)/G.pitch)+1,p=cam.p;
   const vis=Math.ceil((ext/2+slot/2)/G.pitch),lg=lagger(S,P,cam,vis,vis+1);
   for(let k=Math.floor(p)-span;k<=Math.ceil(p)+span;k++){
@@ -1673,6 +1653,8 @@ function oneMove(S,G,cam,N,push){
      grown bigger), this one fades as it goes, so nothing is left showing round the edge */
   const own=S.oneFit==='own',bleed=bleedOf(S);
   if(how==='fade'){push(a,at(1),{capAlpha:1-e,alpha:own?1-e:1,k:ka});push(b,at(1),{alpha:e,k:kb});return;}
+  /* focus (1.1, Steve's first recording of 12 Nov): this one goes out of focus as the next comes into it */
+  if(how==='focus'){const B=.05*Math.min(G.W,G.H);push(a,at(1),{capAlpha:1-e,alpha:own?1-e:1,blur:B*e,k:ka});push(b,at(1),{alpha:e,blur:B*(1-e),k:kb});return;}
   /* dip: out to the background, then the next up from it */
   if(how==='dip'){if(e<.5)push(a,at(1),{alpha:1-smooth(e*2),k:ka});else push(b,at(1),{alpha:smooth(e*2-1),k:kb});return;}
   /* wipe: a straight edge crosses the canvas, the next on one side of it, this one on the other */
@@ -1692,7 +1674,7 @@ function oneMove(S,G,cam,N,push){
    Scatter's up – the same for a slide every time it comes round); the newest arrives by its own transition. Keep: only
    so many – the one dropping off fades as the next lands on it. No dimming. */
 function pileScene(S,G,P,cam,N,push){
-  const tt=cam.tt,stops=P.stops,ease=(how,q)=>(how==='fade'||how==='dip'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(clamp(q,0,1));
+  const tt=cam.tt,stops=P.stops,ease=(how,q)=>(how==='fade'||how==='dip'||how==='focus'?FEEL.soft:how==='through'?THROUGH:feel(S.feel))(clamp(q,0,1));
   const q=g=>g.t1>g.t0?(tt-g.t0)/(g.t1-g.t0):1;
   /* each slide's progress, 0 (not here) to 1 (landed), and how it came or goes */
   const e=new Array(stops+1).fill(0),how=new Array(stops+1).fill('cut');e[0]=1;
@@ -1706,7 +1688,7 @@ function pileScene(S,G,P,cam,N,push){
   let top=-1;for(let s=0;s<stops;s++)if(e[s]>0)top=s;
   const put=(k,ek,hw,o)=>{const i=mod(k,N),[dx,dy,rot]=scat(i);o=Object.assign({k,rot},o);let x=dx,y=dy,scl=1,a=o.alpha==null?1:o.alpha;
     if(hw==='slide'||hw==='stack'){const off=(1-ek)*G.pitch*sg;if(hz)x+=off;else y+=off;}
-    else if(hw==='fade'||hw==='dip')a*=ek;
+    else if(hw==='fade'||hw==='dip'||hw==='focus')a*=ek;
     else if(hw==='zoom'){scl=.9+.1*ek;a*=smooth(ek*1.15);}
     else if(hw==='through')scl=Math.pow(.12,1-ek);
     else if(hw==='wipe'){const W=G.W,H=G.H,d=G.dir,cx=d==='left'?W*(1-ek):W*ek,cy=d==='up'?H*(1-ek):H*ek;
@@ -1718,7 +1700,7 @@ function pileScene(S,G,P,cam,N,push){
   /* Deck (1.0, Steve's reference of 12 Nov): the pile reads as a deck of cards – each one beneath the top sits a step
      back the way the cards come from, a touch smaller, so their edges show; up to three show, the next fades. With
      Cover the deck goes round for ever: under the first are the last few, so the loop joins with nothing changing. */
-  const deck=clamp(+S.pileDeck||0,0,100)/100,dStep=deck*.075*Math.min(G.sw,G.sh),dSc=n=>1-.045*deck*n,dA=n=>clamp(4-n,0,1);
+  const deck=clamp(+S.pileDeck||0,0,100)/100,dStep=deck*.11*Math.min(G.sw,G.sh),dSc=n=>1-.085*deck*n,   /* 1.1: each one back is clearly narrower, so its sides step in – depth */dA=n=>clamp(4-n,0,1);
   if(deck>0&&end==='cover'){let k=top<0?0:top,ek=1,hw='cut';
     if(eEnd>0){k=stops;ek=eEnd;hw=how[stops];}else if(top>=0&&e[top]<1){ek=e[top];hw=how[top];}
     const depth=Math.min(keep?keep:4,4,N-1);
@@ -1962,9 +1944,14 @@ function paint(ctx,SC,S,fonts,opt){
   if(opt.transparent)ctx.clearRect(0,0,W,H);else{ctx.fillStyle=S.bg||'#F5F5F3';ctx.fillRect(0,0,W,H);}
   if(opt.bgImg&&S.bgImgOn!==false){ctx.save();ctx.globalAlpha=clamp(S.bgImgA==null?1:+S.bgImgA/100,0,1);placeImg(ctx,opt.bgImg,0,0,W,H,S.bgFit);ctx.restore();}
   const rad=Math.max(0,+S.radius||0),mat=Math.max(0,+S.mat||0),matR=Math.max(0,+S.matR||0);let ovDone=false;
-  SC.ops.forEach((o,oi)=>{
-    if(oi===SC.mid&&S.ovZ==='mid'){drawOverlay(ctx,S,SC,fonts,opt);ovDone=true;}
+  /* Focus (1.1): a piece out of focus is drawn on its own, softened (shrunk and grown again – no canvas filter, so
+     Safari's the same), then laid in at its opacity */
+  const main=ctx;
+  const one=(ctx,o)=>{
     if(o.alpha<=0)return;
+    if(o.blur>.5&&ctx===main&&ctx.canvas&&ctx.canvas.width&&typeof document!=='undefined'){const cw=ctx.canvas.width,chh=ctx.canvas.height,T=ctx.getTransform(),kk=Math.hypot(T.a,T.b)||1,Dv=frostCanvases(cw,chh)[3],x=Dv.getContext('2d');
+      x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='source-over';x.clearRect(0,0,cw,chh);x.setTransform(T);one(x,Object.assign({},o,{blur:0,alpha:1}));x.setTransform(1,0,0,1,0,0);
+      const out=softCopy(Dv,cw,chh,Math.max(1,o.blur*kk/2.2));ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=clamp(o.alpha,0,1);ctx.drawImage(out,0,0);ctx.restore();return;}
     if(o.layer){drawLayer(ctx,o,opt,W,H);return;}
     const r=o.rect,sc=o.scale,m=Math.min(mat*sc,r.w/3,r.h/3);
     const inn=m>0?{x:r.x+m,y:r.y+m,w:r.w-2*m,h:r.h-2*m}:r,iR=m>0?matR*sc:rad*sc;
@@ -1978,15 +1965,16 @@ function paint(ctx,SC,S,fonts,opt){
     /* its own blend and opacity (0.6): drawn straight onto what's beneath, without the shape's colour */
     const it=o.item,bl=!it.placeholder&&it.blend&&it.blend!=='normal'?BLEND[it.blend]:null,op=it.placeholder?1:opaOf(it);
     if(!(bl||op<1||o.noFill)){ctx.fillStyle=it.placeholder?(lum(S.bg)>.5?'#d9d8d4':'#3a3940'):(S.shapeBg||'#e6e6e3');ctx.fillRect(mr.x,mr.y,mr.w,mr.h);}
-    if(o.item.placeholder){ctx.fillStyle=lum(S.bg)>.5?'#8f8d88':'#77757f';/* 1.0 – an empty card's number sits top left, in Aktiv Regular, the same tight margin across as down (the cap height is .72 of the size) */
-      const fs=clamp(Math.min(mr.w,mr.h)*.12,9,56),m=fs*.55;ctx.font=`400 ${fs}px "aktiv-grotesk", "Aktiv Grotesk", Helvetica, Arial, sans-serif`;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(String(o.item.n),mr.x+m,mr.y+m+fs*.72);}
+    if(o.item.placeholder){ctx.fillStyle=lum(S.bg)>.5?'#8f8d88':'#77757f';/* 1.0 – an empty card's number sits top left, in Aktiv Bold (1.1), the same tight margin across as down (the cap height is .72 of the size) */
+      const fs=clamp(Math.min(mr.w,mr.h)*.12,9,56),m=fs*.55;ctx.font=`700 ${fs}px "aktiv-grotesk", "Aktiv Grotesk", Helvetica, Arial, sans-serif`;ctx.textAlign='left';ctx.textBaseline='alphabetic';ctx.fillText(String(o.item.n),mr.x+m,mr.y+m+fs*.72);}
     else if(opt.media){if(bl||op<1){ctx.save();ctx.globalAlpha*=op;if(bl)ctx.globalCompositeOperation=bl;opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');ctx.restore();}
       else opt.media(ctx,o,mr,S.fit==='fit'?'contain':'cover');}
     ctx.restore();
     if(S.edge&&(+S.edgeW||0)>0&&o.frame!==false){const lw=(+S.edgeW)*sc;ctx.lineWidth=lw;ctx.strokeStyle=S.edgeC||'#000000';rr(ctx,r.x+lw/2,r.y+lw/2,r.w-lw,r.h-lw,Math.max(0,rad*sc-lw/2));ctx.stroke();}
     ctx.restore();
     if(S.capOn&&capWhereOf(S)!=='fixed'&&!o.item.placeholder){const b=capBlock(ctx,S,o.item,fonts);if(b)drawCap(ctx,S,b,o,r,SC);}
-    ctx.restore();});
+    ctx.restore();};
+  SC.ops.forEach((o,oi)=>{if(oi===SC.mid&&S.ovZ==='mid'){drawOverlay(ctx,S,SC,fonts,opt);ovDone=true;}one(ctx,o);});
   if(SC.fixed&&SC.fixed.alpha>0){const it=SC.list[SC.fixed.i],b=capBlock(ctx,S,it,fonts);if(b)drawFixed(ctx,S,b,SC.fixed,SC);}
   if(!ovDone)drawOverlay(ctx,S,SC,fonts,opt);
   ctx.restore();}
@@ -2013,7 +2001,7 @@ function drawOverlay(ctx,S,SC,fonts,opt){
     const base0=(v==='t'?m+b.ch:v==='b'?H-m-(n-1)*b.lh:(H-hb)/2+b.ch)+ny;
     const glyphs=(c,solid)=>{c.font=b.st.font;try{c.fontKerning='none';}catch(e){}c.textBaseline='alphabetic';c.textAlign='left';
       b.lines.forEach((L,j)=>{const x=hx(L.width),y=base0+j*b.lh;for(const g of L.glyphs){if(!g.ch.trim())continue;c.fillStyle=solid||g.c||b.st.colour;c.fillText(g.ch,x+g.x,y);}});};
-    /* Frosted (1.0): the letters are frosted glass – what's beneath shows through them, blurred, with the text's
+    /* Glass (1.0 as Frosted; renamed 1.1): the letters are glass – what's beneath shows through them, blurred, with the text's
        colour laid over as a tint. The blur is made by shrinking the frame and growing it again (no canvas filter, so
        it's the same in Safari), then cut to the letters and put back. */
     const fr=S.ovFrost?clamp(+S.ovBlur||0,0,200):0;
@@ -2027,11 +2015,22 @@ function drawOverlay(ctx,S,SC,fonts,opt){
       if(us!==C){c.drawImage(us,0,0,uw,uh,0,0,cw,chh);}
       c.globalCompositeOperation='destination-in';c.setTransform(T);glyphs(c,'#000');c.setTransform(1,0,0,1,0,0);
       ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(C,0,0);ctx.restore();
-      ctx.globalAlpha*=clamp(S.ovTint==null?.3:+S.ovTint/100,0,1);}
-    glyphs(ctx);}
+      /* Glass (1.1): it's glass whatever the Blend says – the tint lies straight over the blur, and a hair of light
+         round each letter is what makes it read as a pane rather than a smudge */
+      const a0=ctx.globalAlpha;ctx.globalCompositeOperation='source-over';
+      ctx.globalAlpha=a0*clamp(S.ovTint==null?.2:+S.ovTint/100,0,1);glyphs(ctx);
+      ctx.globalAlpha=a0*.5;ctx.lineJoin='round';ctx.lineWidth=Math.max(1/k,b.st.size*.006);ctx.strokeStyle='#FFFFFF';ctx.font=b.st.font;
+      b.lines.forEach((L,j)=>{const x=hx(L.width),y=base0+j*b.lh;for(const g of L.glyphs){if(g.ch.trim())ctx.strokeText(g.ch,x+g.x,y);}});}
+    else glyphs(ctx);}
   ctx.restore();}
 let FROST=null;
-function frostCanvases(w,h){if(!FROST)FROST=[0,1,2].map(()=>document.createElement('canvas'));for(const c of FROST)if(c.width!==w||c.height!==h){c.width=w;c.height=h;}return FROST;}
+function frostCanvases(w,h){if(!FROST)FROST=[0,1,2,3].map(()=>document.createElement('canvas'));for(const c of FROST)if(c.width!==w||c.height!==h){c.width=w;c.height=h;}return FROST;}
+/* a soft copy of a canvas: halved d times over, then doubled back up – returns the third of the kept canvases */
+function softCopy(srcC,cw,chh,d){const [A,B,C]=frostCanvases(cw,chh),a=A.getContext('2d'),bb=B.getContext('2d'),c=C.getContext('2d');
+  for(const x of [a,bb,c]){x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='copy';x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';}
+  let w=cw,h=chh,src=srcC,n=0,f=d;while(f>1.001&&w>2&&h>2){const s=Math.min(2,f),nw=Math.max(1,Math.round(w/s)),nh=Math.max(1,Math.round(h/s)),dst=n%2?bb:a;dst.drawImage(src,0,0,w,h,0,0,nw,nh);src=dst.canvas;w=nw;h=nh;f/=s;n++;}
+  let uw=w,uh=h,us=src;while(uw<cw||uh<chh){const nw=Math.min(cw,uw*2),nh=Math.min(chh,uh*2),last=nw===cw&&nh===chh,dst=last?c:(us===A?bb:a);dst.drawImage(us,0,0,uw,uh,0,0,nw,nh);us=dst.canvas;uw=nw;uh=nh;if(last)break;}
+  if(us!==C)c.drawImage(us,0,0,uw,uh,0,0,cw,chh);return C;}
 function capOrigin(S,b,r,sc){const sp=(+S.capSpace||0)*sc,al=S.capAlign||'left',bw=b.w*sc,where=capWhereOf(S);let x,y;
   if(where==='over'){x=al==='left'?r.x+sp:al==='right'?r.x+r.w-sp-bw:r.x+(r.w-bw)/2;y=r.y+r.h-sp-b.h*sc;}
   else if(where==='above'){x=al==='left'?r.x:al==='right'?r.x+r.w-bw:r.x+(r.w-bw)/2;y=r.y-sp-b.h*sc;}
@@ -4592,7 +4591,7 @@ const D={
   TF:'inter8',TS:54,TTr:-20,TLd:1.0,TC:'#111111',TCase:'upper',
   LF:'plex',LS:17,LTr:0,LLd:1.4,LC:'#6B6A66',LCase:'as',
   GF:'plex',GS:13,GTr:20,GLd:1.2,GC:'#111111',GCase:'as',
-  ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',ovFrost:false,ovBlur:24,ovTint:30,
+  ovOn:false,ovKind:'text',ovText:'',OF:'inter8',OS:120,OTr:-20,OLd:.95,OC:'#111111',OCase:'as',ovPos:'mc',ovM:64,ovX:0,ovY:0,ovBlend:'normal',ovA:100,ovW:40,ovZ:'top',ovFrost:false,ovBlur:36,ovTint:20,
   name:'Segue',xFormat:'mp4',xLoops:1,xGifScale:.5,xGifFps:20,xDither:false,xCrisp:true,xQ:'high',xScale:1,
   guides:false,guM:64,guN:6,guSnap:true,guDots:true};
 /* the look: what a preset carries. Size, frame rate, the file name and what's over the top
@@ -4673,7 +4672,14 @@ function loadVideo(blob){return new Promise((res,rej)=>{const v=document.createE
 async function mediaFrom(blob,meta){
   if(meta.kind==='video'){const v=await loadVideo(blob);meta.w=v.videoWidth;meta.h=v.videoHeight;meta.dur=v.duration||1;meta.src=v;meta.el=v;
     v.addEventListener('seeked',()=>{dirty=true;});return meta;}
-  const im=await loadImage(blob);meta.w=im.width||im.naturalWidth;meta.h=im.height||im.naturalHeight;meta.src=im;return meta;}
+  const im=await loadImage(blob);meta.w=im.width||im.naturalWidth;meta.h=im.height||im.naturalHeight;meta.full=im;meta.src=proxyOf(im,meta.w,meta.h);return meta;}
+/* 1.1 – a lot of big pictures (Steve, 12 Nov: "a lot of images … very laggy"). Safari doesn't keep big pictures
+   decoded once there are many of them, so every frame decoded one again – 15 frames a second with 120. Each picture now
+   has a stand-in for the moving preview, no more than 1,280 px on its long side, kept as a canvas (which is never
+   decoded again). The picture itself (it.full) is used whenever it's crisp: paused, and in every export. */
+const PROXY=1280;
+function proxyOf(im,w,h){try{const k=Math.min(1,PROXY/Math.max(w,h)),c=document.createElement('canvas');c.width=Math.max(1,Math.round(w*k));c.height=Math.max(1,Math.round(h*k));
+    const x=c.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(im,0,0,c.width,c.height);return c;}catch(e){return im;}}
 /* Video that says one thing in the file and another in the stream (Tempo's promo MP4s up to
    0.11.1: the file says video range, the H.264 stream says full range) plays with lifted greys
    in some players. When the two disagree, Segue makes the stream agree with the file before
@@ -4760,7 +4766,7 @@ const protOf=(o,mode)=>mode==='cover'&&!o.whole?(+o.item.prot||0)*Math.PI/180:0;
 const turnBox=(r,th)=>{const c=Math.abs(Math.cos(th)),s=Math.abs(Math.sin(th)),w=r.w*c+r.h*s,h=r.w*s+r.h*c;return{x:-w/2,y:-h/2,w,h};};
 function drawMedia(ctx,o,r,mode){const th=protOf(o,mode);if(!th)return drawMedia0(ctx,o,r,mode);
   ctx.save();ctx.translate(r.x+r.w/2,r.y+r.h/2);ctx.rotate(th);try{drawMedia0(ctx,o,turnBox(r,th),mode);}finally{ctx.restore();}}
-function drawMedia0(ctx,o,r,mode){const it=o.item,src=it.src;if(!src||!it.w||!it.h)return;if(it.kind==='video'&&src.readyState<2)return;
+function drawMedia0(ctx,o,r,mode){const it=o.item,src=(crispNow||fullNow)&&it.full?it.full:it.src;if(!src||!it.w||!it.h)return;if(it.kind==='video'&&src.readyState<2)return;
   /* cropped: its own zoom, and which part shows (−100…100% of what's to spare each way) */
   const crop=mode==='cover'&&!o.whole,z=crop?Math.max(1,(+it.zm||100)/100):1;
   const s=(mode==='cover'?Math.max(r.w/it.w,r.h/it.h):Math.min(r.w/it.w,r.h/it.h))*z,dw=it.w*s,dh=it.h*s,sx=(dw-r.w)/2,sy=(dh-r.h)/2;
@@ -4786,7 +4792,7 @@ function drawMedia0(ctx,o,r,mode){const it=o.item,src=it.src;if(!src||!it.w||!it
      position on a canvas lined up with the pixel grid, then sharpened – half strength when
      shrunk, as Photoshop's Bicubic Sharper, a third when enlarged – and copied on 1:1.
    Stills at rest are kept, so a slide that sits still costs nothing after its first frame. */
-let crispNow=false;
+let crispNow=false,fullNow=false;   /* fullNow: an export frame – the picture itself, never its stand-in, crisp or not */
 const CR=[document.createElement('canvas'),document.createElement('canvas'),document.createElement('canvas')],crCache=new Map(),halfCache=new Map(),onGrid=new Map();
 function halved(src,it,DW,DH){let cur=src,w=it.w,h=it.h,flip=0,n=0;while(w/2>=DW&&h/2>=DH){w=Math.max(1,Math.round(w/2));h=Math.max(1,Math.round(h/2));n++;}
   if(!n)return src;const key=it.kind==='video'?null:`${it.id}|${n}`;if(key&&halfCache.has(key))return halfCache.get(key);
@@ -5217,8 +5223,14 @@ const openRows=new Set();let mediaBox;
   addHint(b,'Drag a row to change the order. Video plays from its start point as its shape arrives.',()=>items.length>1);
   addHint(b,'Open a row to give that slide its own time, transition or movement – or switch on Layer on above, to sit it over (or under) that slide.',s=>s.layout==='one'&&items.length>0);
   SUMMARY.media=()=>!items.length?'No media yet':`${items.length} · `+(()=>{const v=items.filter(i=>i.kind==='video').length,i=items.length-v;return [v?`${v} video`:'',i?`${i} image${i>1?'s':''}`:''].filter(Boolean).join(', ');})();}
-function thumbOf(it){const c=el('canvas');c.width=88;c.height=64;const x=c.getContext('2d');x.fillStyle='#ddd';x.fillRect(0,0,88,64);
-  try{if(it.src&&(it.kind!=='video'||it.src.readyState>=2)){const s=Math.max(88/it.w,64/it.h);x.drawImage(it.src,(88-it.w*s)/2,(64-it.h*s)/2,it.w*s,it.h*s);}}catch(e){}return c;}
+/* a picture's thumbnail is drawn from it once and kept (1.1) – the Media list was redrawing every one from the full
+   picture each time anything changed: two seconds, with 120 */
+function thumbOf(it){const c=el('canvas');c.width=88;c.height=64;const x=c.getContext('2d');
+  if(it._th){x.drawImage(it._th,0,0);return c;}
+  x.fillStyle='#ddd';x.fillRect(0,0,88,64);let ok=false;
+  try{if(it.src&&(it.kind!=='video'||it.src.readyState>=2)){const s=Math.max(88/it.w,64/it.h);x.drawImage(it.src,(88-it.w*s)/2,(64-it.h*s)/2,it.w*s,it.h*s);ok=true;}}catch(e){}
+  if(ok&&it.kind==='image'&&it.id){const k=el('canvas');k.width=88;k.height=64;k.getContext('2d').drawImage(c,0,0);try{Object.defineProperty(it,'_th',{value:k,enumerable:false,configurable:true});}catch(e){}}
+  return c;}
 let dragId=null,trims=[];
 const isLayer=(it,i)=>S.layout==='one'&&i>0&&it.join==='on';
 const BLENDS=[['normal','Normal'],['multiply','Multiply'],['screen','Screen'],['overlay','Overlay'],['darken','Darken'],['lighten','Lighten'],['difference','Difference']];
@@ -5437,7 +5449,7 @@ function pickKind(k){if(k==='line')k=['up','down'].includes(S.dir)?'column':'row
 function kindTiles(parent){const w=el('div','ctl kinds-ctl'),hd=el('div','ctl-head'),g=el('div','kinds');hd.append(el('span',null,'Kind'));g.setAttribute('role','group');g.setAttribute('aria-label','Kind');
   const bs=KINDS.map(([v,t,tip])=>{const b=el('button','kind');b.type='button';b.dataset.k=v;b.innerHTML=KIND_ICON[v];b.append(el('span',null,t));b.dataset.tip=tip;b.onclick=()=>pickKind(v);g.append(b);return[v,b];});
   w.append(hd,g);parent.append(w);controls.push({d:{},w,update(){const k=KIND(S);bs.forEach(([v,b])=>b.setAttribute('aria-pressed',v===k));}});}
-const MOVES_ONE=[['cut','Cut','Straight to the next'],['fade','Fade','One into the next'],['dip','Dip','Out to the background, then up into the next'],['wipe','Wipe','A straight edge crosses the canvas'],
+const MOVES_ONE=[['cut','Cut','Straight to the next'],['fade','Fade','One into the next'],['focus','Focus','This one goes out of focus as the next comes into it'],['dip','Dip','Out to the background, then up into the next'],['wipe','Wipe','A straight edge crosses the canvas'],
   ['slide','Push','The next pushes this one out'],['stack','Cover','The next slides in over this one'],['open','Open','A window opens from the middle onto the next'],['zoom','Zoom','This one grows away as the next fades up'],
   ['through','Through','The next comes up from a small card in the middle as this one carries on past – it has its own curve, so there’s no Feel']];
 const KB=[['none','None'],['in','Zoom in'],['out','Zoom out'],['drift','Drift','Across, the way Direction says'],['parallax','Parallax','The frame one way, the picture the other'],['vary','Vary','Takes turns: in, across, out, back']];
@@ -5528,7 +5540,7 @@ function transMid(how,e,fw,fh,d,full){
   const tw=full?fw:fw*.6,th=full?fh:fh*.72,x=(fw-tw)/2,y=(fh-th)/2,u=DV[d]||DV.left,r=full?0:2,out=[];
   const T=(c,dx,dy,sc,o)=>{const w=tw*sc,h=th*sc;out.push({c,x:x+(tw-w)/2+dx,y:y+(th-h)/2+dy,w,h,o:o==null?1:o,r});};
   if(how==='cut')T('a',0,0,1);
-  else if(how==='fade'){T('a',0,0,1,1-e);T('b',0,0,1,e);}
+  else if(how==='fade'||how==='focus'){T('a',0,0,1,1-e);T('b',0,0,1,e);}
   else if(how==='dip')out.push({c:'o',x,y,w:tw,h:th,o:1,r});
   else if(how==='wipe'){const hz=u[1]===0,hf=(hz?fw:fh)/2;
     out.push(hz?{c:'a',x:u[0]<0?0:fw-hf,y:0,w:hf,h:fh,o:1,r:0}:{c:'a',x:0,y:u[1]<0?0:fh-hf,w:fw,h:hf,o:1,r:0},
@@ -5609,7 +5621,7 @@ const ownFit=s=>isK('one')(s)&&s.oneFit==='own';
   /* 1.0 – Steve: "in all settings always allow the image / video to be its own size". Every kind does now: the strips
      and Float size each piece by its shape; the kinds that tile fit each piece inside its slot, and Align says where
      in the slot it sits – so a row of mixed pieces can share a top, a middle or a bottom. */
-  const alignV=s=>s.ratio==='media'&&(s.layout==='row'||isK('grid','wall','frames')(s)||(isK('one')(s)&&s.oneFit==='shape')),alignH=s=>s.ratio==='media'&&(s.layout==='column'||isK('grid','wall','frames')(s)||(isK('one')(s)&&s.oneFit==='shape'));
+  const alignV=s=>s.ratio==='media'&&(isK('grid','wall','frames')(s)||(isK('one')(s)&&s.oneFit==='shape')),alignH=s=>s.ratio==='media'&&(isK('grid','wall','frames')(s)||(isK('one')(s)&&s.oneFit==='shape'));
   const alignOwn=s=>isK('one')(s)&&s.oneFit==='own';
   const RATIO_REST=[['16:10','16:10 – laptop'],['16:9','16:9 – widescreen'],['4:3','4:3'],['3:2','3:2'],['1:1','Square'],['4:5','4:5 – portrait post'],['3:4','3:4'],['2:3','2:3'],['9:16','9:16 – story'],['9:19.5','9:19.5 – phone'],['a4p','A4 portrait'],['a4l','A4 landscape'],['custom','Custom']];
   build(sf,[{t:'select',k:'ratio',label:'Shape',show:s=>!ownFit(s),
@@ -5788,11 +5800,11 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
   build(po,[{t:'range',k:'ovM',label:'Margin',min:0,max:400,step:1,unit:' px',show:s=>s.ovPos!=='mc'},
     {t:'range',k:'ovX',label:'Across',min:-600,max:600,step:1,unit:' px'},{t:'range',k:'ovY',label:'Up and down',min:-600,max:600,step:1,unit:' px'},
     {t:'seg',k:'ovZ',label:'Sits',opts:[['top','Over everything'],['mid','Among the shapes']],show:s=>isK('float')(s)&&(+s.depth||0)>0}]);
-  const bl=fold(b,'ovLook','Blend and opacity',on,true,s=>[s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):'',+s.ovA<100?`${Math.round(s.ovA)}%`:'',s.ovFrost&&s.ovKind==='text'?'Frosted':''].filter(Boolean).join(' · ')||'Normal, full');
+  const bl=fold(b,'ovLook','Blend and opacity',on,true,s=>[s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):'',+s.ovA<100?`${Math.round(s.ovA)}%`:'',s.ovFrost&&s.ovKind==='text'?'Glass':''].filter(Boolean).join(' · ')||'Normal, full');
   build(bl,[{t:'seg',k:'ovBlend',label:'Blend',opts:[['normal','Normal'],['difference','Difference'],['multiply','Multiply'],['screen','Screen']]},
     {t:'range',k:'ovA',label:'Opacity',min:0,max:100,step:1,unit:'%'},
-    /* Frosted (1.0): the letters as frosted glass – what's beneath shows through, blurred, under a tint of the colour */
-    {t:'toggle',grp:true,k:'ovFrost',label:'Frosted',show:txt,tip:'The letters become frosted glass: what’s beneath shows through them, blurred, with the text’s colour over it as a tint'},
+    /* Glass (1.0 as "Frosted"; Steve, 12 Nov: "frosted is not the right term … a sort of glass overlay to text that blurs what is behind within the text itself") */
+    {t:'toggle',grp:true,k:'ovFrost',label:'Glass',show:txt,tip:'The letters become glass: what’s behind shows through them, blurred, with the text’s colour over it as a tint'},
     {t:'range',k:'ovBlur',label:'Blur',min:1,max:120,step:1,unit:' px',show:s=>txt(s)&&s.ovFrost},
     {t:'range',k:'ovTint',label:'Tint',min:0,max:100,step:1,unit:'%',show:s=>txt(s)&&s.ovFrost,tip:'How much of the text’s colour lies over the blur – 0 is clear glass'}]);
   SUMMARY.overlay=s=>!s.ovOn?'Off':[s.ovKind==='image'?(PICS.ov?'Image':'Image – none yet'):(String(s.ovText||'').trim()?`“${String(s.ovText).split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,'').slice(0,18)}”`:'Text – none yet'),
@@ -5807,23 +5819,23 @@ for(const id of ['canvas','media','layout','motion','captions','overlay']){const
    reference, 5 Nov); they also set the export to GIF. Phone swipe, Columns up and down, Masonry
    drift, Posters and Float with title come from his 4 Nov references. */
 const BUILTIN=[
-  {name:'Straight cuts',tip:'Straight cuts, full bleed, nothing moving, under a second each – the classic showcase GIF, and the smallest file',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'cut',hold:.8,kb:'none',after:'carry',capOn:false}},
-  {name:'Zoom through',tip:'Full bleed and fast – each slide comes up from a small card as the last carries on past',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'through',hold:.15,dur:.38,kb:'in',kbAmt:22,after:'carry',capOn:false,bg:'#111111'}},
-  {name:'Build up',tip:'Each one lands on the last and stays, scattered a little like dropped prints – then the pile clears and it starts again',s:{layout:'one',oneFit:'own',ownScale:'fit',size:62,radius:0,oneMove:'stack',dir:'up',feel:'snap',hold:.9,dur:.6,after:'carry',capOn:false,bg:'#EDEBE6',pile:true,pileScatter:40,pileEnd:'clear'}},
-  {name:'Deck',tip:'A deck of cards: each one comes up over the last, whose edges still show behind it – round and round',s:{layout:'one',oneFit:'shape',ratio:'1:1',size:64,radius:28,oneMove:'stack',dir:'up',feel:'coast',hold:.9,dur:.7,after:'carry',capOn:false,bg:'#0C0C0C',shapeBg:'#1C1C1C',pile:true,pileDeck:70,pileEnd:'cover'}},
-  {name:'Overview',tip:'All of it at once, then in to the first and along the row one at a time, and back out to all of it',s:{layout:'row',ratio:'4:3',size:100,gap:0,radius:0,trackMove:'step',dir:'left',feel:'glide',hold:.5,dur:.7,after:'pull',gCols:3,gGap:28,gSize:88,zOut:.9,gHold:1.3,zIn:.9,capOn:false,bg:'#000000',shapeBg:'#111111'}},
-  {name:'Snap along',tip:'Cards in a row, moving as one rigid piece: a long rest, a slow start, a fast throw across, a long settle – drifting a touch all the while',s:{layout:'row',ratio:'4:5',size:64,gap:36,radius:6,trackMove:'step',dir:'left',feel:'snap',hold:2.4,dur:.9,lag:0,creep:15,after:'carry',capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
-  {name:'Phone swipe',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.25,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
-  {name:'Rows up',tip:'Rows of shapes stepping up together, a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1,dur:.9,capOn:false}},
-  {name:'Columns up and down',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:.6,dur:1.1,capOn:false,bg:'#111111',shapeBg:'#222222'}},
-  {name:'Masonry drift',tip:'A wall of work in columns drifting down, up and down at their own speeds – 3, 4 and 7 times round a loop, as the reference – each piece its own shape, the outer columns running off the sides',s:{layout:'columns',cols:3,ratio:'media',size:128,gap:10,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:3,ss1:4,ss2:7,spsh:3.2,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
-  {name:'Rows side to side',tip:'Rows stepping right and left in turn on the snap, each a beat after the last',s:{layout:'rows',cols:3,ratio:'16:10',size:100,gap:18,radius:6,trackMove:'step',colDir:'alt',colSpeed:'same',colLag:.3,colOff:50,feel:'snap',hold:1,dur:.9,capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
-  {name:'Rows drift',tip:'Rows of work drifting left and right, never stopping, each at its own speed, running off the top and bottom',s:{layout:'rows',cols:4,ratio:'media',size:118,gap:10,radius:4,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:2,ss1:3,ss2:2,ss3:4,spsh:3,colOff:40,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
-  {name:'Posters',tip:'Three mounted posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,mat:12,matC:'#FFFFFF',matR:6,fMove:'push',dir:'up',feel:'glide',hold:2.2,dur:.9,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
-  {name:'Wall snap',tip:'A wall of posters, three across and two down, the whole of it thrown one tile along on the snap – then a long rest, drifting a touch',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:1,wOff:0,ratio:'3:4',size:94,gap:22,radius:4,trackMove:'step',dir:'left',feel:'snap',hold:1.7,dur:.9,creep:10,capOn:false,bg:'#0E0E0E',shapeBg:'#222222'}},
-  {name:'Brick wall',tip:'Alternate columns set down half a tile, like brickwork, the camera snapping along',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:2,wOff:50,ratio:'4:5',size:100,gap:14,radius:5,trackMove:'step',dir:'left',feel:'snap',hold:1.4,dur:1,creep:6,capOn:false,bg:'#161616',shapeBg:'#262626'}},
-  {name:'Float with title',tip:'Work floating up at three depths past a line of type – change the words in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.1,dur:1,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
-    ovBlend:'difference',ovZ:'mid',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'},
+  {name:'Straight cuts',tip:'Straight cuts, full bleed, nothing moving, a second each – the classic showcase GIF, and the smallest file',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'cut',hold:1,kb:'none',after:'carry',capOn:false}},
+  {name:'Zoom through',tip:'Full bleed and fast – each slide comes up from a small card as the last carries on past',x:{xFormat:'gif'},s:{layout:'one',oneFit:'bleed',oneMove:'through',hold:.3,dur:.5,kb:'in',kbAmt:22,after:'carry',capOn:false,bg:'#111111'}},
+  {name:'Build up',tip:'Each one lands on the last and stays, scattered a little like dropped prints – then the pile clears and it starts again',s:{layout:'one',oneFit:'own',ownScale:'fit',size:62,radius:0,oneMove:'stack',dir:'up',feel:'snap',hold:1.3,dur:.8,after:'carry',capOn:false,bg:'#EDEBE6',pile:true,pileScatter:40,pileEnd:'clear'}},
+  {name:'Deck',tip:'A deck of cards: each one comes up over the last, whose edges still show behind it – round and round',s:{layout:'one',oneFit:'shape',ratio:'1:1',size:64,radius:28,oneMove:'stack',dir:'up',feel:'coast',hold:1.4,dur:.95,after:'carry',capOn:false,bg:'#0C0C0C',shapeBg:'#1C1C1C',pile:true,pileDeck:80,pileEnd:'cover'}},
+  {name:'Overview',tip:'All of it at once, then in to the first and along the row one at a time, and back out to all of it',s:{layout:'row',ratio:'4:3',size:100,gap:0,radius:0,trackMove:'step',dir:'left',feel:'glide',hold:.9,dur:.95,after:'pull',gCols:3,gGap:28,gSize:88,zOut:1.1,gHold:1.8,zIn:1.1,capOn:false,bg:'#000000',shapeBg:'#111111'}},
+  {name:'Snap along',tip:'Cards in a row, moving as one rigid piece: a long rest, a slow start, a fast throw across, a long settle – drifting a touch all the while',s:{layout:'row',ratio:'4:5',size:64,gap:36,radius:6,trackMove:'step',dir:'left',feel:'snap',hold:2.4,dur:1.1,lag:0,creep:15,after:'carry',capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
+  {name:'Phone swipe',tip:'Phone screens swiped along – each sets off a beat after the one ahead, then glides in',s:{layout:'row',ratio:'9:19.5',size:44,gap:80,radius:22,trackMove:'step',dir:'left',feel:'coast',hold:.9,dur:2.1,lag:.045,after:'carry',capOn:false,bg:'#E0E0DE',shapeBg:'#111111'}},
+  {name:'Rows up',tip:'Rows of shapes stepping up together, a row at a time',s:{layout:'grid',cols:3,size:92,gap:24,radius:8,ratio:'4:5',trackMove:'step',dir:'up',feel:'glide',hold:1.7,dur:1.2,capOn:false}},
+  {name:'Columns up and down',tip:'Columns stepping down and up in turn, each a beat after the last',s:{layout:'columns',cols:3,ratio:'4:5',size:94,gap:18,radius:8,trackMove:'step',colDir:'alt',colLag:.35,colOff:50,feel:'coast',hold:1.8,dur:1.4,capOn:false,bg:'#111111',shapeBg:'#222222'}},
+  {name:'Masonry drift',tip:'A wall of work in columns drifting down, up and down at their own speeds – 3, 4 and 7 times round a loop, as the reference – each piece its own shape, the outer columns running off the sides',s:{layout:'columns',cols:3,ratio:'media',size:128,gap:10,radius:6,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:3,ss1:4,ss2:7,spsh:5.4,colOff:35,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
+  {name:'Rows side to side',tip:'Rows stepping right and left in turn on the snap, each a beat after the last',s:{layout:'rows',cols:3,ratio:'16:10',size:100,gap:18,radius:6,trackMove:'step',colDir:'alt',colSpeed:'same',colLag:.3,colOff:50,feel:'snap',hold:1.9,dur:1.2,capOn:false,bg:'#EDEDEA',shapeBg:'#DADAD6'}},
+  {name:'Rows drift',tip:'Rows of work drifting left and right, never stopping, each at its own speed, running off the top and bottom',s:{layout:'rows',cols:4,ratio:'media',size:118,gap:10,radius:4,trackMove:'drift',colDir:'alt',colSpeed:'own',ss0:2,ss1:3,ss2:2,ss3:4,spsh:5,colOff:40,capOn:false,bg:'#0B0B0B',shapeBg:'#1C1C1C'}},
+  {name:'Posters',tip:'Three posters that hold still while the work inside them pushes up, one after another',s:{layout:'frames',fCols:3,fRows:1,ratio:'3:4',size:92,gap:34,radius:0,fMove:'push',dir:'up',feel:'glide',hold:2.8,dur:1.2,fLag:.6,capOn:false,bg:'#A3A3A3',shapeBg:'#E6E6E3'}},
+  {name:'Wall snap',tip:'A wall of posters, three across and two down, the whole of it thrown one tile along on the snap – then a long rest, drifting a touch',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:1,wOff:0,ratio:'3:4',size:94,gap:22,radius:4,trackMove:'step',dir:'left',feel:'snap',hold:2.3,dur:1.1,creep:10,capOn:false,bg:'#0E0E0E',shapeBg:'#222222'}},
+  {name:'Brick wall',tip:'Alternate columns set down half a tile, like brickwork, the camera snapping along',s:{layout:'wall',wCols:3,wRows:2,wPath:'across',wStep:2,wOff:50,ratio:'4:5',size:100,gap:14,radius:5,trackMove:'step',dir:'left',feel:'snap',hold:2.1,dur:1.2,creep:6,capOn:false,bg:'#161616',shapeBg:'#262626'}},
+  {name:'Float with title',tip:'Work floating up at three depths past a line of type – change the words in Overlay',s:{layout:'float',dir:'up',ratio:'media',flSize:30,depth:60,spread:70,radius:10,trackMove:'step',feel:'glide',hold:1.7,dur:1.4,creep:10,capOn:false,bg:'#000000',shapeBg:'#1A1A1A',
+    ovBlend:'difference',ovZ:'top',ovPos:'mc',OF:'inter8',OS:110,OTr:-10,OLd:.92,OC:'#FFFFFF',OCase:'upper'},
     /* 0.16: it turns its title on – it used to say 'add it in Overlay' and show none. x0: only where there's nothing yet */
     x:{ovOn:true,ovKind:'text'},x0:{ovText:'Your title'}}];
 /* retired from the list at 1.0, kept by name: a project made with one still knows where its settings started */
@@ -6049,7 +6061,7 @@ const cloneVid=async el=>{const v=document.createElement('video');v.muted=true;v
 async function xBegin(){XS=JSON.parse(JSON.stringify(S));XP=Object.assign({},PICS);
   if(PICS.bg&&PICS.bg.el){const v=await cloneVid(PICS.bg.el);XP.bg=Object.assign({},PICS.bg,{el:v,src:v,own:true});}
   XI=await Promise.all(items.map(async it=>{const c=Object.assign({},it);if(it.kind==='video'&&it.el){const v=document.createElement('video');v.muted=true;v.playsInline=true;v.preload='auto';
-    await new Promise(res=>{let d=false;const fin=()=>{if(!d){d=true;res();}};v.onloadeddata=fin;v.onerror=fin;setTimeout(fin,8000);v.src=it.el.currentSrc||it.el.src;v.load();});c.el=v;c.src=v;}return c;}));}
+    await new Promise(res=>{let d=false;const fin=()=>{if(!d){d=true;res();}};v.onloadeddata=fin;v.onerror=fin;setTimeout(fin,8000);v.src=it.el.currentSrc||it.el.src;v.load();});c.el=v;c.src=v;}else if(it.full)c.src=it.full;return c;}));}   /* exports draw the picture itself, never its stand-in */
 function xEnd(){for(const it of XI||[])if(it.kind==='video'&&it.el){try{it.el.removeAttribute('src');it.el.load();}catch(e){}}
   if(XP&&XP.bg&&XP.bg.own){try{XP.bg.el.removeAttribute('src');XP.bg.el.load();}catch(e){}}XS=S;XI=null;XP=PICS;}
 /* how many times round the MP4 goes: only a loop goes round more than once */
@@ -6060,7 +6072,7 @@ async function frameAt(c,x,W,H,t,k){
   for(const [it,tm] of want){const v=it.el,d=Math.max(.01,it.dur||v.duration||1),tt=Math.min(d-1e-3,((tm%d)+d)%d);if(Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
   /* a video background: at this moment of its own length */
   if(XP.bg&&XP.bg.el&&XS.bgImgOn!==false){const v=XP.bg.el,d=Math.max(.01,XP.bg.dur||v.duration||1),tt=Math.min(d-1e-3,((t%d)+d)%d);if(v.readyState<2||Math.abs(v.currentTime-tt)>1e-3)await seek(v,tt);}
-  crispNow=XS.xCrisp!==false;try{E.paint(x,sc,XS,FONTS,{scale:k||1,media:drawMedia,bgImg:XP.bg,ovImg:XP.ov});}finally{crispNow=false;}}
+  crispNow=XS.xCrisp!==false;fullNow=true;try{E.paint(x,sc,XS,FONTS,{scale:k||1,media:drawMedia,bgImg:XP.bg,ovImg:XP.ov});}finally{crispNow=false;fullNow=false;}}
 async function fontsReady(){if(!document.fonts)return;const used=new Set(['T','L','G'].map(r=>XS[r+'F']));if(XS.ovOn&&XS.ovKind==='text')used.add(XS.OF);
   await Promise.all([...used].map(id=>FONTS[id]?document.fonts.load(fontStr(FONTS[id])).catch(()=>null):null));await document.fonts.ready;E.resetMeasure();}
 let stopFlag=false;
@@ -6362,7 +6374,7 @@ let xInfo,xGo,xStop;
   if(sh)new MutationObserver(()=>{if(!sh.hidden)steady();}).observe(sh,{attributes:true,attributeFilter:['hidden']});}
 const lastSize={},mb=b=>b>=1e6?`${(b/1e6).toFixed(1)} MB`:`${Math.max(1,Math.round(b/1e3))} KB`;
 /* does anything move? (Slides with no movement and a cut, fade, dip or wipe only change at the transitions) */
-function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','dip','wipe','open'].includes(s.oneMove);}
+function gifMoves(s){return s.layout!=='one'||kbOn(s)||!['cut','fade','focus','dip','wipe','open'].includes(s.oneMove);}
 function exportInfo(){if(!xInfo||busy)return;const [W,H]=S.xFormat==='gif'?size():outSize(),P=planNow(),f=S.xFormat,l=f==='mp4'?xLoopsOf(S):1,once=(S.endAs||'loop')!=='loop';
   xGo.textContent=f==='png'?'Download PNG':f==='gif'?'Download GIF':'Download MP4';
   /* what you'll get, as a row of chips – a detail, not a sentence */
