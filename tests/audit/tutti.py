@@ -1,4 +1,4 @@
-"""Tutti audit (6.3): does every setting do something? For each set-up (6.4: six, one with Mixed sizes), every control that's showing in the
+"""Tutti audit (6.3): does every setting do something? For each set-up (6.5: eight – one with Mixed sizes, two in the Type style), every control that's showing in the
 panel is moved to its other values and the canvas – the export's own pixels – compared with before. Each change
 is taken back with putState (the same snapshot Undo uses) before the next.
 
@@ -36,10 +36,11 @@ async ()=>{
     items.push({e,label:name(e),vals:[a,b,(a+b)/2,a+(b-a)*.25].filter(v=>Math.abs(v-cur)>1e-9),set:v=>{e.value=v;fire(e,'input');fire(e,'change');}});});
   panel.querySelectorAll('select').forEach(e=>{if(!seen(e))return;items.push({e,label:name(e),vals:[...e.options].map(o=>o.value).filter(v=>v!==e.value),set:v=>{e.value=v;fire(e,'change');}});});
   panel.querySelectorAll('input[type=color]').forEach(e=>{if(!seen(e))return;items.push({e,label:name(e),vals:['#e4002b','#0a84ff'].filter(v=>v!==e.value),set:v=>{e.value=v;fire(e,'input');fire(e,'change');}});});
+  panel.querySelectorAll('input.sttext').forEach(e=>{if(!seen(e))return;items.push({e,label:name(e)+' words',vals:['Ab Cd'],set:v=>{e.value=v;fire(e,'input');}});});
   panel.querySelectorAll('input.num').forEach(e=>{if(!seen(e))return;items.push({e,label:name(e),vals:[+e.value===7?2:7],set:v=>{e.value=v;fire(e,'input');}});});
   panel.querySelectorAll('textarea').forEach(e=>{if(!seen(e))return;items.push({e,label:'Text',vals:['Audit words'],set:v=>{e.value=v;fire(e,'input');}});});
   panel.querySelectorAll('.toggle').forEach(e=>{if(!seen(e))return;items.push({e,label:name(e),vals:[1],set:()=>e.click()});});
-  panel.querySelectorAll('.seg button').forEach(e=>{if(!seen(e)||(e.classList.contains('on')&&!e.closest('.multi')))return;if(e.closest('.markbox'))return;items.push({e,label:(words(e.closest('.row,.seg').querySelector('.lbl'))||'Align')+' › '+words(e),vals:[1],set:()=>e.click()});});
+  panel.querySelectorAll('.seg button').forEach(e=>{if(!seen(e)||(e.classList.contains('on')&&!e.closest('.multi')))return;if(e.closest('.markbox'))return;items.push({e,label:(words((e.closest('.row')||e.closest('.seg')).querySelector('.lbl'))||'Align')+' › '+words(e),vals:[1],set:()=>e.click()});});
   ['bandPlus','bandMinus','randomColors','resetShapes','randomAll','resetEdges','mixShuffle'].forEach(id=>{const e=document.getElementById(id);if(e&&seen(e)&&!e.disabled)items.push({e,label:words(e)||id,vals:[1],set:()=>e.click()});});
   const res=[];const base=await sig();
   for(const it of items){const before=snapState();let alive=false,tried=0,err=null;
@@ -55,6 +56,8 @@ SETUPS = [
     ('Image, a band with an SVG mark', "document.getElementById('fileIn')", PHOTO, 'mark'),
     ('Image, Custom format', "document.getElementById('fileIn')", PHOTO, "aspect=custom"),
     ('Image, Mixed sizes (all sizes, a ring mark and a big mark)', None, PHOTO, 'mix'),
+    ('Image, Type style (rows, per tone)', None, PHOTO, 'tstyle'),
+    ('Image, Type style (columns, Running, Keep shape, True colour)', None, PHOTO, 'tstyle2'),
     ('Type', None, None, 'type'),
     ('Type, Gradient fill', None, None, 'type+grad'),
 ]
@@ -70,6 +73,11 @@ def run(pg, name, how):
             for i in range(3): pg.locator('.stSvg').nth(i).set_input_files(MARK)
             pg.wait_for_timeout(700)
         if how == 'aspect=custom': pg.select_option('#aspect', 'custom')
+        if how in ('tstyle', 'tstyle2'):
+            pg.click('#styleSeg button[data-v="type"]')
+            if how == 'tstyle2':
+                for sel in ['#tDirSeg button[data-v="cols"]', '#tModeSeg button[data-v="run"]', '#tFitSeg button[data-v="keep"]', '#tTrue']: pg.click(sel)
+            pg.wait_for_timeout(500)
         if how == 'mix':
             pg.click('#tMix')
             for k in ['4', '5', '1x2', '1x3', '2x3']: pg.click(f'#mixSq button[data-s="{k}"],#mixBar button[data-s="{k}"]')

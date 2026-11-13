@@ -16,6 +16,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 FIX = os.path.join(HERE, 'fixtures')
 OUT = os.path.join(HERE, 'out'); os.makedirs(OUT, exist_ok=True)
 PHOTO, CLIP, MARK = (os.path.join(FIX, f) for f in ('tutti-photo.jpg', 'tutti-clip.webm', 'tutti-mark.svg'))
+GREY = os.path.join(FIX, 'tutti-grey.png')   # 6.5: a flat tone, so every row is one stretch
+DEJAVU = '/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf'   # an upload to test with – the system's, never committed
 base = start()
 engines = sys.argv[1:] or ['chromium']
 results, hashes = [], {}
@@ -284,6 +286,82 @@ def run(p, eng, mode):
         L('.cpk-f input').first.fill(was); pg.wait_for_timeout(200); L('.cpk-f input').first.press('Enter'); pg.wait_for_timeout(200)
         if got != '#eeddcc' or L('.cpk').is_visible() or L('#bgColor').input_value().lower() != was.lower(): raise Exception(f'{got}, back to {L("#bgColor").input_value()}')
         return 'opens from the swatch, hex sets the colour, Enter closes'
+
+    # --- 6.5: Type (the style), checked on the pixels: every stretch's ink meets its box
+    ALIGN = r"""(o)=>{
+      S.style='type'; S.tMax=61; S.tMin=1; S.tDir=o.dir; S.tFit=o.fit; S.tMode='run'; S.tRun=o.word; S.tCase='as'; S.tSpace=0; S.grid=o.grid; S.bg='#ffffff'; S.trueColour=false; S.opacity=1;
+      S.states.forEach(t=>t.color='#000000');   /* black on white, whatever earlier checks set */
+      syncUI(); S.sampleDirty=true; S.spritesDirty=true; computeDims(); buildSprites(); sample(); render();
+      const W=out.width,H=out.height,d=octx.getImageData(0,0,W,H).data, ink=(x,y)=>d[(y*W+x)*4]<200, P=placements(); let worst=0, at='';
+      for(const p of P.slice(1,P.length-1)){ const x0=Math.round(p.bx),y0=Math.round(p.by),x1=Math.round(p.bx+p.bw),y1=Math.round(p.by+p.bh); let l=1e9,r=-1,t=1e9,b=-1;
+        for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++) if(ink(x,y)){ if(x<l)l=x; if(x>r)r=x; if(y<t)t=y; if(y>b)b=y; }
+        const e=Math.max(Math.abs(l-x0),Math.abs(x1-1-r),Math.abs(t-y0),Math.abs(y1-1-b)); if(e>worst){worst=e;at=[l-x0,x1-1-r,t-y0,y1-1-b].join(',');} }
+      return {n:P.length,worst,at};
+    }"""
+    def type_align():
+        L('#fileIn').set_input_files(GREY); pg.wait_for_timeout(700)
+        fonts = ['Aktiv or its stand-in'] + ([DEJAVU] if os.path.exists(DEJAVU) else [])
+        worst, cases = 0, 0
+        for font in fonts:
+            if font != fonts[0]: L('#tFontIn').set_input_files(font); pg.wait_for_timeout(1500)
+            for word in ('HILL', 'nun', 'Tutti', 'HELLO'):
+                for d in ('rows', 'cols'):
+                    for fit in ('stretch', 'keep'):
+                        for grid in (24, 60):
+                            r = ev(ALIGN, dict(word=word, dir=d, fit=fit, grid=grid)); cases += 1
+                            if r['n'] < 3: raise Exception(f'{word} {d} {fit}: only {r["n"]} stretches')
+                            if r['worst'] > 1: raise Exception(f'{os.path.basename(font)} {word} {d} {fit} grid {grid}: ink {r["at"]} px from its box (left, right, top, bottom)')
+                            worst = max(worst, r['worst'])
+        return f'{cases} cases, {len(fonts)} fonts, worst {worst}px'
+    check(tag, 'Type: every word meets its stretch, to a pixel', type_align)
+    def type_svg():
+        if not os.path.exists(DEJAVU): return 'skipped – no font to upload here'
+        for _ in range(16):
+            if ev('!!TT.ot'): break
+            pg.wait_for_timeout(500)
+        if not ev('!!TT.ot'): return 'skipped – opentype.js not reachable'
+        r = ev(r"""async ()=>{ S.tFit='stretch'; S.tDir='rows'; S.tRun='Tutti'; syncUI(); render();
+          let blob=null; const o=window.saveBlob; window.saveBlob=(n,b)=>{blob=b;}; document.getElementById('svgBtn').onclick(); window.saveBlob=o;
+          const t=await blob.text(), im=new Image(); im.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(t); await im.decode();
+          const W=out.width,H=out.height,c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d'); x.drawImage(im,0,0,W,H);
+          const d=x.getImageData(0,0,W,H).data, ink=(a,b)=>d[(b*W+a)*4]<200, P=placements(); let worst=0;
+          for(const p of P.slice(1,P.length-1)){ const x0=Math.round(p.bx),y0=Math.round(p.by),x1=Math.round(p.bx+p.bw),y1=Math.round(p.by+p.bh); let l=1e9,r=-1,tt=1e9,b=-1;
+            for(let yy=y0;yy<y1;yy++) for(let xx=x0;xx<x1;xx++) if(ink(xx,yy)){ if(xx<l)l=xx; if(xx>r)r=xx; if(yy<tt)tt=yy; if(yy>b)b=yy; }
+            worst=Math.max(worst,Math.abs(l-x0),Math.abs(x1-1-r),Math.abs(tt-y0),Math.abs(y1-1-b)); }
+          return {worst,outlines:t.includes('<path d="M'),text:t.includes('<text')}; }""")
+        if not r['outlines'] or r['text']: raise Exception('an uploaded font should come out as outlines')
+        if r['worst'] > 1: raise Exception(f'SVG outlines {r["worst"]}px from their stretches')
+        L('#tFontReset').click(); pg.wait_for_timeout(300)
+        t = ev(r"""async ()=>{ let blob=null; const o=window.saveBlob; window.saveBlob=(n,b)=>{blob=b;}; document.getElementById('svgBtn').onclick(); window.saveBlob=o; return await blob.text(); }""")
+        if '<text' not in t or 'Aktiv Grotesk' not in t: raise Exception('Aktiv should be live text in the SVG')
+        return f'outlines within {r["worst"]}px; Aktiv live text'
+    check(tag, 'Type in the SVG: outlines for an upload, live Aktiv', type_svg)
+    def type_ui():
+        L('.card[data-id="shape"] .card-toggle').evaluate('b=>{if(b.closest(".card").classList.contains("collapsed"))b.click()}')
+        L('#styleSeg button[data-v="marks"]').click(); pg.wait_for_timeout(200)
+        L('#fileIn').set_input_files(PHOTO); pg.wait_for_timeout(700); a = canvas_sig()
+        L('#styleSeg button[data-v="type"]').click(); wait_render()
+        if L('#tScale').is_visible() or not L('#tDirSeg').is_visible(): raise Exception('Type did not swap the Shape controls')
+        L('#tModeSeg button[data-v="tone"]').click(); pg.wait_for_timeout(150)
+        if L('.sttext').count() != ev('S.nBands'): raise Exception('no words box per band')
+        b = canvas_sig()
+        if b == a: raise Exception('Type drew nothing different')
+        L('.sttext').first.fill('T U'); wait_render()
+        if 'T' not in ev('placements().filter(p=>p.idx===0).map(p=>p.word).join()') and ev('placements().some(p=>p.idx===0)'): raise Exception('band words not used')
+        L('#tModeSeg button[data-v="run"]').click(); pg.wait_for_timeout(150)
+        if L('.sttext').count() or not L('#tRun').is_visible(): raise Exception('Running should swap the band boxes for one passage')
+        L('#tRun').fill('Ensemble tools'); wait_render()
+        if set(ev('placements().map(p=>p.word)')) - {'Ensemble', 'tools'}: raise Exception('running words wrong')
+        L('#looks').select_option(index=3); wait_render()
+        if ev('S.tDir') != 'cols' or ev('S.tFit') != 'keep': raise Exception('the Columns look did not apply')
+        L('#undoBtn').click(); pg.wait_for_timeout(300)
+        if ev('S.tDir') != 'rows': raise Exception('Undo did not take the look back')
+        s0 = canvas_sig(); L('#tTrue').click(); wait_render()
+        if canvas_sig() == s0: raise Exception('Source colours changed nothing')
+        L('#tTrue').click(); L('#styleSeg button[data-v="marks"]').click(); wait_render()
+        if canvas_sig() != a: raise Exception('back to Marks is not the picture it was')
+        return 'swaps controls, band words, Running, a Look and Undo, Source colours'
+    check(tag, 'Type: the controls, words, a Look, Source colours', type_ui)
     check(tag, 'House colour picker', house_picker)
     check(tag, 'no script errors', lambda: (not errs) or (_ for _ in ()).throw(Exception('; '.join(errs[:3]))))
     pg.screenshot(path=os.path.join(OUT, f'tutti_{eng}_{mode}.png'))
