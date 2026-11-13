@@ -357,11 +357,11 @@ def run(p, eng, mode):
         L('#undoBtn').click(); pg.wait_for_timeout(300)
         if ev('S.tDir') != 'rows': raise Exception('Undo did not take the look back')
         s0 = canvas_sig(); L('#tTrue').click(); wait_render()
-        if canvas_sig() == s0: raise Exception('Source colours changed nothing')
+        if canvas_sig() == s0: raise Exception('True colour changed nothing')
         L('#tTrue').click(); L('#styleSeg button[data-v="marks"]').click(); wait_render()
         if canvas_sig() != a: raise Exception('back to Marks is not the picture it was')
-        return 'swaps controls, band words, Running, a Look and Undo, Source colours'
-    check(tag, 'Type: the controls, words, a Look, Source colours', type_ui)
+        return 'swaps controls, band words, Running, a Look and Undo, True colour'
+    check(tag, 'Type: the controls, words, a Look, True colour', type_ui)
     check(tag, 'House colour picker', house_picker)
     check(tag, 'no script errors', lambda: (not errs) or (_ for _ in ()).throw(Exception('; '.join(errs[:3]))))
     pg.screenshot(path=os.path.join(OUT, f'tutti_{eng}_{mode}.png'))

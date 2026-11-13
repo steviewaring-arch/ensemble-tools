@@ -1,5 +1,14 @@
 # Changelog
 
+## Tutti 6.5 – Type, Looks, True colour (preview at /tutti/next/, not yet live)
+
+- **Style: Marks | Type**, at the top of Shape. Type sets words along each run of one tone – **Rows** or **Columns**; **Per tone** (each band's own words, in its Mapping row – TUTTI to start; several words take turns, and a single letter is a word too) or **Running** (one passage through the picture); **Stretch** (the word drawn out to fill its stretch) or **Keep shape** (true letter shapes, as many as fit, spaced to end on the stretch's end); **Shortest** and **Longest** (how few and how many cells a word spans); **Case**, **Spacing**; Aktiv Grotesk, or **Upload** any font; **Mix weights** – darker bands in Medium and Bold.
+- **It aligns.** Every word is set from its ink, read from pixels, not its line box: its first and last letters meet the stretch's ends; capitals sit on the top line and the baseline on the bottom – a lowercase-only word aligns its x-height, as type set to an x-height does. Checked by machine on the drawn pixels: 64 cases (four words, rows and columns, Stretch and Keep shape, two grids, Aktiv's stand-in and an uploaded font) – every edge on its pixel, in Chrome, Safari's engine and Firefox.
+- **SVG**: Aktiv as live text, each letter placed – it opens editable in Illustrator with Aktiv active. An uploaded font comes out as outlines, also exact.
+- **Looks** – three starting points a style: Grid pieces, Rings, Bars; TUTTI in rows, Running text, Columns. One Undo takes a Look back.
+- **True colour** (Mapping) – each mark or word coloured from the picture under it.
+- With Style on Marks and True colour off, the 12 export hashes are identical to 6.4. Tests: Tutti 102 of 102; WebKit and Firefox 204 of 204; the settings audit has two Type set-ups.
+
 ## 13 November 2026 – Tutti 6.4: Mixed sizes, the house marks, big marks
 
 - **Mixed sizes** – a switch in Shape. Some marks span several cells: squares 2×2 to 5×5 and bars 1×2, 1×3 and 2×3 (either way round). **Amount** goes from one or two to as many as fit; **Where** from *Even tone* (only where every cell under a block is in one band – big marks sit in flat areas) to *Anywhere*; **Shuffle** deals another pattern. Blocks always start on their own grid – a 3×3 only every third cell – and never overlap. On video they stay put and change only where the tone does.
