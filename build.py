@@ -36,6 +36,11 @@ def strip1(s):
 # its own prefix), so opening an old version never overwrites newer settings.
 ARCHIVE = [('rubato', '0.9', 'archive/rubato-0.9.html', "const APP='rubato';", "const APP='rubato-0.9';")]
 
+# Previews: a version to try before it goes live, at its own address (docs/<app>/next/), unlisted
+# and not indexed. The live app is untouched. The file is the built page from the app's branch;
+# delete it from preview/ (and this list) once the version is live.
+PREVIEW = [('tutti', 'next', 'preview/tutti-next.html')]
+
 # Each app: page title, version, its markup, extra scripts that must keep their
 # ids (Tempo's screen saver export copies #tempo-engine and #tempo-saver into
 # the exported page), and the app files that go inside the shared wrapper.
@@ -211,6 +216,14 @@ def main():
     ok = check_scripts('tutti', html) and ok
     write('tutti/index.html', html)
     print(f'tutti: docs/tutti/index.html ({len(html.encode()) // 1024} KB, on the shared tokens and components)')
+    for app, ver, src in PREVIEW:
+        if not os.path.exists(os.path.join(ROOT, src)):
+            continue
+        html = read(src)
+        if '<meta name="robots"' not in html:
+            html = html.replace('<head>', '<head>\n<meta name="robots" content="noindex">', 1)
+        write(f'{app}/{ver}/index.html', html)
+        print(f'{app} {ver}: docs/{app}/{ver}/index.html (preview, unlisted)')
     for app, ver, src, a, b in ARCHIVE:
         html = read(src)
         if html.count(a) != 1:
