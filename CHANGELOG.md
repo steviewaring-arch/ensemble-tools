@@ -1,5 +1,13 @@
 # Changelog
 
+## 13 November 2026 – Tutti 6.4: Mixed sizes, the house marks, big marks
+
+- **Mixed sizes** – a switch in Shape. Some marks span several cells: squares 2×2 to 5×5 and bars 1×2, 1×3 and 2×3 (either way round). **Amount** goes from one or two to as many as fit; **Where** from *Even tone* (only where every cell under a block is in one band – big marks sit in flat areas) to *Anywhere*; **Shuffle** deals another pattern. Blocks always start on their own grid – a 3×3 only every third cell – and never overlap. On video they stay put and change only where the tone does.
+- **A big mark** is the band's mark scaled up: a dot becomes a bigger dot, or a capsule in a bar; an SVG mark fills a square block and is stretched along a bar.
+- **Each band's Mark** opens a drawer under its row: Dot, **the house set** (ring, ring and dot, square, square and dot, X, plus, asterisk, checker, grid of squares) or an SVG of your own – and a **Big mark** for blocks, if a band wants a different one there. All of them are recoloured by the band and come out as vectors in the SVG.
+- **Under it all, the placement list**: the canvas (so PNG, MP4 and GIF) and the SVG now draw from one list of marks. With Mixed sizes off it's one mark per cell, exactly as before – the 12 export hashes are identical to 6.3.
+- Presets, Undo and the change dots carry the new settings; a preset from before 6.4 loads with Mixed sizes off.
+- Tests: Tutti 93 of 93 (was 90); the settings audit has a Mixed sizes set-up – nothing dead.
 ## 13 November 2026 – Segue 1.3: a clip's time, and the clean cut checked
 
 - **A clip's time and its In and Out are one thing.** In Slides, a video's In and Out now sit in its **Timing**, under a new choice, **The clip**:

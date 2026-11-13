@@ -1,4 +1,6 @@
-# Tutti – handover (v6.3)
+# Tutti – handover (v6.4)
+
+**6.4 (13 Nov 2026) – Mixed sizes, the house marks, big marks.** Under it, `placements()` in `index.html`: the one list of marks the canvas and the SVG both draw (`render()`, `svgBlock()`); with Mixed sizes off it is `cellParams` for every cell in the old order, so the 12 export hashes are identical to 6.3. With it on, blocks are chosen biggest first, each on its own grid (`x % w == 0`), from free cells only, all in one band unless Where allows more; whether a slot gets a block is `rnd(x, y, salt)` against Amount, so it is stable on video and Shuffle (`mixSeed`) deals another. Block sprites are cached per band and shape (`blockSprite`, cleared with the sprites). Each band row's **Mark** drawer sets `key`/`inner` (Dot, the `HOUSE` set, or an upload) and a **Big mark** (`bigKey`/`bigInner`/`bigImg`); `loadStateSVG(i, txt, big, key)` loads either. Presets carry it all; a preset from before 6.4 loads with Mixed sizes off.
 
 **6.3 (13 Nov 2026) – change dots, Reset, Undo and Redo.** A row moved from where it started (its value when the page opened) has a blue dot in the change column – click it to put the row back; an open card with anything moved has a **Reset** chip, a shut card or group a dot. **Undo and Redo** in the top bar and on ⌘Z / ⇧⌘Z. Both are in `tutti/frame.js` and go through `snapState()` / `putState()` in `index.html` – the same set of settings a preset holds (`PRESET_KEYS`), with each band's drawn mark kept – so nothing reaches a render: the 12 export hashes are identical to 6.2, 90 of 90 checks pass. One fix: a new cell size (Format, W:H, a portrait source) draws the marks again rather than stretching the last ones. Settings audit: `tests/audit/tutti.py`.
 
@@ -9,7 +11,7 @@
 **Status, 6 October 2026:** step 1 of "Joining the repo" is done – `tutti/index.html` is Tutti 6.0 byte for byte, and `build.py` copies it to `docs/tutti/index.html` for GitHub Pages. Point the Squarespace embed at `https://<username>.github.io/ensemble-tools/tutti/`.
 
 ## Where things are
-- **Source:** `tutti/index.html` v6.3 – its own page and script; `build.py` adds the shared tokens and components, `tutti/frame.css` and `tutti/frame.js`, and the shared GIF encoder (`shared/gif.js`). Only the Adobe Fonts kit (`rhx3hsl`) is loaded from outside, for Aktiv Grotesk.
+- **Source:** `tutti/index.html` v6.4 – its own page and script; `build.py` adds the shared tokens and components, `tutti/frame.css` and `tutti/frame.js`, and the shared GIF encoder (`shared/gif.js`). Only the Adobe Fonts kit (`rhx3hsl`) is loaded from outside, for Aktiv Grotesk.
 - **Checks:** `python3 tests/tutti_check.py` (every part, on its own, framed and full screen; add `firefox webkit` for other engines) `python3 tests/xbrowser.py` (Export across engines) and `python3 tests/audit/tutti.py` (does every setting do something – after a round that adds or moves settings).
 - **Build history:** the chat "Building a pixel art converter tool" (started as a pixel/ASCII idea before becoming Tutti).
 - **Hosting:** GitHub Pages, iframe-embedded on weareensemble.co.uk (Squarespace).

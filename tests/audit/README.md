@@ -18,9 +18,9 @@ Last run 11 Nov 2026 (0.16): 100 settings across 32 set-ups, none dead.
 bands; a picture in a Custom format; Type; Type with Gradient fill), moved to its other values and the canvas compared; each
 change is taken back with `putState`, the snapshot Undo uses, and checked to come back exactly.
 
-Last run 13 Nov 2026 (6.3): 34–45 settings a set-up, none dead. The ones with no effect, and why:
+Last run 13 Nov 2026 (6.4, six set-ups including Mixed sizes with every size, a house mark and a big mark): 35–46 settings a set-up, none dead. The ones with no effect, and why:
 - **Own colours, Reset shapes** – nothing to act on until a band has an SVG mark (with marks, both act).
 - **Even** – the edges are already even; it acts once an edge has moved.
 - **Line height** (Type) – one line of type has no second line to space.
 - **Edges and some band colours** (Type) – black type on white is two tones, so most bands are never used; with Gradient fill more are, and the gradient's darkest end can sit outside the word.
-
+- **Mixed sizes** (Type) – at the default size and grid, the letters' strokes are under two cells wide, so no block fits; larger type or a coarser grid gives it room.

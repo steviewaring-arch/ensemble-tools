@@ -97,6 +97,7 @@ Every suite green against the baselines on main, `tests/corner_check.py` include
 
 ## History
 
+- **13 Nov:** Tutti 6.4 – Mixed sizes (a switch group in Shape), the house set of marks and big marks in a drawer under each band row, all drawn from one placement list.
 - **13 Nov:** Tutti 6.3 – change dots, Reset, Undo and Redo; its settings audit; marks redrawn for a new cell size.
 - **13 Nov:** Segue 1.2 – Blur behind fixed; no "?" marks where rows explain themselves (Rubato 1.3.1, Tempo 0.18.2); Tutti's "?" centred. Tutti could take row notes too (then lose its "?") – part of C6.
 - **13 Nov:** one corner logic across all four; `tests/corner_check.py`; zoom in Tempo; guides in Tutti, Rubato and Tempo; the pop lifted into the kit. Segue 1.1 – stand-ins for big pictures, Glass, Focus, packed Lines, still two-colour drawings, calmer presets; Tutti's labels (C1–C3, C5).
