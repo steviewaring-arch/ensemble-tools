@@ -1,5 +1,13 @@
 # Changelog
 
+## 13 November 2026 – Tutti 6.3: change dots, Reset, Undo and Redo; a settings audit
+
+- **What's moved shows.** A row moved from where it started has a blue dot at its end – click it to put that row back. An open card with anything moved has a **Reset** chip by its title; a shut card or group, a dot. "Where it started" is the value each setting had when the page opened.
+- **Undo and Redo** – the arrows in the top bar, ⌘Z and ⇧⌘Z (Ctrl on Windows). Every change is a step, a drag or a burst of typing is one, and Randomise, Random and a loaded preset are one each. The arrow's tooltip says what it will take back. In the Text box ⌘Z stays the box's own.
+- **Fixed:** changing Format or W:H, or a portrait source, now draws the marks for the new cell size – they were stretched from the last one, a touch soft when the cells grew.
+- **A settings audit** (`tests/audit/tutti.py`): every setting showing, in five set-ups, moved and the canvas compared. None dead; every "no effect" has a reason (below in `tests/audit/README.md`).
+- Nothing it makes has changed – the 12 export hashes are identical to 6.2. Tests: Tutti 90 of 90 (was 87).
+
 ## 13 November 2026 – Segue 1.2: Blur behind that blurs; no stray "?" marks
 
 - **Blur behind** (was Glass, before that Frosted) now works: inside the letters, what's behind is blurred; the text's colour lies over it at Tint. It never worked before – the blur was cut to the letters one at a time and each cut wiped out the last, so all that showed was the tint and an outline. The white outline is gone too.

@@ -1,5 +1,9 @@
 # UI stream – to do
 
+## Done 13 Nov – Tutti 6.3: change dots, Reset, Undo and Redo; its settings audit
+
+Steve, 13 Nov: "Yes get started" (the Tutti plan, `claude/tutti-next-plan.md` in the Project – 6.3 first). The blue dot per row moved from where it started (each input's value when the page opened), click to put back; Reset chip on an open card, a dot on a shut card or group; Undo and Redo in the top bar and on ⌘Z / ⇧⌘Z. In `tutti/frame.js` over `snapState()`/`putState()` in `index.html`. 12 export hashes identical to 6.2; 90 of 90. `tests/audit/tutti.py`: none dead, every "no effect" explained (`tests/audit/README.md`). **Still open from C6:** row notes in place of Tutti's "?" (see History, 13 Nov).
+
 ## Done 12 Nov – the Segue 1.0 round, taken across (Steve: "run any and all aspects that may impact Tutti and Rubato through their UI, test and update the house style … supersede [Tutti's pending round] and implement")
 
 Done in the Segue chat, in one pass, because the parts are shared. Nothing here changes what a tool makes: Tutti's 12 export hashes are identical to 6.2's, Rubato's 14 looks identical to 0.9, Tempo's exports unchanged.
@@ -15,7 +19,7 @@ Done in the Segue chat, in one pass, because the parts are shared. Nothing here 
 **Still open from this round:**
 - **One picker, not two.** Tempo's has CMYK and saved colours; the house one has the shade field, RGB typing and colours in use. Merge into `shared/colour.js` (add a CMYK tab and saved colours), then switch Tempo over (`picker=False` in `build.py` comes out).
 - **Rule change to carry:** one **More** per section is now allowed (UI.md, The panel). Rubato's three "More" groups (B4) are fine *if* each is the only one in its section and says what it holds; A4 below is amended.
-- **13 Nov – Tutti's C1, C2, C3 and C5 are done** (Steve: "yes, implement"): Colour, Format, Scale, Solid fill, Invert, Size by tone, Shape size, Own colours; "Advanced" is **Fine tuning** and says what it holds; band rows have more room. Words and padding only – ids, behaviour and the 12 export hashes unchanged, 87 of 87. **C6 is still open** (change dots and undo, top-bar zoom and guides, pasteboard dots – new parts, not labels). Was: untouched – label wraps, "Advanced", "Ratio"/"Zoom" names, band rows, change dots. They rename labels on a live public tool, so they still want Steve's yes; C4 is done.
+- **13 Nov – Tutti's C1, C2, C3 and C5 are done** (Steve: "yes, implement"): Colour, Format, Scale, Solid fill, Invert, Size by tone, Shape size, Own colours; "Advanced" is **Fine tuning** and says what it holds; band rows have more room. Words and padding only – ids, behaviour and the 12 export hashes unchanged, 87 of 87. **C6** – change dots and undo done in 6.3 (13 Nov); zoom and guides were already in; row notes for the "?" still open. Was: untouched – label wraps, "Advanced", "Ratio"/"Zoom" names, band rows, change dots. They rename labels on a live public tool, so they still want Steve's yes; C4 is done.
 - Rubato: turning and sizing a lockup on the canvas could take Segue's handles (corner sizes, outside a corner turns) – its Tilt dial is the candidate.
 
 ## Done 13 Nov – one corner logic, and zoom and guides everywhere (this chat)
@@ -49,7 +53,7 @@ Steve, 11 Nov: "following the latest release of Segue, we need to update the hou
 - **Rubato 1.3** – the panel in the order of work (Canvas, Text, Fonts, Layout, Motion, Variants, Physics); groups instead of plain headings; the "More" sections named; switches heading what they turn on; Undo and Redo in the top bar with ⇧⌘Z; the dial out of the label column; the top bar's zoom.
 
 1. **Top bar** – keyline groups top right: info chips, Undo and Redo, zoom (−, value, +; fit and 100%), Guides (on/off, an arrow to Margin, Grid, Snap). View settings live here, never in exports.
-2. **Change dots and undo** – blue `--k-dot`, click to put back, section Reset, ⌘Z / ⇧⌘Z and the top-bar buttons. Each tool needs "where a setting started": Tempo – the preset open, else defaults; Rubato – defaults; Tutti – each input's starting value.
+2. **Change dots and undo** – blue `--k-dot`, click to put back, section Reset, ⌘Z / ⇧⌘Z and the top-bar buttons. Each tool needs "where a setting started": Tempo – the preset open, else defaults; Rubato – defaults; Tutti – each input's starting value. **Tutti done (6.3, 13 Nov).**
 3. **Switches** (new, Segue 0.16) – anything optional with settings of its own is a switch that heads them: a switch section (box in the card's head, no arrow) or a switch group (`grp:true` on a toggle in Segue's `frame.js`; `.toggle-row.sw-grp` in its `app.css` – move both to the shared kit). No feature turned on by raising a slider from 0.
 4. **Shut groups say what they hold**; no group called "Advanced", and at most one "More" in a section, at its foot (amended 12 Nov, Segue 1.0); no fifth level (plain labels used as mini-headings).
 5. **The pasteboard's dots**, the panel edge with no mark, the kept scrollbar lane (already in the kit), **one outline** on the canvas, no modifier keys for main actions.
@@ -57,7 +61,7 @@ Steve, 11 Nov: "following the latest release of Segue, we need to update the hou
 7. **The order of work** – lay each panel out again from the top (see B–D).
 8. **A settings audit** for each tool, on the model of `tests/audit/` – every setting changed and the output compared. Fix or hide what it finds before polishing anything.
 
-**Change dots and undo** – the one house part none of the three has yet. Each tool needs "where a setting started": Tutti – each input's starting value; Rubato – defaults (undo and redo are in its top bar now, the dots are not); Tempo – the preset open, else defaults. With it come the blue dot per changed setting, click to put back, and a section Reset.
+**Change dots and undo** – Tutti has them (6.3, 13 Nov); Rubato and Tempo not yet. Each still needs "where a setting started": Rubato – defaults (undo and redo are in its top bar now, the dots are not); Tempo – the preset open, else defaults. With it come the blue dot per changed setting, click to put back, and a section Reset.
 
 **Rubato**
 1. **Long choice grids become menus** – Movement (six), Order (five), Swap (five); with a drawing where the choice has a shape (Movement, Order).
@@ -74,7 +78,7 @@ Steve, 11 Nov: "following the latest release of Segue, we need to update the hou
 
 **Every tool**
 8. **The machine's eye, wider than corners.** `tests/corner_check.py` is the model: read what is on the page and compare it with the house, rather than looking. Heights, type sizes and the greys would all take the same treatment.
-9. **A settings audit** on the model of `tests/audit/` – every setting changed and the output compared – for Tutti, Rubato and Tempo. Segue has one.
+9. **A settings audit** on the model of `tests/audit/` – every setting changed and the output compared – for Rubato and Tempo. Segue and Tutti (6.3, `tests/audit/tutti.py`) have one.
 
 1. **Labels that wrap:** "Canvas colour" (inside Canvas → "Colour"), "Fill shapes solid", "Invert mapping", "Scale with midtones", "Shape size / overlap", "Keep SVG colours".
 2. **"Advanced"** – a section named for nothing; name it by what's in it or move its settings to what they're settings of.
@@ -93,6 +97,7 @@ Every suite green against the baselines on main, `tests/corner_check.py` include
 
 ## History
 
+- **13 Nov:** Tutti 6.3 – change dots, Reset, Undo and Redo; its settings audit; marks redrawn for a new cell size.
 - **13 Nov:** Segue 1.2 – Blur behind fixed; no "?" marks where rows explain themselves (Rubato 1.3.1, Tempo 0.18.2); Tutti's "?" centred. Tutti could take row notes too (then lose its "?") – part of C6.
 - **13 Nov:** one corner logic across all four; `tests/corner_check.py`; zoom in Tempo; guides in Tutti, Rubato and Tempo; the pop lifted into the kit. Segue 1.1 – stand-ins for big pictures, Glass, Focus, packed Lines, still two-colour drawings, calmer presets; Tutti's labels (C1–C3, C5).
 - **12 Nov:** Segue 1.0 – the hitlist (turning, endings, a video behind, frosted type, own shapes everywhere, the deck, the house picker, a still bottom line, sixteen presets). The shared parts taken to Rubato 1.2.1, Tempo 0.18.1 and Tutti in the same pass; `UI.md` revised.

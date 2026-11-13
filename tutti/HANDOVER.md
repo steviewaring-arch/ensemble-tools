@@ -1,6 +1,8 @@
 # Tutti – handover (v6.3)
 
-**6.3 (11 Nov 2026) – the house style.** No section named for nothing: "Advanced" is gone – Opacity sits in **Shape**, **Rotation** is a group inside it, **Thresholds** a shut group inside Mapping, and **Presets** is a section of its own. **Warp** in Source is a group rather than a plain label used as a heading, and groups remember whether they are open. Names that fit the label column and say one thing: Ratio → **Format**, Canvas colour → **Colour**, Zoom → **Source zoom**, Fill shapes solid → **Filled**, Invert mapping → **Invert**, Scale with midtones → **Size by tone**, Min size → **Smallest**, Shape size / overlap → **Mark size**, Mark opacity → **Opacity**, Keep SVG colours → **SVG colours**. The colour row is the house's – a hex field you can type into with the swatch at its end – the Mapping band rows have room left and right, and the top bar carries the view's **zoom** (`shared/view.js`: Fit, 100%, ⌘ and a scroll). Nothing of this reaches a render: 84 of 84 checks pass and the 12 export hashes are byte-identical to 6.2. Rules: `shared/UI.md`.
+**6.3 (13 Nov 2026) – change dots, Reset, Undo and Redo.** A row moved from where it started (its value when the page opened) has a blue dot in the change column – click it to put the row back; an open card with anything moved has a **Reset** chip, a shut card or group a dot. **Undo and Redo** in the top bar and on ⌘Z / ⇧⌘Z. Both are in `tutti/frame.js` and go through `snapState()` / `putState()` in `index.html` – the same set of settings a preset holds (`PRESET_KEYS`), with each band's drawn mark kept – so nothing reaches a render: the 12 export hashes are identical to 6.2, 90 of 90 checks pass. One fix: a new cell size (Format, W:H, a portrait source) draws the marks again rather than stretching the last ones. Settings audit: `tests/audit/tutti.py`.
+
+*An earlier "6.3" round (11 Nov: Advanced dissolved, renames) was written up here but never released – the 12 and 13 Nov rounds superseded it (labels C1–C5, "Fine tuning").* 
 
 **6.2 (6 Nov 2026) – the house kit.** `build.py` adds `shared/kit.css` after the shared tokens and components; `tutti/frame.css` ends with Tutti's parts in kit terms (rows on the label column, switches, buttons, choices, bands, Edges, the Export sheet); `tutti/frame.js` has the house slider (drag by distance, Shift finer, click to jump, label beside the bar; the Edges keep their label inside) and keyboard-only focus rings; the panel drags 280–480. It only moves and dresses controls – the 12 export hashes in `tests/tutti_check.py` match 6.1.1, and 84 of 84 checks pass, framed (`?embed`) and edge to edge (`?app`). Rules: `shared/UI.md`.
 
@@ -8,7 +10,7 @@
 
 ## Where things are
 - **Source:** `tutti/index.html` v6.3 – its own page and script; `build.py` adds the shared tokens and components, `tutti/frame.css` and `tutti/frame.js`, and the shared GIF encoder (`shared/gif.js`). Only the Adobe Fonts kit (`rhx3hsl`) is loaded from outside, for Aktiv Grotesk.
-- **Checks:** `python3 tests/tutti_check.py` (every part, on its own, framed and full screen; add `firefox webkit` for other engines) and `python3 tests/xbrowser.py` (Export across engines).
+- **Checks:** `python3 tests/tutti_check.py` (every part, on its own, framed and full screen; add `firefox webkit` for other engines) `python3 tests/xbrowser.py` (Export across engines) and `python3 tests/audit/tutti.py` (does every setting do something – after a round that adds or moves settings).
 - **Build history:** the chat "Building a pixel art converter tool" (started as a pixel/ASCII idea before becoming Tutti).
 - **Hosting:** GitHub Pages, iframe-embedded on weareensemble.co.uk (Squarespace).
 

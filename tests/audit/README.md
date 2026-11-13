@@ -11,3 +11,16 @@ they are not part of the ordinary test run).
 "No effect" isn't always a fault – Sizes does nothing when the media are all one size, a background colour nothing behind
 full-bleed cuts – but each one should be explainable, and a setting that never has an effect is dead.
 Last run 11 Nov 2026 (0.16): 100 settings across 32 set-ups, none dead.
+
+## Tutti
+
+`python3 tutti.py` (about two minutes) – every control showing, in five set-ups (a picture; a picture with SVG marks on three
+bands; a picture in a Custom format; Type; Type with Gradient fill), moved to its other values and the canvas compared; each
+change is taken back with `putState`, the snapshot Undo uses, and checked to come back exactly.
+
+Last run 13 Nov 2026 (6.3): 34–45 settings a set-up, none dead. The ones with no effect, and why:
+- **Own colours, Reset shapes** – nothing to act on until a band has an SVG mark (with marks, both act).
+- **Even** – the edges are already even; it acts once an edge has moved.
+- **Line height** (Type) – one line of type has no second line to space.
+- **Edges and some band colours** (Type) – black type on white is two tones, so most bands are never used; with Gradient fill more are, and the gradient's darkest end can sit outside the word.
+
