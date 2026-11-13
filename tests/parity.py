@@ -221,8 +221,15 @@ def t2(r):
         sw = either(pg, 'Stretch', 'Stretch to fill') if step == 'stretch' \
             else pg.get_by_role('switch', name='Repeat rows', exact=True)
         sw.click(); r.wait(200); r.canvas(name)
-    q = pg.locator('.q').first; q.scroll_into_view_if_needed(); r.wait(300)
-    pg.mouse.move(5, 5); r.wait(100); q.hover(); r.wait(300)
+    # from Rubato 1.3.1 (13 Nov) there's no "?" where a pointer can hover – resting on the row shows its note, so
+    # where the first "?" is hidden, rest on its row instead (a little longer: a row's note waits ~0.5 s)
+    q = pg.locator('.q').first
+    if q.is_visible():
+        q.scroll_into_view_if_needed(); r.wait(300); pg.mouse.move(5, 5); r.wait(100); q.hover(); r.wait(300)
+    else:
+        row = q.locator('xpath=ancestor::*[contains(concat(" ",normalize-space(@class)," ")," ctl ") or contains(@class,"toggle-row") or contains(@class,"colour-row")][1]')
+        row.scroll_into_view_if_needed(); r.wait(300); pg.mouse.move(5, 5); r.wait(100)
+        bb = row.bounding_box(); pg.mouse.move(bb['x'] + 20, bb['y'] + bb['height'] / 2); r.wait(900)
     r.put('tooltip', f"{pg.locator('.tip.on').count()} shown: {pg.locator('.tip').inner_text()}")
     # Studio's ? buttons (the reference also holds the hidden Screensaver cards)
     r.put('? count', str(pg.evaluate("document.querySelectorAll('section.card:not([data-tab=saver]) .q').length")))

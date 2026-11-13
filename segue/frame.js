@@ -409,7 +409,8 @@ function frameStart(){
     if(e.key===' '&&!(tg&&tg.tagName==='BUTTON')){e.preventDefault();setPlaying(!playing);}},true);
   $('#islandMain').addEventListener('scroll',islMore,{passive:true});
   let refitT=0;const refit=()=>{cancelAnimationFrame(refitT);refitT=requestAnimationFrame(()=>document.querySelectorAll('.seg').forEach(fitSeg));};
-  const ro=new ResizeObserver(()=>{layoutUI();fitCanvas();refit();});ro.observe($('.island-in'));ro.observe($('#panelBox'));ro.observe($('#view'));ro.observe($('#pcap .pc-row'));if($('#projBox'))ro.observe($('#projBox'));
+  /* laid out on the next frame, not inside the observer – changing sizes inside it is what Safari calls a loop */
+  let roF=0;const ro=new ResizeObserver(()=>{if(roF)return;roF=requestAnimationFrame(()=>{roF=0;layoutUI();fitCanvas();refit();});});ro.observe($('.island-in'));ro.observe($('#panelBox'));ro.observe($('#view'));ro.observe($('#pcap .pc-row'));if($('#projBox'))ro.observe($('#projBox'));
   if(document.fonts)document.fonts.ready.then(refit);
   requestAnimationFrame(()=>setTimeout(()=>document.body.classList.add('kit-live'),600));
   window.addEventListener('resize',layoutUI);
