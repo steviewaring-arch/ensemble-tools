@@ -41,14 +41,14 @@ ARCHIVE = [('rubato', '0.9', 'archive/rubato-0.9.html', "const APP='rubato';", "
 # the exported page), and the app files that go inside the shared wrapper.
 APPS = {
     'rubato': dict(
-        title='Rubato – by Ensemble', version='1.3',
+        title='Rubato – by Ensemble', version='1.3.1',
         body='rubato/app.html', css='rubato/app.css',
         tagged=[('rubato-engine', 'rubato/engine.js')],
         before='shared/gif.js',
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo – by Ensemble', version='0.18.1',
+        title='Tempo – by Ensemble', version='0.18.2',
         body='tempo/app.html', css='tempo/app.css',
         tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
                 ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js'),
@@ -65,7 +65,7 @@ APPS = {
 # does: the shared core is still tied to Rubato's settings and type engine. It takes the
 # shared GIF encoder and Tempo's copy of mp4-muxer (MIT).
 SEGUE = dict(
-    title='Segue – by Ensemble', version='1.1',
+    title='Segue – by Ensemble', version='1.2',
     body='segue/app.html', css='segue/app.css',
     tagged=[('segue-engine', 'segue/engine.js'), ('segue-mp4', 'tempo/vendor/mp4-muxer.js')],
     before='shared/gif.js',

@@ -754,7 +754,7 @@ function drawOverlay(ctx,S,SC,fonts,opt){
     const base0=(v==='t'?m+b.ch:v==='b'?H-m-(n-1)*b.lh:(H-hb)/2+b.ch)+ny;
     const glyphs=(c,solid)=>{c.font=b.st.font;try{c.fontKerning='none';}catch(e){}c.textBaseline='alphabetic';c.textAlign='left';
       b.lines.forEach((L,j)=>{const x=hx(L.width),y=base0+j*b.lh;for(const g of L.glyphs){if(!g.ch.trim())continue;c.fillStyle=solid||g.c||b.st.colour;c.fillText(g.ch,x+g.x,y);}});};
-    /* Glass (1.0 as Frosted; renamed 1.1): the letters are glass – what's beneath shows through them, blurred, with the text's
+    /* Blur (1.0 Frosted, 1.1 Glass, 1.2 Blur): the letters blur what's behind them – what's beneath shows through them, blurred, with the text's
        colour laid over as a tint. The blur is made by shrinking the frame and growing it again (no canvas filter, so
        it's the same in Safari), then cut to the letters and put back. */
     const fr=S.ovFrost?clamp(+S.ovBlur||0,0,200):0;
@@ -766,18 +766,18 @@ function drawOverlay(ctx,S,SC,fonts,opt){
       /* back up in halves too, so it's soft rather than blocky */
       let uw=w,uh=h,us=src;while(uw<cw||uh<chh){const nw=Math.min(cw,uw*2),nh=Math.min(chh,uh*2),last=nw===cw&&nh===chh,dst=last?c:(us===a.canvas?bb:a);dst.imageSmoothingEnabled=true;dst.drawImage(us,0,0,uw,uh,0,0,nw,nh);us=dst.canvas;uw=nw;uh=nh;if(last)break;}
       if(us!==C){c.drawImage(us,0,0,uw,uh,0,0,cw,chh);}
-      c.globalCompositeOperation='destination-in';c.setTransform(T);glyphs(c,'#000');c.setTransform(1,0,0,1,0,0);
+      /* the letters as one mask first, then the blur cut to it in one go. (1.1 cut it letter by letter with
+         destination-in – each letter wiped out the last, so nothing blurred was left: Steve's grab of 13 Nov.) */
+      const M=frostCanvases(cw,chh)[4],m=M.getContext('2d');m.setTransform(1,0,0,1,0,0);m.globalAlpha=1;m.globalCompositeOperation='source-over';m.clearRect(0,0,cw,chh);m.setTransform(T);glyphs(m,'#000');m.setTransform(1,0,0,1,0,0);
+      c.globalCompositeOperation='destination-in';c.drawImage(M,0,0);c.globalCompositeOperation='source-over';
       ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.globalAlpha=1;ctx.globalCompositeOperation='source-over';ctx.drawImage(C,0,0);ctx.restore();
-      /* Glass (1.1): it's glass whatever the Blend says – the tint lies straight over the blur, and a hair of light
-         round each letter is what makes it read as a pane rather than a smudge */
-      const a0=ctx.globalAlpha;ctx.globalCompositeOperation='source-over';
-      ctx.globalAlpha=a0*clamp(S.ovTint==null?.2:+S.ovTint/100,0,1);glyphs(ctx);
-      ctx.globalAlpha=a0*.5;ctx.lineJoin='round';ctx.lineWidth=Math.max(1/k,b.st.size*.006);ctx.strokeStyle='#FFFFFF';ctx.font=b.st.font;
-      b.lines.forEach((L,j)=>{const x=hx(L.width),y=base0+j*b.lh;for(const g of L.glyphs){if(g.ch.trim())ctx.strokeText(g.ch,x+g.x,y);}});}
+      /* Blur (1.2 – Steve: "lets consider it not glass, but blur"): the text's colour lies over it at Tint, whatever the Blend */
+      const a0=ctx.globalAlpha,tn=clamp(S.ovTint==null?.2:+S.ovTint/100,0,1);ctx.globalCompositeOperation='source-over';
+      if(tn>0){ctx.globalAlpha=a0*tn;glyphs(ctx);}}
     else glyphs(ctx);}
   ctx.restore();}
 let FROST=null;
-function frostCanvases(w,h){if(!FROST)FROST=[0,1,2,3].map(()=>document.createElement('canvas'));for(const c of FROST)if(c.width!==w||c.height!==h){c.width=w;c.height=h;}return FROST;}
+function frostCanvases(w,h){if(!FROST)FROST=[0,1,2,3,4].map(()=>document.createElement('canvas'));for(const c of FROST)if(c.width!==w||c.height!==h){c.width=w;c.height=h;}return FROST;}
 /* a soft copy of a canvas: halved d times over, then doubled back up – returns the third of the kept canvases */
 function softCopy(srcC,cw,chh,d){const [A,B,C]=frostCanvases(cw,chh),a=A.getContext('2d'),bb=B.getContext('2d'),c=C.getContext('2d');
   for(const x of [a,bb,c]){x.setTransform(1,0,0,1,0,0);x.globalAlpha=1;x.globalCompositeOperation='copy';x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';}

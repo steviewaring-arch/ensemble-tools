@@ -457,8 +457,7 @@
     #pcap .pc-row{justify-content:flex-end}
   }
 
-  /* ============ House parts every tool takes (lifted out of Segue, 11 Nov) ============
-     These were written in Segue and proved there; they are the house's, not Segue's. */
+  /* ============ House parts every tool takes (lifted out of Segue, 11 Nov) =====     These were written in Segue and proved there; they are the house's, not Segue's. */
 
   /* 0.11: the pasteboard – very sparse, very faint dots round the canvas, so it's plain what's canvas and what isn't */
   .view{background-image:radial-gradient(circle,color-mix(in srgb,var(--ink) 15%,transparent) 0 .75px,transparent 1.05px);background-size:24px 24px;background-position:center}
@@ -533,3 +532,8 @@
   .notice .n-tx b{font-size:var(--fs-small);font-weight:500;color:var(--ink-strong)}
   .notice .n-tx span{font-size:var(--fs-small);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   @keyframes noteIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+=======
+  /* 13 Nov – one kind of "?" everywhere: a circle, the same size, centred on the row's middle. Where a pointer can
+     hover and the row shows its own tip (Segue, Rubato, Tempo – html.row-tips), there's none at all. */
+  .q,.toggle-row>.q,.colour-row>.q{width:15px;height:15px;border-radius:50%}
+  @media (hover:hover){html.row-tips .q{display:none!important}}

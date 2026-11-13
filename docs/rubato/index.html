@@ -220,6 +220,10 @@
   /* help */
   .hint{font-size:12.5px;line-height:1.45;color:var(--muted);margin:2px 0 12px;letter-spacing:-0.005em}
   .q{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:0;box-shadow:inset 0 0 0 1px var(--hair);background:none;color:var(--muted);font-family:var(--face);font-size:10px;line-height:1;padding:0;margin-left:2px;cursor:help;flex:none;font-style:normal;letter-spacing:0;transition:opacity .15s}
+  /* the "?" is drawn, not typed, so it sits dead centre in its circle whatever the font (13 Nov) */
+  .q{font-size:0!important;color:var(--muted)}
+  .q::before{content:'';width:8px;height:8px;background:currentColor;-webkit-mask:var(--q-glyph) center/contain no-repeat;mask:var(--q-glyph) center/contain no-repeat}
+  :root{--q-glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M2.3 2.7a1.75 1.75 0 1 1 2.5 1.6c-.5.25-.8.6-.8 1.1v.2' fill='none' stroke='%23000' stroke-width='1.15' stroke-linecap='round'/%3E%3Ccircle cx='4' cy='7.2' r='.62'/%3E%3C/svg%3E")}
   .q:hover,.q:focus-visible{box-shadow:inset 0 0 0 1px var(--ink);color:var(--ink)}
   .q:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   @media (hover:hover){.q{opacity:0}.ctl:hover .q,.toggle-row:hover .q,.colour-row:hover .q,.ctl:focus-within .q,.toggle-row:focus-within .q,.colour-row:focus-within .q,.q:focus-visible{opacity:1}}
@@ -966,8 +970,7 @@
     #pcap .pc-row{justify-content:flex-end}
   }
 
-  /* ============ House parts every tool takes (lifted out of Segue, 11 Nov) ============
-     These were written in Segue and proved there; they are the house's, not Segue's. */
+  /* ============ House parts every tool takes (lifted out of Segue, 11 Nov) =====     These were written in Segue and proved there; they are the house's, not Segue's. */
 
   /* 0.11: the pasteboard – very sparse, very faint dots round the canvas, so it's plain what's canvas and what isn't */
   .view{background-image:radial-gradient(circle,color-mix(in srgb,var(--ink) 15%,transparent) 0 .75px,transparent 1.05px);background-size:24px 24px;background-position:center}
@@ -1042,6 +1045,11 @@
   .notice .n-tx b{font-size:var(--fs-small);font-weight:500;color:var(--ink-strong)}
   .notice .n-tx span{font-size:var(--fs-small);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   @keyframes noteIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+=======
+  /* 13 Nov – one kind of "?" everywhere: a circle, the same size, centred on the row's middle. Where a pointer can
+     hover and the row shows its own tip (Segue, Rubato, Tempo – html.row-tips), there's none at all. */
+  .q,.toggle-row>.q,.colour-row>.q{width:15px;height:15px;border-radius:50%}
+  @media (hover:hover){html.row-tips .q{display:none!important}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.js"></script>
 </head>
@@ -1052,7 +1060,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Rubato</span><span class="ver">1.3</span></div>
+      <div class="bline"><span class="mark">Rubato</span><span class="ver">1.3.1</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -2267,7 +2275,13 @@ document.addEventListener('mouseover',e=>{const t=e.target.closest?e.target:null
   if(src&&src===tipMute)return;tipMute=null;
   if(src&&src!==tipFor){rowTipT=setTimeout(()=>showTip(src,src.dataset.tip,src.offsetParent?src:row),src===row?400:550);return;}
   if(!src&&tipFor&&!(byKeys&&document.activeElement===tipFor))hideTip();});
-document.addEventListener('focusin',e=>{const q=e.target.closest&&e.target.closest('.q,[data-tip]');if(q&&byKeys)showTip(q);else if(tipFor)hideTip();});
+/* 13 Nov – no "?" marks where a pointer can hover: the row says it when you rest on it. By keyboard, it says it when
+   the control is reached. (Steve: "remove (or align) the ?" – they showed in some rows, as circles or squares, off
+   centre.) The mark stays for touch, where nothing hovers. */
+document.documentElement.classList.add('row-tips');
+document.addEventListener('focusin',e=>{const t=e.target.closest?e.target:null,q=t&&t.closest('.q,[data-tip]');
+  if(byKeys&&t){const src=q||tipRow(t);if(src&&src.dataset.tip){const row=t.closest('.ctl,.toggle-row,.colour-row,.slot-top');showTip(src,src.dataset.tip,src.offsetParent?src:(row||t));return;}}
+  if(tipFor)hideTip();});
 document.addEventListener('click',e=>{const q=e.target.closest&&e.target.closest('.q');if(q){e.preventDefault();if(tipFor===q)hideTip();else showTip(q);}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&tipFor)hideTip();});
 $('#panel').addEventListener('scroll',()=>{if(tipFor)hideTip();},{passive:true});

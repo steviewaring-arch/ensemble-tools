@@ -1230,13 +1230,13 @@ function placePad(parent,show){const w=el('div','ctl place-ctl'),hd=el('div','ct
   build(po,[{t:'range',k:'ovM',label:'Margin',min:0,max:400,step:1,unit:' px',show:s=>s.ovPos!=='mc'},
     {t:'range',k:'ovX',label:'Across',min:-600,max:600,step:1,unit:' px'},{t:'range',k:'ovY',label:'Up and down',min:-600,max:600,step:1,unit:' px'},
     {t:'seg',k:'ovZ',label:'Sits',opts:[['top','Over everything'],['mid','Among the shapes']],show:s=>isK('float')(s)&&(+s.depth||0)>0}]);
-  const bl=fold(b,'ovLook','Blend and opacity',on,true,s=>[s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):'',+s.ovA<100?`${Math.round(s.ovA)}%`:'',s.ovFrost&&s.ovKind==='text'?'Glass':''].filter(Boolean).join(' · ')||'Normal, full');
+  const bl=fold(b,'ovLook','Blend and opacity',on,true,s=>[s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):'',+s.ovA<100?`${Math.round(s.ovA)}%`:'',s.ovFrost&&s.ovKind==='text'?'Blur behind':''].filter(Boolean).join(' · ')||'Normal, full');
   build(bl,[{t:'seg',k:'ovBlend',label:'Blend',opts:[['normal','Normal'],['difference','Difference'],['multiply','Multiply'],['screen','Screen']]},
     {t:'range',k:'ovA',label:'Opacity',min:0,max:100,step:1,unit:'%'},
     /* Glass (1.0 as "Frosted"; Steve, 12 Nov: "frosted is not the right term … a sort of glass overlay to text that blurs what is behind within the text itself") */
-    {t:'toggle',grp:true,k:'ovFrost',label:'Glass',show:txt,tip:'The letters become glass: what’s behind shows through them, blurred, with the text’s colour over it as a tint'},
-    {t:'range',k:'ovBlur',label:'Blur',min:1,max:120,step:1,unit:' px',show:s=>txt(s)&&s.ovFrost},
-    {t:'range',k:'ovTint',label:'Tint',min:0,max:100,step:1,unit:'%',show:s=>txt(s)&&s.ovFrost,tip:'How much of the text’s colour lies over the blur – 0 is clear glass'}]);
+    {t:'toggle',grp:true,k:'ovFrost',label:'Blur behind',show:txt,tip:'The letters blur what’s behind them, with the text’s colour over the blur as a tint'},
+    {t:'range',k:'ovBlur',label:'Amount',min:1,max:120,step:1,unit:' px',show:s=>txt(s)&&s.ovFrost},
+    {t:'range',k:'ovTint',label:'Tint',min:0,max:100,step:1,unit:'%',show:s=>txt(s)&&s.ovFrost,tip:'How much of the text’s colour lies over the blur – 0 is the blur alone'}]);
   SUMMARY.overlay=s=>!s.ovOn?'Off':[s.ovKind==='image'?(PICS.ov?'Image':'Image – none yet'):(String(s.ovText||'').trim()?`“${String(s.ovText).split('\n')[0].replace(/[*{}]|#[0-9a-f]{3,8}:/gi,'').slice(0,18)}”`:'Text – none yet'),
     optLabel(PLACES,s.ovPos),s.ovBlend!=='normal'?optLabel([['difference','Difference'],['multiply','Multiply'],['screen','Screen']],s.ovBlend):''].filter(Boolean).join(' · ');}
 /* the order of work (0.16): the canvas, what goes on it, how it's arranged, how it moves – then type: captions, and an overlay.

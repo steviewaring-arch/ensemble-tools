@@ -11,11 +11,12 @@ needs an example, look at Segue. The kit lives in `shared/kit.css`; the mock-ups
 reasoning are at `ui/review/` (round 4 at `ui/review/round4/`). The history of each
 rule is in `CHANGELOG.md`; this file says only what holds now.
 
-Last revised 13 November 2026 (Segue 1.1, Tempo 0.18.1, Rubato 1.3, Tutti 6.3) – Segue 1.1:
-drawings that don't move, in two colours; calm presets; a stand-in for big pictures. Before
-that, the 1.0 round: the bottom line that stays put, the house colour picker, one "More" per
-section, turning on the canvas, a short list of presets, 15 px section titles. And on the 13th,
-one corner logic across all four, with zoom and guides shared by every tool.
+Last revised 13 November 2026 (Segue 1.2, Tempo 0.18.2, Rubato 1.3.1, Tutti 6.3) – Segue 1.2:
+no "?" marks where rows explain themselves. Segue 1.1: drawings that don't move, in two colours;
+calm presets; a stand-in for big pictures. Before that, the 1.0 round: the bottom line that stays
+put, the house colour picker, one "More" per section, turning on the canvas, a short list of
+presets, 15 px section titles. And on the 13th, one corner logic across all four, with zoom and
+guides shared by every tool.
 What each tool still has to take up is in `shared/UI-TODO.md` (the Project's `claude/ui-todo.md`).
 
 ## Principles
@@ -398,6 +399,15 @@ Aktiv Grotesk (Adobe Fonts kit `rhx3hsl`), three weights with three jobs:
 
 UK English, en dashes with spaces, plain words. Name things by what people see.
 A button says what it does ("Download GIF"); status says what happened ("Saved …").
+
+## Notes on a setting
+
+A setting that needs a word of explanation has a note. **Resting the pointer on its row shows it** (after a short
+pause), and so does reaching the control by keyboard. There is **no "?" mark** where a pointer can hover – it
+appeared and vanished with the row, came out as circles in some places and squares in others, and the glyph sat off
+centre (Steve, 13 Nov). On touch, where nothing hovers, the "?" is there: always a 15 px circle, the glyph drawn
+rather than typed so it's centred whatever the font. A tool whose rows can't show their own note (Tutti, for now)
+keeps the circle too.
 
 ## Colour
 

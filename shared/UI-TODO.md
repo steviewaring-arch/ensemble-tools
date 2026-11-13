@@ -93,6 +93,7 @@ Every suite green against the baselines on main, `tests/corner_check.py` include
 
 ## History
 
+- **13 Nov:** Segue 1.2 – Blur behind fixed; no "?" marks where rows explain themselves (Rubato 1.3.1, Tempo 0.18.2); Tutti's "?" centred. Tutti could take row notes too (then lose its "?") – part of C6.
 - **13 Nov:** one corner logic across all four; `tests/corner_check.py`; zoom in Tempo; guides in Tutti, Rubato and Tempo; the pop lifted into the kit. Segue 1.1 – stand-ins for big pictures, Glass, Focus, packed Lines, still two-colour drawings, calmer presets; Tutti's labels (C1–C3, C5).
 - **12 Nov:** Segue 1.0 – the hitlist (turning, endings, a video behind, frosted type, own shapes everywhere, the deck, the house picker, a still bottom line, sixteen presets). The shared parts taken to Rubato 1.2.1, Tempo 0.18.1 and Tutti in the same pass; `UI.md` revised.
 - **11 Nov:** Segue 0.11–0.17 (in the Segue chat) – blends that make layers, the project chip, Layout apart from Motion, Pile up, cropping by double-click, the settings audit, switch groups, no Additionals, the export as one control and the bottom line. `shared/UI.md` rewritten. Safari 17 sheet fallback shared with Rubato and Tempo.

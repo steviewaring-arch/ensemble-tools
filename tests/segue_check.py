@@ -58,6 +58,10 @@ COLS = ['#EA2631', '#2F5DA8', '#3C6E5A', '#E2552D', '#111111']
 IMGS = []
 for i, c in enumerate(COLS):
     p = os.path.join(OUT, f'img{i+1}.png'); im = Image.new('RGB', (1600, 1000), c); ImageDraw.Draw(im).rectangle([100, 100, 700, 500], fill='#F5F5F3'); im.save(p); IMGS.append(p)
+STRIPES = os.path.join(OUT, 'stripes.png')   # fine detail, to tell a blur from none (1.2)
+_im = Image.new('RGB', (1600, 1000), '#FFFFFF'); _d = ImageDraw.Draw(_im)
+for _x in range(0, 1600, 4): _d.line([(_x, 0), (_x, 999)], fill='#000000', width=2)
+_im.save(STRIPES)
 CLIPS = []
 for i, src in enumerate(['testsrc2=size=960x600:rate=30:duration=4', 'testsrc=size=960x600:rate=30:duration=3']):
     p = os.path.join(OUT, f'clip{i+1}.webm'); ff('-f', 'lavfi', '-i', src, '-c:v', 'libvpx-vp9', '-b:v', '2M', '-g', '10', '-pix_fmt', 'yuv420p', p); CLIPS.append(p)
@@ -473,7 +477,7 @@ with sync_playwright() as p:
     ov = outline('overlay', True)
     check('Overlay: what goes over, its Type, Position (the pad, margin and nudge together), then Blend and opacity – on and off by the box in its head (0.10)',
           ov[:2] == ['What', 'Text'] and [x for x in ov if x.startswith('▸')] == ['▸ Type', '▸ Position', '▸ Blend and opacity']
-          and group(ov, 'Position') in (['Place', 'Margin', 'Across', 'Up and down'], ['Place', 'Across', 'Up and down']) and group(ov, 'Blend and opacity') == ['Blend', 'Opacity', 'Glass'], str(ov))
+          and group(ov, 'Position') in (['Place', 'Margin', 'Across', 'Up and down'], ['Place', 'Across', 'Up and down']) and group(ov, 'Blend and opacity') == ['Blend', 'Opacity', 'Blur behind'], str(ov))
     pg.evaluate("segue.set('ovOn',false);segue.set('capOn',false)")
     mo = outline('motion')
     check('Motion: After the last holds the choice; Pull back, its settings, appears as a group of its own only when you pull back',
@@ -1286,13 +1290,15 @@ with sync_playwright() as p:
       const a=at(.3);o.n=a.length;o.join=at(1e-4).join('|')===at(P.L+1e-4).join('|');const ops=E.scene(S,segue.items,c,segue.fonts,W,H,.3).ops.filter(x=>x.item);o.top=ops[ops.length-1].rect.w;o.under=ops[ops.length-2].rect.w;o.up=ops[ops.length-2].rect.y<ops[ops.length-1].rect.y;return o;}""")
     check('Deck (1.0, his reference): the cards beneath the top sit a step back and a touch smaller so their edges show, and with Cover the deck goes round with the loop joining exactly',
           dk['n'] >= 3 and dk['join'] and dk['under'] < dk['top'] and dk['up'], str(dk))
+    q.set_input_files('#mediafile', STRIPES); time.sleep(1.2); q.evaluate("segue.items.unshift(segue.items.pop());segue.refresh()")
     fo = q.evaluate("""()=>{const E=segue.E,S=segue.S;segue.applyPreset('Straight cuts');for(const [k,v] of [['ovOn',true],['ovKind','text'],['ovText','MMMM'],['OS',300],['OC','#00FF00'],['ovFrost',false]])segue.set(k,v);
       const cv=document.createElement('canvas'),[W,H]=E.canvasSize(S);cv.width=W;cv.height=H;const c=cv.getContext('2d');
       return (async()=>{const grab=async()=>{await segue.frameAt(cv,c,W,H,.2,1);return c.getImageData(0,0,W,H).data;};const plain=await grab();segue.set('ovFrost',true);segue.set('ovTint',0);segue.set('ovBlur',40);const fr=await grab();segue.set('ovTint',100);const full=await grab();segue.set('ovOn',false);const none=await grab();
-        let inText=0,green=0,changed=0;for(let i=0;i<plain.length;i+=4*7){const g=plain[i]===0&&plain[i+1]===255&&plain[i+2]===0;if(!g)continue;inText++;if(fr[i]===0&&fr[i+1]===255&&fr[i+2]===0)green++;if(full[i]===0&&full[i+1]===255&&full[i+2]===0)changed++;}
-        segue.set('ovFrost',false);return {inText,green,changed,ctl:['ovBlur','ovTint'].map(k=>!!segue.ui.controls.find(c=>c.d&&c.d.k===k))};})();}""")
-    check('Frosted type (1.0): the overlay’s letters show what’s beneath them, blurred – at no tint none of the text’s own colour is left, at full tint it is all there; Blur and Tint set how much',
-          fo['inText'] > 500 and fo['green'] == 0 and fo['changed'] > fo['inText'] * .9 and fo['ctl'] == [True, True], str(fo))
+        let inText=0,green=0,changed=0,dB=0,dN=0,out=0,outSame=0;const isG=(a,i)=>a[i]===0&&a[i+1]===255&&a[i+2]===0,nd=(a,i)=>Math.abs(a[i]-a[i+4])+Math.abs(a[i+1]-a[i+5])+Math.abs(a[i+2]-a[i+6]);
+        for(let i=0;i<plain.length-8;i+=4*7){if(!isG(plain,i)){if(i%(4*49)===0){out++;if(nd(fr,i)===nd(none,i)&&fr[i]===none[i])outSame++;}continue;}if(!isG(plain,i+4))continue;inText++;if(isG(fr,i))green++;if(isG(full,i))changed++;dB+=nd(fr,i);dN+=nd(none,i);}
+        segue.items.push(segue.items.shift());segue.refresh();segue.set('ovFrost',false);return {inText,green,changed,soft:+(dB/Math.max(1,dN)).toFixed(3),dB,dN,outSame:+(outSame/Math.max(1,out)).toFixed(3),ctl:['ovBlur','ovTint'].map(k=>!!segue.ui.controls.find(c=>c.d&&c.d.k===k))};})();}""")
+    check('Blur behind (1.0 Frosted; fixed 1.2): inside the letters what’s beneath is blurred – under a third of its pixel-to-pixel detail left – and outside them it’s untouched; at no tint none of the text’s colour shows, at full tint it all does; Amount and Tint set how much',
+          fo['inText'] > 500 and fo['soft'] < .33 and fo['outSame'] > .97 and fo['green'] == 0 and fo['changed'] > fo['inText'] * .9 and fo['ctl'] == [True, True], str(fo))
     q.set_input_files('#bgfile', CLIPS[0]); time.sleep(2)
     bv = q.evaluate("[segue.pics.bg&&segue.pics.bg.kind,segue.pics.bg&&segue.pics.bg.w>0,document.querySelector('#bgfile').accept.includes('video')]")
     fm = q.evaluate("[...document.querySelector('#c_OF').options].pop().textContent")
@@ -1335,7 +1341,7 @@ with sync_playwright() as p:
     check('Big pictures have a stand-in for the moving preview (1.1) – a canvas no more than 1,280 px long, the picture itself kept for pausing and exports, its size still the picture’s own',
           v11['proxy'][1] and v11['proxy'][3] and v11['proxy'][4] and (v11['proxy'][2] == 'CANVAS' or not v11['proxy'][0]), str(v11['proxy']))
     check('The overlay’s text changes colour when its Colour does (1.1 – it was kept from before)', v11['green'] > 500 and v11['red'] > 500 and v11['greenAfter'] == 0, str(v11))
-    check('Focus (1.1): this one goes out of focus as the next comes into it – both softened part-way; Frosted is called Glass', v11['focus'] == [[1, True], [.5, True]] and v11['glass'] == ['Glass'], str(v11))
+    check('Focus (1.1): this one goes out of focus as the next comes into it – both softened part-way; Frosted is called Blur behind', v11['focus'] == [[1, True], [.5, True]] and v11['glass'] == ['Blur behind'], str(v11))
     check('The drawings don’t move, and are in the same two colours with no black (1.1)', not v11['moves'] and v11['ill'][0] != v11['ill'][1] and all(c not in ('rgb(0, 0, 0)', 'rgb(17, 17, 17)', 'rgb(43, 43, 43)') for c in v11['ill']), str(v11))
     check('Presets calmed (1.1): Posters has no border and rests longer, the Float’s title is over everything, Columns rests longer', v11['posters'][0] == 0 and v11['posters'][1] >= 2.5 and v11['float'] == 'top' and v11['cols'] >= 1.5, str(v11))
     check('no errors on the page through the 1.0 checks', not errs3, '; '.join(errs3[:3]))

@@ -499,7 +499,13 @@ document.addEventListener('mouseover',e=>{const t=e.target.closest?e.target:null
   if(src&&src===tipMute)return;tipMute=null;
   if(src&&src!==tipFor){rowTipT=setTimeout(()=>showTip(src,src.dataset.tip,src.offsetParent?src:row),src===row?400:550);return;}
   if(!src&&tipFor&&!(byKeys&&document.activeElement===tipFor))hideTip();});
-document.addEventListener('focusin',e=>{const q=e.target.closest&&e.target.closest('.q,[data-tip]');if(q&&byKeys)showTip(q);else if(tipFor)hideTip();});
+/* 13 Nov – no "?" marks where a pointer can hover: the row says it when you rest on it. By keyboard, it says it when
+   the control is reached. (Steve: "remove (or align) the ?" – they showed in some rows, as circles or squares, off
+   centre.) The mark stays for touch, where nothing hovers. */
+document.documentElement.classList.add('row-tips');
+document.addEventListener('focusin',e=>{const t=e.target.closest?e.target:null,q=t&&t.closest('.q,[data-tip]');
+  if(byKeys&&t){const src=q||tipRow(t);if(src&&src.dataset.tip){const row=t.closest('.ctl,.toggle-row,.colour-row,.slot-top');showTip(src,src.dataset.tip,src.offsetParent?src:(row||t));return;}}
+  if(tipFor)hideTip();});
 document.addEventListener('click',e=>{const q=e.target.closest&&e.target.closest('.q');if(q){e.preventDefault();if(tipFor===q)hideTip();else showTip(q);}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&tipFor)hideTip();});
 $('#panel').addEventListener('scroll',()=>{if(tipFor)hideTip();},{passive:true});

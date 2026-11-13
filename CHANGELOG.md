@@ -1,5 +1,11 @@
 # Changelog
 
+## 13 November 2026 – Segue 1.2: Blur behind that blurs; no stray "?" marks
+
+- **Blur behind** (was Glass, before that Frosted) now works: inside the letters, what's behind is blurred; the text's colour lies over it at Tint. It never worked before – the blur was cut to the letters one at a time and each cut wiped out the last, so all that showed was the tint and an outline. The white outline is gone too.
+- **The "?" marks** are gone wherever a pointer can hover – resting on a row shows its note, as it already did, and reaching a control by keyboard shows it too. On touch, and in Tutti (which has no row notes), the "?" stays: one size, a circle, drawn so it sits dead centre. Rubato 1.3.1 and Tempo 0.18.2 take the same change.
+- Tests: Segue 203 of 203 (the blur check now measures that it blurs) and 83 of 83; Rubato 45 of 45, looks identical; Tempo 125 of 125; Tutti's hashes identical.
+
 ## 13 November 2026 – Segue 1.1: lots of pictures, Glass, Focus, calmer – and Tutti's labels
 
 - **Lots of big pictures.** The Media list redraws about twenty times faster (thumbnails are kept, not redrawn from the full picture), and each picture has a smaller stand-in for the moving preview so Safari isn't decoding full-size pictures every frame. Paused, and in every export, it's the picture itself.

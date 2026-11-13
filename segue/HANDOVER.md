@@ -1,4 +1,4 @@
-# Segue – handover (13 November 2026, Segue 1.1)
+# Segue – handover (13 November 2026, Segue 1.2)
 
 For the Segue chat. Read this, then the repo's `README.md` and `HANDOVER.md` (how the repo, the build, storage and the other streams work). Segue is internal for now: built to `docs/segue/`, live at https://steviewaring-arch.github.io/ensemble-tools/segue/, and not linked from the index page.
 
@@ -94,6 +94,14 @@ The panel was audited as a whole in 0.7 because features had been bolted on piec
 - **No Additionals:** the tier's code and CSS are removed; the panel's order is set at the end of the cards (`canvas, media, layout, motion, captions, overlay`). The Position card is now the fold `place` – **Placement** – in Layout (`nudgeX`, `nudgeY`). Canvas is open by default.
 - **Stepping aside:** Pile up only when slides aren't full bleed (`plan` ignores `pile` there too); Overlay's Margin not for the middle place.
 - **Presets:** `x0` on a preset sets a key only where it's empty; Float with title uses `x:{ovOn:true,ovKind:'text'}` and `x0:{ovText:'Your title'}`.
+
+### 1.2 – Blur behind, and the "?" marks (13 Nov)
+
+Steve's grab of a big "24" over the Snap along preset: "The glass effect does not work. lets consider it not glass, but blur"; and "on this dropdown, remove (or align the ?) … these circles elsewhere … inconsistent and also misaligned ? in the circle."
+
+- **Why it never worked:** `drawOverlay` cut the blurred copy to the letters with `destination-in`, drawing one glyph at a time – and `destination-in` keeps only the overlap with *each* draw, so the second letter wiped out the first. The suite's check passed because it only looked for the text's colour being absent (which it was – nothing was drawn). Now the letters are drawn once into a mask (`frostCanvases(…)[4]`) and the blur is cut to that in one go. The check now measures it: under a third of the pixel-to-pixel detail left inside the letters, on a striped picture, and the outside untouched.
+- Named **Blur behind** (toggle), **Amount**, **Tint**; keys unchanged (`ovFrost`, `ovBlur`, `ovTint`). No white outline.
+- **"?" marks:** where a pointer can hover and the rows show their own note (Segue, Rubato, Tempo set `html.row-tips` in `frame.js` / `core.js`), there are none; keyboard focus on a control shows its row's note. Elsewhere (touch; Tutti) the "?" is a 15 px circle with the glyph drawn as a mask (`--q-glyph` in `components.css`), so it's centred whatever the font.
 
 ### 1.1 – after 1.0 (12–13 Nov)
 
