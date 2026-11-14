@@ -1,6 +1,8 @@
 # Changelog
 
-## Tutti 6.5 – Type, Looks, True colour (preview at /tutti/next/, not yet live)
+## 14 November 2026 – Tutti 6.5: Type, Looks, True colour
+
+*Tried by Steve at a preview address (/tutti/next/, 13 Nov) before going live.*
 
 - **Style: Marks | Type**, at the top of Shape. Type sets words along each run of one tone – **Rows** or **Columns**; **Per tone** (each band's own words, in its Mapping row – TUTTI to start; several words take turns, and a single letter is a word too) or **Running** (one passage through the picture); **Stretch** (the word drawn out to fill its stretch) or **Keep shape** (true letter shapes, as many as fit, spaced to end on the stretch's end); **Shortest** and **Longest** (how few and how many cells a word spans); **Case**, **Spacing**; Aktiv Grotesk, or **Upload** any font; **Mix weights** – darker bands in Medium and Bold.
 - **It aligns.** Every word is set from its ink, read from pixels, not its line box: its first and last letters meet the stretch's ends; capitals sit on the top line and the baseline on the bottom – a lowercase-only word aligns its x-height, as type set to an x-height does. Checked by machine on the drawn pixels: 64 cases (four words, rows and columns, Stretch and Keep shape, two grids, Aktiv's stand-in and an uploaded font) – every edge on its pixel, in Chrome, Safari's engine and Firefox.

@@ -39,7 +39,7 @@ ARCHIVE = [('rubato', '0.9', 'archive/rubato-0.9.html', "const APP='rubato';", "
 # Previews: a version to try before it goes live, at its own address (docs/<app>/next/), unlisted
 # and not indexed. The live app is untouched. The file is the built page from the app's branch;
 # delete it from preview/ (and this list) once the version is live.
-PREVIEW = [('tutti', 'next', 'preview/tutti-next.html')]
+PREVIEW = []   # e.g. ('tutti', 'next', 'preview/tutti-next.html') – Tutti 6.5 was previewed this way, 13–14 Nov
 
 # Each app: page title, version, its markup, extra scripts that must keep their
 # ids (Tempo's screen saver export copies #tempo-engine and #tempo-saver into
