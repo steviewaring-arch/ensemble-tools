@@ -236,3 +236,19 @@
   .card-body>.toggle-row.sw-grp>.toggle>span{font-weight:700;color:var(--ink-strong)}
   .mixgrp .card-tools{margin:-6px 0 6px}
   button.svgbtn{border:0;font-family:inherit;line-height:1.2}
+
+  /* 6.5: Style – Marks | Type. Type's group, and each band's words in Mapping */
+  .card-body>.row.grow:not(.ctl-head){display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;min-height:var(--h-ctl);margin:0 0 10px}
+  .card-body>.row.grow>.lbl{font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .card-body>.row.grow>.seg{display:flex;width:100%}
+  .card-body>.row.grow>.seg button{flex:1}
+  .card-body>.row.grow>select{width:100%}
+  .typegrp{margin-top:6px}
+  .typegrp>textarea{width:100%;margin:0 0 10px;display:block}
+  .typegrp .seg button{white-space:nowrap}
+  .fontpick{display:flex;align-items:center;gap:8px;min-width:0}
+  .fontpick .hint{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0}
+  .fontpick a{cursor:pointer;font-size:12px;text-decoration:underline;text-underline-offset:2px}
+  .state .sttext{flex:0 1 112px;min-width:0;width:112px;height:28px;margin-left:auto;padding:0 8px;border-radius:var(--r-in);border:0;background:var(--k-card,var(--btn));color:var(--ink-strong);font:inherit;font-size:13px;box-shadow:inset 0 0 0 1px var(--keyline)}
+  .state .sttext:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--ink-strong)}
+  .fontpick .btn{flex:0 0 auto;width:auto;padding:0 14px}

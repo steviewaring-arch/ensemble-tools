@@ -23,7 +23,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.4</span></div>
+      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.5</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls">
@@ -103,15 +103,17 @@
       <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Shape</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
       <div class="card-body">
       <div class="card-tools"><a id="randomAll" title="New shapes and settings, at random">Randomise</a></div>
+      <div class="row grow"><label class="lbl">Style<i class="q" data-tip="Marks: a shape in each cell. Type: words stretched along each run of one tone, edge to edge on the grid.">?</i></label><div class="seg" id="styleSeg" role="group" aria-label="Style"><button type="button" data-v="marks" class="on">Marks</button><button type="button" data-v="type">Type</button></div></div>
+      <div class="row grow"><label class="lbl">Look<i class="q" data-tip="A starting point for this style – it sets a few things at once, and Undo takes it back.">?</i></label><select id="looks"></select></div>
       <div class="toggle on" id="tFill"><div class="box"></div><span>Solid fill<i class="q" data-tip="Fill each mark, or draw it as an outline.">?</i></span></div>
       <div class="toggle" id="tInvert"><div class="box"></div><span>Invert<i class="q" data-tip="Swap highlights and shadows – for light marks on a dark ground.">?</i></span></div>
-      <div class="toggle on" id="tScale"><div class="box"></div><span>Size by tone<i class="q" data-tip="Let mark size follow tone: darker areas get bigger marks.">?</i></span></div>
-      <div class="row" style="margin-top:8px"><label class="lbl">Min size<i class="q" data-tip="The smallest a mark can shrink to in the lightest areas.">?</i></label><span class="val" id="minV">8%</span></div>
+      <div class="toggle on only-marks" id="tScale"><div class="box"></div><span>Size by tone<i class="q" data-tip="Let mark size follow tone: darker areas get bigger marks.">?</i></span></div>
+      <div class="row only-marks" style="margin-top:8px"><label class="lbl">Min size<i class="q" data-tip="The smallest a mark can shrink to in the lightest areas.">?</i></label><span class="val" id="minV">8%</span></div>
       <input type="range" id="minsize" min="0" max="100" step="1" value="8">
-      <div class="row"><label class="lbl">Shape size<i class="q" data-tip="Scales every mark. Above 1× marks spill past their cell and overlap their neighbours.">?</i></label><span class="val" id="ssizeV">1.00×</span></div>
+      <div class="row only-marks"><label class="lbl">Shape size<i class="q" data-tip="Scales every mark. Above 1× marks spill past their cell and overlap their neighbours.">?</i></label><span class="val" id="ssizeV">1.00×</span></div>
       <input type="range" id="ssize" min="0.2" max="3" step="0.01" value="1">
-      <div class="toggle-row sw-grp" id="mixRow"><div class="toggle" id="tMix"><div class="box"></div><span>Mixed sizes<i class="q" data-tip="Some marks span several cells – 2×2 up to 5×5, or a bar – always on the grid. A big mark is the band's mark scaled, or a Big mark you choose in Mapping.">?</i></span></div></div>
-      <div class="mixgrp" id="mixGrp" hidden>
+      <div class="toggle-row sw-grp only-marks" id="mixRow"><div class="toggle" id="tMix"><div class="box"></div><span>Mixed sizes<i class="q" data-tip="Some marks span several cells – 2×2 up to 5×5, or a bar – always on the grid. A big mark is the band's mark scaled, or a Big mark you choose in Mapping.">?</i></span></div></div>
+      <div class="mixgrp only-marks" id="mixGrp" hidden>
         <div class="card-tools"><a id="mixShuffle" title="Another pattern of blocks">Shuffle</a></div>
         <div class="row"><label class="lbl">Squares</label><div class="seg multi" id="mixSq" role="group" aria-label="Squares"><button type="button" data-s="2">2×2</button><button type="button" data-s="3">3×3</button><button type="button" data-s="4">4×4</button><button type="button" data-s="5">5×5</button></div></div>
         <div class="row"><label class="lbl">Bars<i class="q" data-tip="Long marks, either way round. A dot becomes a capsule; an SVG mark is stretched to fit.">?</i></label><div class="seg multi" id="mixBar" role="group" aria-label="Bars"><button type="button" data-s="1x2">1×2</button><button type="button" data-s="1x3">1×3</button><button type="button" data-s="2x3">2×3</button></div></div>
@@ -120,14 +122,31 @@
         <div class="row"><label class="lbl">Where<i class="q" data-tip="Even: only where every cell under a block shares one band, so big marks sit in flat areas. Further right lets them cross more bands.">?</i></label><span class="val" id="mixWhereV">Even tone</span></div>
         <input type="range" id="mixWhere" min="0" max="100" step="1" value="0">
       </div>
+      <div class="mixgrp typegrp only-type" id="typeGrp">
+        <div class="row"><label class="lbl">Direction</label><div class="seg" id="tDirSeg" role="group" aria-label="Direction"><button type="button" data-v="rows" class="on">Rows</button><button type="button" data-v="cols">Columns</button></div></div>
+        <div class="row"><label class="lbl">Text<i class="q" data-tip="Per tone: each band has its own words, set in Mapping. Running: one passage runs through every stretch in reading order. Words take turns; a single letter is a word too.">?</i></label><div class="seg" id="tModeSeg" role="group" aria-label="Text"><button type="button" data-v="tone" class="on">Per tone</button><button type="button" data-v="run">Running</button></div></div>
+        <textarea id="tRun" rows="2" spellcheck="false" aria-label="Running text" placeholder="Words to run through the picture">TUTTI</textarea>
+        <div class="row"><label class="lbl">Fit<i class="q" data-tip="Stretch: each word is drawn out to fill its stretch exactly. Keep shape: true letter shapes, repeated along the stretch and cut at its end.">?</i></label><div class="seg" id="tFitSeg" role="group" aria-label="Fit"><button type="button" data-v="stretch" class="on">Stretch</button><button type="button" data-v="keep">Keep shape</button></div></div>
+        <div class="row"><label class="lbl">Shortest<i class="q" data-tip="The fewest cells a stretch can have. Shorter runs join the longer one beside them.">?</i></label><span class="val" id="tMinV">2 cells</span></div>
+        <input type="range" id="tMin" min="1" max="12" step="1" value="2">
+        <div class="row"><label class="lbl">Longest<i class="q" data-tip="The most cells one word stretches over. A longer run is shared out between several words.">?</i></label><span class="val" id="tMaxV">12 cells</span></div>
+        <input type="range" id="tMax" min="2" max="61" step="1" value="12">
+        <div class="row"><label class="lbl">Case</label><div class="seg" id="tCaseSeg" role="group" aria-label="Case"><button type="button" data-v="as" class="on">As typed</button><button type="button" data-v="upper">ABC</button><button type="button" data-v="lower">abc</button></div></div>
+        <div class="row"><label class="lbl">Spacing<i class="q" data-tip="Space between letters, in thousandths of the type size.">?</i></label><span class="val" id="tSpaceV">0</span></div>
+        <input type="range" id="tSpace" min="-60" max="300" step="5" value="0">
+        <div class="row"><label class="lbl">Font</label><div class="fontpick"><span class="hint" id="tFontName">Aktiv Grotesk</span><label class="btn small" for="tFontIn">Upload</label><a id="tFontReset" hidden>Aktiv</a></div></div>
+        <input id="tFontIn" type="file" accept=".ttf,.otf,.woff,.woff2,font/*" hidden>
+      </div>
+      <div class="toggle only-type" id="tWeights"><div class="box"></div><span>Mix weights<i class="q" data-tip="Darker bands in heavier weights: Regular, Medium, Bold. Aktiv only – an uploaded font has the one weight.">?</i></span></div>
       </div>
     </section>
 
     <section class="card" data-id="mapping">
       <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Mapping</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
       <div class="card-body">
-      <div class="card-tools"><i class="q lead-q" data-tip="One shape and colour per tonal band, highlights through to shadows. Add or remove bands below; upload an SVG to swap the dot for your own mark.">?</i><a id="randomColors" title="Random colours for the bands">Random</a><a id="resetShapes" title="Back to dots for every band">Reset shapes</a></div>
-      <div class="toggle" id="tKeepSvg"><div class="box"></div><span>Own colours<i class="q" data-tip="When on, an uploaded SVG mark keeps its own colours instead of being recoloured to the band colour – for multi-colour marks.">?</i></span></div>
+      <div class="card-tools"><i class="q lead-q" data-tip="One shape and colour per tonal band, highlights through to shadows. Add or remove bands below; upload an SVG to swap the dot for your own mark.">?</i><a id="randomColors" title="Random colours for the bands">Random</a><a class="only-marks" id="resetShapes" title="Back to dots for every band">Reset shapes</a></div>
+      <div class="toggle" id="tTrue"><div class="box"></div><span>True colour<i class="q" data-tip="Colour each mark or word from the picture under it, instead of its band colour.">?</i></span></div>
+      <div class="toggle only-marks" id="tKeepSvg"><div class="box"></div><span>Own colours<i class="q" data-tip="When on, an uploaded SVG mark keeps its own colours instead of being recoloured to the band colour – for multi-colour marks.">?</i></span></div>
       <div id="states"></div>
       <div class="stepper"><span>Bands</span>
         <div class="steps"><button id="bandMinus">–</button><span class="count" id="bandCount">6</span><button id="bandPlus">+</button></div>
@@ -149,7 +168,7 @@
           <input type="range" id="tlev" min="-40" max="40" step="1" value="0">
           <div class="edges" id="edges"></div>
         </div>
-        <div class="advsec">
+        <div class="advsec only-marks">
           <div class="subttl">Rotation &amp; jitter</div>
           <div class="row"><label class="lbl">Rotation<i class="q" data-tip="Base angle applied to every mark.">?</i></label><span class="val" id="rotV">0°</span></div>
           <input type="range" id="rot" min="0" max="360" step="1" value="0">
@@ -234,7 +253,7 @@
 <script>
 /*{{shared-gif}}*/
 /*{{shared-view}}*/
-const VERSION="6.4", MAXB=7, MINB=2;
+const VERSION="6.5", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,
@@ -244,8 +263,10 @@ const S={
   nBands:6, edges:[],
   /* 6.4: Mixed sizes – some marks span 2×2 to 5×5 cells, or a bar, always starting on the grid */
   mix:false, mixSizes:['2','3'], mixAmount:50, mixWhere:0, mixSeed:0,
+  /* 6.5: Style – Marks, or Type: words stretched along each run of one tone. And Source colours. */
+  style:'marks', tDir:'rows', tMode:'tone', tRun:'TUTTI', tFit:'stretch', tMin:2, tMax:12, tCase:'as', tSpace:0, tWeights:false, trueColour:false,
   text:'Tutti', tsize:220, tlh:1.0, align:'center', userFont:false,
-  states:Array.from({length:MAXB},()=>({color:'#000000',userColor:false,img:null,inner:null,vb:null,key:null,bigImg:null,bigInner:null,bigVb:null,bigKey:null})),
+  states:Array.from({length:MAXB},()=>({color:'#000000',userColor:false,img:null,inner:null,vb:null,key:null,bigImg:null,bigInner:null,bigVb:null,bigKey:null,text:'TUTTI'})),
   sample:null, sampleDirty:true, spritesDirty:true, sprites:[]
 };
 const $=id=>document.getElementById(id);
@@ -367,12 +388,13 @@ function buildStates(){
     row.innerHTML='<div class="idx">'+(i+1)+'</div>'+
       '<div class="swatch"><input type="color" value="'+st.color+'" data-i="'+i+'" class="stColor"></div>'+
       '<div class="meta"><b>'+names[i]+'</b></div>'+
+      (S.style==='type'?(S.tMode==='tone'?'<input class="sttext" type="text" data-i="'+i+'" value="'+(st.text||'').replace(/"/g,'&quot;')+'" spellcheck="false" aria-label="'+names[i]+' – words">':''):
       '<img class="svgprev" data-i="'+i+'" alt="">'+
       '<button type="button" class="svgbtn markbtn'+(st.inner||st.bigInner?' set':'')+'" data-i="'+i+'" aria-expanded="'+(markOpen===i)+'" title="Choose this band\u2019s mark">Mark</button>'+
       '<input type="file" accept=".svg,image/svg+xml" data-i="'+i+'" id="stSvg'+i+'" class="stSvg" hidden>'+
-      '<input type="file" accept=".svg,image/svg+xml" data-i="'+i+'" id="stBig'+i+'" class="stBig" hidden>';
+      '<input type="file" accept=".svg,image/svg+xml" data-i="'+i+'" id="stBig'+i+'" class="stBig" hidden>');
     statesEl.appendChild(row);
-    if(markOpen===i) statesEl.appendChild(markDrawer(i));
+    if(markOpen===i&&S.style==='marks') statesEl.appendChild(markDrawer(i));
   }
   paintMarks();
   document.querySelectorAll('.stColor').forEach(inp=>{
@@ -382,6 +404,7 @@ function buildStates(){
   document.querySelectorAll('.stSvg,.stBig').forEach(inp=>{
     inp.onchange=e=>{const i=+e.target.dataset.i,big=e.target.classList.contains('stBig'),f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>loadStateSVG(i,rd.result,big);rd.readAsText(f);e.target.value='';};
   });
+  document.querySelectorAll('.sttext').forEach(t=>t.oninput=()=>{ S.states[+t.dataset.i].text=t.value; });
   document.querySelectorAll('.markbtn').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;markOpen=(markOpen===i)?-1:i;buildStates();});
   $('bandCount').textContent=S.nBands;
   $('bandMinus').disabled=(S.nBands<=MINB);
@@ -528,7 +551,7 @@ $('randomAll').onclick=()=>{
   S.minsize=R(0,0.28); S.shapeScale=R(0.7,1.8); S.opacity=R(0.75,1);
   S.baseRot=R(0,Math.PI*2); S.rotJit=Math.random()>0.5?R(0,Math.PI):0; S.posJit=Math.random()>0.6?R(0,0.4):0;
   S.threshLever=R(-0.18,0.18);
-  buildStates(); buildEdgeUI(); syncUI(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
+  buildStates(); buildEdgeUI(); syncUI(); fillLooks(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
 };
 $('grid').oninput=e=>{S.grid=+e.target.value;$('gridV').textContent=S.grid;S.sampleDirty=true;S.spritesDirty=true;};
 $('minsize').oninput=e=>{S.minsize=(+e.target.value)/100;$('minV').textContent=e.target.value+'%';};
@@ -554,6 +577,64 @@ $('mixAmt').oninput=e=>{ S.mixAmount=+e.target.value; $('mixAmtV').textContent=S
 $('mixWhere').oninput=e=>{ S.mixWhere=+e.target.value; $('mixWhereV').textContent=whereText(); };
 $('mixShuffle').onclick=()=>{ S.mixSeed=1+Math.floor(Math.random()*9999); };
 syncMix();
+/* Style and Type (6.5) */
+function segPick(id,key,after){ const g=$(id); if(!g)return; g.querySelectorAll('button').forEach(b=>b.onclick=()=>{ S[key]=b.dataset.v; syncStyle(); if(after)after(); }); }
+segPick('styleSeg','style',()=>{ markOpen=-1; buildStates(); fillLooks(); });
+segPick('tDirSeg','tDir'); segPick('tFitSeg','tFit'); segPick('tCaseSeg','tCase');
+segPick('tModeSeg','tMode',()=>buildStates());
+$('tRun').oninput=e=>{ S.tRun=e.target.value; };
+$('tMin').oninput=e=>{ S.tMin=+e.target.value; $('tMinV').textContent=S.tMin+(S.tMin===1?' cell':' cells'); };
+const maxText=()=>S.tMax>60?'No limit':S.tMax+' cells';
+$('tMax').oninput=e=>{ S.tMax=+e.target.value; $('tMaxV').textContent=maxText(); };
+$('tSpace').oninput=e=>{ S.tSpace=+e.target.value; $('tSpaceV').textContent=(S.tSpace>0?'+':'')+S.tSpace; };
+$('tWeights').onclick=()=>{ S.tWeights=!S.tWeights; syncStyle(); };
+$('tTrue').onclick=()=>{ S.trueColour=!S.trueColour; $('tTrue').classList.toggle('on',S.trueColour); };
+/* an uploaded font for Type: drawn with the browser's own reader, and read with opentype.js too (fetched
+   the first time) so its SVG can be true outlines */
+function needOT(){ return window.opentype?Promise.resolve():new Promise((ok,no)=>{ const sc=document.createElement('script');
+  sc.src='https://cdn.jsdelivr.net/npm/opentype.js@2.0.0/dist/opentype.min.js'; sc.onload=ok; sc.onerror=no; document.head.appendChild(sc); }); }
+$('tFontIn').onchange=async e=>{
+  const f=e.target.files[0]; e.target.value=''; if(!f)return;
+  try{ const buf=await f.arrayBuffer(), ff=new FontFace('TuttiType',buf.slice(0)); await ff.load(); document.fonts.add(ff);
+    TT.font=ff; TT.name=f.name.replace(/\.[^.]+$/,''); TT.buf=buf; TT.ot=null; LAY.clear(); WSPR.clear(); LINES.clear();
+    $('tFontName').textContent=TT.name; $('tFontReset').hidden=false; syncStyle(); status('Type in '+TT.name);
+    needOT().then(()=>{ try{ TT.ot=opentype.parse(buf.slice(0)); }catch(err){ TT.ot=null; } }).catch(()=>{});
+  }catch(err){ $('tFontName').textContent='Could not read that font'; }
+};
+$('tFontReset').onclick=()=>{ TT.font=null; TT.ot=null; TT.buf=null; LAY.clear(); WSPR.clear(); LINES.clear(); $('tFontName').textContent='Aktiv Grotesk'; $('tFontReset').hidden=true; syncStyle(); };
+function syncStyle(){
+  const P=$('panel'); if(P) P.dataset.style=S.style;
+  const segOn=(id,v)=>{ const g=$(id); if(g) g.querySelectorAll('button').forEach(b=>{ const on=b.dataset.v===v; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); }); };
+  segOn('styleSeg',S.style); segOn('tDirSeg',S.tDir); segOn('tModeSeg',S.tMode); segOn('tFitSeg',S.tFit); segOn('tCaseSeg',S.tCase);
+  document.querySelectorAll('.only-marks,.only-type').forEach(e=>{ const show=e.classList.contains('only-marks')?S.style==='marks':S.style==='type';
+    const w=e.classList.contains('row')&&e.closest('.ctl.rng')?e.closest('.ctl.rng'):e;
+    if(e.id==='mixGrp') e.hidden=!(show&&S.mix); else w.style.display=show?'':'none'; });
+  { const t=$('tRun'), w=t.parentElement.classList.contains('txt-wrap')?t.parentElement:t; if(w!==t) t.style.display=''; w.style.display=S.tMode==='run'?'':'none'; }
+  if(document.activeElement!==$('tRun')) $('tRun').value=S.tRun;
+  $('tMin').value=S.tMin; $('tMinV').textContent=S.tMin+(S.tMin===1?' cell':' cells');
+  $('tMax').value=S.tMax; $('tMaxV').textContent=maxText();
+  $('tSpace').value=S.tSpace; $('tSpaceV').textContent=(S.tSpace>0?'+':'')+S.tSpace;
+  $('tWeights').classList.toggle('on',S.tWeights);
+  $('tTrue').classList.toggle('on',S.trueColour);
+}
+/* Looks – three calm starting points for each style */
+const LOOKS={
+  marks:[
+    ['Grid pieces',{fill:true,scale:true,minsize:0.3,shapeScale:1,mix:true,mixSizes:['2','3','1x2','1x3'],mixAmount:60,mixWhere:0},{5:'squaredot',4:'square',3:'ring'}],
+    ['Rings',{fill:true,scale:true,minsize:0.15,shapeScale:1.1,mix:false},{0:'ring',1:'ring',2:'ring',3:'ringdot',4:'ringdot',5:'ringdot'}],
+    ['Bars',{fill:true,scale:false,shapeScale:0.9,mix:true,mixSizes:['1x2','1x3','2x3'],mixAmount:85,mixWhere:30},{}]],
+  type:[
+    ['TUTTI in rows',{tDir:'rows',tMode:'tone',tFit:'stretch',tMin:3,tMax:10,tCase:'upper',tSpace:0,tWeights:false},'TUTTI'],
+    ['Running text',{tDir:'rows',tMode:'run',tRun:'Tutti by Ensemble',tFit:'stretch',tMin:4,tMax:14,tCase:'upper',tSpace:20,tWeights:true},null],
+    ['Columns',{tDir:'cols',tMode:'tone',tFit:'keep',tMin:3,tMax:61,tCase:'upper',tSpace:40,tWeights:true},'TUTTI']]
+};
+function fillLooks(){ const sel=$('looks'); sel.innerHTML='<option value="">Choose…</option>'+LOOKS[S.style].map((l,i)=>'<option value="'+i+'">'+l[0]+'</option>').join(''); sel.value=''; }
+$('looks').onchange=e=>{ const l=LOOKS[S.style][+e.target.value]; e.target.value=''; if(!l)return;
+  Object.assign(S,l[1]); if(l[1].mixSizes) S.mixSizes=l[1].mixSizes.slice();
+  if(S.style==='marks'){ for(let i=0;i<MAXB;i++) setMark(i,'dot',false); Object.keys(l[2]).forEach(i=>{ if(+i<S.nBands) setMark(+i,l[2][i],false); }); }
+  else if(l[2]) for(let i=0;i<MAXB;i++) S.states[i].text=l[2];
+  S.spritesDirty=true; syncUI(); buildStates(); status('Look: '+l[0]); };
+fillLooks(); syncStyle();
 
 /* geometry / sprites / sampling */
 function computeDims(){
@@ -578,23 +659,36 @@ function drawCover(ctx,w,h){
   const scale=Math.max(w/sw,h/sh)*S.zoom, dw=sw*scale, dh=sh*scale;
   ctx.drawImage(el,(w-dw)/2,(h-dh)/2,dw,dh); return true;
 }
-function buildSprites(){
-  const spx=Math.max(24,cell*3); S.sprites=[]; S.spriteCell=cell; S.bsprites={};
-  for(let i=0;i<S.nBands;i++){
-    const st=S.states[i];
-    const c=document.createElement('canvas'); c.width=c.height=spx; const x=c.getContext('2d');
-    if(st.img){
-      const iw=st.img.width||100, ih=st.img.height||100, k=Math.min(spx/iw,spx/ih);
-      x.drawImage(st.img,(spx-iw*k)/2,(spx-ih*k)/2,iw*k,ih*k);
-      if(!S.keepSvgColor){ x.globalCompositeOperation='source-in'; x.fillStyle=st.color; x.fillRect(0,0,spx,spx); }
-    }else{
-      x.beginPath(); x.arc(spx/2,spx/2,spx*0.42,0,Math.PI*2);
-      if(S.fill){ x.fillStyle=st.color; x.fill(); }
-      else{ x.lineWidth=spx*0.10; x.strokeStyle=st.color; x.stroke(); }
-    }
-    S.sprites.push(c);
+function makeSprite(st,colour,spx){
+  const c=document.createElement('canvas'); c.width=c.height=spx; const x=c.getContext('2d');
+  if(st.img){
+    const iw=st.img.width||100, ih=st.img.height||100, k=Math.min(spx/iw,spx/ih);
+    x.drawImage(st.img,(spx-iw*k)/2,(spx-ih*k)/2,iw*k,ih*k);
+    if(!S.keepSvgColor){ x.globalCompositeOperation='source-in'; x.fillStyle=colour; x.fillRect(0,0,spx,spx); }
+  }else{
+    x.beginPath(); x.arc(spx/2,spx/2,spx*0.42,0,Math.PI*2);
+    if(S.fill){ x.fillStyle=colour; x.fill(); }
+    else{ x.lineWidth=spx*0.10; x.strokeStyle=colour; x.stroke(); }
   }
+  return c;
+}
+function buildSprites(){
+  const spx=Math.max(24,cell*3); S.sprites=[]; S.spriteCell=cell; S.bsprites={}; S.csprites=new Map(); S.spx=spx;
+  for(let i=0;i<S.nBands;i++) S.sprites.push(makeSprite(S.states[i],S.states[i].color,spx));
   S.spritesDirty=false;
+}
+/* Source colours: a mark's colour is the picture's under it, in steps of 8 so the sprites can be kept */
+function srcColour(x,y,w,h){
+  let r=0,g=0,b=0,n=0; const d=S.rgb;
+  for(let j=y;j<y+h;j++) for(let i=x;i<x+w;i++){ const p=(j*cols+i)*4; r+=d[p]; g+=d[p+1]; b+=d[p+2]; n++; }
+  const q=v=>Math.min(255,Math.round(v/n/8)*8).toString(16).padStart(2,'0');
+  return '#'+q(r)+q(g)+q(b);
+}
+function spriteFor(idx,col){
+  if(!col) return S.sprites[idx];
+  const k=idx+'|'+col; let c=S.csprites.get(k);
+  if(!c){ if(S.csprites.size>1500) S.csprites.clear(); c=makeSprite(S.states[idx],col,S.spx); S.csprites.set(k,c); }
+  return c;
 }
 function sample(){
   sctx.clearRect(0,0,cols,rows);
@@ -610,7 +704,7 @@ function sample(){
   }
   const d=sctx.getImageData(0,0,cols,rows).data, lum=new Float32Array(cols*rows);
   for(let p=0,q=0;p<d.length;p+=4,q++) lum[q]=0.299*d[p]+0.587*d[p+1]+0.114*d[p+2];
-  S.sample=lum; S.sampleDirty=false; return true;
+  S.sample=lum; S.rgb=d; S.sampleDirty=false; return true;
 }
 function rnd(i,j,salt){ const x=Math.sin(i*127.1+j*311.7+salt*74.7)*43758.5453; return x-Math.floor(x); }
 function bandIndex(cov){ const e=S.edges, L=S.threshLever; for(let k=0;k<e.length;k++) if(cov<e[k]+L) return k; return e.length; }
@@ -622,7 +716,9 @@ function cellParams(i,j){
   const cx=i*cellX+cellX/2+(rnd(i,j,1)-0.5)*S.posJit*cellX;
   const cy=j*cellY+cellY/2+(rnd(i,j,2)-0.5)*S.posJit*cellY;
   const angle=S.baseRot+(rnd(i,j,3)-0.5)*S.rotJit;
-  return {idx,dsz,cx,cy,angle,skip:cov<0.02};
+  const p={idx,dsz,cx,cy,angle,skip:cov<0.02};
+  if(S.trueColour) p.col=srcColour(i,j,1,1);
+  return p;
 }
 /* 6.4: the placement list. Everything that draws – the canvas (so PNG, MP4 and GIF) and the SVG – draws
    from this one list. With Mixed sizes off it is one mark per cell, the same marks in the same order as
@@ -637,6 +733,7 @@ function mixShapes(){
   return L.sort((a,b)=>b[0]*b[1]-a[0]*a[1]||b[0]-a[0]);
 }
 function placements(){
+  if(S.style==='type') return typePlacements();
   const L=[];
   if(!S.mix||!S.mixSizes.length){
     for(let j=0;j<rows;j++) for(let i=0;i<cols;i++){ const p=cellParams(i,j); if(!p.skip) L.push(p); }
@@ -665,36 +762,218 @@ function placements(){
 function blockParams(x,y,w,h,cov){
   const idx=bandIndex(cov), sf=(S.scale?(S.minsize+(1-S.minsize)*cov):1)*S.shapeScale;
   const cx=(x+w/2)*cellX+(rnd(x,y,1)-0.5)*S.posJit*cellX, cy=(y+h/2)*cellY+(rnd(x,y,2)-0.5)*S.posJit*cellY;
-  return {idx,cx,cy,angle:S.baseRot+(rnd(x,y,3)-0.5)*S.rotJit,x,y,w,h,bw:w*cell*sf,bh:h*cell*sf,dsz:Math.min(w,h)*cell*sf};
+  return {idx,cx,cy,angle:S.baseRot+(rnd(x,y,3)-0.5)*S.rotJit,x,y,w,h,bw:w*cell*sf,bh:h*cell*sf,dsz:Math.min(w,h)*cell*sf,col:S.trueColour?srcColour(x,y,w,h):null};
 }
 /* a block's mark: the band's big mark if it has one, else its mark – an SVG stretched to the block,
    the dot a circle in a square and a capsule in a bar */
-function blockSprite(idx,w,h){
-  const k=idx+':'+w+'x'+h; if(S.bsprites[k]) return S.bsprites[k];
+function blockSprite(idx,w,h,col){
+  const k=idx+':'+w+'x'+h+(col||''); if(S.bsprites[k]) return S.bsprites[k];
   const st=S.states[idx], u=Math.min(Math.max(24,cell*3),2048/Math.max(w,h)), cw=Math.round(u*w), ch=Math.round(u*h);
-  const c=document.createElement('canvas'); c.width=cw; c.height=ch; const x=c.getContext('2d'), im=st.bigImg||st.img;
+  const c=document.createElement('canvas'); c.width=cw; c.height=ch; const x=c.getContext('2d'), im=st.bigImg||st.img, colour=col||st.color;
   if(im){
     if(w===h){ const iw=im.width||100, ih=im.height||100, q=Math.min(cw/iw,ch/ih); x.drawImage(im,(cw-iw*q)/2,(ch-ih*q)/2,iw*q,ih*q); }
     else x.drawImage(im,0,0,cw,ch);
-    if(!S.keepSvgColor){ x.globalCompositeOperation='source-in'; x.fillStyle=st.color; x.fillRect(0,0,cw,ch); }
+    if(!S.keepSvgColor){ x.globalCompositeOperation='source-in'; x.fillStyle=colour; x.fillRect(0,0,cw,ch); }
   }else{
     const sh=Math.min(cw,ch), m=sh*0.08, r=(sh-2*m)/2;
     x.beginPath(); x.roundRect?x.roundRect(m,m,cw-2*m,ch-2*m,r):capsule(x,m,m,cw-2*m,ch-2*m,r);
-    if(S.fill){ x.fillStyle=st.color; x.fill(); }
-    else{ x.lineWidth=sh*0.10; x.strokeStyle=st.color; x.beginPath(); const e=sh*0.05; x.roundRect?x.roundRect(m+e,m+e,cw-2*m-2*e,ch-2*m-2*e,r-e):capsule(x,m+e,m+e,cw-2*m-2*e,ch-2*m-2*e,r-e); x.stroke(); }
+    if(S.fill){ x.fillStyle=colour; x.fill(); }
+    else{ x.lineWidth=sh*0.10; x.strokeStyle=colour; x.beginPath(); const e=sh*0.05; x.roundRect?x.roundRect(m+e,m+e,cw-2*m-2*e,ch-2*m-2*e,r-e):capsule(x,m+e,m+e,cw-2*m-2*e,ch-2*m-2*e,r-e); x.stroke(); }
   }
   return S.bsprites[k]=c;
 }
 function capsule(x,l,t,w,h,r){ x.moveTo(l+r,t); x.arcTo(l+w,t,l+w,t+h,r); x.arcTo(l+w,t+h,l,t+h,r); x.arcTo(l,t+h,l,t,r); x.arcTo(l,t,l+w,t,r); x.closePath(); }
+/* ---- 6.5: Type – words stretched along each run of one tone ----
+   Each row (or column) of the grid is read as runs of one band. A run shorter than Shortest joins the
+   longer run beside it; a blank cell ends a run. Each run is a stretch, and gets the next word – its
+   band's own (Per tone) or the next of one passage (Running).
+   Alignment is the point. A word is set from its measured outlines, not its line box: the left edge of
+   its first letter's ink meets the stretch's start, the right edge of its last letter's ink its end;
+   capitals' tops sit on the stretch's top and the baseline on its bottom – for a word in lowercase
+   only, the x-height does that job, so ascenders and descenders reach past, as in any type set to an
+   x-height. Cap height and x-height are measured from the font itself (H and x), per font and weight.
+   tests/tutti_check.py measures the drawn pixels to hold this to a pixel. */
+const TFAM='"aktiv-grotesk","Aktiv Grotesk","Helvetica Neue",Arial,sans-serif';
+const TT={font:null,name:'',buf:null,ot:null};          /* an uploaded font, for Type */
+const LAY=new Map(), WSPR=new Map(), MCTX=document.createElement('canvas').getContext('2d');
+const tFam=()=>TT.font?'"TuttiType"':TFAM;
+function tWeight(idx){ if(!S.tWeights||TT.font) return 400; const r=idx/Math.max(1,S.nBands-1); return r<0.34?400:r<0.67?500:700; }
+function tCase(w){ return S.tCase==='upper'?w.toUpperCase():S.tCase==='lower'?w.toLowerCase():w; }
+const tWords=t=>(t||'').split(/\s+/).filter(Boolean);
+if(document.fonts&&document.fonts.addEventListener) document.fonts.addEventListener('loadingdone',()=>{LAY.clear();WSPR.clear();LINES.clear();});
+/* where ink is, read from pixels – a browser's own text measures are rounded (in Chromium, to 1/64 em),
+   too coarse for edges that have to meet the grid */
+function inkScan(c){
+  const w=c.width,h=c.height,d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,w,h).data; let l=w,r=-1,t=h,b=-1;
+  for(let y=0;y<h;y++){ let row=false; const o=y*w*4;
+    for(let x=0;x<w;x++) if(d[o+x*4+3]>=128){ row=true; if(x<l)l=x; if(x>r)r=x; }
+    if(row){ if(y<t)t=y; b=y; } }
+  return r<0?null:{l,r:r+1,t,b:b+1};
+}
+const MC=document.createElement('canvas'), MF=300, LINES=new Map();
+function measureInk(chars,pos,weight){          /* pos in 100ths; returns ink box in 100ths, baseline at 0 */
+  const adv=pos.length?pos[pos.length-1]+MF:MF, W=Math.ceil((adv/100)*MF+MF*2), H=Math.ceil(MF*2.2), ox=MF, base=Math.round(MF*1.5);
+  MC.width=W; MC.height=H; const x=MC.getContext('2d',{willReadFrequently:true});
+  x.clearRect(0,0,W,H); x.font=weight+' '+MF+'px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic'; x.fillStyle='#000';
+  chars.forEach((c,i)=>x.fillText(c,ox+pos[i]*MF/100,base));
+  const k=inkScan(MC); if(!k) return null;
+  return {l:(k.l-ox)*100/MF, r:(k.r-ox)*100/MF, a:(base-k.t)*100/MF, d:(k.b-base)*100/MF};
+}
+function tLines(weight){
+  const k=tFam()+'|'+weight; let v=LINES.get(k); if(v) return v;
+  const H=measureInk(['H'],[0],weight), X=measureInk(['x'],[0],weight);
+  v={cap:H?H.a:70, x:X?X.a:50}; LINES.set(k,v); return v;
+}
+/* a word's layout, in 100ths of the type size: each letter's place (kerning kept – a letter goes where
+   the word up to it ends), its ink box, read from pixels, and the line its top aligns to */
+function tLayout(word,weight){
+  const k=tFam()+'|'+weight+'|'+S.tSpace+'|'+word; let L=LAY.get(k); if(L) return L;
+  if(LAY.size>4000) LAY.clear();
+  const x=MCTX, M=10; x.font=weight+' 1000px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic';
+  if('letterSpacing' in x) x.letterSpacing='0px';
+  const ch=[...word], sp=S.tSpace/10, pos=[]; let pre='';
+  ch.forEach((c,i)=>{ pos.push(x.measureText(pre).width/M+i*sp); pre+=c; });
+  const ink=measureInk(ch,pos,weight)||{l:0,r:1,a:0,d:0}, ln=tLines(weight);
+  /* capitals, figures or no letters at all: the cap height; lowercase only: the x-height */
+  const upper=ch.some(c=>c!==c.toLowerCase()||/[0-9]/.test(c))||!ch.some(c=>c.toLowerCase()!==c.toUpperCase());
+  L={ch,pos,l:ink.l,r:ink.r,a:ink.a,d:ink.d,top:upper?ln.cap:ln.x,space:x.measureText(' ').width/M+sp};
+  LAY.set(k,L); return L;
+}
+/* the stretches */
+function typePlacements(){
+  const out=[], vert=S.tDir==='cols', A=vert?cols:rows, B=vert?rows:cols, n=S.nBands, min=Math.max(1,S.tMin|0);
+  const per=[]; for(let i=0;i<n;i++){ const w=tWords(S.states[i].text); per.push(w.length?w:['TUTTI']); }
+  const run=tWords(S.tRun).length?tWords(S.tRun):['TUTTI'], cnt=new Array(n).fill(0); let rc=0;
+  for(let a=0;a<A;a++){
+    const seg=[];
+    for(let b=0;b<B;b++){ const q=vert?b*cols+a:a*cols+b, c=covAt(q), band=c<0.02?-1:bandIndex(c), t=seg[seg.length-1];
+      if(t&&t.band===band) t.len++; else seg.push({band,start:b,len:1}); }
+    for(let again=true;again;){ again=false;
+      for(let k=0;k<seg.length;k++){ const s=seg[k]; if(s.band<0||s.len>=min) continue;
+        const lft=seg[k-1], rgt=seg[k+1], ok=t=>t&&t.band>=0; let to=null;
+        if(ok(lft)&&ok(rgt)) to=lft.len>=rgt.len?lft:rgt; else to=ok(lft)?lft:ok(rgt)?rgt:null;
+        if(!to) continue;
+        if(to===lft) lft.len+=s.len; else { rgt.start=s.start; rgt.len+=s.len; }
+        seg.splice(k,1);
+        const p=seg[k-1], q=seg[k]; if(p&&q&&p.band===q.band&&p.start+p.len===q.start){ p.len+=q.len; seg.splice(k,1); }
+        again=true; break; } }
+    /* a run longer than Longest is shared out, as evenly as whole cells allow */
+    const max=S.tMax>60?1e9:Math.max(min,S.tMax|0), parts=[];
+    for(const s of seg){ if(s.band<0||s.len<min) continue; const k=Math.ceil(s.len/max);
+      for(let m=0,at=s.start;m<k;m++){ const l=Math.round(s.len*(m+1)/k)-Math.round(s.len*m/k); parts.push({band:s.band,start:at,len:l}); at+=l; } }
+    for(const s of parts){
+      const word=tCase(S.tMode==='run'?run[rc++%run.length]:per[s.band][cnt[s.band]++%per[s.band].length]);
+      const bx=vert?a*cellX:s.start*cellX, by=vert?s.start*cellY:a*cellY, bw=vert?cellX:s.len*cellX, bh=vert?s.len*cellY:cellY;
+      out.push({word,idx:s.band,weight:tWeight(s.band),vert,bx,by,bw,bh,
+        col:S.trueColour?(vert?srcColour(a,s.start,1,s.len):srcColour(s.start,a,s.len,1)):null}); }
+  }
+  return out;
+}
+/* a word drawn once, big enough for where it's going, and kept */
+function wordSprite(L,word,weight,F,colour){
+  const k=word+'|'+weight+'|'+F+'|'+colour+'|'+S.fill+'|'+tFam()+'|'+S.tSpace; let sp=WSPR.get(k); if(sp) return sp;
+  if(WSPR.size>900||WSPR.px>4e7){ WSPR.clear(); WSPR.px=0; }
+  const s=F/100, pad=Math.ceil(F*0.06)+2, up=Math.max(L.a,L.top), w=Math.ceil((L.r-L.l)*s)+2*pad, h=Math.ceil((up+Math.max(L.d,0))*s)+2*pad;
+  const c=document.createElement('canvas'); c.width=Math.max(1,w); c.height=Math.max(1,h); const x=c.getContext('2d');
+  x.font=weight+' '+F+'px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic'; if('letterSpacing' in x) x.letterSpacing='0px';
+  const ox=pad-L.l*s, base=pad+up*s;
+  x.fillStyle=colour; x.strokeStyle=colour; x.lineWidth=F*0.035; x.lineJoin='round';
+  L.ch.forEach((ch,i)=>{ if(S.fill) x.fillText(ch,ox+L.pos[i]*s,base); else x.strokeText(ch,ox+L.pos[i]*s,base); });
+  const ink=inkScan(c);   /* the edges as drawn at this size, to the pixel */
+  sp={c,ox,base,s,inkL:ink?ink.l:pad,inkW:ink?ink.r-ink.l:(L.r-L.l)*s,top:base-L.top*s};
+  WSPR.set(k,sp); WSPR.px=(WSPR.px||0)+c.width*c.height; return sp;
+}
+/* Keep shape: as many whole words as fit, spaced so the last ends on the stretch's end; a word that
+   doesn't fit twice starts the stretch and repeats, cut where the stretch ends */
+function keepAt(len,w,gap){
+  if(w<=0) return [0];
+  const n=Math.floor((len+gap)/(w+gap)), u=[];
+  if(n>=2){ const g=(len-n*w)/(n-1); for(let i=0;i<n;i++) u.push(i*(w+g)); return u; }
+  for(let a=0;a<len;a+=w+gap) u.push(a); return u;
+}
+/* Stretch: the word drawn straight at the size it's going – vector type under a stretched transform, never
+   a picture of type squashed – then its ink read back and, if an edge is off by any of a pixel, drawn
+   once more with the scale put right. Kept for its word, size and colour. */
+function stretchSprite(L,word,weight,len,th,colour){
+  const k='S|'+word+'|'+weight+'|'+colour+'|'+S.fill+'|'+tFam()+'|'+S.tSpace+'|'+len.toFixed(2)+'|'+th.toFixed(2); let sp=WSPR.get(k); if(sp) return sp;
+  if(WSPR.size>900||WSPR.px>4e7){ WSPR.clear(); WSPR.px=0; }
+  const pad=3, up=Math.max(L.a,L.top), ky=th/L.top, top=pad+Math.ceil((up-L.top)*ky), W=Math.ceil(len)+2*pad, H=top+Math.ceil(th+Math.max(0,L.d)*ky)+pad;
+  const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d',{willReadFrequently:true});
+  let kx=len/(L.r-L.l), ox=pad-L.l*kx;
+  const draw=()=>{ x.setTransform(1,0,0,1,0,0); x.clearRect(0,0,W,H); x.setTransform(kx,0,0,ky,ox,top+L.top*ky);
+    x.font=weight+' 100px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic'; if('letterSpacing' in x) x.letterSpacing='0px';
+    x.fillStyle=colour; x.strokeStyle=colour; x.lineWidth=3.5; x.lineJoin='round';
+    L.ch.forEach((ch,i)=>{ if(S.fill) x.fillText(ch,L.pos[i],0); else x.strokeText(ch,L.pos[i],0); }); };
+  draw();
+  const ink=inkScan(c);
+  if(ink&&(Math.abs(ink.l-pad)>0.5||Math.abs(ink.r-(pad+len))>0.5)&&ink.r>ink.l){
+    const f=len/(ink.r-ink.l); kx*=f; ox=pad-(ink.l-ox)*f; draw(); }
+  sp={c,pad,top}; WSPR.set(k,sp); WSPR.px=(WSPR.px||0)+W*H; return sp;
+}
+/* True colour, for Type: every word drawn in black on a layer of its own, then each stretch's colour laid
+   over its own ink (source-atop), and the layer put down – so a moving picture's colours never mean a
+   new drawing of a word */
+const TLAY=document.createElement('canvas'), TLX=TLAY.getContext('2d');
+function drawTypeTrue(P){
+  if(TLAY.width!==out.width||TLAY.height!==out.height){ TLAY.width=out.width; TLAY.height=out.height; }
+  TLX.setTransform(1,0,0,1,0,0); TLX.globalCompositeOperation='source-over'; TLX.clearRect(0,0,TLAY.width,TLAY.height);
+  for(const p of P) drawWord(TLX,p);
+  TLX.globalCompositeOperation='source-atop';
+  for(const p of P){ TLX.fillStyle=p.col; const o=p.vert?p.bw*0.6:p.bh*0.6; TLX.fillRect(p.bx-(p.vert?o:0),p.by-(p.vert?0:o),p.bw+(p.vert?2*o:0),p.bh+(p.vert?0:2*o)); }
+  TLX.globalCompositeOperation='source-over';
+  octx.drawImage(TLAY,0,0);
+}
+function drawWord(x,p){
+  const L=tLayout(p.word,p.weight), colour=p.col?'#000000':S.states[p.idx].color;
+  const len=p.vert?p.bh:p.bw, th=p.vert?p.bw:p.bh, keep=S.tFit==='keep';
+  x.save();
+  if(p.vert){ x.translate(p.bx+p.bw,p.by); x.rotate(Math.PI/2); } else x.translate(p.bx,p.by);
+  if(!keep){
+    const sp=stretchSprite(L,p.word,p.weight,len,th,colour), w=sp.c.width, h=sp.c.height;
+    x.drawImage(sp.c,-sp.pad,-sp.top);
+  }else{
+    const fh=L.top/100, F=Math.min(1024,Math.max(32,Math.pow(2,Math.ceil(Math.log2(th/fh)))));
+    const sp=wordSprite(L,p.word,p.weight,F,colour), sw=sp.c.width, sh=sp.c.height;
+    const k=th/(sp.base-sp.top), us=keepAt(len,sp.inkW*k,Math.max(0,L.space)*sp.s*k);
+    x.beginPath(); x.rect(0,-th*4,len,th*9); x.clip();
+    for(const u of us) x.drawImage(sp.c,0,0,sw,sh,u-sp.inkL*k,-sp.top*k,sw*k,sh*k);
+  }
+  x.restore();
+}
+/* the same word in the SVG: Aktiv (or any font not uploaded) as live text with each letter's place, so
+   it opens editable in Illustrator; an uploaded font as outlines, when its file could be read */
+function svgWord(p,op){
+  const L=tLayout(p.word,p.weight), colour=p.col||S.states[p.idx].color, f=v=>(+v.toFixed(3)).toString();
+  const len=p.vert?p.bh:p.bw, th=p.vert?p.bw:p.bh, keep=S.tFit==='keep';
+  const paint=S.fill?' fill="'+colour+'"':' fill="none" stroke="'+colour+'" stroke-width="3.5" stroke-linejoin="round"';
+  let glyphs;
+  if(TT.ot){ let d=''; L.ch.forEach((c,i)=>{ try{ d+=TT.ot.getPath(c,L.pos[i],0,100,{kerning:false}).toPathData(2); }catch(e){} }); glyphs='<path d="'+d+'"/>'; }
+  /* live text is set at 1000 and scaled down: a renderer that hints type at its set size then rounds
+     at 1000, not at 100, where it shows once the word is stretched */
+  else glyphs='<g transform="scale(0.1)"><text x="'+L.pos.map(v=>f(v*10)).join(' ')+'" y="0" font-family="'+(TT.font?TT.name.replace(/"/g,''):'Aktiv Grotesk, aktiv-grotesk, Helvetica Neue, Arial, sans-serif')+'" font-size="1000" font-weight="'+p.weight+'">'+L.ch.map(c=>c.replace(/&/g,'&amp;').replace(/</g,'&lt;')).join('')+'</text></g>';
+  const at=p.vert?'translate('+f(p.bx+p.bw)+' '+f(p.by)+') rotate(90)':'translate('+f(p.bx)+' '+f(p.by)+')';
+  let g='';
+  if(!keep){ const kx=len/(L.r-L.l), ky=th/L.top;
+    g='<g transform="matrix('+f(kx)+' 0 0 '+f(ky)+' '+f(-L.l*kx)+' '+f(L.top*ky)+')">'+glyphs+'</g>'; }
+  else{ const k=th/L.top, id='c'+(++svgWord.n);
+    g='<clipPath id="'+id+'"><rect x="0" y="'+f(-th*4)+'" width="'+f(len)+'" height="'+f(th*9)+'"/></clipPath><g clip-path="url(#'+id+')">';
+    for(const u of keepAt(len,(L.r-L.l)*k,Math.max(0,L.space)*k)) g+='<g transform="matrix('+f(k)+' 0 0 '+f(k)+' '+f(u-L.l*k)+' '+f(L.top*k)+')">'+glyphs+'</g>';
+    g+='</g>'; }
+  return '<g transform="'+at+'"'+paint+op+'>'+g+'</g>';
+}
+svgWord.n=0;
 function render(){
   if(!S.sample) return;
   octx.setTransform(1,0,0,1,0,0); octx.globalAlpha=1;
   octx.fillStyle=S.bg; octx.fillRect(0,0,out.width,out.height);
   octx.globalAlpha=S.opacity;
-  for(const p of placements()){
-    if(p.w){ const sp=blockSprite(p.idx,p.w,p.h);
+  const PL=placements();
+  if(S.style==='type'&&S.trueColour){ drawTypeTrue(PL); octx.globalAlpha=1; return; }
+  for(const p of PL){
+    if(p.word){ drawWord(octx,p); continue; }
+    if(p.w){ const sp=blockSprite(p.idx,p.w,p.h,p.col);
       octx.save(); octx.translate(p.cx,p.cy); octx.rotate(p.angle); octx.drawImage(sp,-p.bw/2,-p.bh/2,p.bw,p.bh); octx.restore(); continue; }
-    const sp=S.sprites[p.idx]; if(!sp)continue;
+    const sp=p.col?spriteFor(p.idx,p.col):S.sprites[p.idx]; if(!sp)continue;
     octx.save(); octx.translate(p.cx,p.cy); octx.rotate(p.angle);
     octx.drawImage(sp, -p.dsz/2, -p.dsz/2, p.dsz, p.dsz);
     octx.restore();
@@ -743,8 +1022,10 @@ $('svgBtn').onclick=()=>{
   const W=out.width,H=out.height, op=S.opacity<1?' opacity="'+S.opacity+'"':'';
   let s='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">';
   s+='<rect width="'+W+'" height="'+H+'" fill="'+S.bg+'"/>';
+  svgWord.n=0;
   for(const p of placements()){
-    const st=S.states[p.idx], deg=(p.angle*180/Math.PI).toFixed(2);
+    if(p.word){ s+=svgWord(p,op); continue; }
+    const st=p.col?Object.assign({},S.states[p.idx],{color:p.col}):S.states[p.idx], deg=(p.angle*180/Math.PI).toFixed(2);
     const rot=(p.angle!==0)?' transform="rotate('+deg+' '+p.cx.toFixed(2)+' '+p.cy.toFixed(2)+')"':'';
     if(p.w){ s+=svgBlock(p,st,rot,op); continue; }
     if(st.inner){
@@ -780,7 +1061,8 @@ function getPreset(){
     nBands:S.nBands,edges:S.edges.slice(),text:S.text,tsize:S.tsize,tlh:S.tlh,align:S.align,
     srcBlur:S.srcBlur,threshLever:S.threshLever,tracking:S.tracking,typeGrad:S.typeGrad,typeGradAngle:S.typeGradAngle,typeW:S.typeW,typeH:S.typeH,typeSlant:S.typeSlant,
     mix:S.mix,mixSizes:S.mixSizes.slice(),mixAmount:S.mixAmount,mixWhere:S.mixWhere,mixSeed:S.mixSeed,
-    states:S.states.map(s=>({color:s.color,userColor:s.userColor,inner:s.inner,vb:s.vb,key:s.key,bigInner:s.bigInner,bigVb:s.bigVb,bigKey:s.bigKey}))};
+    style:S.style,tDir:S.tDir,tMode:S.tMode,tRun:S.tRun,tFit:S.tFit,tMin:S.tMin,tMax:S.tMax,tCase:S.tCase,tSpace:S.tSpace,tWeights:S.tWeights,trueColour:S.trueColour,
+    states:S.states.map(s=>({color:s.color,userColor:s.userColor,inner:s.inner,vb:s.vb,key:s.key,bigInner:s.bigInner,bigVb:s.bigVb,bigKey:s.bigKey,text:s.text}))};
 }
 function syncUI(){
   $('aspect').value=S.aspect; $('customAR').style.display=(S.aspect==='custom')?'flex':'none';
@@ -808,10 +1090,10 @@ function syncUI(){
   $('theight').value=S.typeH; $('theightV').textContent=S.typeH.toFixed(2)+'×';
   $('tslant').value=Math.round(S.typeSlant*180/Math.PI); $('tslantV').textContent=Math.round(S.typeSlant*180/Math.PI)+'°';
   $('gAngle').value=S.typeGradAngle; $('gAngleV').textContent=S.typeGradAngle+'°';
-  syncMix();
+  syncMix(); syncStyle();
   $('tGrad').classList.toggle('on',S.typeGrad); $('gAngleRow').style.display=S.typeGrad?'flex':'none'; $('gAngle').style.display=S.typeGrad?'':'none';
 }
-const PRESET_KEYS=['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant','mix','mixAmount','mixWhere','mixSeed'];
+const PRESET_KEYS=['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant','mix','mixAmount','mixWhere','mixSeed','style','tDir','tMode','tRun','tFit','tMin','tMax','tCase','tSpace','tWeights','trueColour'];
 /* where things stand, and putting them back (6.3: Undo and the change dots, tutti/frame.js).
    A snapshot is the preset – every setting and the bands' colours and marks – with each band's
    drawn mark kept as it is, so stepping back never has to load an SVG again. */
@@ -822,8 +1104,8 @@ function putState(snap){
   S.nBands=Math.max(MINB,Math.min(MAXB,p.nBands)); S.edges=p.edges.slice();
   if(Array.isArray(p.mixSizes)) S.mixSizes=p.mixSizes.slice();
   p.states.forEach((ps,i)=>{ const s=S.states[i], im=snap.img[i]||[]; s.color=ps.color; s.userColor=!!ps.userColor; s.inner=ps.inner||null; s.vb=ps.vb||null; s.key=ps.key||null; s.img=im[0]||null;
-    s.bigInner=ps.bigInner||null; s.bigVb=ps.bigVb||null; s.bigKey=ps.bigKey||null; s.bigImg=im[1]||null; s._t=(s._t||0)+1; s._tb=(s._tb||0)+1; });
-  buildStates(); buildEdgeUI(); syncUI(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
+    s.bigInner=ps.bigInner||null; s.bigVb=ps.bigVb||null; s.bigKey=ps.bigKey||null; s.bigImg=im[1]||null; s.text=ps.text!=null?ps.text:'TUTTI'; s._t=(s._t||0)+1; s._tb=(s._tb||0)+1; });
+  buildStates(); buildEdgeUI(); syncUI(); fillLooks(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
 }
 $('savePreset').onclick=()=>{
   const blob=new Blob([JSON.stringify(getPreset(),null,2)],{type:'application/json'});
@@ -836,14 +1118,15 @@ $('loadPreset').onchange=e=>{
     PRESET_KEYS.forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
     if(p.nBands) S.nBands=Math.max(MINB,Math.min(MAXB,p.nBands));
     if(Array.isArray(p.mixSizes)) S.mixSizes=p.mixSizes.slice(); if(p.mix===undefined) S.mix=false;   /* a preset from before 6.4 had none */
+    if(p.style===undefined){ S.style='marks'; S.trueColour=false; }   /* nor, before 6.5, Type or Source colours */
     S.edges=Array.isArray(p.edges)?p.edges.slice():evenEdges(S.nBands);
     if(Array.isArray(p.states)) p.states.forEach((ps,i)=>{ if(i>=MAXB)return;
       S.states[i].color=ps.color||S.states[i].color; S.states[i].userColor=!!ps.userColor;
-      const st=S.states[i]; st.img=null; st.inner=ps.inner||null; st.vb=ps.vb||null; st.key=ps.key||null; st.bigImg=null; st.bigInner=ps.bigInner||null; st.bigVb=ps.bigVb||null; st.bigKey=ps.bigKey||null;
+      const st=S.states[i]; st.img=null; st.inner=ps.inner||null; st.vb=ps.vb||null; st.key=ps.key||null; st.bigImg=null; st.bigInner=ps.bigInner||null; st.bigVb=ps.bigVb||null; st.bigKey=ps.bigKey||null; st.text=ps.text!=null?ps.text:'TUTTI';
       if(ps.inner) loadStateSVG(i,'<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+(ps.vb||'0 0 100 100')+'">'+ps.inner+'</svg>',false,ps.key);
       if(ps.bigInner) loadStateSVG(i,'<svg xmlns="http://www.w3.org/2000/svg" viewBox="'+(ps.bigVb||'0 0 100 100')+'">'+ps.bigInner+'</svg>',true,ps.bigKey);
     });
-    buildStates(); buildEdgeUI(); syncUI(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
+    buildStates(); buildEdgeUI(); syncUI(); fillLooks(); if(S.kind==='type')renderType(); S.sampleDirty=true; S.spritesDirty=true;
   }catch(err){ status('That preset file could not be read.'); } };
   rd.readAsText(f);
 };
