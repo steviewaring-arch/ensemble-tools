@@ -1070,8 +1070,7 @@
   .live-dot{width:8px;height:8px;border-radius:50%;background:var(--live);display:inline-block;animation:recpulse 1.2s ease-in-out infinite}
   @keyframes recpulse{50%{opacity:.35}}
   .cap-activity .act-main{font-size:var(--fs-body);color:var(--ink);min-width:0;text-align:left;font-variant-numeric:tabular-nums}
-  .stop{border:0;box-shadow:inset 0 0 0 1px var(--keyline);background:var(--btn);color:var(--ink);font-family:var(--face);font-size:var(--fs-body);height:var(--h-isl);padding:0 14px;border-radius:999px;cursor:pointer}
-  .stop:hover{background:var(--btn-hover)}
+  /* Stop: the house .ebtn (6.6 – it was a lozenge of its own) */
   /* while counting down, recording or making a file (.busy, set by the script): the island shows that, not Export */
   .island.busy #exportOpen,.island.busy .island-in>.ep-div{display:none}
   .island.busy .sheets{grid-template-rows:0fr}
@@ -1195,6 +1194,20 @@
   .state .sttext{flex:0 1 112px;min-width:0;width:112px;height:28px;margin-left:auto;padding:0 8px;border-radius:var(--r-in);border:0;background:var(--k-card,var(--btn));color:var(--ink-strong);font:inherit;font-size:13px;box-shadow:inset 0 0 0 1px var(--keyline)}
   .state .sttext:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--ink-strong)}
   .fontpick .btn{flex:0 0 auto;width:auto;padding:0 14px}
+
+  /* 6.6: Stop is a house button with a stop square; once pressed it says it's finishing, with a spinner */
+  .cap-activity .stop{border-radius:var(--r-ctl);display:inline-flex;align-items:center;gap:6px;padding:0 12px}
+  .stop .stop-ic{width:12px;height:12px;flex:none}
+  .stop.cancel .stop-ic{display:none}
+  .stop .spin{display:none;width:12px;height:12px;border-radius:50%;border:1.5px solid currentColor;border-right-color:transparent;animation:stopSpin .7s linear infinite;flex:none}
+  .stop.working{cursor:progress;opacity:1}
+  .stop.working .stop-ic{display:none}
+  .stop.working .spin{display:inline-block}
+  .stop:disabled{cursor:progress}
+  @keyframes stopSpin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.stop .spin{animation-duration:2.4s}}
+  #stillPanel{flex-wrap:wrap}
+  #stillPanel .svg-note{flex:1 0 100%;margin:6px 0 0;color:var(--ink)}
 </style>
 </head>
 <body data-theme="light">
@@ -1209,7 +1222,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.5</span></div>
+      <div class="bline"><span class="mark">Tutti</span><span id="ver" class="ver">6.6</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls">
@@ -1303,6 +1316,7 @@
         <div class="card-tools"><a id="mixShuffle" title="Another pattern of blocks">Shuffle</a></div>
         <div class="row"><label class="lbl">Squares</label><div class="seg multi" id="mixSq" role="group" aria-label="Squares"><button type="button" data-s="2">2×2</button><button type="button" data-s="3">3×3</button><button type="button" data-s="4">4×4</button><button type="button" data-s="5">5×5</button></div></div>
         <div class="row"><label class="lbl">Bars<i class="q" data-tip="Long marks, either way round. A dot becomes a capsule; an SVG mark is stretched to fit.">?</i></label><div class="seg multi" id="mixBar" role="group" aria-label="Bars"><button type="button" data-s="1x2">1×2</button><button type="button" data-s="1x3">1×3</button><button type="button" data-s="2x3">2×3</button></div></div>
+        <div class="row"><label class="lbl">In bars<i class="q" data-tip="What a band's mark does in a bar. Repeat: the mark at its own shape, once per square along the bar. Stretch: one mark drawn out along it. A dot is a capsule either way.">?</i></label><div class="seg" id="mixBarsSeg" role="group" aria-label="Marks in bars"><button type="button" data-v="repeat" class="on">Repeat</button><button type="button" data-v="stretch">Stretch</button></div></div>
         <div class="row"><label class="lbl">Amount<i class="q" data-tip="From one or two big marks to as many as will fit.">?</i></label><span class="val" id="mixAmtV">50%</span></div>
         <input type="range" id="mixAmt" min="0" max="100" step="1" value="50">
         <div class="row"><label class="lbl">Where<i class="q" data-tip="Even: only where every cell under a block shares one band, so big marks sit in flat areas. Further right lets them cross more bands.">?</i></label><span class="val" id="mixWhereV">Even tone</span></div>
@@ -1318,8 +1332,10 @@
         <div class="row"><label class="lbl">Longest<i class="q" data-tip="The most cells one word stretches over. A longer run is shared out between several words.">?</i></label><span class="val" id="tMaxV">12 cells</span></div>
         <input type="range" id="tMax" min="2" max="61" step="1" value="12">
         <div class="row"><label class="lbl">Case</label><div class="seg" id="tCaseSeg" role="group" aria-label="Case"><button type="button" data-v="as" class="on">As typed</button><button type="button" data-v="upper">ABC</button><button type="button" data-v="lower">abc</button></div></div>
-        <div class="row"><label class="lbl">Spacing<i class="q" data-tip="Space between letters, in thousandths of the type size.">?</i></label><span class="val" id="tSpaceV">0</span></div>
-        <input type="range" id="tSpace" min="-60" max="300" step="5" value="0">
+        <div class="row"><label class="lbl">Letters<i class="q" data-tip="Letter spacing: one gap between every letter, the same in every word however far it's drawn out, and between neighbouring words. 0 butts them – no space, not a hairline.">?</i></label><span class="val" id="tLetterV">8%</span></div>
+        <input type="range" id="tLetter" min="0" max="60" step="1" value="8">
+        <div class="row"><label class="lbl">Lines<i class="q" data-tip="Line spacing: the gap between rows (or columns) of words. 0 butts them.">?</i></label><span class="val" id="tLineV">0%</span></div>
+        <input type="range" id="tLine" min="0" max="60" step="1" value="0">
         <div class="row"><label class="lbl">Font</label><div class="fontpick"><span class="hint" id="tFontName">Aktiv Grotesk</span><label class="btn small" for="tFontIn">Upload</label><a id="tFontReset" hidden>Aktiv</a></div></div>
         <input id="tFontIn" type="file" accept=".ttf,.otf,.woff,.woff2,font/*" hidden>
       </div>
@@ -1410,6 +1426,7 @@
           <div class="lane-panel" id="stillPanel">
             <button class="ebtn primary" id="exportBtn" type="button" title="Save a still PNG of the current canvas">Save PNG</button>
             <button class="ebtn primary" id="svgBtn" type="button" title="Save a scalable vector SVG of the current canvas">Save SVG</button>
+            <p class="hint svg-note" id="svgNote" hidden></p>
           </div>
           <div class="lane-panel" id="motionPanel" style="display:none">
             <div class="ctl"><div class="ctl-head"><span>Format</span></div>
@@ -1427,7 +1444,7 @@
       <div class="cap-activity" id="capActivity">
         <span class="live-dot" id="liveDot"></span>
         <span class="act-main" id="actMain">Recording</span>
-        <button class="stop" id="stopBtn">Stop</button>
+        <button class="ebtn stop" id="stopBtn" type="button"><svg class="stop-ic" viewBox="0 0 12 12" aria-hidden="true"><rect x="3" y="3" width="6" height="6" rx="1.2" fill="currentColor"/></svg><span class="spin" aria-hidden="true"></span><span class="stop-t">Stop</span></button>
       </div>
       <button class="ebtn primary" id="exportOpen" type="button" aria-expanded="false" aria-controls="islandSheets">Export</button>
     </div></div>
@@ -1735,7 +1752,7 @@ function mountGuides(o){
   paint();
   return{draw,paint};
 }
-const VERSION="6.5", MAXB=7, MINB=2;
+const VERSION="6.6", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,
@@ -1744,9 +1761,9 @@ const S={
   srcBlur:0, threshLever:0, tracking:0, typeGrad:false, typeGradAngle:0, typeW:1, typeH:1, typeSlant:0,
   nBands:6, edges:[],
   /* 6.4: Mixed sizes – some marks span 2×2 to 5×5 cells, or a bar, always starting on the grid */
-  mix:false, mixSizes:['2','3'], mixAmount:50, mixWhere:0, mixSeed:0,
+  mix:false, mixSizes:['2','3'], mixAmount:50, mixWhere:0, mixSeed:0, mixBars:'repeat',
   /* 6.5: Style – Marks, or Type: words stretched along each run of one tone. And Source colours. */
-  style:'marks', tDir:'rows', tMode:'tone', tRun:'TUTTI', tFit:'stretch', tMin:2, tMax:12, tCase:'as', tSpace:0, tWeights:false, trueColour:false,
+  style:'marks', tDir:'rows', tMode:'tone', tRun:'TUTTI', tFit:'stretch', tMin:2, tMax:12, tCase:'as', tLetter:8, tLine:0, tWeights:false, trueColour:false,
   text:'Tutti', tsize:220, tlh:1.0, align:'center', userFont:false,
   states:Array.from({length:MAXB},()=>({color:'#000000',userColor:false,img:null,inner:null,vb:null,key:null,bigImg:null,bigInner:null,bigVb:null,bigKey:null,text:'TUTTI'})),
   sample:null, sampleDirty:true, spritesDirty:true, sprites:[]
@@ -2049,6 +2066,7 @@ function whereText(){ const k=Math.round(S.mixWhere/100*(S.nBands-1)); return k=
 function syncMix(){
   $('tMix').classList.toggle('on',S.mix); $('mixRow').classList.toggle('on',S.mix); $('mixGrp').hidden=!S.mix;
   document.querySelectorAll('#mixSq button,#mixBar button').forEach(b=>{const on=S.mixSizes.includes(b.dataset.s);b.classList.toggle('on',on);b.setAttribute('aria-pressed',on);});
+  document.querySelectorAll('#mixBarsSeg button').forEach(b=>{ const on=b.dataset.v===S.mixBars; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); });
   $('mixAmt').value=S.mixAmount; $('mixAmtV').textContent=S.mixAmount+'%';
   $('mixWhere').value=S.mixWhere; $('mixWhereV').textContent=whereText();
 }
@@ -2058,6 +2076,7 @@ document.querySelectorAll('#mixSq button,#mixBar button').forEach(b=>b.onclick=(
 $('mixAmt').oninput=e=>{ S.mixAmount=+e.target.value; $('mixAmtV').textContent=S.mixAmount+'%'; };
 $('mixWhere').oninput=e=>{ S.mixWhere=+e.target.value; $('mixWhereV').textContent=whereText(); };
 $('mixShuffle').onclick=()=>{ S.mixSeed=1+Math.floor(Math.random()*9999); };
+document.querySelectorAll('#mixBarsSeg button').forEach(b=>b.onclick=()=>{ S.mixBars=b.dataset.v; syncMix(); });
 syncMix();
 /* Style and Type (6.5) */
 function segPick(id,key,after){ const g=$(id); if(!g)return; g.querySelectorAll('button').forEach(b=>b.onclick=()=>{ S[key]=b.dataset.v; syncStyle(); if(after)after(); }); }
@@ -2068,7 +2087,9 @@ $('tRun').oninput=e=>{ S.tRun=e.target.value; };
 $('tMin').oninput=e=>{ S.tMin=+e.target.value; $('tMinV').textContent=S.tMin+(S.tMin===1?' cell':' cells'); };
 const maxText=()=>S.tMax>60?'No limit':S.tMax+' cells';
 $('tMax').oninput=e=>{ S.tMax=+e.target.value; $('tMaxV').textContent=maxText(); };
-$('tSpace').oninput=e=>{ S.tSpace=+e.target.value; $('tSpaceV').textContent=(S.tSpace>0?'+':'')+S.tSpace; };
+function pct(v){ return v+'%'; }
+$('tLetter').oninput=e=>{ S.tLetter=+e.target.value; $('tLetterV').textContent=pct(S.tLetter); };
+$('tLine').oninput=e=>{ S.tLine=+e.target.value; $('tLineV').textContent=pct(S.tLine); };
 $('tWeights').onclick=()=>{ S.tWeights=!S.tWeights; syncStyle(); };
 $('tTrue').onclick=()=>{ S.trueColour=!S.trueColour; $('tTrue').classList.toggle('on',S.trueColour); };
 /* an uploaded font for Type: drawn with the browser's own reader, and read with opentype.js too (fetched
@@ -2078,12 +2099,12 @@ function needOT(){ return window.opentype?Promise.resolve():new Promise((ok,no)=
 $('tFontIn').onchange=async e=>{
   const f=e.target.files[0]; e.target.value=''; if(!f)return;
   try{ const buf=await f.arrayBuffer(), ff=new FontFace('TuttiType',buf.slice(0)); await ff.load(); document.fonts.add(ff);
-    TT.font=ff; TT.name=f.name.replace(/\.[^.]+$/,''); TT.buf=buf; TT.ot=null; LAY.clear(); WSPR.clear(); LINES.clear();
+    TT.font=ff; TT.name=f.name.replace(/\.[^.]+$/,''); TT.buf=buf; TT.ot=null; typeCachesClear();
     $('tFontName').textContent=TT.name; $('tFontReset').hidden=false; syncStyle(); status('Type in '+TT.name);
     needOT().then(()=>{ try{ TT.ot=opentype.parse(buf.slice(0)); }catch(err){ TT.ot=null; } }).catch(()=>{});
   }catch(err){ $('tFontName').textContent='Could not read that font'; }
 };
-$('tFontReset').onclick=()=>{ TT.font=null; TT.ot=null; TT.buf=null; LAY.clear(); WSPR.clear(); LINES.clear(); $('tFontName').textContent='Aktiv Grotesk'; $('tFontReset').hidden=true; syncStyle(); };
+$('tFontReset').onclick=()=>{ TT.font=null; TT.ot=null; TT.buf=null; typeCachesClear(); $('tFontName').textContent='Aktiv Grotesk'; $('tFontReset').hidden=true; syncStyle(); };
 function syncStyle(){
   const P=$('panel'); if(P) P.dataset.style=S.style;
   const segOn=(id,v)=>{ const g=$(id); if(g) g.querySelectorAll('button').forEach(b=>{ const on=b.dataset.v===v; b.classList.toggle('on',on); b.setAttribute('aria-pressed',on); }); };
@@ -2095,7 +2116,7 @@ function syncStyle(){
   if(document.activeElement!==$('tRun')) $('tRun').value=S.tRun;
   $('tMin').value=S.tMin; $('tMinV').textContent=S.tMin+(S.tMin===1?' cell':' cells');
   $('tMax').value=S.tMax; $('tMaxV').textContent=maxText();
-  $('tSpace').value=S.tSpace; $('tSpaceV').textContent=(S.tSpace>0?'+':'')+S.tSpace;
+  $('tLetter').value=S.tLetter; $('tLetterV').textContent=pct(S.tLetter); $('tLine').value=S.tLine; $('tLineV').textContent=pct(S.tLine);
   $('tWeights').classList.toggle('on',S.tWeights);
   $('tTrue').classList.toggle('on',S.trueColour);
 }
@@ -2105,16 +2126,16 @@ const LOOKS={
     ['Grid pieces',{fill:true,scale:true,minsize:0.3,shapeScale:1,mix:true,mixSizes:['2','3','1x2','1x3'],mixAmount:60,mixWhere:0},{5:'squaredot',4:'square',3:'ring'}],
     ['Rings',{fill:true,scale:true,minsize:0.15,shapeScale:1.1,mix:false},{0:'ring',1:'ring',2:'ring',3:'ringdot',4:'ringdot',5:'ringdot'}],
     ['Bars',{fill:true,scale:false,shapeScale:0.9,mix:true,mixSizes:['1x2','1x3','2x3'],mixAmount:85,mixWhere:30},{}]],
+  /* Type looks set spacing and shape only – never the words, which stay yours */
   type:[
-    ['TUTTI in rows',{tDir:'rows',tMode:'tone',tFit:'stretch',tMin:3,tMax:10,tCase:'upper',tSpace:0,tWeights:false},'TUTTI'],
-    ['Running text',{tDir:'rows',tMode:'run',tRun:'Tutti by Ensemble',tFit:'stretch',tMin:4,tMax:14,tCase:'upper',tSpace:20,tWeights:true},null],
-    ['Columns',{tDir:'cols',tMode:'tone',tFit:'keep',tMin:3,tMax:61,tCase:'upper',tSpace:40,tWeights:true},'TUTTI']]
+    ['Butted',{tDir:'rows',tFit:'stretch',tMin:2,tMax:12,tLetter:0,tLine:0,tWeights:false}],
+    ['Spaced rows',{tDir:'rows',tFit:'stretch',tMin:4,tMax:14,tLetter:14,tLine:18,tWeights:true}],
+    ['Columns',{tDir:'cols',tFit:'keep',tMin:3,tMax:61,tLetter:10,tLine:8,tWeights:true}]]
 };
 function fillLooks(){ const sel=$('looks'); sel.innerHTML='<option value="">Choose…</option>'+LOOKS[S.style].map((l,i)=>'<option value="'+i+'">'+l[0]+'</option>').join(''); sel.value=''; }
 $('looks').onchange=e=>{ const l=LOOKS[S.style][+e.target.value]; e.target.value=''; if(!l)return;
   Object.assign(S,l[1]); if(l[1].mixSizes) S.mixSizes=l[1].mixSizes.slice();
   if(S.style==='marks'){ for(let i=0;i<MAXB;i++) setMark(i,'dot',false); Object.keys(l[2]).forEach(i=>{ if(+i<S.nBands) setMark(+i,l[2][i],false); }); }
-  else if(l[2]) for(let i=0;i<MAXB;i++) S.states[i].text=l[2];
   S.spritesDirty=true; syncUI(); buildStates(); status('Look: '+l[0]); };
 fillLooks(); syncStyle();
 
@@ -2249,12 +2270,15 @@ function blockParams(x,y,w,h,cov){
 /* a block's mark: the band's big mark if it has one, else its mark – an SVG stretched to the block,
    the dot a circle in a square and a capsule in a bar */
 function blockSprite(idx,w,h,col){
-  const k=idx+':'+w+'x'+h+(col||''); if(S.bsprites[k]) return S.bsprites[k];
+  const k=idx+':'+w+'x'+h+(col||'')+S.mixBars; if(S.bsprites[k]) return S.bsprites[k];
   const st=S.states[idx], u=Math.min(Math.max(24,cell*3),2048/Math.max(w,h)), cw=Math.round(u*w), ch=Math.round(u*h);
   const c=document.createElement('canvas'); c.width=cw; c.height=ch; const x=c.getContext('2d'), im=st.bigImg||st.img, colour=col||st.color;
   if(im){
-    if(w===h){ const iw=im.width||100, ih=im.height||100, q=Math.min(cw/iw,ch/ih); x.drawImage(im,(cw-iw*q)/2,(ch-ih*q)/2,iw*q,ih*q); }
-    else x.drawImage(im,0,0,cw,ch);
+    const iw=im.width||100, ih=im.height||100;
+    if(w!==h&&S.mixBars==='stretch') x.drawImage(im,0,0,cw,ch);
+    else{ /* a square block, or a bar of repeats: the mark at its own proportions, once per square along it */
+      const sq=Math.min(cw,ch), n=Math.max(1,Math.round(Math.max(cw,ch)/sq)), step=Math.max(cw,ch)/n, q=Math.min(sq/iw,sq/ih);
+      for(let i=0;i<n;i++){ const cx=cw>=ch?(i+0.5)*step:cw/2, cy=cw>=ch?ch/2:(i+0.5)*step; x.drawImage(im,cx-iw*q/2,cy-ih*q/2,iw*q,ih*q); } }
     if(!S.keepSvgColor){ x.globalCompositeOperation='source-in'; x.fillStyle=colour; x.fillRect(0,0,cw,ch); }
   }else{
     const sh=Math.min(cw,ch), m=sh*0.08, r=(sh-2*m)/2;
@@ -2265,24 +2289,28 @@ function blockSprite(idx,w,h,col){
   return S.bsprites[k]=c;
 }
 function capsule(x,l,t,w,h,r){ x.moveTo(l+r,t); x.arcTo(l+w,t,l+w,t+h,r); x.arcTo(l+w,t+h,l,t+h,r); x.arcTo(l,t+h,l,t,r); x.arcTo(l,t,l+w,t,r); x.closePath(); }
-/* ---- 6.5: Type – words stretched along each run of one tone ----
+/* ---- Type – words stretched along each run of one tone (6.5; spacing 6.6) ----
    Each row (or column) of the grid is read as runs of one band. A run shorter than Shortest joins the
-   longer run beside it; a blank cell ends a run. Each run is a stretch, and gets the next word – its
-   band's own (Per tone) or the next of one passage (Running).
-   Alignment is the point. A word is set from its measured outlines, not its line box: the left edge of
-   its first letter's ink meets the stretch's start, the right edge of its last letter's ink its end;
-   capitals' tops sit on the stretch's top and the baseline on its bottom – for a word in lowercase
-   only, the x-height does that job, so ascenders and descenders reach past, as in any type set to an
-   x-height. Cap height and x-height are measured from the font itself (H and x), per font and weight.
-   tests/tutti_check.py measures the drawn pixels to hold this to a pixel. */
+   longer run beside it; a blank cell ends a run; a run longer than Longest is shared out. Each run is a
+   stretch, and gets the next word – its band's own (Per tone) or the next of one passage (Running).
+   6.6: a word is set letter by letter. Each letter is its ink – no side bearings – and the gap between
+   letters is one measure for the whole picture (Letter spacing, a share of the row), so a word drawn out
+   long and a word squeezed short have the same rhythm; the letters themselves take the stretch. Line
+   spacing is the gap between rows. At 0 and 0 everything butts: letter to letter, row to row.
+   Every edge lands on a whole pixel – each letter is drawn a fraction over its box and clipped to it –
+   so butted letters and rows meet with no hairline between them.
+   Vertically: capitals' tops on the stretch's top and the baseline on its bottom; a word in lowercase
+   only aligns its x-height, so ascenders and descenders reach past. Cap height and x-height are read
+   from the font's own H and x, per font and weight. tests/tutti_check.py measures the drawn pixels. */
 const TFAM='"aktiv-grotesk","Aktiv Grotesk","Helvetica Neue",Arial,sans-serif';
 const TT={font:null,name:'',buf:null,ot:null};          /* an uploaded font, for Type */
-const LAY=new Map(), WSPR=new Map(), MCTX=document.createElement('canvas').getContext('2d');
+const WSPR=new Map(), GLY=new Map(), LINES=new Map();
 const tFam=()=>TT.font?'"TuttiType"':TFAM;
 function tWeight(idx){ if(!S.tWeights||TT.font) return 400; const r=idx/Math.max(1,S.nBands-1); return r<0.34?400:r<0.67?500:700; }
 function tCase(w){ return S.tCase==='upper'?w.toUpperCase():S.tCase==='lower'?w.toLowerCase():w; }
 const tWords=t=>(t||'').split(/\s+/).filter(Boolean);
-if(document.fonts&&document.fonts.addEventListener) document.fonts.addEventListener('loadingdone',()=>{LAY.clear();WSPR.clear();LINES.clear();});
+function typeCachesClear(){ GLY.clear(); LINES.clear(); WSPR.clear(); WSPR.px=0; }
+if(document.fonts&&document.fonts.addEventListener) document.fonts.addEventListener('loadingdone',typeCachesClear);
 /* where ink is, read from pixels – a browser's own text measures are rounded (in Chromium, to 1/64 em),
    too coarse for edges that have to meet the grid */
 function inkScan(c){
@@ -2292,40 +2320,68 @@ function inkScan(c){
     if(row){ if(y<t)t=y; b=y; } }
   return r<0?null:{l,r:r+1,t,b:b+1};
 }
-const MC=document.createElement('canvas'), MF=300, LINES=new Map();
-function measureInk(chars,pos,weight){          /* pos in 100ths; returns ink box in 100ths, baseline at 0 */
-  const adv=pos.length?pos[pos.length-1]+MF:MF, W=Math.ceil((adv/100)*MF+MF*2), H=Math.ceil(MF*2.2), ox=MF, base=Math.round(MF*1.5);
+/* ink edges to a fraction of a pixel: the outermost row or column with any ink, less the part of it the
+   ink doesn't cover (its fullest pixel's coverage) – a letter drawn out thirty times needs it */
+function inkEdges(c){
+  const w=c.width,h=c.height,d=c.getContext('2d',{willReadFrequently:true}).getImageData(0,0,w,h).data;
+  const col=new Uint8Array(w), row=new Uint8Array(h);
+  for(let y=0;y<h;y++){ const o=y*w*4; for(let x=0;x<w;x++){ const v=d[o+x*4+3]; if(v){ if(v>col[x])col[x]=v; if(v>row[y])row[y]=v; } } }
+  let l=0; while(l<w&&!col[l])l++; if(l>=w) return null;
+  let r=w-1; while(!col[r])r--; let t=0; while(!row[t])t++; let b=h-1; while(!row[b])b--;
+  return {l:l+1-col[l]/255, r:r+col[r]/255, t:t+1-row[t]/255, b:b+row[b]/255};
+}
+/* one letter's ink box, in 100ths of the type size, baseline at 0 – measured once at 600px and kept */
+const MC=document.createElement('canvas'), GF=600;
+function glyph(ch,weight){
+  const k=tFam()+'|'+weight+'|'+ch; let g=GLY.get(k); if(g) return g;
+  const W=GF*3, H=Math.ceil(GF*2.4), ox=GF, base=Math.round(GF*1.6);
   MC.width=W; MC.height=H; const x=MC.getContext('2d',{willReadFrequently:true});
-  x.clearRect(0,0,W,H); x.font=weight+' '+MF+'px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic'; x.fillStyle='#000';
-  chars.forEach((c,i)=>x.fillText(c,ox+pos[i]*MF/100,base));
-  const k=inkScan(MC); if(!k) return null;
-  return {l:(k.l-ox)*100/MF, r:(k.r-ox)*100/MF, a:(base-k.t)*100/MF, d:(k.b-base)*100/MF};
+  x.clearRect(0,0,W,H); x.font=weight+' '+GF+'px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic'; x.fillStyle='#000';
+  x.fillText(ch,ox,base);
+  const b=inkEdges(MC), u=100/GF;
+  g=b?{l:(b.l-ox)*u,r:(b.r-ox)*u,a:(base-b.t)*u,d:(b.b-base)*u}:{l:0,r:0,a:0,d:0};
+  GLY.set(k,g); return g;
 }
 function tLines(weight){
   const k=tFam()+'|'+weight; let v=LINES.get(k); if(v) return v;
-  const H=measureInk(['H'],[0],weight), X=measureInk(['x'],[0],weight);
-  v={cap:H?H.a:70, x:X?X.a:50}; LINES.set(k,v); return v;
+  const H=glyph('H',weight), X=glyph('x',weight); v={cap:H.a||70, x:X.a||50}; LINES.set(k,v); return v;
 }
-/* a word's layout, in 100ths of the type size: each letter's place (kerning kept – a letter goes where
-   the word up to it ends), its ink box, read from pixels, and the line its top aligns to */
-function tLayout(word,weight){
-  const k=tFam()+'|'+weight+'|'+S.tSpace+'|'+word; let L=LAY.get(k); if(L) return L;
-  if(LAY.size>4000) LAY.clear();
-  const x=MCTX, M=10; x.font=weight+' 1000px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic';
-  if('letterSpacing' in x) x.letterSpacing='0px';
-  const ch=[...word], sp=S.tSpace/10, pos=[]; let pre='';
-  ch.forEach((c,i)=>{ pos.push(x.measureText(pre).width/M+i*sp); pre+=c; });
-  const ink=measureInk(ch,pos,weight)||{l:0,r:1,a:0,d:0}, ln=tLines(weight);
-  /* capitals, figures or no letters at all: the cap height; lowercase only: the x-height */
+/* a word: its letters with ink, and the line its top aligns to – capitals, figures or no letters at all:
+   the cap height; lowercase only: the x-height */
+function tWord(word,weight){
+  const ch=[...word].filter(c=>{ const g=glyph(c,weight); return g.r>g.l; }), gl=ch.map(c=>glyph(c,weight)), ln=tLines(weight);
   const upper=ch.some(c=>c!==c.toLowerCase()||/[0-9]/.test(c))||!ch.some(c=>c.toLowerCase()!==c.toUpperCase());
-  L={ch,pos,l:ink.l,r:ink.r,a:ink.a,d:ink.d,top:upper?ln.cap:ln.x,space:x.measureText(' ').width/M+sp};
-  LAY.set(k,L); return L;
+  return {ch,gl,top:upper?ln.cap:ln.x,a:Math.max(0,...gl.map(g=>g.a)),d:Math.max(0,...gl.map(g=>g.d)),w:gl.reduce((s,g)=>s+g.r-g.l,0)};
 }
-/* the stretches */
+/* where each letter goes along a stretch of whole pixels: [start, end) for each, with gap g between
+   letters. Stretch: the letters share what the gaps leave. Keep shape: the letters at their own
+   proportions (k px per 100th), whole words repeated, spaced so the last ends on the stretch's end. */
+function letterBoxes(W,len,th,g){
+  const n=W.ch.length; if(!n) return [];
+  if(S.tFit!=='keep'){
+    if(n>1&&len-(n-1)*g<n) g=Math.max(0,Math.floor((len-n)/(n-1)));
+    const kx=(len-(n-1)*g)/W.w, B=[]; let x=0;
+    W.gl.forEach((G,i)=>{ const w=(G.r-G.l)*kx; B.push({i,a:Math.round(x),b:Math.round(x+w)}); x+=w+g; });
+    B[B.length-1].b=len; return B;
+  }
+  const k=th/W.top, ww=W.w*k+(n-1)*g, B=[];
+  for(const u of keepAt(len,ww,g)){ let x=u;
+    W.gl.forEach((G,i)=>{ const w=(G.r-G.l)*k, a=Math.round(x), b=Math.round(x+w); if(a<len&&b>0) B.push({i,a,b}); x+=w+g; }); }
+  return B;
+}
+function keepAt(len,w,gap){
+  if(w<=0) return [0];
+  const n=Math.floor((len+gap)/(w+gap)), u=[];
+  if(n>=2){ const g=(len-n*w)/(n-1); for(let i=0;i<n;i++) u.push(i*(w+g)); return u; }
+  for(let a=0;a<len;a+=w+gap) u.push(a); return u;
+}
+/* the stretches, on whole pixels */
 function typePlacements(){
   const out=[], vert=S.tDir==='cols', A=vert?cols:rows, B=vert?rows:cols, n=S.nBands, min=Math.max(1,S.tMin|0);
   const per=[]; for(let i=0;i<n;i++){ const w=tWords(S.states[i].text); per.push(w.length?w:['TUTTI']); }
   const run=tWords(S.tRun).length?tWords(S.tRun):['TUTTI'], cnt=new Array(n).fill(0); let rc=0;
+  const ca=vert?cellX:cellY, cb=vert?cellY:cellX;                 /* across a stretch, along it */
+  const g=Math.round(S.tLetter/100*ca), gl=Math.round(S.tLine/100*ca);
   for(let a=0;a<A;a++){
     const seg=[];
     for(let b=0;b<B;b++){ const q=vert?b*cols+a:a*cols+b, c=covAt(q), band=c<0.02?-1:bandIndex(c), t=seg[seg.length-1];
@@ -2339,58 +2395,49 @@ function typePlacements(){
         seg.splice(k,1);
         const p=seg[k-1], q=seg[k]; if(p&&q&&p.band===q.band&&p.start+p.len===q.start){ p.len+=q.len; seg.splice(k,1); }
         again=true; break; } }
-    /* a run longer than Longest is shared out, as evenly as whole cells allow */
     const max=S.tMax>60?1e9:Math.max(min,S.tMax|0), parts=[];
     for(const s of seg){ if(s.band<0||s.len<min) continue; const k=Math.ceil(s.len/max);
       for(let m=0,at=s.start;m<k;m++){ const l=Math.round(s.len*(m+1)/k)-Math.round(s.len*m/k); parts.push({band:s.band,start:at,len:l}); at+=l; } }
+    /* across: the row (or column) less the line spacing; along: the stretch less half a letter gap each end,
+       so neighbouring words sit a letter gap apart */
+    const c0=Math.round(a*ca)+Math.floor(gl/2), c1=Math.round((a+1)*ca)-Math.ceil(gl/2);
     for(const s of parts){
       const word=tCase(S.tMode==='run'?run[rc++%run.length]:per[s.band][cnt[s.band]++%per[s.band].length]);
-      const bx=vert?a*cellX:s.start*cellX, by=vert?s.start*cellY:a*cellY, bw=vert?cellX:s.len*cellX, bh=vert?s.len*cellY:cellY;
-      out.push({word,idx:s.band,weight:tWeight(s.band),vert,bx,by,bw,bh,
+      const l0=Math.round(s.start*cb)+Math.floor(g/2), l1=Math.round((s.start+s.len)*cb)-Math.ceil(g/2);
+      if(l1-l0<1||c1-c0<1) continue;
+      out.push({word,idx:s.band,weight:tWeight(s.band),vert,c0,c1,l0,l1,g,
+        bx:vert?c0:l0, by:vert?l0:c0, bw:vert?c1-c0:l1-l0, bh:vert?l1-l0:c1-c0,
         col:S.trueColour?(vert?srcColour(a,s.start,1,s.len):srcColour(s.start,a,s.len,1)):null}); }
   }
   return out;
 }
-/* a word drawn once, big enough for where it's going, and kept */
-function wordSprite(L,word,weight,F,colour){
-  const k=word+'|'+weight+'|'+F+'|'+colour+'|'+S.fill+'|'+tFam()+'|'+S.tSpace; let sp=WSPR.get(k); if(sp) return sp;
-  if(WSPR.size>900||WSPR.px>4e7){ WSPR.clear(); WSPR.px=0; }
-  const s=F/100, pad=Math.ceil(F*0.06)+2, up=Math.max(L.a,L.top), w=Math.ceil((L.r-L.l)*s)+2*pad, h=Math.ceil((up+Math.max(L.d,0))*s)+2*pad;
-  const c=document.createElement('canvas'); c.width=Math.max(1,w); c.height=Math.max(1,h); const x=c.getContext('2d');
-  x.font=weight+' '+F+'px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic'; if('letterSpacing' in x) x.letterSpacing='0px';
-  const ox=pad-L.l*s, base=pad+up*s;
-  x.fillStyle=colour; x.strokeStyle=colour; x.lineWidth=F*0.035; x.lineJoin='round';
-  L.ch.forEach((ch,i)=>{ if(S.fill) x.fillText(ch,ox+L.pos[i]*s,base); else x.strokeText(ch,ox+L.pos[i]*s,base); });
-  const ink=inkScan(c);   /* the edges as drawn at this size, to the pixel */
-  sp={c,ox,base,s,inkL:ink?ink.l:pad,inkW:ink?ink.r-ink.l:(L.r-L.l)*s,top:base-L.top*s};
-  WSPR.set(k,sp); WSPR.px=(WSPR.px||0)+c.width*c.height; return sp;
+/* a stretch drawn once: each letter vector type under its own stretched transform, a little over its
+   box and clipped to it, so butted letters meet on a whole pixel. Kept for word, size and colour. */
+const BLEED=0.6;
+function stretchSprite(W,p,colour){
+  const len=p.l1-p.l0, th=p.c1-p.c0;
+  const k=p.word+'|'+p.weight+'|'+colour+'|'+S.fill+'|'+tFam()+'|'+S.tFit+'|'+len+'|'+th+'|'+p.g; let sp=WSPR.get(k); if(sp) return sp;
+  if(WSPR.size>1200||WSPR.px>5e7){ WSPR.clear(); WSPR.px=0; }
+  const ky=th/W.top, up=Math.ceil(Math.max(0,W.a-W.top)*ky)+2, dn=Math.ceil(W.d*ky)+2, H=up+th+dn, Wd=len;
+  const c=document.createElement('canvas'); c.width=Math.max(1,Wd); c.height=Math.max(1,H); const x=c.getContext('2d');
+  x.font=p.weight+' 100px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic';
+  x.fillStyle=colour; x.strokeStyle=colour; x.lineJoin='round';
+  const kyb=(th+2*BLEED)/W.top, base=up+th+BLEED;
+  for(const L of letterBoxes(W,len,th,p.g)){ const G=W.gl[L.i], w=G.r-G.l; if(L.b<=L.a||w<=0) continue;
+    const k0=(L.b-L.a)/w, bl=Math.max(BLEED,k0*0.05), kx=(L.b-L.a+2*bl)/w;   /* bleed grows as a letter is drawn out */
+    x.save(); x.beginPath(); x.rect(L.a,0,L.b-L.a,H); x.clip();
+    x.setTransform(kx,0,0,kyb,L.a-bl-G.l*kx,base);
+    if(S.fill) x.fillText(W.ch[L.i],0,0); else { x.lineWidth=3.5; x.strokeText(W.ch[L.i],0,0); }
+    x.restore(); }
+  sp={c,up}; WSPR.set(k,sp); WSPR.px=(WSPR.px||0)+c.width*c.height; return sp;
 }
-/* Keep shape: as many whole words as fit, spaced so the last ends on the stretch's end; a word that
-   doesn't fit twice starts the stretch and repeats, cut where the stretch ends */
-function keepAt(len,w,gap){
-  if(w<=0) return [0];
-  const n=Math.floor((len+gap)/(w+gap)), u=[];
-  if(n>=2){ const g=(len-n*w)/(n-1); for(let i=0;i<n;i++) u.push(i*(w+g)); return u; }
-  for(let a=0;a<len;a+=w+gap) u.push(a); return u;
-}
-/* Stretch: the word drawn straight at the size it's going – vector type under a stretched transform, never
-   a picture of type squashed – then its ink read back and, if an edge is off by any of a pixel, drawn
-   once more with the scale put right. Kept for its word, size and colour. */
-function stretchSprite(L,word,weight,len,th,colour){
-  const k='S|'+word+'|'+weight+'|'+colour+'|'+S.fill+'|'+tFam()+'|'+S.tSpace+'|'+len.toFixed(2)+'|'+th.toFixed(2); let sp=WSPR.get(k); if(sp) return sp;
-  if(WSPR.size>900||WSPR.px>4e7){ WSPR.clear(); WSPR.px=0; }
-  const pad=3, up=Math.max(L.a,L.top), ky=th/L.top, top=pad+Math.ceil((up-L.top)*ky), W=Math.ceil(len)+2*pad, H=top+Math.ceil(th+Math.max(0,L.d)*ky)+pad;
-  const c=document.createElement('canvas'); c.width=W; c.height=H; const x=c.getContext('2d',{willReadFrequently:true});
-  let kx=len/(L.r-L.l), ox=pad-L.l*kx;
-  const draw=()=>{ x.setTransform(1,0,0,1,0,0); x.clearRect(0,0,W,H); x.setTransform(kx,0,0,ky,ox,top+L.top*ky);
-    x.font=weight+' 100px '+tFam(); x.textAlign='left'; x.textBaseline='alphabetic'; if('letterSpacing' in x) x.letterSpacing='0px';
-    x.fillStyle=colour; x.strokeStyle=colour; x.lineWidth=3.5; x.lineJoin='round';
-    L.ch.forEach((ch,i)=>{ if(S.fill) x.fillText(ch,L.pos[i],0); else x.strokeText(ch,L.pos[i],0); }); };
-  draw();
-  const ink=inkScan(c);
-  if(ink&&(Math.abs(ink.l-pad)>0.5||Math.abs(ink.r-(pad+len))>0.5)&&ink.r>ink.l){
-    const f=len/(ink.r-ink.l); kx*=f; ox=pad-(ink.l-ox)*f; draw(); }
-  sp={c,pad,top}; WSPR.set(k,sp); WSPR.px=(WSPR.px||0)+W*H; return sp;
+function drawWord(x,p){
+  const W=tWord(p.word,p.weight); if(!W.ch.length) return;
+  const sp=stretchSprite(W,p,p.col?'#000000':S.states[p.idx].color);
+  x.save();
+  if(p.vert){ x.translate(p.c1,p.l0); x.rotate(Math.PI/2); x.drawImage(sp.c,0,-sp.up); }
+  else x.drawImage(sp.c,p.l0,p.c0-sp.up);
+  x.restore();
 }
 /* True colour, for Type: every word drawn in black on a layer of its own, then each stretch's colour laid
    over its own ink (source-atop), and the layer put down – so a moving picture's colours never mean a
@@ -2405,43 +2452,25 @@ function drawTypeTrue(P){
   TLX.globalCompositeOperation='source-over';
   octx.drawImage(TLAY,0,0);
 }
-function drawWord(x,p){
-  const L=tLayout(p.word,p.weight), colour=p.col?'#000000':S.states[p.idx].color;
-  const len=p.vert?p.bh:p.bw, th=p.vert?p.bw:p.bh, keep=S.tFit==='keep';
-  x.save();
-  if(p.vert){ x.translate(p.bx+p.bw,p.by); x.rotate(Math.PI/2); } else x.translate(p.bx,p.by);
-  if(!keep){
-    const sp=stretchSprite(L,p.word,p.weight,len,th,colour), w=sp.c.width, h=sp.c.height;
-    x.drawImage(sp.c,-sp.pad,-sp.top);
-  }else{
-    const fh=L.top/100, F=Math.min(1024,Math.max(32,Math.pow(2,Math.ceil(Math.log2(th/fh)))));
-    const sp=wordSprite(L,p.word,p.weight,F,colour), sw=sp.c.width, sh=sp.c.height;
-    const k=th/(sp.base-sp.top), us=keepAt(len,sp.inkW*k,Math.max(0,L.space)*sp.s*k);
-    x.beginPath(); x.rect(0,-th*4,len,th*9); x.clip();
-    for(const u of us) x.drawImage(sp.c,0,0,sw,sh,u-sp.inkL*k,-sp.top*k,sw*k,sh*k);
-  }
-  x.restore();
-}
-/* the same word in the SVG: Aktiv (or any font not uploaded) as live text with each letter's place, so
-   it opens editable in Illustrator; an uploaded font as outlines, when its file could be read */
+/* the same in the SVG, letter by letter on the same whole-pixel boxes: Aktiv (or any font not uploaded) as
+   live text, so it opens editable in Illustrator; an uploaded font as outlines, when its file could be read */
 function svgWord(p,op){
-  const L=tLayout(p.word,p.weight), colour=p.col||S.states[p.idx].color, f=v=>(+v.toFixed(3)).toString();
-  const len=p.vert?p.bh:p.bw, th=p.vert?p.bw:p.bh, keep=S.tFit==='keep';
+  const W=tWord(p.word,p.weight); if(!W.ch.length) return '';
+  const colour=p.col||S.states[p.idx].color, f=v=>(+v.toFixed(3)).toString(), len=p.l1-p.l0, th=p.c1-p.c0, ky=th/W.top;
   const paint=S.fill?' fill="'+colour+'"':' fill="none" stroke="'+colour+'" stroke-width="3.5" stroke-linejoin="round"';
-  let glyphs;
-  if(TT.ot){ let d=''; L.ch.forEach((c,i)=>{ try{ d+=TT.ot.getPath(c,L.pos[i],0,100,{kerning:false}).toPathData(2); }catch(e){} }); glyphs='<path d="'+d+'"/>'; }
-  /* live text is set at 1000 and scaled down: a renderer that hints type at its set size then rounds
-     at 1000, not at 100, where it shows once the word is stretched */
-  else glyphs='<g transform="scale(0.1)"><text x="'+L.pos.map(v=>f(v*10)).join(' ')+'" y="0" font-family="'+(TT.font?TT.name.replace(/"/g,''):'Aktiv Grotesk, aktiv-grotesk, Helvetica Neue, Arial, sans-serif')+'" font-size="1000" font-weight="'+p.weight+'">'+L.ch.map(c=>c.replace(/&/g,'&amp;').replace(/</g,'&lt;')).join('')+'</text></g>';
-  const at=p.vert?'translate('+f(p.bx+p.bw)+' '+f(p.by)+') rotate(90)':'translate('+f(p.bx)+' '+f(p.by)+')';
+  const fam=TT.font?TT.name.replace(/"/g,''):'Aktiv Grotesk, aktiv-grotesk, Helvetica Neue, Arial, sans-serif';
   let g='';
-  if(!keep){ const kx=len/(L.r-L.l), ky=th/L.top;
-    g='<g transform="matrix('+f(kx)+' 0 0 '+f(ky)+' '+f(-L.l*kx)+' '+f(L.top*ky)+')">'+glyphs+'</g>'; }
-  else{ const k=th/L.top, id='c'+(++svgWord.n);
-    g='<clipPath id="'+id+'"><rect x="0" y="'+f(-th*4)+'" width="'+f(len)+'" height="'+f(th*9)+'"/></clipPath><g clip-path="url(#'+id+')">';
-    for(const u of keepAt(len,(L.r-L.l)*k,Math.max(0,L.space)*k)) g+='<g transform="matrix('+f(k)+' 0 0 '+f(k)+' '+f(u-L.l*k)+' '+f(L.top*k)+')">'+glyphs+'</g>';
-    g+='</g>'; }
-  return '<g transform="'+at+'"'+paint+op+'>'+g+'</g>';
+  for(const L of letterBoxes(W,len,th,p.g)){ const G=W.gl[L.i], w=G.r-G.l, c=W.ch[L.i]; if(L.b<=L.a||w<=0) continue;
+    const kx=(L.b-L.a)/w; let glyphEl;
+    if(TT.ot){ let d=''; try{ d=TT.ot.getPath(c,0,0,100,{kerning:false}).toPathData(2); }catch(e){} glyphEl='<path d="'+d+'"/>'; }
+    else glyphEl='<g transform="scale(0.1)"><text x="0" y="0" font-family="'+fam+'" font-size="1000" font-weight="'+p.weight+'">'+c.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</text></g>';
+    const cut=S.tFit==='keep'&&(L.a<=0||L.b>=len);
+    g+='<g transform="matrix('+f(kx)+' 0 0 '+f(ky)+' '+f(L.a-G.l*kx)+' '+f(th)+')">'+glyphEl+'</g>'; }
+  const at=p.vert?'translate('+p.c1+' '+p.l0+') rotate(90)':'translate('+p.l0+' '+p.c0+')';
+  let inner=g;
+  if(S.tFit==='keep'){ const id='c'+(++svgWord.n);
+    inner='<clipPath id="'+id+'"><rect x="0" y="'+f(-th*4)+'" width="'+len+'" height="'+f(th*9)+'"/></clipPath><g clip-path="url(#'+id+')">'+g+'</g>'; }
+  return '<g transform="'+at+'"'+paint+op+'>'+inner+'</g>';
 }
 svgWord.n=0;
 function render(){
@@ -2498,6 +2527,28 @@ $('exportBtn').onclick=()=>{
   const name=fname('png');
   out.toBlob(b=>{ if(!b){ status('Couldn’t make the PNG – try a smaller resolution'); return; } saveBlob(name,b); status('Saved '+name); },'image/png');
 };
+/* a heavy SVG: said before it's made (it's still made) – a guess from what's drawn, worked out when the
+   export sheet opens */
+function svgWeight(){
+  if(!S.kind||!S.sample) return null;
+  let n=0, bytes=300;
+  for(const p of placements()){
+    if(p.word){ const k=[...p.word].length; n+=k; bytes+=140+(TT.ot?900:190)*k; continue; }
+    const st=S.states[p.idx], inner=p.w?(st.bigInner!=null?st.bigInner:st.inner):st.inner;
+    const reps=p.w&&p.w!==p.h&&S.mixBars!=='stretch'?Math.max(p.w,p.h)/Math.min(p.w,p.h):1;
+    n+=1; bytes+=inner!=null?(110+inner.length)*reps:80;
+  }
+  return {n,bytes};
+}
+function noteSvg(){
+  const el=$('svgNote'), w=svgWeight(); if(!el) return;
+  if(!w||(w.bytes<12e6&&w.n<60000)){ el.hidden=true; return; }
+  const mb=w.bytes/1e6;
+  el.textContent='Heavy SVG: about '+w.n.toLocaleString('en-GB')+' shapes, '+(mb>=10?Math.round(mb):mb.toFixed(1))+' MB. It may be slow to open or edit – Save SVG still makes it. A coarser Grid or Longest makes it lighter.';
+  el.hidden=false;
+}
+$('exportOpen').addEventListener('click',()=>setTimeout(noteSvg,0));
+$('laneStill').addEventListener('click',()=>setTimeout(noteSvg,0));
 $('svgBtn').onclick=()=>{
   if(!S.kind) return;
   computeDims(); if(S.spritesDirty)buildSprites(); if(!sample()) return;
@@ -2528,7 +2579,10 @@ function svgBlock(p,st,rot,op){
   const x=(p.cx-p.bw/2), y=(p.cy-p.bh/2), f=n=>n.toFixed(2), inner=st.bigInner!=null?st.bigInner:st.inner, vb=st.bigInner!=null?st.bigVb:st.vb;
   if(inner!=null){
     const fill=(!S.keepSvgColor)?' fill="'+st.color+'"':'';
-    return '<g'+rot+op+fill+'><svg x="'+f(x)+'" y="'+f(y)+'" width="'+f(p.bw)+'" height="'+f(p.bh)+'" viewBox="'+vb+'" preserveAspectRatio="'+(p.w===p.h?'xMidYMid meet':'none')+'">'+inner+'</svg></g>';
+    if(p.w!==p.h&&S.mixBars==='stretch') return '<g'+rot+op+fill+'><svg x="'+f(x)+'" y="'+f(y)+'" width="'+f(p.bw)+'" height="'+f(p.bh)+'" viewBox="'+vb+'" preserveAspectRatio="none">'+inner+'</svg></g>';
+    const sq=Math.min(p.bw,p.bh), n=Math.max(1,Math.round(Math.max(p.bw,p.bh)/sq)), step=Math.max(p.bw,p.bh)/n, hz=p.bw>=p.bh; let r='';
+    for(let i=0;i<n;i++) r+='<svg x="'+f(hz?x+i*step+(step-sq)/2:x)+'" y="'+f(hz?y:y+i*step+(step-sq)/2)+'" width="'+f(sq)+'" height="'+f(sq)+'" viewBox="'+vb+'" preserveAspectRatio="xMidYMid meet">'+inner+'</svg>';
+    return '<g'+rot+op+fill+'>'+r+'</g>';
   }
   const sh=Math.min(p.bw,p.bh), m=sh*0.08;
   if(S.fill) return '<rect'+rot+' x="'+f(x+m)+'" y="'+f(y+m)+'" width="'+f(p.bw-2*m)+'" height="'+f(p.bh-2*m)+'" rx="'+f(sh/2-m)+'" fill="'+st.color+'"'+op+'/>';
@@ -2542,8 +2596,8 @@ function getPreset(){
     opacity:S.opacity,baseRot:S.baseRot,rotJit:S.rotJit,posJit:S.posJit,autoRotate:S.autoRotate,rotSpeed:S.rotSpeed,
     nBands:S.nBands,edges:S.edges.slice(),text:S.text,tsize:S.tsize,tlh:S.tlh,align:S.align,
     srcBlur:S.srcBlur,threshLever:S.threshLever,tracking:S.tracking,typeGrad:S.typeGrad,typeGradAngle:S.typeGradAngle,typeW:S.typeW,typeH:S.typeH,typeSlant:S.typeSlant,
-    mix:S.mix,mixSizes:S.mixSizes.slice(),mixAmount:S.mixAmount,mixWhere:S.mixWhere,mixSeed:S.mixSeed,
-    style:S.style,tDir:S.tDir,tMode:S.tMode,tRun:S.tRun,tFit:S.tFit,tMin:S.tMin,tMax:S.tMax,tCase:S.tCase,tSpace:S.tSpace,tWeights:S.tWeights,trueColour:S.trueColour,
+    mix:S.mix,mixSizes:S.mixSizes.slice(),mixAmount:S.mixAmount,mixWhere:S.mixWhere,mixSeed:S.mixSeed,mixBars:S.mixBars,
+    style:S.style,tDir:S.tDir,tMode:S.tMode,tRun:S.tRun,tFit:S.tFit,tMin:S.tMin,tMax:S.tMax,tCase:S.tCase,tLetter:S.tLetter,tLine:S.tLine,tWeights:S.tWeights,trueColour:S.trueColour,
     states:S.states.map(s=>({color:s.color,userColor:s.userColor,inner:s.inner,vb:s.vb,key:s.key,bigInner:s.bigInner,bigVb:s.bigVb,bigKey:s.bigKey,text:s.text}))};
 }
 function syncUI(){
@@ -2575,7 +2629,7 @@ function syncUI(){
   syncMix(); syncStyle();
   $('tGrad').classList.toggle('on',S.typeGrad); $('gAngleRow').style.display=S.typeGrad?'flex':'none'; $('gAngle').style.display=S.typeGrad?'':'none';
 }
-const PRESET_KEYS=['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant','mix','mixAmount','mixWhere','mixSeed','style','tDir','tMode','tRun','tFit','tMin','tMax','tCase','tSpace','tWeights','trueColour'];
+const PRESET_KEYS=['aspect','arW','arH','zoom','grid','res','bg','fill','invert','scale','keepSvgColor','minsize','shapeScale','opacity','baseRot','rotJit','posJit','autoRotate','rotSpeed','text','tsize','tlh','align','srcBlur','threshLever','tracking','typeGrad','typeGradAngle','typeW','typeH','typeSlant','mix','mixAmount','mixWhere','mixSeed','mixBars','style','tDir','tMode','tRun','tFit','tMin','tMax','tCase','tLetter','tLine','tWeights','trueColour'];
 /* where things stand, and putting them back (6.3: Undo and the change dots, tutti/frame.js).
    A snapshot is the preset – every setting and the bands' colours and marks – with each band's
    drawn mark kept as it is, so stepping back never has to load an SVG again. */
@@ -2600,6 +2654,7 @@ $('loadPreset').onchange=e=>{
     PRESET_KEYS.forEach(k=>{ if(p[k]!==undefined)S[k]=p[k]; });
     if(p.nBands) S.nBands=Math.max(MINB,Math.min(MAXB,p.nBands));
     if(Array.isArray(p.mixSizes)) S.mixSizes=p.mixSizes.slice(); if(p.mix===undefined) S.mix=false;   /* a preset from before 6.4 had none */
+    if(p.mixBars===undefined) S.mixBars='stretch';   /* before 6.6, marks always stretched along bars */
     if(p.style===undefined){ S.style='marks'; S.trueColour=false; }   /* nor, before 6.5, Type or Source colours */
     S.edges=Array.isArray(p.edges)?p.edges.slice():evenEdges(S.nBands);
     if(Array.isArray(p.states)) p.states.forEach((ps,i)=>{ if(i>=MAXB)return;
@@ -2645,7 +2700,8 @@ function showActivity(main,live,stopLabel){
   $('capChoose').style.display='none'; $('capActivity').style.display='flex'; $('exportbar').classList.add('busy');
   $('actMain').textContent=main;
   $('liveDot').style.display=live?'inline-block':'none';
-  const st=$('stopBtn'); if(stopLabel){ st.style.display=''; st.textContent=stopLabel; } else st.style.display='none';
+  const st=$('stopBtn'); st.classList.remove('working'); st.disabled=false;
+  if(stopLabel){ st.style.display=''; st.querySelector('.stop-t').textContent=stopLabel; st.classList.toggle('cancel',stopLabel!=='Stop'); } else st.style.display='none';
 }
 function capMessage(msg){ showActivity(msg,false,null); setTimeout(()=>{ if(S.kind&&!recording&&!gifRecording&&!gifEncoding&&!prerollActive) showChoose(); },2600); }
 function showExportBar(){ $('exportbar').style.display='flex'; setFmt(exportFmt); setLane(isStatic()?'still':'motion'); showChoose(); }
@@ -2666,10 +2722,15 @@ function startRecord(){
 }
 function beginRecord(){ if(exportFmt==='gif') startGif(); else startVideo(); }
 $('recBtn').onclick=startRecord;
+/* Stop answers at once: the button turns to Finishing with a spinner and can't be pressed twice, while the
+   video is closed off or the GIF is made – that can take a few seconds on a long recording */
+function finishing(msg){ $('actMain').textContent=msg; $('liveDot').style.display='none';
+  const st=$('stopBtn'); st.classList.add('working'); st.disabled=true; st.querySelector('.stop-t').textContent='Finishing…'; }
 $('stopBtn').onclick=()=>{
+  if($('stopBtn').disabled) return;
   if(prerollActive){ cancelPreroll(); showChoose(); return; }
-  if(recording){ if(recorder)recorder.stop(); return; }
-  if(gifRecording){ stopGif(); return; }
+  if(recording){ if(recElapsed){clearInterval(recElapsed);recElapsed=null;} finishing('Saving the video'); if(recorder)recorder.stop(); return; }
+  if(gifRecording){ finishing('Making the GIF'); setTimeout(()=>stopGif(),40); return; }
 };
 
 /* video record – MP4 preferred, min 2000px */
@@ -2735,7 +2796,7 @@ async function stopGif(silent){
   if(silent || gifFrames.length===0){ gifFrames=[]; gifHist=null; if(!silent) showChoose(); return; }
   gifEncoding=true;
   try{
-    showActivity('Making the GIF…',false,null);
+    finishing('Making the GIF');
     await new Promise(r=>setTimeout(r,30));
     const {pal,count}=medianCut(gifHist,256), near=makeLut(pal,count), w=gifGW, h=gifGH, delay=Math.round(100/GIF_FPS);
     const order=gifFrames.map((_,i)=>i);
@@ -2749,7 +2810,7 @@ async function stopGif(silent){
       let ix=done.get(f);
       if(!ix){ const q=gifFrames[f]; ix=new Uint8Array(w*h); for(let i=0;i<ix.length;i++) ix[i]=near(q[i]); if(gifPingpong) done.set(f,ix); }
       idx.set(ix); gifFrame(buf,w,h,idx,delay*runs[n].n);
-      if(n%4===3){ showActivity('Making the GIF – '+Math.round(100*(n+1)/runs.length)+'%',false,null); await new Promise(r=>setTimeout(r,0)); }
+      if(n%4===3){ $('actMain').textContent='Making the GIF – '+Math.round(100*(n+1)/runs.length)+'%'; await new Promise(r=>setTimeout(r,0)); }
     }
     buf.b(0x3B);
     const name=fname('gif'); saveBlob(name,new Blob([buf.out()],{type:'image/gif'}));
@@ -2906,7 +2967,7 @@ async function stopGif(silent){
     const c={w,label,moved,back,b};w.append(b);CTL.push(c);return c;}
   const key=(w,label,ks)=>{ks=[].concat(ks);reg(w,label,p=>ks.some(k=>!same(p[k],START[k])),p=>ks.forEach(k=>p[k]=START[k]));};
   const RANGE={tsize:'tsize',tlh:'tlh',track:'tracking',gAngle:'typeGradAngle',twidth:'typeW',theight:'typeH',tslant:'typeSlant',grid:'grid',zoom:'zoom',sblur:'srcBlur',
-    minsize:'minsize',ssize:'shapeScale',mixAmt:'mixAmount',mixWhere:'mixWhere',tMin:'tMin',tMax:'tMax',tSpace:'tSpace',opacity:'opacity',tlev:'threshLever',rot:'baseRot',rjit:'rotJit',pjit:'posJit'};
+    minsize:'minsize',ssize:'shapeScale',mixAmt:'mixAmount',mixWhere:'mixWhere',tMin:'tMin',tMax:'tMax',tLetter:'tLetter',tLine:'tLine',opacity:'opacity',tlev:'threshLever',rot:'baseRot',rjit:'rotJit',pjit:'posJit'};
   Object.keys(RANGE).forEach(id=>{const inp=$(id),w=inp&&inp.closest('.ctl.rng');if(w)key(w,words(w.querySelector('.lbl')),RANGE[id]);});
   [['tMix','mix'],['tWeights','tWeights'],['tTrue','trueColour'],['tGrad','typeGrad'],['tFill','fill'],['tInvert','invert'],['tScale','scale'],['tKeepSvg','keepSvgColor']].forEach(([id,k])=>{const t=$(id);if(t)key(t,words(t.querySelector('span')),k);});
   [['bgColor','bg'],['aspect','aspect'],['arW',['arW','arH']],['res','res']].forEach(([id,k])=>{const r=$(id)&&$(id).closest('.row');if(r)key(r,words(r.querySelector('.lbl')),k);});
@@ -2917,7 +2978,7 @@ async function stopGif(silent){
     reg(r,lb,p=>part(p.mixSizes)!==part(START.mixSizes),p=>{p.mixSizes=Object.keys(MIXSIZES).filter(k=>ks.includes(k)?START.mixSizes.includes(k):p.mixSizes.includes(k));});});
   {const t=$('mixShuffle')&&$('mixShuffle').parentElement;if(t)key(t,'Pattern','mixSeed');}
   /* Style and Type (6.5) */
-  [['styleSeg','Style','style'],['tDirSeg','Direction','tDir'],['tModeSeg','Text','tMode'],['tFitSeg','Fit','tFit'],['tCaseSeg','Case','tCase']].forEach(([id,lb,k])=>{const r=$(id)&&$(id).closest('.row');if(r)key(r,lb,k);});
+  [['mixBarsSeg','In bars','mixBars'],['styleSeg','Style','style'],['tDirSeg','Direction','tDir'],['tModeSeg','Text','tMode'],['tFitSeg','Fit','tFit'],['tCaseSeg','Case','tCase']].forEach(([id,lb,k])=>{const r=$(id)&&$(id).closest('.row');if(r)key(r,lb,k);});
   {const t=$('tRun');if(t){const w=document.createElement('div');w.className='txt-wrap run-wrap';t.parentNode.insertBefore(w,t);w.append(t);key(w,'Running text','tRun');}}
   {const t=$('typeText');if(t){const w=document.createElement('div');w.className='txt-wrap';t.parentNode.insertBefore(w,t);w.append(t);key(w,'Text','text');}}
   reg(document.querySelector('.stepper'),'Bands',p=>p.nBands!==START.nBands,p=>{p.nBands=START.nBands;p.edges=evenEdges(p.nBands);

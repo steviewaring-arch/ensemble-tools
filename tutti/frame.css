@@ -127,8 +127,7 @@
   .live-dot{width:8px;height:8px;border-radius:50%;background:var(--live);display:inline-block;animation:recpulse 1.2s ease-in-out infinite}
   @keyframes recpulse{50%{opacity:.35}}
   .cap-activity .act-main{font-size:var(--fs-body);color:var(--ink);min-width:0;text-align:left;font-variant-numeric:tabular-nums}
-  .stop{border:0;box-shadow:inset 0 0 0 1px var(--keyline);background:var(--btn);color:var(--ink);font-family:var(--face);font-size:var(--fs-body);height:var(--h-isl);padding:0 14px;border-radius:999px;cursor:pointer}
-  .stop:hover{background:var(--btn-hover)}
+  /* Stop: the house .ebtn (6.6 – it was a lozenge of its own) */
   /* while counting down, recording or making a file (.busy, set by the script): the island shows that, not Export */
   .island.busy #exportOpen,.island.busy .island-in>.ep-div{display:none}
   .island.busy .sheets{grid-template-rows:0fr}
@@ -252,3 +251,17 @@
   .state .sttext{flex:0 1 112px;min-width:0;width:112px;height:28px;margin-left:auto;padding:0 8px;border-radius:var(--r-in);border:0;background:var(--k-card,var(--btn));color:var(--ink-strong);font:inherit;font-size:13px;box-shadow:inset 0 0 0 1px var(--keyline)}
   .state .sttext:focus{outline:none;box-shadow:inset 0 0 0 1.5px var(--ink-strong)}
   .fontpick .btn{flex:0 0 auto;width:auto;padding:0 14px}
+
+  /* 6.6: Stop is a house button with a stop square; once pressed it says it's finishing, with a spinner */
+  .cap-activity .stop{border-radius:var(--r-ctl);display:inline-flex;align-items:center;gap:6px;padding:0 12px}
+  .stop .stop-ic{width:12px;height:12px;flex:none}
+  .stop.cancel .stop-ic{display:none}
+  .stop .spin{display:none;width:12px;height:12px;border-radius:50%;border:1.5px solid currentColor;border-right-color:transparent;animation:stopSpin .7s linear infinite;flex:none}
+  .stop.working{cursor:progress;opacity:1}
+  .stop.working .stop-ic{display:none}
+  .stop.working .spin{display:inline-block}
+  .stop:disabled{cursor:progress}
+  @keyframes stopSpin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion:reduce){.stop .spin{animation-duration:2.4s}}
+  #stillPanel{flex-wrap:wrap}
+  #stillPanel .svg-note{flex:1 0 100%;margin:6px 0 0;color:var(--ink)}

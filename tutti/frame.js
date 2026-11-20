@@ -145,7 +145,7 @@
     const c={w,label,moved,back,b};w.append(b);CTL.push(c);return c;}
   const key=(w,label,ks)=>{ks=[].concat(ks);reg(w,label,p=>ks.some(k=>!same(p[k],START[k])),p=>ks.forEach(k=>p[k]=START[k]));};
   const RANGE={tsize:'tsize',tlh:'tlh',track:'tracking',gAngle:'typeGradAngle',twidth:'typeW',theight:'typeH',tslant:'typeSlant',grid:'grid',zoom:'zoom',sblur:'srcBlur',
-    minsize:'minsize',ssize:'shapeScale',mixAmt:'mixAmount',mixWhere:'mixWhere',tMin:'tMin',tMax:'tMax',tSpace:'tSpace',opacity:'opacity',tlev:'threshLever',rot:'baseRot',rjit:'rotJit',pjit:'posJit'};
+    minsize:'minsize',ssize:'shapeScale',mixAmt:'mixAmount',mixWhere:'mixWhere',tMin:'tMin',tMax:'tMax',tLetter:'tLetter',tLine:'tLine',opacity:'opacity',tlev:'threshLever',rot:'baseRot',rjit:'rotJit',pjit:'posJit'};
   Object.keys(RANGE).forEach(id=>{const inp=$(id),w=inp&&inp.closest('.ctl.rng');if(w)key(w,words(w.querySelector('.lbl')),RANGE[id]);});
   [['tMix','mix'],['tWeights','tWeights'],['tTrue','trueColour'],['tGrad','typeGrad'],['tFill','fill'],['tInvert','invert'],['tScale','scale'],['tKeepSvg','keepSvgColor']].forEach(([id,k])=>{const t=$(id);if(t)key(t,words(t.querySelector('span')),k);});
   [['bgColor','bg'],['aspect','aspect'],['arW',['arW','arH']],['res','res']].forEach(([id,k])=>{const r=$(id)&&$(id).closest('.row');if(r)key(r,words(r.querySelector('.lbl')),k);});
@@ -156,7 +156,7 @@
     reg(r,lb,p=>part(p.mixSizes)!==part(START.mixSizes),p=>{p.mixSizes=Object.keys(MIXSIZES).filter(k=>ks.includes(k)?START.mixSizes.includes(k):p.mixSizes.includes(k));});});
   {const t=$('mixShuffle')&&$('mixShuffle').parentElement;if(t)key(t,'Pattern','mixSeed');}
   /* Style and Type (6.5) */
-  [['styleSeg','Style','style'],['tDirSeg','Direction','tDir'],['tModeSeg','Text','tMode'],['tFitSeg','Fit','tFit'],['tCaseSeg','Case','tCase']].forEach(([id,lb,k])=>{const r=$(id)&&$(id).closest('.row');if(r)key(r,lb,k);});
+  [['mixBarsSeg','In bars','mixBars'],['styleSeg','Style','style'],['tDirSeg','Direction','tDir'],['tModeSeg','Text','tMode'],['tFitSeg','Fit','tFit'],['tCaseSeg','Case','tCase']].forEach(([id,lb,k])=>{const r=$(id)&&$(id).closest('.row');if(r)key(r,lb,k);});
   {const t=$('tRun');if(t){const w=document.createElement('div');w.className='txt-wrap run-wrap';t.parentNode.insertBefore(w,t);w.append(t);key(w,'Running text','tRun');}}
   {const t=$('typeText');if(t){const w=document.createElement('div');w.className='txt-wrap';t.parentNode.insertBefore(w,t);w.append(t);key(w,'Text','text');}}
   reg(document.querySelector('.stepper'),'Bands',p=>p.nBands!==START.nBands,p=>{p.nBands=START.nBands;p.edges=evenEdges(p.nBands);

@@ -204,6 +204,11 @@ def run(p, eng, mode):
         L(".markbtn").first.click(); pg.wait_for_timeout(150)
         L('.markbox .mk[data-k="ring"]').click(); pg.wait_for_timeout(400)
         if ev('S.states[0].key') != 'ring' or not ev('!!S.states[0].img'): raise Exception('house mark not set')
+        # 6.6: In bars – Repeat (the default) or Stretch
+        L('#mixBarsSeg button[data-v="stretch"]').click(); pg.wait_for_timeout(100)
+        if ev('S.mixBars') != 'stretch': raise Exception('In bars did not switch')
+        if not ev("(()=>{S.mixBars='repeat';const a=blockSprite(0,1,3).toDataURL();S.mixBars='stretch';const b=blockSprite(0,1,3).toDataURL();return a!==b})()"): raise Exception('Repeat and Stretch draw the same bar')
+        L('#mixBarsSeg button[data-v="repeat"]').click(); pg.wait_for_timeout(100)
         L('.markbox .markseg button[data-b="1"]').click(); pg.wait_for_timeout(150); L('.markbox .mk[data-k="checker"]').click(); pg.wait_for_timeout(400)
         if ev('S.states[0].bigKey') != 'checker': raise Exception('big mark not set')
         L('.card[data-id="advanced"] .card-toggle').evaluate('b=>{if(b.closest(".card").classList.contains("collapsed"))b.click()}')
@@ -289,7 +294,7 @@ def run(p, eng, mode):
 
     # --- 6.5: Type (the style), checked on the pixels: every stretch's ink meets its box
     ALIGN = r"""(o)=>{
-      S.style='type'; S.tMax=61; S.tMin=1; S.tDir=o.dir; S.tFit=o.fit; S.tMode='run'; S.tRun=o.word; S.tCase='as'; S.tSpace=0; S.grid=o.grid; S.bg='#ffffff'; S.trueColour=false; S.opacity=1;
+      S.style='type'; S.tMax=61; S.tMin=1; S.tDir=o.dir; S.tFit=o.fit; S.tMode='run'; S.tRun=o.word; S.tCase='as'; S.tLetter=0; S.tLine=0; S.grid=o.grid; S.bg='#ffffff'; S.trueColour=false; S.opacity=1;
       S.states.forEach(t=>t.color='#000000');   /* black on white, whatever earlier checks set */
       syncUI(); S.sampleDirty=true; S.spritesDirty=true; computeDims(); buildSprites(); sample(); render();
       const W=out.width,H=out.height,d=octx.getImageData(0,0,W,H).data, ink=(x,y)=>d[(y*W+x)*4]<200, P=placements(); let worst=0, at='';
@@ -299,7 +304,10 @@ def run(p, eng, mode):
       return {n:P.length,worst,at};
     }"""
     def type_align():
-        L('#fileIn').set_input_files(GREY); pg.wait_for_timeout(700)
+        L('#fileIn').set_input_files(GREY)
+        for _ in range(30):
+            if ev('(()=>{sample();const s=S.sample;return !!s&&s.every(v=>Math.abs(v-s[0])<4)})()'): break
+            pg.wait_for_timeout(200)
         fonts = ['Aktiv or its stand-in'] + ([DEJAVU] if os.path.exists(DEJAVU) else [])
         worst, cases = 0, 0
         for font in fonts:
@@ -314,6 +322,27 @@ def run(p, eng, mode):
                             worst = max(worst, r['worst'])
         return f'{cases} cases, {len(fonts)} fonts, worst {worst}px'
     check(tag, 'Type: every word meets its stretch, to a pixel', type_align)
+    # 6.6: butted type has no hairlines – rows and letters meet on whole pixels. A run of I's at 0 and 0
+    # should be solid ink from edge to edge, at grids whose cells fall between pixels too
+    HAIR = r"""(o)=>{ S.style='type'; S.tMax=o.max; S.tMin=1; S.tDir=o.dir; S.tFit='stretch'; S.tMode='run'; S.tRun='IIII'; S.tCase='as'; S.tLetter=0; S.tLine=0;
+      S.grid=o.grid; S.bg='#ffffff'; S.opacity=1; S.trueColour=false; S.fill=true; S.invert=false; S.tWeights=false; S.states.forEach(t=>t.color='#000000');   /* solid – Randomise may have left outlines */
+      syncUI(); S.sampleDirty=true; S.spritesDirty=true; computeDims(); buildSprites(); sample(); render();
+      const P=placements(), W=out.width, d=octx.getImageData(0,0,W,out.height).data; let y0=1e9,y1=0,x0=1e9,x1=0;
+      for(const p of P.slice(1,-1)){ y0=Math.min(y0,p.by); y1=Math.max(y1,p.by+p.bh); x0=Math.min(x0,p.bx); x1=Math.max(x1,p.bx+p.bw); }
+      let light=0; for(let y=y0;y<y1;y++) for(let x=x0;x<x1;x++) if(d[(y*W+x)*4]>60) light++;
+      return light; }"""
+    def hairlines():
+        if ev('!!TT.font'): L('#tFontReset').click(); pg.wait_for_timeout(300)
+        L('#fileIn').set_input_files(GREY); n = 0
+        for _ in range(30):   # the flat grey has to be the source before anything is measured
+            if ev('(()=>{sample();const s=S.sample;return !!s&&s.every(v=>Math.abs(v-s[0])<4)})()'): break
+            pg.wait_for_timeout(200)
+        for d in ('rows', 'cols'):
+            for grid in (24, 72, 97):
+                for mx in (61, 5):
+                    light = ev(HAIR, dict(dir=d, grid=grid, max=mx)); n += 1
+                    if light: raise Exception(f'{light} light pixels in butted type – {d}, grid {grid}, Longest {mx}; ' + str(ev('({font:!!TT.font,w:S.tWeights,fit:S.tFit,kind:S.kind,n:placements().length,ink:S.fill,inv:S.invert,mode:S.tMode,words:placements().slice(0,2).map(p=>p.word+" "+p.bw+"x"+p.bh),fam:tFam()})')))
+        return f'{n} cases, solid'
     def type_svg():
         if not os.path.exists(DEJAVU): return 'skipped – no font to upload here'
         for _ in range(16):
@@ -336,6 +365,7 @@ def run(p, eng, mode):
         if '<text' not in t or 'Aktiv Grotesk' not in t: raise Exception('Aktiv should be live text in the SVG')
         return f'outlines within {r["worst"]}px; Aktiv live text'
     check(tag, 'Type in the SVG: outlines for an upload, live Aktiv', type_svg)
+    check(tag, 'Type at 0 spacing: no hairlines', hairlines)
     def type_ui():
         L('.card[data-id="shape"] .card-toggle').evaluate('b=>{if(b.closest(".card").classList.contains("collapsed"))b.click()}')
         L('#styleSeg button[data-v="marks"]').click(); pg.wait_for_timeout(200)
@@ -352,8 +382,10 @@ def run(p, eng, mode):
         if L('.sttext').count() or not L('#tRun').is_visible(): raise Exception('Running should swap the band boxes for one passage')
         L('#tRun').fill('Ensemble tools'); wait_render()
         if set(ev('placements().map(p=>p.word)')) - {'Ensemble', 'tools'}: raise Exception('running words wrong')
+        L('#tDirSeg button[data-v="rows"]').click(); L('#tFitSeg button[data-v="stretch"]').click(); pg.wait_for_timeout(900)
         L('#looks').select_option(index=3); wait_render()
         if ev('S.tDir') != 'cols' or ev('S.tFit') != 'keep': raise Exception('the Columns look did not apply')
+        if ev('S.tRun') != 'Ensemble tools': raise Exception('a Look changed the words')
         L('#undoBtn').click(); pg.wait_for_timeout(300)
         if ev('S.tDir') != 'rows': raise Exception('Undo did not take the look back')
         s0 = canvas_sig(); L('#tTrue').click(); wait_render()

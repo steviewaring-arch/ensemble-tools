@@ -1,5 +1,15 @@
 # Changelog
 
+## 20 November 2026 – Tutti 6.6: spacing for Type, no hairlines, Repeat or Stretch in bars, a heavy-SVG note, Stop that answers
+
+- **Type: Letters and Lines** (spacing, in place of Spacing). **Letters** is one gap between every letter and between neighbouring words, the same in every word however far it's drawn out – so a long stretched word and a short narrow one keep the same rhythm; the letters take the stretch, not the gaps. **Lines** is the gap between rows (or columns). Both run from 0 – butted, no space at all – up to spaced out (60% of a row).
+- **No hairlines.** A word is now set letter by letter, each letter its own ink (no side bearings), on whole pixels – each drawn a fraction over its box and clipped to it – and rows sit on whole pixels too. At 0 and 0 a run of I's is solid ink edge to edge, checked by machine at grids whose cells fall between pixels.
+- **Looks never touch your words.** "TUTTI in rows" is gone; the Type looks (Butted, Spaced rows, Columns) set shape and spacing only.
+- **Mixed sizes – In bars: Repeat or Stretch.** Repeat (new, the default) keeps a band's mark at its own shape, once per square along the bar; Stretch draws it out along the bar, as 6.4 did. A preset from before 6.6 loads with Stretch.
+- **A heavy SVG says so** in the export sheet before you make it – about how many shapes and megabytes, and that it may be slow to open. Save SVG still makes it.
+- **Stop** is a house button now (the square, not a lozenge), and answers at once: it turns to *Finishing…* with a spinner while the video is closed off or the GIF is made, and can't be pressed twice.
+- With Style on Marks, the 12 export hashes are identical to 6.5. Tests: Tutti 105 of 105.
+
 ## 14 November 2026 – Tutti 6.5: Type, Looks, True colour
 
 *Tried by Steve at a preview address (/tutti/next/, 13 Nov) before going live.*
