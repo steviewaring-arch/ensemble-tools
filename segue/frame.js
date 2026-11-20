@@ -166,17 +166,18 @@ function setPreview(on){$('.app').classList.toggle('preview',on);setPanel(false)
 window.ensembleUI={open:openSheet,close:closeSheets,preview:setPreview,
   reveal(n){const s=n&&n.closest&&n.closest('.sheet');if(s&&s.hidden)openSheet(s.dataset.sheet);return true;}};
 /* ---------------- controls ---------------- */
+/* is the handle over the words? Measured on the words' own text – the value, and a label where it sits inside
+   the bar – not their boxes, 6 px clear either side. The same in every tool (UI.md, Controls: Slider). */
+function overWords(box,x){const bl=box.getBoundingClientRect().left,rg=document.createRange();
+  for(const e of box.querySelectorAll('.ctl-head .val,.ctl-head label,.ctl-head .lbl')){if(!e.offsetWidth||!e.textContent.trim())continue;
+    rg.selectNodeContents(e);const rr=rg.getBoundingClientRect();if(!rr.width)continue;if(x>rr.left-bl-6&&x<rr.right-bl+6)return true;}
+  return false;}
 function syncRange(box){const inp=box.querySelector('input[type=range]');if(!inp)return;
   const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,sp=mx>mn?mx-mn:1,p=clamp((+inp.value-mn)/sp,0,1);box.style.setProperty('--p',p);
   const z=mn<0&&mx>0?-mn/sp:0;box.style.setProperty('--z',z);box.classList.toggle('from-start',z===0);
   const ctl=box.parentElement,bv=ctl&&ctl.dataset.def!=null?+ctl.dataset.def:ctl&&ctl.dataset.k?+base(ctl.dataset.k):NaN;
   if(Number.isFinite(bv))box.style.setProperty('--b',clamp((bv-mn)/sp,0,1));
-  const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const x=5+(w-10)*p,head=box.querySelector('.ctl-head');let over=false;
-  /* split only over the words themselves – the label's text and the value, not the hidden ? or empty space */
-  if(head){const bl=box.getBoundingClientRect().left;for(const e of head.children){if(!e.offsetWidth||e.classList.contains('cx')||e.classList.contains('q'))continue;
-    let l,r;if(e.tagName==='LABEL'&&e.firstChild){const rg=document.createRange();rg.selectNodeContents(e);const rr=rg.getBoundingClientRect();l=rr.left-bl;r=rr.right-bl;}
-    else{l=head.offsetLeft+e.offsetLeft;r=l+e.offsetWidth;}
-    if(x>l-4&&x<r+4){over=true;break;}}}
+  const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const x=5+(w-10)*p,over=overWords(box,x);
   tick.classList.toggle('split',over);}
 function syncRanges(root){(root||document).querySelectorAll('.rng-box').forEach(syncRange);}
 function upgradeRange(inp){const ctl=inp.parentElement;if(!ctl||!ctl.classList.contains('ctl')||inp.closest('.rng-box'))return;

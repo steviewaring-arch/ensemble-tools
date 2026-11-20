@@ -261,8 +261,10 @@ both).
 
 - **Slider:** a grey bar (8 px corners) with its value inside on the right, its
   label in the label column. A darker fill shows the value (from zero when the
-  range runs through zero); a 3 px handle that splits into two short ticks where it
-  would cross the value; a notch where it started.
+  range runs through zero); a 3 px handle that fades right out where it would cross
+  the words – the value, or a label inside the bar, measured on the text itself, 6 px
+  clear – so nothing ever runs through a letter, and the fill's edge still shows where
+  it is (20 Nov 2026; the same `overWords` in every tool); a notch where it started.
   - Drag moves it by how far you go, not to where you press; **Shift** is ten times
     finer; it catches lightly at the start value.
   - A press that doesn't move jumps there. A press on the label drags it too.

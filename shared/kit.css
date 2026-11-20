@@ -119,13 +119,13 @@
   .rng-box.ease{transition:--p var(--t-smooth) var(--e-smooth)}
   .rng-fill{left:calc(5px + (100% - 10px) * min(var(--p),var(--z)));width:calc((100% - 10px) * max(var(--p) - var(--z),var(--z) - var(--p)));border-radius:0;background:var(--k-fill-2)}
   .rng-box.from-start .rng-fill{left:0;width:calc(5px + (100% - 10px) * var(--p))}
-  .rng-tick{top:7px;bottom:7px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--k-handle);left:calc(5px + (100% - 10px) * var(--p));transition:transform var(--t-snap) var(--e-snap),background var(--t-snap)}
+  .rng-tick{top:7px;bottom:7px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--k-handle);left:calc(5px + (100% - 10px) * var(--p));transition:transform var(--t-snap) var(--e-snap),background var(--t-snap),opacity var(--t-snap)}
   .rng-tick.away{opacity:1;transform:none}
-  /* where it would cross the words it becomes two short ticks, so it never cuts a letter */
-  /* Where the handle crosses the words it fades behind them rather than breaking into two stubs
-     (Steve, 6 Nov: "the line looks clunky behind any bars that have text in") – one line, still
-     readable as a position, with the label and the value clear on top of it. */
-  .rng-tick.split{background:linear-gradient(var(--k-handle) 0 4px,color-mix(in srgb,var(--k-handle) 20%,transparent) 8px calc(100% - 8px),var(--k-handle) calc(100% - 4px));top:5px;bottom:5px}
+  /* Where the handle would cross the words – the value, or a label inside the bar – it fades right out, so
+     nothing ever runs through a letter; the fill's edge still shows where it is (Steve, 20 Nov: "It should
+     fade, or even stop before the numbers" – replacing the faint-middle handle of 6 Nov, which still crossed
+     the letters). Every tool's slider decides "over" the same way: the words' own ink, 6 px clear. */
+  .rng-tick.split{opacity:0}
   .rng-box:hover .rng-tick,.rng-box.drag .rng-tick{transform:scaleY(1.18)}
   .rng-notch{position:absolute;bottom:0;width:1px;height:5px;margin-left:-.5px;background:var(--ink);opacity:.32;left:calc(5px + (100% - 10px) * var(--b,0));pointer-events:none}
   .rng-box .ctl-head{padding:0 3px 0 10px}

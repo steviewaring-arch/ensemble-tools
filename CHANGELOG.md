@@ -1,5 +1,10 @@
 # Changelog
 
+## 20 November 2026 – House slider: the handle fades over the words, in every tool; Tutti 6.6.1
+
+- **No more handle through the numbers.** Where a slider's handle would cross its value (or a label inside the bar), it now fades right out; the fill's edge still shows the position. It was a handle with a faint middle and solid ends, which still ran through the letters ("53 cells"). One rule in the house kit and one way of measuring – on the words' own text, 6 px clear – shared by Tutti, Segue, Rubato and Tempo. Swept by machine: every visible slider in all four, end to end, never crosses its value. `shared/UI.md` updated; Segue's UI check now holds the new rule.
+- **Tutti 6.6.1, Type panel:** the choices size to their words (Keep shape no longer runs into the edge); the Running text box is the house field, without the resize grip, growing with what's typed, and sits clear of the row below.
+
 ## 20 November 2026 – Tutti 6.6: spacing for Type, no hairlines, Repeat or Stretch in bars, a heavy-SVG note, Stop that answers
 
 - **Type: Letters and Lines** (spacing, in place of Spacing). **Letters** is one gap between every letter and between neighbouring words, the same in every word however far it's drawn out – so a long stretched word and a short narrow one keep the same rhythm; the letters take the stretch, not the gaps. **Lines** is the gap between rows (or columns). Both run from 0 – butted, no space at all – up to spaced out (60% of a row).

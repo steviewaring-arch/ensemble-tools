@@ -77,8 +77,8 @@ def try_slider(pg, c, tally):
     start_v = S(pg, k); b = base_of(pg, k); into_view(pg, tid)
     box = loc(pg, tid, '.rng-box'); bb = box.bounding_box()
     ok = {}
-    # the handle never hides
-    ok['handle'] = pg.evaluate("t=>{const h=document.querySelector(`[data-tid='${t}'] .rng-tick`);const s=getComputedStyle(h);return s.opacity==='1'&&h.offsetWidth===3;}", tid)
+    # the handle shows, except where it would cross the words – there it fades right out (20 Nov) and only there
+    ok['handle'] = pg.evaluate("t=>{const h=document.querySelector(`[data-tid='${t}'] .rng-tick`),box=h.closest('.rng-box');const x=5+(box.offsetWidth-10)*+getComputedStyle(box).getPropertyValue('--p');const bl=box.getBoundingClientRect().left,rg=document.createRange();let over=false;for(const e of box.querySelectorAll('.ctl-head .val,.ctl-head label,.ctl-head .lbl')){if(!e.offsetWidth||!e.textContent.trim())continue;rg.selectNodeContents(e);const r=rg.getBoundingClientRect();if(r.width&&x>r.left-bl-6&&x<r.right-bl+6)over=true;}return h.offsetWidth===3&&h.classList.contains('split')===over;}", tid)
     # type a value: exact, kept to the range, units optional
     target = round(mn + span * 0.37, 4)
     loc(pg, tid, '.rng-box .val').click(); time.sleep(.05)

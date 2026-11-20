@@ -32,12 +32,17 @@
      beside it. Drag moves it by how far you go (Shift ten times finer); a press that doesn't move jumps there;
      a press on the label drags too. It only ever sets the range's value and fires its own input event. */
   const kc=(v,a,b)=>Math.max(a,Math.min(b,v));
+  /* is the handle over the words? Measured on the words' own text – the value, and a label where it sits inside
+     the bar – not their boxes, 6 px clear either side. The same in every tool (UI.md, Controls: Slider). */
+  function overWords(box,x){const bl=box.getBoundingClientRect().left,rg=document.createRange();
+    for(const e of box.querySelectorAll('.ctl-head .val,.ctl-head label,.ctl-head .lbl')){if(!e.offsetWidth||!e.textContent.trim())continue;
+      rg.selectNodeContents(e);const rr=rg.getBoundingClientRect();if(!rr.width)continue;if(x>rr.left-bl-6&&x<rr.right-bl+6)return true;}
+    return false;}
   function syncRange(box){const inp=box.querySelector('input[type=range]');if(!inp)return;
     const mn=inp.min===''?0:+inp.min,mx=inp.max===''?100:+inp.max,sp=mx>mn?mx-mn:1,p=kc((+inp.value-mn)/sp,0,1);box.style.setProperty('--p',p);
     const z=mn<0&&mx>0?-mn/sp:0;box.style.setProperty('--z',z);box.classList.toggle('from-start',z===0);
     if(inp.dataset.def==null)inp.dataset.def=inp.defaultValue;const bv=+inp.dataset.def;if(Number.isFinite(bv))box.style.setProperty('--b',kc((bv-mn)/sp,0,1));
-    const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const x=5+(w-10)*p,head=box.querySelector('.row');let over=false;
-    if(head)for(const e of head.querySelectorAll(box.classList.contains('inner')?'.lbl,.val':'.val')){if(!e.offsetWidth)continue;const l=head.offsetLeft+e.offsetLeft,r=l+e.offsetWidth;if(x>l-4&&x<r+4){over=true;break;}}
+    const w=box.offsetWidth,tick=box.querySelector('.rng-tick');if(!w||!tick)return;const x=5+(w-10)*p,over=overWords(box,x);
     tick.classList.toggle('split',over);tick.classList.remove('away');}
   function syncRanges(root){$$('.rng-box',root).forEach(syncRange);}
   function dragBox(box){const inp=box.querySelector('input[type=range]');if(!inp||box._drag)return;box._drag=1;
