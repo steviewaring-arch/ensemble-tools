@@ -1,5 +1,12 @@
 # Changelog
 
+## 24 November 2026 – Segue 1.3.1: turning on the canvas everywhere; bigger overlay type
+
+- **Turn a picture on the canvas in every kind.** Where its frame is fixed – a slide filling the canvas, a tile in a grid, row, column, wall or frame – drag just outside a corner of it to turn the picture inside, as you can in crop mode; no double-click needed. Out on the pasteboard works too, for a slide that fills the canvas.
+- Where a piece shows more than once (a grid that repeats), the one you click is the one that gets the handles.
+- **Overlay type** goes up to 2,400 px (was 600).
+- Tests: Segue 206 of 206, 83 of 83.
+
 ## 20 November 2026 – House slider: the handle fades over the words, in every tool; Tutti 6.6.1
 
 - **No more handle through the numbers.** Where a slider's handle would cross its value (or a label inside the bar), it now fades right out; the fill's edge still shows the position. It was a handle with a faint middle and solid ends, which still ran through the letters ("53 cells"). One rule in the house kit and one way of measuring – on the words' own text, 6 px clear – shared by Tutti, Segue, Rubato and Tempo. Swept by machine: every visible slider in all four, end to end, never crosses its value. `shared/UI.md` updated; Segue's UI check now holds the new rule.

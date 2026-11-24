@@ -1,4 +1,4 @@
-# Segue – handover (13 November 2026, Segue 1.3)
+# Segue – handover (24 November 2026, Segue 1.3.1)
 
 For the Segue chat. Read this, then the repo's `README.md` and `HANDOVER.md` (how the repo, the build, storage and the other streams work). Segue is internal for now: built to `docs/segue/`, live at https://steviewaring-arch.github.io/ensemble-tools/segue/, and not linked from the index page.
 
@@ -94,6 +94,15 @@ The panel was audited as a whole in 0.7 because features had been bolted on piec
 - **No Additionals:** the tier's code and CSS are removed; the panel's order is set at the end of the cards (`canvas, media, layout, motion, captions, overlay`). The Position card is now the fold `place` – **Placement** – in Layout (`nudgeX`, `nudgeY`). Canvas is open by default.
 - **Stepping aside:** Pile up only when slides aren't full bleed (`plan` ignores `pile` there too); Overlay's Margin not for the middle place.
 - **Presets:** `x0` on a preset sets a key only where it's empty; Float with title uses `x:{ovOn:true,ovKind:'text'}` and `x0:{ovText:'Your title'}`.
+
+### 1.3.1 – turning where the frame is fixed; overlay size (24 Nov)
+
+Steve: "you can rotate a video in the crop, but seems you can't do it on the canvas?" and "we should also have the ability to make overlay type bigger than 600 px".
+
+- Turning worked on the canvas only for pieces whose shape could turn (Slides › In a shape / As it is). In the kinds where the frame is fixed (Fill the canvas, every tiling kind) `handleAt` returned nothing. Now, for a selected piece that `canCrop`, just outside a corner of its frame returns `{turn:true, pic:true}` and the grab turns `prot` about the frame's middle – the same as crop mode, without entering it.
+- Corners at the canvas's own edge have their zone off the canvas element: `#stage` listens (capture) and passes those presses to the canvas as a pointerdown, and sets the turning cursor on itself.
+- **`selKey`**: the selection now remembers which instance was clicked (`o.key`), so in a repeating grid the handles (and the turn) are on the tile you clicked, not the first copy `opOf` happened to find. `selectItem` keeps it when the id doesn't change.
+- Overlay Size max 2,400.
 
 ### 1.3 – a clip's time; the clean cut (13 Nov)
 

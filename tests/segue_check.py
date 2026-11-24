@@ -1358,6 +1358,21 @@ with sync_playwright() as p:
           ct['loop'] == [4.5, 1] and ct['clip'] == [8.5, 5] and ct['trim'] == [4.5, 1] and ct['fit'][0] == 7.5 and ct['fit'][1][0] < ct['fit'][1][1] < ct['fit'][1][2] < ct['fit'][1][3] <= 2, str(ct))
     check('Finish on a clean cut (checked 1.3): in every kind that rests it ends with nothing moving but the slow Movement drift (under 3% of the fastest move); where nothing ever rests the switch is greyed out',
           all(ct[n][0] > 0 and ct[n][1] < .03 and not ct[n][2] for n in ['Straight cuts', 'Snap along', 'Wall snap', 'Posters', 'Float with title']) and ct['Masonry drift'][0] == 0 and ct['Masonry drift'][2], str(ct))
+    # ---- 1.3.1 (24 Nov): turning a picture on the canvas where its frame is fixed; overlay type up to 2,400 px ----
+    tz = {}
+    for name, sets in [('bleed', {'layout': 'one', 'oneFit': 'bleed'}), ('grid', {'layout': 'grid', 'ratio': '4:3', 'gMove': 'still'})]:
+        q.evaluate("(k)=>{segue.applyPreset('Straight cuts');segue.setPlaying(false);segue.items.forEach(i=>{i.rot=0;i.prot=0});for(const [a,v] of Object.entries(k))segue.set(a,v);segue.setClock(.3)}", sets); time.sleep(.5)
+        g = q.evaluate("""()=>{const c=document.querySelector('#cv'),b=c.getBoundingClientRect(),[W,H]=segue.E.canvasSize(segue.S),ops=segue.E.scene(segue.S,segue.items,c.getContext('2d'),segue.fonts,W,H,.3).ops.filter(o=>o.item&&o.item.id===segue.items[0].id);
+          const o=ops.filter(o=>o.rect.x>=-1&&o.rect.y>=-1&&o.rect.x+o.rect.w<=W+1&&o.rect.y+o.rect.h<=H+1)[0]||ops[0],k=b.width/W,r=o.rect;return {mid:[b.x+(r.x+r.w/2)*k,b.y+(r.y+r.h/2)*k],out:[b.x+r.x*k-14,b.y+r.y*k-14]};}""")
+        q.mouse.click(3, 450); time.sleep(.1); q.mouse.click(*g['mid']); time.sleep(.3); q.mouse.move(*g['out']); time.sleep(.15)
+        cur = q.evaluate("(document.querySelector('#cv').style.cursor||document.querySelector('#stage').style.cursor).slice(0,3)")
+        q.mouse.down(); q.mouse.move(g['out'][0] + 40, g['out'][1] - 50, steps=6); q.mouse.up(); time.sleep(.3)
+        tz[name] = [cur, q.evaluate("[segue.items[0].rot||0,segue.items[0].prot||0]")]
+        q.evaluate("segue.items.forEach(i=>{i.prot=0});segue.refresh()")
+    q.mouse.click(3, 450)
+    osz = q.evaluate("(()=>{const c=segue.ui.controls.find(c=>c.d&&c.d.k==='OS');return +c.d.max})()")
+    check('Turning on the canvas where the frame is fixed (1.3.1 – Steve: “you can rotate a video in the crop, but you can’t do it on the canvas”): a slide filling the canvas, or a tile, turns its picture from just outside a corner – out on the pasteboard too – without double-clicking first; and overlay type goes up to 2,400 px',
+          all(v[0] == 'url' and v[1][0] == 0 and v[1][1] != 0 for v in tz.values()) and osz >= 2400, f'{tz} {osz}')
     check('no errors on the page through the 1.0 checks', not errs3, '; '.join(errs3[:3]))
     ctx3.close()
     check('no errors on the page', not errs, '; '.join(errs[:3]))
