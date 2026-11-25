@@ -85,9 +85,6 @@
   .subttl-row a{font-size:13px;color:var(--muted);cursor:pointer;text-decoration:none;padding:0 8px;border-radius:999px;height:var(--h-sm);display:inline-flex;align-items:center}
   .subttl-row a:hover{color:var(--ink);background:var(--well)}
   .hint{margin-top:10px}
-  .advsec{margin-bottom:14px}
-  .advsec+.advsec{border-top:1px solid var(--keyline);padding-top:12px}
-  .advsec:last-child{margin-bottom:0}
   .gifmod{background:var(--seg);border-radius:var(--r-card);padding:12px;margin-top:10px}
   .gifmod .subttl{margin:0 0 8px}
   .gifmod .split{margin-top:0}
@@ -159,8 +156,8 @@
   .edges .rng-box .ctl-head label,.rng-box.inner .ctl-head .lbl{position:static;transform:none;width:auto;font-weight:400;font-size:12px}
   .edges .rng-box .ctl-head{padding:0 8px}
   /* switches: the words in the label column, the tick where controls start */
-  .card-body>.toggle,.advsec>.toggle{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl);margin:0 0 10px}
-  .card-body>.toggle>span,.advsec>.toggle>span{order:-1;font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .card-body>.toggle{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl);margin:0 0 10px}
+  .card-body>.toggle>span{order:-1;font-weight:500;color:var(--ink-strong);line-height:1.2}
   .toggle .box{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair)}
   /* buttons: 8 px, grey fill, Medium; the main action black */
   .btn{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-weight:500;font-size:var(--fs-body);height:var(--h-ctl)}
@@ -194,7 +191,6 @@
   .steps button:hover{background:var(--k-raise)}
   /* groups inside a card: a Bold title, one rule */
   .subttl{font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);margin:0 0 10px}
-  .advsec+.advsec{padding-top:16px;margin-top:4px}
   .gifmod{background:var(--k-fill);border-radius:var(--r-ctl)}
   /* Export: labels as everywhere, Ping-pong as a switch */
   .ep-sublabel{font-weight:500;color:var(--ink-strong)}

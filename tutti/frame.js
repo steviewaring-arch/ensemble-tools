@@ -25,7 +25,7 @@
     shape:()=>S.style==='type'?['Type',S.tDir==='cols'?'Columns':'Rows',S.tFit==='keep'?'Keep shape':'Stretch',S.tMode==='run'?'Running':''].filter(Boolean).join(' · ')
       :[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':'',S.mix?'Mixed sizes':''].filter(Boolean).join(' · '),
     mapping:()=>S.nBands+' bands',
-    advanced:()=>'Opacity · Thresholds · Jitter · Presets'};   /* 13 Nov: a shut group says what it holds */
+    presets:()=>''};
   function summaries(){$$('.card[data-id]').forEach(c=>{const sm=c.querySelector('.sum');if(!sm)return;let t='';try{t=(SUM[c.dataset.id]||(()=>''))();}catch(e){}if(sm.textContent!==t)sm.textContent=t;});}
 
   /* the house slider (UI round 4, Nov 2026 – as Segue and Tempo): a bar with its value inside and its label
