@@ -137,7 +137,7 @@ Steve, 11 Nov: "following the latest release of Segue, we need to update the hou
 5. **The colour picker in house terms** (Steve, 6 Nov) – the hex field and swatch are in; what opens from the swatch is still the browser's own.
 
 **Tempo**
-6. Section names repeat (four "Change", five "Colour") – one word, one idea; fifteen-plus sections – the order of work, and what could be groups.
+6. ~~Section names repeat (four "Change", five "Colour")~~ – **wrong, corrected 25 Nov.** That note was written from a static read of `tempo/app.js` without checking which cards are ever on screen together. Each is built per screensaver kind with a `show` predicate (`clk`, `wd`, `dl`, `stk`, `ty` on `s.ssShow`), and those are mutually exclusive, so **one Change and one Colour are ever visible**. Seven sections are on screen at once: Fonts, Clock, Numerals, Change, Position, Colour, Promo – no repeat among them. Audited against what the panel actually shows, the only name used twice is **Length** (Change, and the internal Promo card). The twenty-three sections in the source are not twenty-three sections in the panel.
 7. The colour picker, as above.
 
 **Every tool**
