@@ -1309,15 +1309,15 @@
       <div class="toggle on" id="tFill"><div class="box"></div><span>Solid fill<i class="q" data-tip="Fill each mark, or draw it as an outline.">?</i></span></div>
       <div class="toggle" id="tInvert"><div class="box"></div><span>Invert<i class="q" data-tip="Swap highlights and shadows – for light marks on a dark ground.">?</i></span></div>
       <div class="toggle on only-marks" id="tScale"><div class="box"></div><span>Size by tone<i class="q" data-tip="Let mark size follow tone: darker areas get bigger marks.">?</i></span></div>
-      <div class="row only-marks" style="margin-top:8px"><label class="lbl">Min size<i class="q" data-tip="The smallest a mark can shrink to in the lightest areas.">?</i></label><span class="val" id="minV">8%</span></div>
+      <div class="row only-marks" style="margin-top:8px"><label class="lbl">Smallest<i class="q" data-tip="The smallest a mark can shrink to in the lightest areas.">?</i></label><span class="val" id="minV">8%</span></div>
       <input type="range" id="minsize" min="0" max="100" step="1" value="8">
-      <div class="row only-marks"><label class="lbl">Shape size<i class="q" data-tip="Scales every mark. Above 1× marks spill past their cell and overlap their neighbours.">?</i></label><span class="val" id="ssizeV">1.00×</span></div>
+      <div class="row only-marks"><label class="lbl">Size<i class="q" data-tip="Scales every mark. Above 1× marks spill past their cell and overlap their neighbours.">?</i></label><span class="val" id="ssizeV">1.00×</span></div>
       <input type="range" id="ssize" min="0.2" max="3" step="0.01" value="1">
       <div class="row"><label class="lbl">Opacity<i class="q" data-tip="Mark transparency. Drop it alongside overlap for dense, textural builds.">?</i></label><span class="val" id="opV">100%</span></div>
       <input type="range" id="opacity" min="10" max="100" step="1" value="100">
       <div class="row only-marks"><label class="lbl">Rotation<i class="q" data-tip="Base angle applied to every mark.">?</i></label><span class="val" id="rotV">0°</span></div>
       <input type="range" id="rot" min="0" max="360" step="1" value="0">
-      <div class="toggle-row sw-grp only-marks" id="mixRow"><div class="toggle" id="tMix"><div class="box"></div><span>Mixed sizes<i class="q" data-tip="Some marks span several cells – 2×2 up to 5×5, or a bar – always on the grid. A big mark is the band's mark scaled, or a Big mark you choose in Mapping.">?</i></span></div></div>
+      <div class="toggle-row sw-grp only-marks" id="mixRow"><div class="toggle" id="tMix"><div class="box"></div><span>Mixed<i class="q" data-tip="Some marks span several cells – 2×2 up to 5×5, or a bar – always on the grid. A big mark is the band's mark scaled, or a Big mark you choose in Mapping.">?</i></span></div></div>
       <div class="mixgrp only-marks" id="mixGrp" hidden>
         <div class="card-tools"><a id="mixShuffle" title="Another pattern of blocks">Shuffle</a></div>
         <div class="row"><label class="lbl">Squares</label><div class="seg multi" id="mixSq" role="group" aria-label="Squares"><button type="button" data-s="2">2×2</button><button type="button" data-s="3">3×3</button><button type="button" data-s="4">4×4</button><button type="button" data-s="5">5×5</button></div></div>
@@ -1753,7 +1753,7 @@ function mountGuides(o){
   paint();
   return{draw,paint};
 }
-const VERSION="6.6.1", MAXB=7, MINB=2;
+const VERSION="6.7", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,
@@ -1864,7 +1864,7 @@ function markDrawer(i){
   const st=S.states[i], d=document.createElement('div'); d.className='markbox'; d.dataset.i=i;
   const cur=markBig?st.bigInner:st.inner, k=markBig?st.bigKey:st.key;
   const sel=cur==null?(markBig?'same':'dot'):(k&&k!=='own'?k:'own');
-  let h='<div class="seg markseg" role="group" aria-label="Which mark"><button type="button" data-b="0"'+(markBig?'':' class="on"')+'>Mark</button><button type="button" data-b="1"'+(markBig?' class="on"':'')+' title="For marks that span several cells – Mixed sizes">Big mark</button></div><div class="marks">';
+  let h='<div class="seg markseg" role="group" aria-label="Which mark"><button type="button" data-b="0"'+(markBig?'':' class="on"')+'>Mark</button><button type="button" data-b="1"'+(markBig?' class="on"':'')+' title="For marks that span several cells – Mixed">Big mark</button></div><div class="marks">';
   const tile=(k,t,inner)=>'<button type="button" class="mk'+(sel===k?' on':'')+'" data-k="'+k+'" title="'+t+'" aria-label="'+t+'" aria-pressed="'+(sel===k)+'">'+(inner?'<svg viewBox="0 0 100 100" aria-hidden="true">'+inner+'</svg>':'<span>'+t+'</span>')+'</button>';
   h+= markBig? tile('same','Same, scaled',null) : tile('dot','Dot',DOT);
   HOUSE.forEach(m=>{h+=tile(m[0],m[1],m[2]);});
@@ -2846,7 +2846,7 @@ async function stopGif(silent){
     source:()=>S.kind?($('srcName').textContent||''):'No source',
     canvas:()=>label($('aspect'))+' · Grid '+$('grid').value,
     shape:()=>S.style==='type'?['Type',S.tDir==='cols'?'Columns':'Rows',S.tFit==='keep'?'Keep shape':'Stretch',S.tMode==='run'?'Running':''].filter(Boolean).join(' · ')
-      :[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':'',S.mix?'Mixed sizes':''].filter(Boolean).join(' · '),
+      :[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':'',S.mix?'Mixed':''].filter(Boolean).join(' · '),
     mapping:()=>S.nBands+' bands',
     presets:()=>''};
   function summaries(){$$('.card[data-id]').forEach(c=>{const sm=c.querySelector('.sum');if(!sm)return;let t='';try{t=(SUM[c.dataset.id]||(()=>''))();}catch(e){}if(sm.textContent!==t)sm.textContent=t;});}

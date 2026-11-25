@@ -23,7 +23,7 @@
     source:()=>S.kind?($('srcName').textContent||''):'No source',
     canvas:()=>label($('aspect'))+' · Grid '+$('grid').value,
     shape:()=>S.style==='type'?['Type',S.tDir==='cols'?'Columns':'Rows',S.tFit==='keep'?'Keep shape':'Stretch',S.tMode==='run'?'Running':''].filter(Boolean).join(' · ')
-      :[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':'',S.mix?'Mixed sizes':''].filter(Boolean).join(' · '),
+      :[S.fill?'Solid':'Outline',S.invert?'Inverted':'',S.scale?'Size by tone':'',S.mix?'Mixed':''].filter(Boolean).join(' · '),
     mapping:()=>S.nBands+' bands',
     presets:()=>''};
   function summaries(){$$('.card[data-id]').forEach(c=>{const sm=c.querySelector('.sum');if(!sm)return;let t='';try{t=(SUM[c.dataset.id]||(()=>''))();}catch(e){}if(sm.textContent!==t)sm.textContent=t;});}
