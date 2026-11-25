@@ -172,6 +172,8 @@ def main():
         write(f'{name}/index.html', html)
         print(f'{name} {cfg["version"]}: docs/{name}/index.html ({len(html.encode()) // 1024} KB)')
     html = build_segue(SEGUE)
+    # unlisted and internal for now: kept out of search engines (take this out when Segue is listed)
+    html = html.replace('<head>', '<head>\n<meta name="robots" content="noindex">', 1)
     ok = check_scripts('segue', html) and ok
     write('segue/index.html', html)
     print(f'segue {SEGUE["version"]}: docs/segue/index.html ({len(html.encode()) // 1024} KB, unlisted)')

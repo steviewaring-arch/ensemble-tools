@@ -4,15 +4,17 @@ Ensemble's in-house creative tools. Each one is a single HTML file that runs in 
 
 | Tool | What it does | Live |
 |---|---|---|
-| **Tutti** 6.1 | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
-| **Rubato** 1.1 | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
-| **Tempo** 0.9 | A clock screen saver for Mac and Windows – the time in your own typefaces, as figures, written out in words with other fonts mixed in, as columns or rings of words, or as a dial with no type at all. Colour themes through the day, presets, and one download with everything | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
+| **Tutti** | Halftones from images, video, your camera or type | [/tutti/](https://steviewaring-arch.github.io/ensemble-tools/tutti/) |
+| **Rubato** | Type in motion – lockups that pull apart, kinetic tricks, kerning, alternates, styles and variable axes, out as PNG, SVG, GIF or video | [/rubato/](https://steviewaring-arch.github.io/ensemble-tools/rubato/) (0.9 at [/rubato/0.9/](https://steviewaring-arch.github.io/ensemble-tools/rubato/0.9/)) |
+| **Tempo** | A clock screen saver for Mac and Windows – the time in your own typefaces, as figures, written out in words with other fonts mixed in, as columns or rings of words, or as a dial with no type at all. Colour themes through the day, presets, and one download with everything | [/tempo/](https://steviewaring-arch.github.io/ensemble-tools/tempo/) |
 
 All three are linked from https://steviewaring-arch.github.io/ensemble-tools/.
 
-**Segue** 1.3.1 is also in here, unlisted and internal for now: framed loops of images and video for case studies, reels and decks – shapes on a canvas that snap, step, drift, fade or pull back to show the lot, columns and rows each running their own way, with captions, out as MP4, GIF or PNG. https://steviewaring-arch.github.io/ensemble-tools/segue/ – see `segue/HANDOVER.md`.
+Current versions are kept in one place: **Versions** under *Where things are* in `HANDOVER.md` (each live page also shows its own).
 
-**Decentish** 0.4 is also in here, unlisted: a prototype website that gives you a plan for where you are – now, soon or tomorrow, on the doorstep, nearby or further afield, with the way there and back – in a voice you set with a dial. Greater Manchester first. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
+**Segue** is also in here, unlisted and internal for now: framed loops of images and video for case studies, reels and decks – shapes on a canvas that snap, step, drift, fade or pull back to show the lot, columns and rows each running their own way, with captions, out as MP4, GIF or PNG. https://steviewaring-arch.github.io/ensemble-tools/segue/ – see `segue/HANDOVER.md`.
+
+**Decentish** is also in here, unlisted: a prototype website that gives you a plan for where you are – now, soon or tomorrow, on the doorstep, nearby or further afield, with the way there and back – in a voice you set with a dial. Greater Manchester first. https://steviewaring-arch.github.io/ensemble-tools/decentish/ – see `decentish/NOTES.md`.
 
 Rubato and Tempo share one core (font loading, controls, design system) and nothing else: each has its own type engine, settings and fonts in the browser, so a change in one never reaches the other. All three share one interface system (`shared/tokens.css`, `shared/components.css`, described in `shared/UI.md`): Tutti keeps its own page and script and takes the shared styles at build time; it moves onto the shared core (fonts, controls) later.
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 25 November 2026 – House tidy: one version list, internal pages out of search
+
+- **Segue and the UI review pages** (/ui/review/, /ui/review/round4/) carry `noindex` now, as Decentish already did – still reachable by their addresses, but kept out of search engines while they're internal. Take Segue's out (`build.py`) when it goes on the front page.
+- **One version list.** `HANDOVER.md` › Where things are › Versions is the place, updated with every release; `README.md` points to it instead of carrying its own (it said Tutti 6.1, Rubato 1.1, Tempo 0.9, Decentish 0.4). HANDOVER's *Repo* and *Live* lines describe how the site is published now (the Actions workflow, not `docs/` on the branch).
+- Nothing in any tool changes; the rebuilt pages differ from 24 November's by the one `noindex` line.
+
 ## 24 November 2026 – Segue 1.3.1: turning on the canvas everywhere; bigger overlay type
 
 - **Turn a picture on the canvas in every kind.** Where its frame is fixed – a slide filling the canvas, a tile in a grid, row, column, wall or frame – drag just outside a corner of it to turn the picture inside, as you can in crop mode; no double-click needed. Out on the pasteboard works too, for a slide that fills the canvas.
