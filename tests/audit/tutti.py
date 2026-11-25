@@ -42,11 +42,16 @@ async ()=>{
   panel.querySelectorAll('.toggle').forEach(e=>{if(!seen(e))return;items.push({e,label:name(e),vals:[1],set:()=>e.click()});});
   panel.querySelectorAll('.seg button').forEach(e=>{if(!seen(e)||(e.classList.contains('on')&&!e.closest('.multi')))return;if(e.closest('.markbox'))return;items.push({e,label:(words((e.closest('.row')||e.closest('.seg')).querySelector('.lbl'))||'Align')+' › '+words(e),vals:[1],set:()=>e.click()});});
   ['bandPlus','bandMinus','randomColors','resetShapes','randomAll','resetEdges','mixShuffle'].forEach(id=>{const e=document.getElementById(id);if(e&&seen(e)&&!e.disabled)items.push({e,label:words(e)||id,vals:[1],set:()=>e.click()});});
+  /* Where each setting lives, read while every one of them is still in the page.
+     Changing a band colour or a threshold rebuilds that whole list, so anything
+     collected from it is detached from then on and has no card to name – which is
+     why eleven of them used to report as "? › Edge 1". */
+  for(const it of items) it.at=where(it.e);
   const res=[];const base=await sig();
   for(const it of items){const before=snapState();let alive=false,tried=0,err=null;
     for(const v of it.vals){try{it.set(v);tried++;if(await sig()!==base)alive=true;}catch(x){err=String(x);}putState(before);await wait(60);if(alive)break;}
     if(await sig()!==base)err=(err?err+'; ':'')+'did not come back';
-    res.push({label:where(it.e)+it.label,alive,tried,err});}
+    res.push({label:it.at+it.label,alive,tried,err});}
   return res;
 }
 """
