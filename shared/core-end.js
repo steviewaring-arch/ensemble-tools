@@ -49,3 +49,73 @@ appStart();layoutUI();requestAnimationFrame(()=>{layoutUI();syncRanges(document)
 if(document.fonts){document.fonts.load(`400 100px ${FAMILY}`).then(()=>document.fonts.load(`800 100px ${FAMILY}`)).then(()=>{fallbacks.d1.reset();fallbacks.d2.reset();dirty=true;schedulePicker(0);}).catch(()=>{});}
 restoreFonts();
 requestAnimationFrame(tick);
+
+/* ---------------- the change column (Segue 1.0's, taken across) ----------------
+   A blue dot on any row that has moved from where it started; click it to put that row back;
+   a Reset in a section's head while anything inside it has moved. One layer for Rubato and
+   Tempo rather than one each, because two copies of a house part is how they drift.
+
+   Where a setting "started" is the tool's to say. Rubato's is its defaults, so it says nothing
+   and D stands. Tempo's is the preset that is open, so it calls startFrom(settings) when one
+   opens and startFrom(null) when none is - otherwise opening a preset would light up every row
+   in the panel.
+
+   The kit already draws all of it: .chg on a row shows its dot, and a card's Reset appears by
+   itself while the card is .chg and open. Nothing here styles anything. */
+let BASE=null;
+function startFrom(o){try{BASE=o?JSON.parse(JSON.stringify(o)):null;}catch(_){BASE=null;}paintChanges();}
+const baseOf=k=>(BASE&&k in BASE)?BASE[k]:D[k];
+/* texts is an array and picks is a map, so a value is not always worth comparing with === */
+const sameVal=(a,b)=>a===b||(a!=null&&b!=null&&typeof a==='object'&&typeof b==='object'&&JSON.stringify(a)===JSON.stringify(b));
+const moved=k=>k!=null&&(k in D)&&!sameVal(S[k],baseOf(k));
+function putBack(k){if(!moved(k))return;let v=baseOf(k);if(v&&typeof v==='object'){try{v=JSON.parse(JSON.stringify(v));}catch(_){}}set(k,v);}
+
+function addDots(){
+  for(const c of controls){
+    const k=c.d&&c.d.k;
+    if(!k||c.cx||!(k in D)||!c.w||!c.w.classList)continue;
+    if(c.w.closest('.sheet')||!c.w.isConnected)continue;      /* a sheet is its own job, not a row */
+    const lb=c.d.label||k;
+    const b=el('button','cx');b.type='button';
+    b.setAttribute('aria-label',lb+' – changed; put it back');
+    b.dataset.tip='Changed – click to put it back';
+    b.onclick=e=>{e.stopPropagation();putBack(k);refreshAll();toast(lb+' put back');};
+    c.cx=b;c.w.append(b);
+  }
+}
+function resetCard(sec,title){
+  const shown=c=>{let n=c.w;while(n&&n!==sec){if(n.hidden&&!n.classList.contains('fold-body')&&!n.classList.contains('card-anim'))return false;n=n.parentElement;}return !!n;};
+  const hit=controls.filter(c=>c.cx&&sec.contains(c.w)&&shown(c)&&moved(c.d.k));
+  if(!hit.length)return;
+  hit.forEach(c=>putBack(c.d.k));refreshAll();toast(title+' put back');
+}
+/* set() and refreshAll() both call this, and both run while a tool is still building its rows -
+   before the lines below have been reached. paintChanges is hoisted; BASE, moved and the rest are
+   not, so it has to stay a no-op until they exist. */
+var columnReady=false;   /* var, not let: this is read before the line runs, and only var hoists
+                            as undefined instead of throwing from the dead zone. */
+function paintChanges(){
+  if(!columnReady)return;
+  addDots();   /* a tool can build rows later - Tempo's theme cards - and they want a dot too */
+  for(const c of controls){if(!c.cx)continue;const on=moved(c.d.k);
+    if(c.w.classList.contains('chg')!==on)c.w.classList.toggle('chg',on);}
+  /* Ask the rows, never the DOM: a group's own head carries .chg too, so querySelector('.chg')
+     inside it finds the head it is about to set and the group could never go dark again.
+     A row that is not on screen does not count either - Tempo boots with a ring fill colour that
+     differs from the default on a row you only see once the ring fill is on, and it was lighting
+     the whole Colour section for something nobody could see or put back. */
+  const shownAt=(c,root)=>{let n=c.w;while(n&&n!==root){
+    if(n.hidden&&!n.classList.contains('fold-body')&&!n.classList.contains('card-anim'))return false;
+    n=n.parentElement;}return !!n;};
+  const litIn=root=>controls.some(c=>c.cx&&c.w.classList.contains('chg')&&shownAt(c,root)&&root.contains(c.w));
+  panel.querySelectorAll('.fold').forEach(f=>{const hd=f.querySelector(':scope > .fold-head');
+    if(hd)hd.classList.toggle('chg',litIn(f));});
+  panel.querySelectorAll('section.card').forEach(sec=>{
+    const on=litIn(sec);
+    sec.classList.toggle('chg',on);
+    const r=sec.querySelector(':scope > h2 > .reset');if(r)r.hidden=!on;});
+}
+/* A tool says where its settings started by defining appBaseline(); without one, D stands,
+   which is right for a tool whose starting point is simply its defaults. */
+columnReady=true;
+addDots();startFrom(typeof appBaseline==='function'?appBaseline():null);

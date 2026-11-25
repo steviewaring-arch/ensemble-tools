@@ -253,20 +253,26 @@ const PICKER_KEYS=['vMode','baseSlot','seq'];
 function set(k,v,silent){
   if(k==='fit'&&v==='manual'&&S.fit!=='manual')S.size=+eng.lastSize().toFixed(1);
   S[k]=v;if(PICKER_KEYS.includes(k)){optCache.clear();schedulePicker(0);}
-  dirty=true;autosave();if(!silent)refreshAll();if(['aspect','cw','ch','transparent','ssShape'].includes(k))fitCanvas();
+  dirty=true;autosave();if(!silent)refreshAll();else if(typeof paintChanges==='function')paintChanges();
+  if(['aspect','cw','ch','transparent','ssShape'].includes(k))fitCanvas();
 }
 /* Which cards start shut. An app can name its own with appCollapseDefault() – shut cards still say what's set. */
 const COLLAPSE_DEFAULT=['sequence','repeat','image','loop','export','presets','ss-play'].concat(typeof appCollapseDefault==='function'?appCollapseDefault():[]);
 const collapsed=LS.get('collapsed')||Object.fromEntries(COLLAPSE_DEFAULT.map(k=>[k,true]));
 let curGroup='';
 /* A card is a section of the panel: a title and, when shut, one line saying what's set. */
+const ICON_RESET='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.6 6a3.4 3.4 0 1 0 1-2.4M2.4 1.8v2h2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const CHEV='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function card(id,title,show,tab){
   tab=tab||'studio';curGroup=id;
   const c=el('section','card'+(collapsed[id]?' collapsed':''));c.dataset.tab=tab;c.dataset.id=id;const h=el('h2');const b=el('button','card-toggle');
   const t=el('span',null,title),sm=el('span','sum'),ch=el('span','chev');ch.innerHTML=CHEV;b.append(t,sm,ch);b.setAttribute('aria-expanded',!collapsed[id]);
   b.onclick=()=>{const on=!c.classList.toggle('collapsed');collapsed[id]=!on;b.setAttribute('aria-expanded',on);LS.set('collapsed',collapsed);if(on)requestAnimationFrame(()=>syncRanges(c));};
-  h.append(b);const body=el('div','card-body');c.append(h,body);panel.append(c);
+  const rs=el('button','pill small reset');rs.type='button';rs.hidden=true;
+  rs.innerHTML=ICON_RESET+'<span>Reset</span>';rs.setAttribute('aria-label','Put '+title+' back');
+  rs.dataset.tip='Put everything in '+title+' back';
+  rs.onclick=e=>{e.stopPropagation();resetCard(c,title);};
+  h.append(b,rs);const body=el('div','card-body');c.append(h,body);panel.append(c);
   controls.push({d:{show:s=>(tab==='both'||s.tab===tab)&&(!show||show(s))},w:c,update(){},card:id});
   return body;
 }
@@ -483,7 +489,7 @@ function addCustom(parent,show,node){const c={d:{show},w:node,update(){}};parent
 function addHint(parent,text,show){const p=el('p','hint',text);return addCustom(parent,show,p);}
 function build(parent,list){for(const d of list){if(d.t==='range')addRange(parent,d);else if(d.t==='seg')addSeg(parent,d);else if(d.t==='toggle')addToggle(parent,d);else if(d.t==='colour')addColour(parent,d);else if(d.t==='segdyn')addSegDyn(parent,d);else if(d.t==='hint')addHint(parent,d.text,d.show);}}
 function refreshVis(){for(const c of controls){if(!c.d.show)continue;c.w.hidden=!c.d.show(S);}}
-function refreshAll(){for(const c of controls)c.update();refreshVis();refreshNotes();refreshSummaries();syncRanges(panel);}
+function refreshAll(){for(const c of controls)c.update();refreshVis();refreshNotes();refreshSummaries();syncRanges(panel);if(typeof paintChanges==='function')paintChanges();}
 const pct=v=>Math.round(v*100)+'%',em=v=>roundTo(v,1)+'% em',deg=v=>roundTo(v,1)+'°',ofLoop=v=>pct(v)+' of loop',ofStep=v=>pct(v)+' of step';
 
 /* ---------------- tooltips ---------------- */

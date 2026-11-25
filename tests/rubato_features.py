@@ -185,6 +185,31 @@ def main():
         pg.fill('.cpk-f input >> nth=0', '#CC3322'); time.sleep(.2); got = pg.evaluate("document.querySelector('#c_ink').value")
         pg.fill('.cpk-f input >> nth=0', was); time.sleep(.2); pg.keyboard.press('Enter'); time.sleep(.2)
         check('House colour picker: a swatch opens it, not the browser’s; hex sets the colour', opened and got.lower() == '#cc3322' and pg.evaluate("document.querySelector('#c_ink').value").lower() == was.lower(), f'{opened} {got}')
+        # ---- the change column (1.4): a dot on a moved row, click to put it back, a section Reset ----
+        pg.evaluate("document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(t=>t.click())"); time.sleep(.4)
+        for _ in range(2):
+            pg.evaluate("document.querySelectorAll('.fold-head[aria-expanded=\"false\"]').forEach(b=>b.click())"); time.sleep(.4)
+        start = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
+                            "return i?{k:i.closest('.ctl').dataset.k,v:i.value}:null})()")
+        pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
+                    "i.value=+i.value+(+i.step||1)*4;i.dispatchEvent(new Event('input',{bubbles:true}));"
+                    "i.dispatchEvent(new Event('change',{bubbles:true}));})()"); time.sleep(.6)
+        lit = pg.evaluate("[document.querySelectorAll('.ctl.chg').length,document.querySelectorAll('section.card.chg').length,"
+                          "[...document.querySelectorAll('section.card.chg>h2>.reset')].filter(r=>!r.hidden).length]")
+        pg.evaluate("(()=>{const w=document.querySelector('.ctl.chg');w.querySelector(':scope > .cx').click();})()"); time.sleep(.6)
+        back = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
+                           "return [i.value,document.querySelectorAll('.ctl.chg').length]})()")
+        check('The change column: a moved row shows its dot, its section shows Reset, and the dot puts the row back',
+              lit[0] >= 1 and lit[1] >= 1 and lit[2] == 1 and back[0] == start['v'] and back[1] == 0,
+              f'{lit} then {back} (started {start})')
+        # a section Reset puts back everything shown in that section
+        pg.evaluate("(()=>{const ins=[...document.querySelectorAll('.card-body input[type=range]')].filter(x=>x.offsetWidth>0).slice(0,2);"
+                    "ins.forEach(i=>{i.value=+i.value+(+i.step||1)*3;i.dispatchEvent(new Event('input',{bubbles:true}));"
+                    "i.dispatchEvent(new Event('change',{bubbles:true}));});})()"); time.sleep(.6)
+        many = pg.evaluate("document.querySelectorAll('.ctl.chg').length")
+        pg.evaluate("(()=>{const r=document.querySelector('section.card.chg>h2>.reset');if(r)r.click();})()"); time.sleep(.6)
+        check('A section Reset puts back every row shown in it',
+              many >= 1 and pg.evaluate("document.querySelectorAll('.ctl.chg').length") == 0, f'{many} lit first')
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     n = sum(1 for r in results if r[0])

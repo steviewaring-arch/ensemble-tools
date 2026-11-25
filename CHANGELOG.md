@@ -1,5 +1,25 @@
 # Changelog
 
+## 25 November 2026 – The change column in Rubato and Tempo (Rubato 1.4, Tempo 0.19)
+
+- **The house part three tools out of four lacked.** A blue dot on any row that has moved from
+  where it started, click it to put that row back, and a Reset in a section's head while anything
+  inside it has moved. Segue has had it since 1.0; Rubato and Tempo have it now.
+- **One layer, not two.** Both load `shared/core.js`, so it lives in `shared/core-end.js`, which
+  runs after each tool's own files and can see the rows they built. The kit already drew all of it,
+  so this is wiring, not styling.
+- **Where a setting started** is each tool's to say, through `appBaseline()`. Rubato's is its
+  defaults. Tempo's is the preset that is open, kept beside `ACTIVE` in `localStorage` so it
+  survives a reload – otherwise opening a preset and coming back tomorrow would light up the lot.
+- Four faults found and fixed on the way: a dragged slider never lit, because a slider sets
+  silently and the repaint was hanging off the wrong call; a group could never go dark again,
+  because asking the DOM found the group's own head; a row you cannot see was lighting a whole
+  section, because Tempo boots with a ring fill colour the default does not have; and the paint had
+  to be a no-op until its own data exists, because it is called while a tool is still building.
+- **Not yet:** Tutti has its own frame and does not load `shared/core.js`, so it has none of this –
+  next, and carefully, since it is the live public one. Tempo still has no undo, so putting a row
+  back there cannot itself be undone.
+
 ## 25 November 2026 – Mobile tidied; the pre-kit leftovers cleared; a bench for the kit
 
 - **Mobile, in Tutti and everywhere else.** Three causes, all in the kit. The right edge had no

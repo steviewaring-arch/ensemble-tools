@@ -14,6 +14,45 @@ Two cautions, learned the hard way building it:
 - A specimen that does not match the real markup gives false confidence. The first draft wrote the stepper's – and + as text where the tools use SVG icons, and duly "found" a type stray that was mine.
 - The "seen in the markup" column reads class attributes and the `el(tag, class)` helpers. Rubato and Tempo build most of their DOM through those helpers, so before it knew about them it called 142 live classes dead.
 
+### Done 25 Nov – the change column in Rubato and Tempo (Rubato 1.4, Tempo 0.19)
+
+The one house part three tools out of four still lacked. Segue has had it since 1.0: a blue dot on
+any row that has moved from where it started, click it to put that row back, and a Reset in a
+section's head while anything inside it has moved.
+
+**One layer, not two.** Rubato and Tempo both load `shared/core.js`, so it went in
+`shared/core-end.js`, which runs after each tool's own files and so can see the rows they built.
+Two copies of a house part is how they drifted in the first place. The kit already drew all of it -
+`.chg` on a row shows its dot, and `.card.chg:not(.collapsed)>h2>.reset` shows a section's Reset by
+itself - so nothing here styles anything; it is wiring.
+
+**Where a setting started** is the tool's to say, through `appBaseline()`. Rubato's is its
+defaults, so it says nothing and `D` stands. Tempo's is the preset that is open, kept in
+`localStorage` beside `ACTIVE` so it survives a reload - without that, opening a preset and coming
+back tomorrow would light up every row in the panel.
+
+Four things this turned up, all now in the code with the reason beside them:
+- **A dragged slider never lit.** `addRange` sets silently while you drag and only refreshes what
+  is visible, so hanging the repaint off `refreshAll()` missed every drag. It hangs off `set()`.
+- **A group could never go dark again.** Asking the DOM whether a group holds anything changed
+  (`f.querySelector('.chg')`) finds the group's own head, which carries `.chg` too. It asks the
+  rows now, like Segue does.
+- **A row you cannot see was lighting a whole section.** Tempo boots with a ring fill colour that
+  differs from the default, on a row you only see once the ring fill is switched on - so the Colour
+  section sat lit for something nobody could see or put back. Segue's `shownIn` test is ported: a
+  hidden row does not roll up, and a section's Reset only puts back what is on screen.
+- **`paintChanges` is hoisted and its data is not.** `set()` runs while a tool is still building
+  its rows, so the paint has to be a no-op until the layer exists. The guard is a `var`, because
+  `let` and `const` throw from the dead zone rather than reading as undefined - the one place in
+  this codebase where `var` is the right word.
+
+**Still open after this.** Tutti has its own frame and does not load `shared/core.js`, so it has
+none of this yet - that is the next step, and it is the live public one, so it wants its own pass.
+Tempo has no undo at all (Rubato's ⌘Z and top-bar buttons have been there since 1.3), so the
+"click the dot to put it back" is not yet undoable there. And for anyone who already has a preset
+open in Tempo, the baseline is written the next time they open one; until then their dots read
+against the defaults.
+
 ### Done 25 Nov – mobile tidied, the pre-kit leftovers cleared, and a bench to judge the kit on
 
 Steve, 25 Nov: "mobile has not been a priority, this is a bit of a mess – padding off (too thin on

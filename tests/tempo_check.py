@@ -721,6 +721,25 @@ def main():
         a0 = isl(); pg.click('#pcapOpen'); time.sleep(.8); a1 = isl(); pg.click('#pcapOpen'); time.sleep(.5)
         hs = pg.evaluate("[getComputedStyle(document.documentElement).overflowY,Math.round(document.querySelector('#island').getBoundingClientRect().left-document.querySelector('#panelBox').getBoundingClientRect().right),parseFloat(getComputedStyle(document.querySelector('.card-toggle')).fontSize)]")
         check('House (Segue 1.0): the island is anchored bottom left and doesn’t move when Presets opens; the page never scrolls; section titles are 15 px', a0 == a1 and hs[0] == 'hidden' and 0 <= hs[1] <= 16 and hs[2] == 15, f'{a0} {a1} {hs}')
+        # ---- the change column (0.19): a dot on a moved row, and a hidden row never lights a section ----
+        pg.evaluate("document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(t=>t.click())"); time.sleep(.5)
+        for _ in range(2):
+            pg.evaluate("document.querySelectorAll('.fold-head[aria-expanded=\"false\"]').forEach(b=>b.click())"); time.sleep(.4)
+        start = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
+                            "return i?i.value:null})()")
+        shut = pg.evaluate("[...document.querySelectorAll('section.card.chg>h2>.reset')].filter(r=>!r.hidden).length")
+        pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
+                    "i.value=+i.value+(+i.step||1)*4;i.dispatchEvent(new Event('input',{bubbles:true}));"
+                    "i.dispatchEvent(new Event('change',{bubbles:true}));})()"); time.sleep(.6)
+        lit = pg.evaluate("[document.querySelectorAll('.ctl.chg').length,"
+                          "[...document.querySelectorAll('section.card.chg>h2>.reset')].filter(r=>!r.hidden).length]")
+        pg.evaluate("(()=>{const w=document.querySelector('.ctl.chg');w.querySelector(':scope > .cx').click();})()"); time.sleep(.6)
+        back = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
+                           "return [i.value,document.querySelectorAll('.ctl.chg').length]})()")
+        check('The change column: a moved row shows its dot and its section a Reset; the dot puts the row back; '
+              'a row that is off screen never lights a section',
+              shut == 0 and lit[0] >= 1 and lit[1] == 1 and back[0] == start and back[1] == 0,
+              f'shut {shut}, lit {lit}, back {back} (started {start})')
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     failed = [r for r in results if not r[0]]

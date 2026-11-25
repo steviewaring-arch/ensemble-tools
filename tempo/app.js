@@ -1018,7 +1018,14 @@ let PRESETS=Array.isArray(LS.get('presets'))?LS.get('presets'):[],ACTIVE=LS.get(
 /* BACK: what was on screen, unsaved, before a preset was opened over it – kept until it's brought back or replaced */
 const keepBack=b=>{BACK=b;LS.set('back',b);};
 const savePresets=()=>{LS.set('presets',PRESETS);presetVer++;};
-const setActive=(id,builtin)=>{ACTIVE=id?{id,builtin:!!builtin,sig:sigNow()}:null;LS.set('active',ACTIVE);};
+/* Where Tempo's settings started: the preset that is open, else the defaults. Kept beside
+   ACTIVE so it survives a reload - without it, opening a preset and coming back tomorrow would
+   light up every row in the panel as changed. */
+const baseSnap=()=>{const o={};for(const k of tempoKeys())if(k in S)o[k]=S[k];return o;};
+function appBaseline(){const b=LS.get('basis');return b&&typeof b==='object'?b:null;}
+const setActive=(id,builtin)=>{ACTIVE=id?{id,builtin:!!builtin,sig:sigNow()}:null;LS.set('active',ACTIVE);
+  const basis=ACTIVE?baseSnap():null;LS.set('basis',basis);
+  if(typeof startFrom==='function')startFrom(basis);};
 const activePreset=()=>ACTIVE&&(ACTIVE.builtin?BUILTIN_P.find(p=>p.id===ACTIVE.id):PRESETS.find(p=>p.id===ACTIVE.id))||null;
 const changedSince=()=>!ACTIVE||ACTIVE.sig!==sigNow();
 const uniqueName=n=>{n=n||'Screen saver';if(!PRESETS.some(p=>p.name===n))return n;const m=/^(.*\S) (\d+)$/.exec(n),root=m?m[1]:n;let i=m?+m[2]+1:2;while(PRESETS.some(p=>p.name===root+' '+i))i++;return root+' '+i;};
