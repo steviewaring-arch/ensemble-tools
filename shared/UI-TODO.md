@@ -4,6 +4,22 @@
 
 1. **The house check, widened** – done, below. 2. Tutti: break up Fine tuning. 3. Tempo onto the house style. 4. Rubato: menus, one "Stretch", change dots, kerning by drag, an audit. 5. Tutti: row notes instead of "?", and the house colour picker.
 
+### Done 25 Nov – Tutti 6.7: Fine tuning broken up
+
+Steve: "Fine tuning: break it up... No exceptions to the naming rule from here on."
+
+- **Opacity** and **Rotation** are properties of a mark, like its size, so they sit in Shape with the rest – above the Mixed switch, which heads only what it turns on. Below it they read as its own; that only shows on screen, not in a diff.
+- **Jitter** is a group in Shape holding **Angle** and **Position**. "Rotation & jitter" was two ideas in one heading.
+- **Thresholds** is a group in Mapping, where the bands are. "Master" is **Shift**, which is what it does; **Even** sits in the group's own tools row.
+- **Presets** is a section of its own, because it is not a setting of anything.
+- **Three "size" in one card** became **Smallest**, **Size** and **Mixed**. Scale was the obvious middle word but Canvas already uses it for the source scale, and the rule is no word twice in a panel.
+
+Every suite green, the 12 export hashes byte-identical, corners, colour and spacing clean.
+
+**Two things the testing itself turned up**, both older than this round:
+- Tutti's test helpers used the page's locator, so in embed and app modes – where the app is in an iframe – they waited 30 seconds for an element that was never there.
+- The settings audit read each setting's path *after* changing it, so anything in a list that gets rebuilt (bands, thresholds) had no card to name: eleven came back as "? › Edge 1". And it judged a reset against the pristine baseline, which is the one thing a reset returns to, so Even and Reset shapes reported "no effect" on every run. Both fixed; a check that cries wolf every run teaches people to skim past the real ones.
+
 ### Done 25 Nov – spacing on one scale (Segue 1.3.2, Rubato 1.3.2, Tempo 0.18.3)
 
 48 strays, about twenty declarations, most of them shared through the kit: the chip's optical padding (9/8/5 → 8 and 6), the switch row's 9px gap, the slider head's 3, the typable value's 7, the text area's 7, the brand's 1, the hints' and card body's 18, the slot rows' 7, the tiles' and labels' 5 and 3; Segue's Kind tiles, placement grid, scrub ticks, card head and empty media; Tempo's switch set, theme tiles, clock and name (the last two were rem against a 15px root, which is where 18.8px and 10.8px type came from); Tutti's empty mark, GIF sub-title, Edges head, SVG chips and the two buttons still taking the browser's own 1px padding.
