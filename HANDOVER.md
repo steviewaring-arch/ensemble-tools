@@ -6,11 +6,11 @@ Read this and `README.md` before changing anything. **Branches:** work on `main`
 - **Repo:** `ensemble-tools` – source of truth for Tutti, Rubato, Tempo, Segue and Decentish (Patch lives elsewhere – Dropbox and its own chat).
 - **Live:** https://steviewaring-arch.github.io/ensemble-tools/ – published by the *Publish the site* workflow (`.github/workflows/pages.yml`) on every push to `main`: it builds `docs/` plus Tempo's built-in fonts from the private `ensemble-tools-fonts` repo into `site/` and deploys that. A push only goes live if the workflow passes; a failed run leaves the last good site up. Listed on the front page: Tutti, Rubato, Tempo. Unlisted and kept out of search (noindex): Segue, Decentish, /ui/review/.
 - **Last combined app:** `reference/rubato-0.8.1.html` – byte-identical to the v0.8.1 Claude artifact (rechecked 6 October against the live artifact). Kept so the parity tests have something to compare against. Don't edit it.
-- **Versions (25 Nov) – the one list; update it with every release:** Tutti 6.7, Segue 1.3.2, Rubato 1.3.2, Tempo 0.18.4, Decentish 0.5. Rubato 0.9 is archived at /rubato/0.9/ (`archive/rubato-0.9.html`). Each release's detail is in `CHANGELOG.md`.
+- **Versions (25 Nov) – the one list; update it with every release:** Tutti 6.7.1, Segue 1.3.3, Rubato 1.3.3, Tempo 0.18.5, Decentish 0.5. Rubato 0.9 is archived at /rubato/0.9/ (`archive/rubato-0.9.html`). Each release's detail is in `CHANGELOG.md`.
 
 ## The component page (25 November)
 
-`/ui/kit/` – every house part on one screen, built from the kit itself by `ui/kit/make.py` during `build.py`, so refining the kit updates it for free. `tests/corner_check.py` reads it as a fifth tool, so components no panel currently shows still get checked. The page ends with an inventory: 191 classes are the house's, 238 belong to one tool only (Segue 75, Tutti 58, Tempo 55, Rubato 41) – that list is the queue for bringing parts into the kit.
+`/ui/kit/` – **the bench**: every house part on one screen, built from the kit itself by `ui/kit/make.py` during `build.py`, so refining the kit updates it for free. Each component sits in a real iframe at a real viewport width, because a width set on a div does not fire the panel's own breakpoints – light and dark side by side, Desktop / Tablet / Phone, and a Touch switch that serves the kit's `hover:none` rules, lifted out of `kit.css` at build time so the bench cannot drift from the rule it shows. Judge a kit change here before it goes near a tool. `tests/corner_check.py` reads `specimen.html`, not the bench, because the bench's own chrome is not a component; that chrome is all `bx-*` and the build fails if it borrows a house class name.
 
 ## One corner logic, and the rest of the list (13 November)
 

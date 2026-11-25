@@ -14,6 +14,55 @@ Two cautions, learned the hard way building it:
 - A specimen that does not match the real markup gives false confidence. The first draft wrote the stepper's – and + as text where the tools use SVG icons, and duly "found" a type stray that was mine.
 - The "seen in the markup" column reads class attributes and the `el(tag, class)` helpers. Rubato and Tempo build most of their DOM through those helpers, so before it knew about them it called 142 live classes dead.
 
+### Done 25 Nov – mobile tidied, the pre-kit leftovers cleared, and a bench to judge the kit on
+
+Steve, 25 Nov: "mobile has not been a priority, this is a bit of a mess – padding off (too thin on
+right hand side), then '?' scattered and misaligned … it still needs to look and feel right
+regardless."
+
+Three causes, all in the kit, none of them Tutti's:
+- **The right edge had no padding.** `.scroll` carries `scrollbar-gutter:stable` and
+  `padding-right:0`, which is right on a desktop – the scrollbar fills that lane. A touch screen
+  draws its scrollbar over the content, so the lane was simply missing padding. Given back under
+  `@media (hover:none)`, so a narrow *desktop* window, which does have a real scrollbar, keeps the
+  reserved lane.
+- **The panel sat off to the left.** `.card-body` reserves `16px + --gutter` on the right for the
+  change column – 36px of a 390px screen, holding nothing in Tutti. The gutter is 10px on a phone
+  now; the dot is 6px, and 9px when pressed, so it still fits. Rows went from 288px wide to 304px.
+- **The `?` was in two places at once.** Every row puts it after its label – except a slider row on
+  a touch screen, which `@media (hover:none)` pulled out to `left:-24px`. On a desktop the slider's
+  `?` is hidden altogether, so this only ever showed on a phone, which is why it survived. It now
+  follows its label like every other row. The reason it was parked outside was presumably the
+  slider's label doubling as a drag handle – but the handler has always treated `.q` and `label` as
+  "soft" (`const soft = !!e.target.closest('.q,label')`), so a tap there never moved the value.
+
+**The pre-kit leftovers, cleared.** Four one-liners in the kit, each a house value the kit had not
+finished taking over: `.tab`/`.lane` kept 13.5px type because the kit took over their corner and
+height but not their size; `.st-btn` was 14px; `.sheet` was padded 18px, which is not on the step;
+and `button{padding:0}` now says once that a button has no padding of its own, so Chrome's `1px 6px`
+cannot show through again.
+
+**A bench at `/ui/kit/`.** The page was an inventory; it is now something to test on. Every
+component sits in a real iframe at a real viewport width, so the panel's own breakpoints fire as
+they do on a phone – a width set on a div does not fire them, which is exactly how the mobile
+layout drifted unseen. Light and dark side by side, Desktop / Tablet / Phone, and a Touch switch
+that serves the kit's own `hover:none` rules, lifted out of `kit.css` at build time so the bench
+cannot drift from the rule it is showing. `tests/corner_check.py` reads `specimen.html` rather than
+the bench, because the bench's own chrome is not a component.
+
+Two things the bench taught us while it was being built, both worth keeping:
+- **Its chrome must not borrow a house class name.** `.stage` is one the kit pins to `inset:0`, so
+  the frames covered the controls. Everything the bench draws for itself is `bx-*` now, and
+  `make.py` fails the build if that slips.
+- **Squeezing two frames side by side was a lie.** A desktop pair at 700px each sits under the
+  860px breakpoint and quietly shows the tablet layout. Each frame keeps the width you asked for
+  and they wrap instead.
+
+Still open on mobile, both design calls rather than faults: the lone `?` in a card's tools row
+(Mapping, Thresholds) sits correctly against the labels below it but alone on its row, which reads
+as orphaned – step 5's "row notes in place of the ?" settles it; and a stepper right-aligns while
+every other control starts at the label column, which is the same on a desktop.
+
 ### Done 25 Nov – the house check reads what you have to open
 
 It only ever read what was on screen. Everything behind a click went unchecked in every tool:

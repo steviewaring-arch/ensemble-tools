@@ -46,14 +46,14 @@ PREVIEW = []   # e.g. ('tutti', 'next', 'preview/tutti-next.html') – Tutti 6.5
 # the exported page), and the app files that go inside the shared wrapper.
 APPS = {
     'rubato': dict(
-        title='Rubato – by Ensemble', version='1.3.2',
+        title='Rubato – by Ensemble', version='1.3.3',
         body='rubato/app.html', css='rubato/app.css',
         tagged=[('rubato-engine', 'rubato/engine.js')],
         before='shared/gif.js',
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo – by Ensemble', version='0.18.4',
+        title='Tempo – by Ensemble', version='0.18.5',
         body='tempo/app.html', css='tempo/app.css',
         tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
                 ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js'),
@@ -70,7 +70,7 @@ APPS = {
 # does: the shared core is still tied to Rubato's settings and type engine. It takes the
 # shared GIF encoder and Tempo's copy of mp4-muxer (MIT).
 SEGUE = dict(
-    title='Segue – by Ensemble', version='1.3.2',
+    title='Segue – by Ensemble', version='1.3.3',
     body='segue/app.html', css='segue/app.css',
     tagged=[('segue-engine', 'segue/engine.js'), ('segue-mp4', 'tempo/vendor/mp4-muxer.js')],
     before='shared/gif.js',
@@ -248,7 +248,10 @@ def main():
     ui = os.path.join(ROOT, 'ui')
     if os.path.isdir(ui):
         shutil.rmtree(os.path.join(DOCS, 'ui'), ignore_errors=True)
-        shutil.copytree(ui, os.path.join(DOCS, 'ui'))
+        # the kit page's own source and Python cache are not pages: they were being
+        # published alongside the site
+        shutil.copytree(ui, os.path.join(DOCS, 'ui'),
+                        ignore=shutil.ignore_patterns('__pycache__', '*.py', 'body.html'))
         print('ui: docs/ui/ (UI stream pages, unlisted)')
     # the component page: built from the kit itself, after the tools, so it can say
     # which of them each component is on screen in (ui/kit/make.py)

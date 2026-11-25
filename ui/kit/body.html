@@ -24,7 +24,7 @@
           </div>
           <div class="ctl rng">
             <div class="rng-box chg" style="--p:.7"><span class="rng-fill"></span><span class="rng-tick"></span>
-              <div class="ctl-head"><label>Changed</label><span class="val typable">70%</span>
+              <div class="ctl-head"><label>Changed<i class="q" data-tip="A note about this row. On a touch screen it follows its label, as it does in every other row.">?</i></label><span class="val typable">70%</span>
                 <button class="cx" type="button" aria-label="Put back"></button></div>
               <input type="range" min="0" max="100" value="70" aria-label="Changed">
             </div>
@@ -87,6 +87,20 @@
         </div>
       </section>
 
+      <section class="card" data-id="states" data-spec="stepper st-label st-box st-btn">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>States</span><span class="sum">rest, chosen, off limits</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <p class="hint">The states a change to the kit has to survive. The last button sets no class and no padding of its own, because that is the one the browser used to give 1px of its own.</p>
+          <div class="btn-row">
+            <button class="pill" type="button">Rest</button>
+            <button class="pill primary" type="button">Primary</button>
+            <button class="pill" type="button" disabled>Off limits</button>
+            <button type="button">No class</button>
+          </div>
+          <div class="ctl stepper"><span class="st-label">A stepper, Rubato's</span><div class="st-box"><button class="st-btn" type="button" aria-label="Down">&#8722;</button><span class="val">6</span><button class="st-btn" type="button" aria-label="Up">+</button></div></div>
+        </div>
+      </section>
+
       <section class="card collapsed" data-id="shut" data-spec="collapsed">
         <h2><button class="card-toggle" type="button" aria-expanded="false"><span>A shut section</span><span class="sum">says what is set</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
         <div class="card-body"><p class="hint">Not shown until it is opened.</p></div>
@@ -119,6 +133,10 @@
     </div></div>
   </div>
 
+  <div class="sheet" data-spec="sheet sheet-h" style="position:absolute;left:24px;bottom:24px;width:300px;background:var(--k-card);border-radius:var(--r-surface);box-shadow:0 0 0 1px var(--keyline)">
+    <div class="sheet-h">A sheet</div>
+    <p class="hint">An overlay that holds a job of its own. Its padding is a card’s.</p>
+  </div>
   <div class="pop" data-spec="pop pop-title" style="right:24px;top:58px">
     <div class="pop-title">A pop</div>
     <div class="ctl"><div class="ctl-head"><span>Margin</span></div>

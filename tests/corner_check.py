@@ -42,6 +42,9 @@ SPACING = STEPS | {s + GUTTER for s in STEPS}
 # no tool happens to show. That is where a stray hides – the wrapped choice group
 # sat at 17px for weeks and appears in two panels out of four.
 APPS = ('segue', 'tutti', 'rubato', 'tempo', 'ui/kit')
+# The bench at ui/kit/ frames the components in iframes at real viewport widths, so read the
+# specimen itself - the bench's own chrome is not a component and its frames are not ours.
+PATH = {'ui/kit': 'ui/kit/specimen.html'}
 CONTROL_CLASS = ['pill', 'seg', 'rng-box', 'tab', 'lane', 'stp-g', 'ebtn', 'chip',
                  'toggle', 'card-toggle', 'fold-head', 'more-toggle', 'val-in', 'cx']
 # 'sample' – a font list draws each name in that font's own face, so its weight is the
@@ -153,7 +156,7 @@ def main():
         br = pw.chromium.launch()
         for app in APPS:
             pg = br.new_page(viewport={'width': 1500, 'height': 1200})
-            pg.goto(url + f'docs/{app}/'); pg.wait_for_timeout(1800)
+            pg.goto(url + 'docs/' + PATH.get(app, app + '/')); pg.wait_for_timeout(1800)
             pg.evaluate("document.querySelectorAll('.card.collapsed>h2,.card.collapsed .card-toggle')"
                         ".forEach(b => b.click && b.click())")
             pg.wait_for_timeout(900)

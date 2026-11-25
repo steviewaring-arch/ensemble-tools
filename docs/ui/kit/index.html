@@ -440,6 +440,7 @@
   }
   body{letter-spacing:-0.012em}
   button,input,textarea,select{letter-spacing:-0.012em}
+  button{padding:0}
 
   /* ---------------- the panel ---------------- */
   .brand{padding:16px 16px 14px;gap:2px}
@@ -573,7 +574,7 @@
   .ctl.as-menu>.seg{display:none}
   .ctl.as-menu>.seg-menu{display:block}
   .tabs,.lanes{border-radius:var(--r-ctl);padding:2px;background:var(--k-fill)}
-  .tab,.lane{border-radius:var(--r-in);height:calc(var(--h-ctl) - 4px)}
+  .tab,.lane{border-radius:var(--r-in);height:calc(var(--h-ctl) - 4px);font-size:12.5px}
   .tab[aria-pressed="true"],.lane[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:0 0 0 1px var(--k-raise-line);font-weight:500}
 
   /* ---------------- buttons ---------------- */
@@ -701,6 +702,7 @@
   .drop{font-weight:500}
 
   @media (max-width:860px){
+    :root{--gutter:10px}
     #islandMain{border-radius:var(--r-ctl)}
     .card-body{padding-right:calc(16px + var(--gutter))}
   }
@@ -750,7 +752,7 @@
   .rng-box .ctl-head label{position:absolute;left:calc(-1 * (var(--lc) + 10px));width:var(--lc);top:50%;transform:translateY(-50%);
     pointer-events:auto;cursor:ew-resize;font-weight:500;color:var(--ink-strong);line-height:1.2;white-space:normal}
   @media (hover:hover){.rng-box .q{display:none}}
-  @media (hover:none){.rng-box .q{position:absolute;left:-24px;top:50%;margin-top:-7.5px}}
+  @media (hover:none){.rng-box .q{position:static;margin-left:6px;vertical-align:middle}}
   .media-list .slot-det{padding:10px 16px 4px 4px}
   .media-list .slot-det{--lc:84px}
   .colour-row>.q{position:absolute;left:calc(var(--lc) - 16px);top:50%;margin-top:-7.5px}
@@ -771,7 +773,7 @@
   .hint{padding-right:12px;margin:0 0 16px}
   /* sheets speak the panel's language: the title as a section title, groups as labels, one rule between groups */
   .sheet .card-toggle{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);min-height:0;padding:0 0 14px;border:0}
-  .sheet{padding:18px 18px 16px}
+  .sheet{padding:16px}
   .sheet .sub-head,.preset-list .sub-head{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);border-top:1px solid var(--keyline);padding-top:16px;margin:16px 0 10px}
   .sheet .card-body>.sub-head:first-child,.preset-list>.sub-head:first-child{border-top:0;padding-top:0;margin-top:0}
   /* a preset: its kind's picture and its name; the one in use white, its keyline inside so nothing clips it */
@@ -827,7 +829,7 @@
   .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
   .st-label{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2}
   .st-box{margin-left:0;justify-self:start;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px;gap:2px}
-  .st-btn{width:26px;height:26px;border-radius:var(--r-in);background:transparent;font-size:14px}
+  .st-btn{width:26px;height:26px;border-radius:var(--r-in);background:transparent;font-size:var(--fs-body)}
   .st-btn:hover{background:var(--k-raise)}
   .st-box .val{font-size:var(--fs-body);min-width:36px}
   /* the island's choices keep their own widths (they scroll sideways on a phone) */
@@ -844,6 +846,9 @@
   ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink) 20%,transparent);background-clip:padding-box;border:5px solid transparent;border-radius:8px;min-height:40px}
   ::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--ink) 40%,transparent)}
   .scroll{overflow-y:scroll;scrollbar-gutter:stable;padding-right:0}
+  /* a touch screen draws its scrollbar over the content, so the lane above is empty space
+     rather than a scrollbar: give the right edge its gutter back. */
+  @media (hover:none){.scroll{scrollbar-gutter:auto;padding-right:10px}}
   @supports selector(::-webkit-scrollbar){.scroll,.sheet{scrollbar-width:auto}}
   @supports not selector(::-webkit-scrollbar){.scroll,.sheet,body{scrollbar-width:thin}}
   #islandMain::-webkit-scrollbar,.island-row::-webkit-scrollbar{display:none}
@@ -942,16 +947,26 @@
   @media (hover:hover){html.row-tips .q{display:none!important}}
 </style>
 <style>
-/* the page's own chrome – deliberately outside .panel/.island/.topbar/.pop so the
+/* the bench's own chrome – deliberately outside .panel/.island/.topbar/.pop so the
    house check reads only the components, never this */
   body{margin:0;background:var(--k-panel);color:var(--ink);font-family:'Inter Tight',system-ui,sans-serif}
   .page{max-width:1180px;margin:0 auto;padding:40px 24px 80px}
   .page h1{font-size:28px;letter-spacing:-.03em;margin:0 0 6px}
   .page .lede{color:var(--muted);font-size:14px;max-width:62ch;margin:0 0 28px;line-height:1.5}
   .page h2.sec{font-size:15px;font-weight:700;letter-spacing:-.01em;margin:40px 0 12px}
-  .frame{position:relative;height:760px;border-radius:var(--r-surface);overflow:hidden;
-    box-shadow:0 0 0 1px var(--keyline);background:var(--app,var(--k-panel))}
-  .frame .app{position:absolute;inset:0}
+  .bx{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 16px}
+  .bx-grp{display:flex;gap:2px;padding:2px;border-radius:var(--r-ctl);background:var(--k-fill)}
+  .bx-grp button{height:26px;padding:0 10px;border:0;border-radius:var(--r-in);background:transparent;
+    color:var(--muted);font:inherit;font-size:12.5px;cursor:pointer}
+  .bx-grp button[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);
+    font-weight:500;box-shadow:0 0 0 1px var(--k-raise-line)}
+  .bx-note{color:var(--muted);font-size:12.5px}
+  .bx-wide{max-width:1500px;margin:0 auto;padding:0 24px}
+  .bx-stage{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap}
+  .bx-vp{flex:none}
+  .bx-vp .bx-cap{color:var(--muted);font-size:12px;margin:0 0 6px}
+  .bx-vp iframe{display:block;height:620px;border:0;border-radius:var(--r-surface);
+    box-shadow:0 0 0 1px var(--keyline);background:var(--k-panel)}
   table.inv{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
   table.inv th,table.inv td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--keyline);vertical-align:top}
   table.inv th{font-weight:500;color:var(--muted)}
@@ -966,386 +981,65 @@
   the same files the tools load, in the same order. Nothing here is a drawing of a component;
   they are the components. Refine them in the kit and every tool takes the change.</p>
 
-  <h2 class="sec">In the panel</h2>
-  <div class="frame"><div class="app" data-theme="light">
-  <aside class="panel" id="panelBox">
-    <div class="brand">
-      <div class="bline"><span class="mark">The house</span><span class="ver">kit</span></div>
-      <div class="bline caps">By ENSEMBLE</div>
+  <h2 class="sec">The bench</h2>
+  <div class="bx">
+    <div class="grp" id="wgrp" role="group" aria-label="Width">
+      <button type="button" data-w="1180" aria-pressed="true">Desktop</button>
+      <button type="button" data-w="820" aria-pressed="false">Tablet</button>
+      <button type="button" data-w="390" aria-pressed="false">Phone</button>
     </div>
-    <div class="scroll" id="panel" aria-label="Components">
-
-      <section class="card" data-id="surfaces" data-spec="card card-toggle card-body sum chev">
-        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>A section</span><span class="sum">what is set</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
-        <div class="card-body">
-          <p class="hint">A section is a white card whose head says what is set inside it when it is shut. This is a hint – the quiet line under a control. The blue dot on the row above marks a setting changed from where it started; clicking it puts the setting back.</p>
-        </div>
-      </section>
-
-      <section class="card" data-id="rows" data-spec="ctl rng rng-box rng-fill rng-tick ctl-head val typable cx">
-        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Rows</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
-        <div class="card-body">
-          <div class="ctl rng">
-            <div class="rng-box" style="--p:.42"><span class="rng-fill"></span><span class="rng-tick"></span>
-              <div class="ctl-head"><label>A slider</label><span class="val typable">42%</span></div>
-              <input type="range" min="0" max="100" value="42" aria-label="A slider">
-            </div>
-          </div>
-          <div class="ctl rng">
-            <div class="rng-box chg" style="--p:.7"><span class="rng-fill"></span><span class="rng-tick"></span>
-              <div class="ctl-head"><label>Changed</label><span class="val typable">70%</span>
-                <button class="cx" type="button" aria-label="Put back"></button></div>
-              <input type="range" min="0" max="100" value="70" aria-label="Changed">
-            </div>
-          </div>
-          <div class="ctl stp">
-            <div class="ctl-head"><span>Stepper</span>
-              <span class="stp-g"><button type="button" aria-label="Fewer"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button><span class="val typable">6</span><button type="button" aria-label="More"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8M6 2v8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button></span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card" data-id="choices" data-spec="seg pill hl tabs tab lane lanes">
-        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Choices</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
-        <div class="card-body">
-          <div class="ctl seg-inline">
-            <div class="ctl-head"><span>One of a few</span></div>
-            <div class="seg" role="group" aria-label="One of a few">
-              <button class="pill" type="button" aria-pressed="true">First</button>
-              <button class="pill" type="button" aria-pressed="false">Second</button>
-              <button class="pill" type="button" aria-pressed="false">Third</button>
-            </div>
-          </div>
-          <div class="ctl sel">
-            <div class="ctl-head"><label for="kitsel">Too many to show</label></div>
-            <select id="kitsel"><option>A menu, once the choices will not fit</option><option>Another</option></select>
-          </div>
-        </div>
-      </section>
-
-      <section class="card" data-id="switches" data-spec="toggle toggle-row box sw-grp fold fold-head fold-body cdot">
-        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Switches and groups</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
-        <div class="card-body">
-          <div class="toggle-row"><button class="toggle" type="button" role="switch" aria-checked="false"><span class="box"><i></i></span><span>A switch, off</span></button></div>
-          <div class="toggle-row on"><button class="toggle" type="button" role="switch" aria-checked="true"><span class="box"><i></i></span><span>A switch, on</span></button></div>
-          <div class="toggle-row sw-grp on"><button class="toggle" type="button" role="switch" aria-checked="true"><span class="box"><i></i></span><span>A switch that heads what it turns on</span></button></div>
-          <div class="fold">
-            <button class="fold-head" type="button" aria-expanded="true"><span>A group</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
-            <div class="fold-body">
-              <p class="hint">A group is a hairline and a title that says what it holds. There is no level below this one.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card" data-id="buttons" data-spec="pill small primary btn-row ebtn chip colour-row cswatch hexin cw">
-        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Buttons and colour</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
-        <div class="card-body">
-          <div class="ctl btn-row">
-            <button class="pill" type="button">A button</button>
-            <button class="pill primary" type="button">The main action</button>
-          </div>
-          <div class="ctl btn-row">
-            <button class="pill small" type="button">A chip</button>
-            <button class="pill small" type="button">Another</button>
-          </div>
-          <div class="colour-row"><label class="lbl" for="kitcol">Colour</label><i class="q" data-tip="A colour is a hex field and a swatch.">?</i>
-            <div class="cw"><input class="hexin" id="kithex" type="text" value="#F6F5F4" aria-label="Colour – hex"><span class="cswatch"><input type="color" id="kitcol" value="#f6f5f4"></span></div>
-          </div>
-        </div>
-      </section>
-
-      <section class="card collapsed" data-id="shut" data-spec="collapsed">
-        <h2><button class="card-toggle" type="button" aria-expanded="false"><span>A shut section</span><span class="sum">says what is set</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
-        <div class="card-body"><p class="hint">Not shown until it is opened.</p></div>
-      </section>
-
+    <div class="grp" id="tgrp" role="group" aria-label="Theme">
+      <button type="button" data-t="light" aria-pressed="true">Light</button>
+      <button type="button" data-t="dark" aria-pressed="false">Dark</button>
+      <button type="button" data-t="both" aria-pressed="false">Both</button>
     </div>
-    <div class="resizer" aria-hidden="true"></div>
-  </aside>
-
-  <main class="stage">
-    <div class="view" id="view"><canvas width="420" height="300" aria-label="The pasteboard, with the canvas on it"></canvas></div>
-  </main>
-
-  <div class="topbar" data-spec="topbar tools zval">
-    <div class="stage-foot"><span>420 × 300 px</span></div>
-    <div class="tools"><button type="button" aria-label="Undo"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M5.2 3.3 2.6 5.9l2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.9h5.6a2.9 2.9 0 0 1 0 5.8H6.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button></div>
-    <div class="tools" id="zoomTools">
-      <button type="button" aria-label="Zoom out"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
-      <button class="zval" type="button">Fit</button>
-      <button type="button" aria-label="Zoom in"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7M7 3.5v7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    <div class="bx-grp" id="pgrp" role="group" aria-label="Input">
+      <button type="button" data-p="0" aria-pressed="true">Pointer</button>
+      <button type="button" data-p="1" aria-pressed="false">Touch</button>
     </div>
-  </div>
-
-  <div class="island" data-spec="island ebtn isl-main">
-    <div class="island-row"><div class="island-in">
-      <div class="isl-main">
-        <button class="ebtn" type="button">A bottom-line button</button>
-        <button class="ebtn primary" type="button">Export</button>
-      </div>
-    </div></div>
-  </div>
-
-  <div class="pop" data-spec="pop pop-title" style="right:24px;top:58px">
-    <div class="pop-title">A pop</div>
-    <div class="ctl"><div class="ctl-head"><span>Margin</span></div>
-      <div class="seg" role="group" aria-label="Margin">
-        <button class="pill" type="button" aria-pressed="false">None</button>
-        <button class="pill" type="button" aria-pressed="true">5%</button>
-        <button class="pill" type="button" aria-pressed="false">8%</button>
-      </div></div>
-    <p class="hint">The small panel under a top-bar button.</p>
+    <span class="bx-note">Each frame is a real viewport, so the panel’s own breakpoints fire as they do on a phone. Touch serves the kit’s own <code>hover:none</code> rules, which a pointer never sees.</span>
   </div>
 </div>
-</div>
+<div class="bx-wide"><div class="bx-stage" id="stage"></div></div>
+<div class="page">
 
   <h2 class="sec">What is not in the kit</h2>
-  <p class="count">191 classes are the house's. These 238 belong to one tool
+  <p class="count">{len(house)} classes are the house’s. These {len(rows)} belong to one tool
   only – each is a component that cannot be refined from the kit, so this is the queue.
   The last column is read from the built markup and from the <code>el(tag, class)</code> helpers;
   a class a tool composes at run time can be alive without showing here, so a blank is worth a
   look rather than proof of dead code.</p>
   <table class="inv"><tr><th>Class</th><th>Defined in</th><th>Seen in the markup of</th></tr>
-  <tr><td><code>.auto</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.chip-b</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.chip-val</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.chip-x</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.chips</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.d-hub</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.d-needle</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.d-ring</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.d-wedge</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.dest-grid</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.dest-n</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.dest-name</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.dest-pt</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.dest-row</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.dest-t</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.dests</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.from</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.hold</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.in</code></td><td>Rubato only</td><td>Segue</td></tr>
-<tr><td><code>.kbtn</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.kern-list</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.khint</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.kval</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.lbar</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.lbar-h</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.lbar-legend</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.lg</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.lseg</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.p-axis</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.p-dot</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.p-shape</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.pad</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.pair-fill</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.pair-h</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.pair-track</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.seed-row</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.tb-font</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.tb-name</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.tb-size</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.tblock</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.tblock-head</code></td><td>Rubato only</td><td>Rubato</td></tr>
-<tr><td><code>.thumb</code></td><td>Rubato only</td><td>Rubato, Tempo</td></tr>
-<tr><td><code>.thumbs</code></td><td>Rubato only</td><td>Rubato, Tempo</td></tr>
-<tr><td><code>.to</code></td><td>Rubato only</td><td>not in the markup</td></tr>
-<tr><td><code>.arrow</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.det-arrows</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.det-end</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.dragging</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.editing</code></td><td>Segue only</td><td>Segue, Rubato, Tempo</td></tr>
-<tr><td><code>.enl</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.err-note</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.feel-pic</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.first</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.flash</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.fp-base</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.fp-cap</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.fp-curve</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.grab</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.grabbing</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.has-sw</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.head-sw</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.held</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.hover</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.img-in</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.img-lab</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.in</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.kind</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.kinds</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.labelled</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.layer</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.muted</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.no-dots</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.off</code></td><td>Segue only</td><td>Segue, Tempo</td></tr>
-<tr><td><code>.path-pic</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.pd-a</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.pd-b</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.pd-bg</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.pd-f</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.pd-o</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.pd-out</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.place</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.pp-dot</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.pp-line</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.pp-stop</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.proj-acts</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.proj-btn</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.proj-field</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.proj-ic</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.proj-list</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.proj-name</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.proj-pop</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.proj-row</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.proj-state</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.proj-thumb</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.projbar</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.scrubw</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.selhint</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.spot</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.squeezed</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.strip</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.strip-g</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.ticks</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.tight</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.tight-bar</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.tp-a</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.tp-b</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.tp-bg</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.tp-go</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.tp-o</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.trans-pic</code></td><td>Segue only</td><td>not in the markup</td></tr>
-<tr><td><code>.trim</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.trim-bar</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.trim-chips</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.trim-frame</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.trim-frames</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.trim-h</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.trim-head</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.trim-strip</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.trim-win</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.way</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.x</code></td><td>Segue only</td><td>Segue</td></tr>
-<tr><td><code>.cp-add</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-drop</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-grid</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-hex</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-l</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-mode</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-modes</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-nb</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-note</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-now</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-rg</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-row</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-sl</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-sliders</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-sub</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-sw</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cp-x</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.cpick</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.dev-list</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.dev-meta</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.dev-name</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.dev-row</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.dev-text</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.hour-strip</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.hs-axis</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.hs-cell</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.in</code></td><td>Tempo only</td><td>Segue</td></tr>
-<tr><td><code>.inline</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.layer-eye</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.layer-foot</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.layer-list</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.layer-mv</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.layer-name</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.layer-row</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.look</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.look-line</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.mine</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.now</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.off</code></td><td>Tempo only</td><td>Segue, Tempo</td></tr>
-<tr><td><code>.p-status</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.picking</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.picking-colour</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.row-chev</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.sw-dot</code></td><td>Tempo only</td><td>not in the markup</td></tr>
-<tr><td><code>.sw-set</code></td><td>Tempo only</td><td>not in the markup</td></tr>
-<tr><td><code>.theme-grid</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.theme-tile</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.thumb</code></td><td>Tempo only</td><td>Rubato, Tempo</td></tr>
-<tr><td><code>.thumbs</code></td><td>Tempo only</td><td>Rubato, Tempo</td></tr>
-<tr><td><code>.tt-clock</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.tt-dial</code></td><td>Tempo only</td><td>not in the markup</td></tr>
-<tr><td><code>.tt-name</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.tt-prev</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.tt-small</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.tt-stack</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.tt-tick</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.tt-type</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.tt-words</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.up</code></td><td>Tempo only</td><td>Tempo</td></tr>
-<tr><td><code>.active</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.btn</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.busy</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.cancel</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.cap-activity</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.cap-choose</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.card-tools</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.count</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.cxm</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.edge</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.edges</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.empty-s</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.emptymark</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.ep-sublabel</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.file</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.fmt</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.fontpick</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.gifmod</code></td><td>Tutti only</td><td>not in the markup</td></tr>
-<tr><td><code>.grow</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.idx</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.inner</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.lane-panel</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.lbl</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.lead-q</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.live-dot</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.markbox</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.marks</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.markseg</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.meta</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.mixgrp</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.mk</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.on-left</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.own</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.pp</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.ppdot</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.pre</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.rec</code></td><td>Tutti only</td><td>not in the markup</td></tr>
-<tr><td><code>.rec-btn</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.row</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.run-wrap</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.seg2</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.set</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.show</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.spin</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.state</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.steps</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.stop</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.stop-ic</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.sttext</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.subttl</code></td><td>Tutti only</td><td>not in the markup</td></tr>
-<tr><td><code>.subttl-row</code></td><td>Tutti only</td><td>not in the markup</td></tr>
-<tr><td><code>.svg-note</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.svgbtn</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.svgprev</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.swatch</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.txt-wrap</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.typegrp</code></td><td>Tutti only</td><td>Tutti</td></tr>
-<tr><td><code>.working</code></td><td>Tutti only</td><td>Tutti</td></tr>
+  {inv}
   </table>
 </div>
+<script>
+  var W = 1180, T = 'light', P = false, stage = document.getElementById('stage');
+  function frame(theme, w) {
+    var d = document.createElement('div'); d.className = 'bx-vp';
+    d.innerHTML = '<p class="bx-cap">' + (theme === 'dark' ? 'Dark' : 'Light') + ' &middot; ' + w + 'px</p>' +
+      '<iframe title="Components, ' + theme + ', ' + w + 'px" loading="lazy" src="specimen.html?theme=' +
+      theme + (P ? '&touch=1' : '') + '" style="width:' + w + 'px"></iframe>';
+    return d;
+  }
+  function draw() {
+    stage.textContent = '';
+    // both frames keep the width you asked for: squeezing them to fit side by side would put a
+    // desktop pair under the 860px breakpoint and quietly show the tablet layout instead.
+    if (T === 'both') { stage.append(frame('light', W), frame('dark', W)); }
+    else stage.append(frame(T, W));
+  }
+  function wire(id, attr, set) {
+    document.getElementById(id).addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      [].forEach.call(this.querySelectorAll('button'), function (x) {
+        x.setAttribute('aria-pressed', String(x === b)); });
+      set(b.dataset[attr]); draw();
+    });
+  }
+  wire('wgrp', 'w', function (v) { W = +v; });
+  wire('tgrp', 't', function (v) { T = v; });
+  wire('pgrp', 'p', function (v) { P = v === '1'; });
+  draw();
+</script>
 </body></html>

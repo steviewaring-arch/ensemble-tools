@@ -1,5 +1,27 @@
 # Changelog
 
+## 25 November 2026 – Mobile tidied; the pre-kit leftovers cleared; a bench for the kit
+
+- **Mobile, in Tutti and everywhere else.** Three causes, all in the kit. The right edge had no
+  padding, because `.scroll` reserves a lane for a scrollbar a touch screen draws over the content
+  instead. The panel sat off to the left, because `.card-body` reserves `16px + --gutter` on the
+  right for a change column that holds nothing in Tutti – the gutter is 10px on a phone now, and
+  rows went from 288px to 304px wide. And the `?` was in two places at once: every row puts it
+  after its label except a slider row on a touch screen, which was pulled out to `left:-24px`. On
+  a desktop that `?` is hidden altogether, which is why it only ever looked wrong on a phone.
+- **The pre-kit leftovers.** `.tab`/`.lane` kept 13.5px type and `.st-btn` 14px, because the kit
+  took over their corner and height but never their size; `.sheet` was padded 18px, which is not on
+  the step. All on the scale now, and `button{padding:0}` says once that a button has no padding of
+  its own, so Chrome's own `1px 6px` cannot show through again.
+- **A bench at `/ui/kit/`.** The component page was an inventory; it is now something to judge a
+  change on before it goes near a tool. Every component in a real iframe at a real viewport width,
+  light and dark side by side, Desktop / Tablet / Phone, and a Touch switch that serves the kit's
+  own `hover:none` rules – lifted out of `kit.css` when the page is built, so the bench cannot
+  drift from the rule it shows. A width set on a div does not fire a media query, which is exactly
+  how the mobile layout drifted unseen in the first place.
+- The page's own source and its Python cache were being published with the site; they are not.
+- Tutti 6.7.1, Rubato 1.3.3, Tempo 0.18.5, Segue 1.3.3.
+
 ## 25 November 2026 – The house check reads what you have to open; Tempo 0.18.4
 
 - **The check had been half blind.** `tests/corner_check.py` only ever read what was on screen, so
