@@ -41,7 +41,13 @@ async ()=>{
   panel.querySelectorAll('textarea').forEach(e=>{if(!seen(e))return;items.push({e,label:'Text',vals:['Audit words'],set:v=>{e.value=v;fire(e,'input');}});});
   panel.querySelectorAll('.toggle').forEach(e=>{if(!seen(e))return;items.push({e,label:name(e),vals:[1],set:()=>e.click()});});
   panel.querySelectorAll('.seg button').forEach(e=>{if(!seen(e)||(e.classList.contains('on')&&!e.closest('.multi')))return;if(e.closest('.markbox'))return;items.push({e,label:(words((e.closest('.row')||e.closest('.seg')).querySelector('.lbl'))||'Align')+' › '+words(e),vals:[1],set:()=>e.click()});});
-  ['bandPlus','bandMinus','randomColors','resetShapes','randomAll','resetEdges','mixShuffle'].forEach(id=>{const e=document.getElementById(id);if(e&&seen(e)&&!e.disabled)items.push({e,label:words(e)||id,vals:[1],set:()=>e.click()});});
+  /* A control that puts something back can only show its work if something is out of
+     place first, so each one says how to disturb what it resets. Without this they
+     report "no effect" on every run, from defaults, and the run cries wolf. */
+  const UPSET={
+    resetEdges:()=>{S.edges=S.edges.map((v,i)=>Math.max(.02,Math.min(.98,v+(i%2?.09:-.07))));buildEdgeUI();},
+    resetShapes:()=>{for(let i=0;i<3;i++)setMark(i,'checker',false);}};
+  ['bandPlus','bandMinus','randomColors','resetShapes','randomAll','resetEdges','mixShuffle'].forEach(id=>{const e=document.getElementById(id);if(e&&seen(e)&&!e.disabled)items.push({e,label:words(e)||id,vals:[1],upset:UPSET[id],set:()=>e.click()});});
   /* Where each setting lives, read while every one of them is still in the page.
      Changing a band colour or a threshold rebuilds that whole list, so anything
      collected from it is detached from then on and has no card to name – which is
@@ -49,7 +55,18 @@ async ()=>{
   for(const it of items) it.at=where(it.e);
   const res=[];const base=await sig();
   for(const it of items){const before=snapState();let alive=false,tried=0,err=null;
-    for(const v of it.vals){try{it.set(v);tried++;if(await sig()!==base)alive=true;}catch(x){err=String(x);}putState(before);await wait(60);if(alive)break;}
+    if(it.upset){
+      /* A reset is the other way round: it works if the canvas moves when something is
+         put out of place, and comes back when the control is clicked. Judged against the
+         base signature like everything else it can only ever look dead, because coming
+         back to the base is the whole job. */
+      try{it.upset();await wait(60);const upset=await sig();
+        it.set(1);tried++;await wait(60);
+        alive=(upset!==base && await sig()===base);}catch(x){err=String(x);}
+      putState(before);await wait(60);
+    } else {
+      for(const v of it.vals){try{it.set(v);tried++;if(await sig()!==base)alive=true;}catch(x){err=String(x);}putState(before);await wait(60);if(alive)break;}
+    }
     if(await sig()!==base)err=(err?err+'; ':'')+'did not come back';
     res.push({label:it.at+it.label,alive,tried,err});}
   return res;
