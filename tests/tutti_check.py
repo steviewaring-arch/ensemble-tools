@@ -22,17 +22,18 @@ base = start()
 engines = sys.argv[1:] or ['chromium']
 results, hashes = [], {}
 
-def open_card(pg, card):
+def open_card(L, card):
     """Open a card if it is folded away. Fine tuning was broken up on 25 November:
     Presets is its own card, and Thresholds and Jitter are groups inside Mapping
-    and Shape."""
-    pg.locator(f'.card[data-id="{card}"] .card-toggle').evaluate(
+    and Shape. Takes the run's own locator, because in embed and app modes the
+    app is inside an iframe and the host page has no cards at all."""
+    L(f'.card[data-id="{card}"] .card-toggle').evaluate(
         'b => { if (b.closest(".card").classList.contains("collapsed")) b.click(); }')
 
 
-def open_group(pg, group):
+def open_group(L, group):
     """Open a group inside a card, opening the card first if it is folded away."""
-    pg.locator(f'.fold-head[data-group="{group}"]').evaluate(
+    L(f'.fold-head[data-group="{group}"]').evaluate(
         'e => { const c = e.closest(".card");'
         '  if (c && c.classList.contains("collapsed")) c.querySelector(".card-toggle").click();'
         '  if (e.getAttribute("aria-expanded") !== "true") e.click(); }')
@@ -155,7 +156,7 @@ def run(p, eng, mode):
         return s
     check(tag, 'Cards fold and say what is set', cards)
     def presets():
-        open_card(pg, 'presets'); pg.wait_for_timeout(200)
+        open_card(L, 'presets'); pg.wait_for_timeout(200)
         n, data = save('#savePreset'); p = json.loads(data)
         if p.get('app') != 'Tutti': raise Exception('not a Tutti preset')
         ev('S.grid=20'); L('#loadPreset').set_input_files(os.path.join(OUT, f'tutti_{eng}_{mode}_' + n)); pg.wait_for_timeout(500)
@@ -227,7 +228,7 @@ def run(p, eng, mode):
         L('#mixBarsSeg button[data-v="repeat"]').click(); pg.wait_for_timeout(100)
         L('.markbox .markseg button[data-b="1"]').click(); pg.wait_for_timeout(150); L('.markbox .mk[data-k="checker"]').click(); pg.wait_for_timeout(400)
         if ev('S.states[0].bigKey') != 'checker': raise Exception('big mark not set')
-        open_card(pg, 'presets')
+        open_card(L, 'presets')
         n, data = save('#savePreset'); pr = json.loads(data)
         if not pr.get('mix') or pr['states'][0].get('bigKey') != 'checker': raise Exception('preset lacks Mixed sizes or the big mark')
         sheet(True); _, svgd = save('#svgBtn'); sheet(False)
