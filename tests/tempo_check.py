@@ -725,8 +725,8 @@ def main():
         pg.evaluate("document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(t=>t.click())"); time.sleep(.5)
         for _ in range(2):
             pg.evaluate("document.querySelectorAll('.fold-head[aria-expanded=\"false\"]').forEach(b=>b.click())"); time.sleep(.4)
-        start = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
-                            "return i?i.value:null})()")
+        was = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
+                          "return i?i.value:null})()")
         shut = pg.evaluate("[...document.querySelectorAll('section.card.chg>h2>.reset')].filter(r=>!r.hidden).length")
         pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
                     "i.value=+i.value+(+i.step||1)*4;i.dispatchEvent(new Event('input',{bubbles:true}));"
@@ -738,8 +738,8 @@ def main():
                            "return [i.value,document.querySelectorAll('.ctl.chg').length]})()")
         check('The change column: a moved row shows its dot and its section a Reset; the dot puts the row back; '
               'a row that is off screen never lights a section',
-              shut == 0 and lit[0] >= 1 and lit[1] == 1 and back[0] == start and back[1] == 0,
-              f'shut {shut}, lit {lit}, back {back} (started {start})')
+              shut == 0 and lit[0] >= 1 and lit[1] == 1 and back[0] == was and back[1] == 0,
+              f'shut {shut}, lit {lit}, back {back} (started {was})')
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     failed = [r for r in results if not r[0]]
