@@ -186,30 +186,44 @@ def main():
         pg.fill('.cpk-f input >> nth=0', was); time.sleep(.2); pg.keyboard.press('Enter'); time.sleep(.2)
         check('House colour picker: a swatch opens it, not the browser’s; hex sets the colour', opened and got.lower() == '#cc3322' and pg.evaluate("document.querySelector('#c_ink').value").lower() == was.lower(), f'{opened} {got}')
         # ---- the change column (1.4): a dot on a moved row, click to put it back, a section Reset ----
+        # This runs at the end of the suite, so the panel already has rows changed by earlier checks:
+        # measure the move, never the totals, and take a row that addRange actually built (data-k).
         pg.evaluate("document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(t=>t.click())"); time.sleep(.4)
         for _ in range(2):
             pg.evaluate("document.querySelectorAll('.fold-head[aria-expanded=\"false\"]').forEach(b=>b.click())"); time.sleep(.4)
-        was = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
-                          "return i?{k:i.closest('.ctl').dataset.k,v:i.value}:null})()")
-        pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
-                    "i.value=+i.value+(+i.step||1)*4;i.dispatchEvent(new Event('input',{bubbles:true}));"
-                    "i.dispatchEvent(new Event('change',{bubbles:true}));})()"); time.sleep(.6)
-        lit = pg.evaluate("[document.querySelectorAll('.ctl.chg').length,document.querySelectorAll('section.card.chg').length,"
-                          "[...document.querySelectorAll('section.card.chg>h2>.reset')].filter(r=>!r.hidden).length]")
-        pg.evaluate("(()=>{const w=document.querySelector('.ctl.chg');w.querySelector(':scope > .cx').click();})()"); time.sleep(.6)
-        back = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
-                           "return [i.value,document.querySelectorAll('.ctl.chg').length]})()")
+        PICK = ("(()=>{const i=[...document.querySelectorAll('.ctl[data-k] input[type=range]')]"
+                ".find(x=>x.offsetWidth>0&&!x.closest('.ctl').classList.contains('chg'));"
+                "return i?i.closest('.ctl'):null})()")
+        was = pg.evaluate(f"(()=>{{const w={PICK};const i=w&&w.querySelector('input[type=range]');"
+                          "return w?{k:w.dataset.k,v:i.value,lit:document.querySelectorAll('.ctl.chg').length}:null})()")
+        pg.evaluate("(()=>{const w=document.querySelector(`.ctl[data-k='" + str(was['k']) + "']`);"
+                    "const i=w.querySelector('input[type=range]');i.value=+i.value+(+i.step||1)*4;"
+                    "i.dispatchEvent(new Event('input',{bubbles:true}));i.dispatchEvent(new Event('change',{bubbles:true}));})()")
+        time.sleep(.6)
+        mid = pg.evaluate("(()=>{const w=document.querySelector(`.ctl[data-k='" + str(was['k']) + "']`);"
+                          "return {mine:w.classList.contains('chg'),lit:document.querySelectorAll('.ctl.chg').length,"
+                          "reset:!!(w.closest('section.card')||{}).classList&&w.closest('section.card').classList.contains('chg')}})()")
+        pg.evaluate("(()=>{const w=document.querySelector(`.ctl[data-k='" + str(was['k']) + "']`);"
+                    "w.querySelector(':scope > .cx').click();})()"); time.sleep(.6)
+        back = pg.evaluate("(()=>{const w=document.querySelector(`.ctl[data-k='" + str(was['k']) + "']`);"
+                           "return {v:w.querySelector('input[type=range]').value,mine:w.classList.contains('chg'),"
+                           "lit:document.querySelectorAll('.ctl.chg').length}})()")
         check('The change column: a moved row shows its dot, its section shows Reset, and the dot puts the row back',
-              lit[0] >= 1 and lit[1] >= 1 and lit[2] == 1 and back[0] == was['v'] and back[1] == 0,
-              f'{lit} then {back} (started {was})')
-        # a section Reset puts back everything shown in that section
-        pg.evaluate("(()=>{const ins=[...document.querySelectorAll('.card-body input[type=range]')].filter(x=>x.offsetWidth>0).slice(0,2);"
-                    "ins.forEach(i=>{i.value=+i.value+(+i.step||1)*3;i.dispatchEvent(new Event('input',{bubbles:true}));"
-                    "i.dispatchEvent(new Event('change',{bubbles:true}));});})()"); time.sleep(.6)
-        many = pg.evaluate("document.querySelectorAll('.ctl.chg').length")
-        pg.evaluate("(()=>{const r=document.querySelector('section.card.chg>h2>.reset');if(r)r.click();})()"); time.sleep(.6)
-        check('A section Reset puts back every row shown in it',
-              many >= 1 and pg.evaluate("document.querySelectorAll('.ctl.chg').length") == 0, f'{many} lit first')
+              mid['mine'] and mid['reset'] and mid['lit'] == was['lit'] + 1
+              and back['v'] == was['v'] and not back['mine'] and back['lit'] == was['lit'],
+              f"{was} -> {mid} -> {back}")
+        # a section Reset puts back everything shown in that section, and leaves other sections alone
+        sec = pg.evaluate("(()=>{const w=document.querySelector('.ctl.chg');if(!w)return null;"
+                          "const s=w.closest('section.card');return s?s.dataset.id:null})()")
+        if sec:
+            before = pg.evaluate(f"document.querySelectorAll('section.card[data-id=\'{sec}\'] .ctl.chg').length")
+            others = pg.evaluate(f"document.querySelectorAll('.ctl.chg').length") - before
+            pg.evaluate(f"(()=>{{const r=document.querySelector(\"section.card[data-id='{sec}']>h2>.reset\");if(r)r.click();}})()")
+            time.sleep(.6)
+            after = pg.evaluate(f"document.querySelectorAll('section.card[data-id=\'{sec}\'] .ctl.chg').length")
+            rest = pg.evaluate("document.querySelectorAll('.ctl.chg').length") - after
+            check('A section Reset puts back every row shown in it, and leaves the other sections alone',
+                  before >= 1 and after == 0 and rest == others, f'{sec}: {before} -> {after}, elsewhere {others} -> {rest}')
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     n = sum(1 for r in results if r[0])
