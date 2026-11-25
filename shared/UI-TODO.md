@@ -57,6 +57,11 @@ Two things the bench taught us while it was being built, both worth keeping:
 - **Squeezing two frames side by side was a lie.** A desktop pair at 700px each sits under the
   860px breakpoint and quietly shows the tablet layout. Each frame keeps the width you asked for
   and they wrap instead.
+- **A specimen that is off the house on purpose costs you the check.** A classless button was put
+  in to show what the browser gives one of its own; it then reported itself as three strays every
+  run - a height, a type size and a background - and three permanent strays teach you to stop
+  reading the list. Taken out: the kit resets a button's padding, and every button in a tool has a
+  class, so there was nothing left for it to prove.
 
 Still open on mobile, both design calls rather than faults: the lone `?` in a card's tools row
 (Mapping, Thresholds) sits correctly against the labels below it but alone on its row, which reads
