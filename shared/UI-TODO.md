@@ -4,6 +4,14 @@
 
 1. **The house check, widened** – done, below. 2. Tutti: break up Fine tuning. 3. Tempo onto the house style. 4. Rubato: menus, one "Stretch", change dots, kerning by drag, an audit. 5. Tutti: row notes instead of "?", and the house colour picker.
 
+### Done 25 Nov – spacing on one scale (Segue 1.3.2, Rubato 1.3.2, Tempo 0.18.3)
+
+48 strays, about twenty declarations, most of them shared through the kit: the chip's optical padding (9/8/5 → 8 and 6), the switch row's 9px gap, the slider head's 3, the typable value's 7, the text area's 7, the brand's 1, the hints' and card body's 18, the slot rows' 7, the tiles' and labels' 5 and 3; Segue's Kind tiles, placement grid, scrub ticks, card head and empty media; Tempo's switch set, theme tiles, clock and name (the last two were rem against a 15px root, which is where 18.8px and 10.8px type came from); Tutti's empty mark, GIF sub-title, Edges head, SVG chips and the two buttons still taking the browser's own 1px padding.
+
+Snapping the placement grid and the theme tiles to a 4px inset broke the nesting rule – a 6px corner wants a 2px inset – so those two inner corners are 4px now. **Corners 0, colour 0, spacing 0.** Every suite green, Tutti's 12 export hashes byte-identical.
+
+**Carried forward, worded as what they are:** three wrapped choice groups want menus and Rubato's pre-kit `.st-*` stepper sets 14px type (step 4); one Tempo switch runs to two lines because its name is too long (step 3).
+
 ### Done 25 Nov – `tests/corner_check.py` reads the whole house, not just corners
 
 It now reads **heights, type, colour and spacing** as well, resolving the kit's tokens in the page so a near-miss grey has nowhere to hide. Corners still fail the run; the other four report and fail only with `--strict`, so a tool still queued doesn't hold the suite red. Proved by planting a wrong colour, height and size in a page and watching it catch all three.
