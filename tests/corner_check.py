@@ -81,9 +81,12 @@ READ = r"""([CONTROL, DATA]) => {
       if (pr) { const pb = p.getBoundingClientRect();
         inset = Math.round(Math.min(b.left - pb.left, b.top - pb.top,
                                     pb.right - b.right, pb.bottom - b.bottom) * 10) / 10; } }
-    const isControl = ['BUTTON','INPUT','SELECT','TEXTAREA'].includes(e.tagName) ||
+    /* a text area grows with what is typed in it, so its height says nothing */
+    const isControl = ['BUTTON','INPUT','SELECT'].includes(e.tagName) ||
                       CONTROL.some(x => c.includes(x));
-    const isData = DATA.some(x => c.includes(x)) || !!e.closest('[data-colour],.states,.sheet,.preset-list');
+    /* a file or colour input is a hit target behind something else, not a control */
+    const isData = DATA.some(x => c.includes(x)) || e.type === 'color' || e.type === 'file' ||
+                   !!e.closest('[data-colour],.states,.sheet,.preset-list');
     const bgRaw = cs.backgroundColor, fgRaw = cs.color;
     /* see-through at all? then it is a tint over a surface, or nothing at all */
     const translucent = v => { const m = String(v).match(/[0-9.]+/g);
@@ -103,7 +106,7 @@ READ = r"""([CONTROL, DATA]) => {
             cs.columnGap === 'normal' ? '0px' : cs.columnGap].map(num)
              .filter(v => Math.abs(v) <= 64),   /* above that it is a column, not spacing */
       mar: [cs.marginTop, cs.marginRight, cs.marginBottom, cs.marginLeft]
-             .map(num).filter(v => Math.abs(v) <= 40)
+             .map(num).filter(v => Math.abs(v) <= 24)
     });
   });
   return out;
@@ -141,9 +144,13 @@ def main():
                         found['corner'].append(
                             f"{at} is {x['r']}px inside {x['parent']} "
                             f"({x['pr']}px, {x['inset']}px in) – wants {want}px")
-                if x['h'] and x['h'] < 60 and not near(x['h'], HEIGHTS):
-                    why = ' – a choice group on two rows; it wants a menu' \
-                        if 'seg' in x['el'] and 'wrap' in x['el'] else ' – not a house height'
+                if x['h'] and x['h'] < 60 and not near(x['h'], HEIGHTS) and not x['data']:
+                    if 'seg' in x['el'] and 'wrap' in x['el']:
+                        why = ' – a choice group on two rows; it wants a menu'
+                    elif 'toggle' in x['el'] and 26 < x['h'] < 34:
+                        why = ' – a switch whose label runs to two lines; the name is too long'
+                    else:
+                        why = ' – not a house height'
                     found['height'].append(f"{at} is {x['h']}px tall{why}")
                 if x['hasText']:
                     if not near(x['size'], SIZES, 0.3):

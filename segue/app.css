@@ -13,7 +13,7 @@
   .mthumb canvas{display:block;width:100%;height:100%}
   .slot-main{min-width:0}
   .slot-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .media-empty{font-size:var(--fs-small);color:var(--muted);border:1px dashed var(--hair);border-radius:var(--r-ctl,8px);padding:18px 12px;text-align:center;margin:0 0 10px}
+  .media-empty{font-size:var(--fs-small);color:var(--muted);border:1px dashed var(--hair);border-radius:var(--r-ctl,8px);padding:16px 12px;text-align:center;margin:0 0 10px}
   .slot-det .ctl:last-child{margin-bottom:6px}
   .num-row{display:flex;align-items:center;gap:6px}
   .num-row label.num{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
@@ -33,7 +33,7 @@
   #cv{background:transparent}
   /* 0.2: the kind of motion, as tiles – 0.5: in the kit's terms, the chosen one white on grey */
   .kinds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
-  .kind{border:0;background:var(--k-fill);box-shadow:none;color:var(--muted);border-radius:var(--r-ctl);padding:9px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;line-height:1;min-width:0;
+  .kind{border:0;background:var(--k-fill);box-shadow:none;color:var(--muted);border-radius:var(--r-ctl);padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;line-height:1;min-width:0;
     transition:background var(--t-snap),color var(--t-snap),box-shadow var(--t-snap),transform var(--t-snap) var(--e-snap)}
   .kind:hover{background:var(--k-fill-hover);color:var(--ink)}
   .kind:active{transform:scale(.97)}
@@ -44,8 +44,8 @@
   .kind[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:0 0 0 1px var(--k-raise-line);font-weight:500}
   .kind:focus-visible,.spot:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   /* the overlay's place: a 3 × 3 pad */
-  .place{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,22px);gap:2px;background:var(--k-fill);border-radius:var(--r-ctl);padding:3px;width:max-content}
-  .spot{border:0;background:transparent;border-radius:var(--r-in);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap)}
+  .place{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,24px);gap:2px;background:var(--k-fill);border-radius:var(--r-ctl);padding:4px;width:max-content}
+  .spot{border:0;background:transparent;border-radius:var(--r-sw);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap)}
   .spot:hover{background:var(--k-fill-hover)}
   .spot i{width:5px;height:5px;border-radius:50%;background:var(--muted);opacity:.55}
   .spot:hover i{opacity:1}
@@ -71,7 +71,7 @@
   /* 0.6: the piece under the pointer lights its row; a layer's row sits in under its slide's */
   .media-list .slot.hover{background:var(--k-fill-hover);box-shadow:inset 0 0 0 1px var(--hair)}
   .media-list .slot.open.hover{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
-  .media-list .slot.layer{margin-left:18px;position:relative}
+  .media-list .slot.layer{margin-left:16px;position:relative}
   .media-list .slot.layer::before{content:'';position:absolute;left:-11px;top:-4px;height:28px;width:7px;border-left:1px solid var(--hair);border-bottom:1px solid var(--hair);border-bottom-left-radius:4px;pointer-events:none}
   /* 0.6: a clip's In and Out – the clip as frames, the part that plays lit */
   .trim{margin:0 0 12px}
@@ -160,7 +160,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 /* 0.10: Additionals – a quiet heading at the foot of the panel; open, the sections it holds sit under it as cards */
 
 /* a section's on and off: the box beside its name, in its head */
-.card.has-sw>h2>.card-toggle{padding-left:42px}
+.card.has-sw>h2>.card-toggle{padding-left:40px}
 .card>h2>.head-sw{position:absolute;left:16px;top:50%;margin-top:-8px;width:16px;height:16px;padding:0;min-height:0;z-index:1}
 .card>h2>.head-sw .box{margin:0}
 .card.off>h2>.card-toggle>span:first-child{color:var(--muted)}
@@ -226,7 +226,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 #island .island-in{max-width:100%}
 #island #scrub,#island .scrubw{flex:none}
 .app.tight .topbar .stage-foot{display:none}
-.ticks{position:absolute;left:10px;right:10px;top:50%;height:10px;margin-top:-5px;pointer-events:none}
+.ticks{position:absolute;left:10px;right:10px;top:50%;height:12px;margin-top:-6px;pointer-events:none}
 .ticks i{position:absolute;top:0;width:1px;height:10px;margin-left:-.5px;background:color-mix(in srgb,var(--ink) 24%,transparent)}
 
 /* flat sheets for Safari 17 are in shared/components.css from 0.16 (every tool) */

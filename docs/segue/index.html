@@ -248,7 +248,7 @@
   .slot.drag{outline:2px dashed var(--fill-ink);outline-offset:4px;border-radius:8px}
   .slot-top{display:flex;align-items:center;gap:6px}
   .slot-main{flex:1;min-width:0}
-  .slot-label{color:var(--muted);font-size:12px;margin-bottom:3px}
+  .slot-label{color:var(--muted);font-size:12px;margin-bottom:4px}
   .slot-name{font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .slot-meta{color:var(--muted);font-size:12px;margin-top:3px}
   .slot .toggle-row{margin:10px 0 0}
@@ -265,7 +265,7 @@
   .pick-host{margin-top:6px}
   .pick-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--keyline)}
   .pick-ch{width:16px;flex:none;color:var(--muted);padding-top:13px;font-size:13px}
-  .tiles{display:flex;flex-wrap:wrap;gap:5px}
+  .tiles{display:flex;flex-wrap:wrap;gap:6px}
   .tile{border:0;box-shadow:inset 0 0 0 1px var(--keyline);padding:0;border-radius:var(--r-inner);background:var(--btn);cursor:pointer;position:relative;width:38px;height:46px;display:block}
   .tile canvas{display:block;width:36px;height:44px;margin:1px;pointer-events:none}
   .tile[aria-pressed="true"]{background:var(--fill-ink);box-shadow:none}
@@ -447,7 +447,7 @@
   button,input,textarea,select{letter-spacing:-0.012em}
 
   /* ---------------- the panel ---------------- */
-  .brand{padding:16px 16px 14px;gap:1px}
+  .brand{padding:16px 16px 14px;gap:2px}
   .brand .bline{font-size:var(--fs-mark);letter-spacing:-0.035em;line-height:1.08;gap:6px}
   .brand .mark{font-weight:500}
   .brand .ver{font-size:var(--fs-mark);letter-spacing:-0.03em}
@@ -536,14 +536,14 @@
   .rng-tick.split{opacity:0}
   .rng-box:hover .rng-tick,.rng-box.drag .rng-tick{transform:scaleY(1.18)}
   .rng-notch{position:absolute;bottom:0;width:1px;height:5px;margin-left:-.5px;background:var(--ink);opacity:.32;left:calc(5px + (100% - 10px) * var(--b,0));pointer-events:none}
-  .rng-box .ctl-head{padding:0 3px 0 10px}
+  .rng-box .ctl-head{padding:0 4px 0 10px}
   .rng-box .ctl-head label{font-size:var(--fs-body);font-weight:400;color:var(--ink-strong)}
   .rng-box input[type=range]{pointer-events:none}
   body.kbd .rng-box:focus-within{outline:2px solid var(--focus);outline-offset:1px}
   body:not(.kbd) select:focus,body:not(.kbd) button:focus,body:not(.kbd) [tabindex]:focus{outline:none}
   .ctl .ctl-head .val{font-size:12.5px;color:var(--muted);min-width:0}
   .ctl.chg .ctl-head .val{color:var(--ink-strong);font-weight:500}
-  .rng-box .val.typable{pointer-events:auto;padding:0 7px;margin:0 0 0 auto;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center}
+  .rng-box .val.typable{pointer-events:auto;padding:0 8px;margin:0 0 0 auto;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center}
   .rng-box .val.typable:hover{background:var(--k-raise);color:var(--ink)}
   .val.roll{animation:kitRoll var(--t-roll) var(--e-smooth)}
   .val.roll.down{animation-name:kitRollDown}
@@ -588,7 +588,7 @@
   .pill.primary,.pill[aria-pressed="true"]{background:var(--fill-ink);color:var(--on-ink)}
   .pill.primary:hover{background:var(--fill-ink);opacity:.9}
   /* quiet actions: keyline chips with an icon */
-  .pill.small{height:var(--h-sm);border-radius:var(--r-chip);background:transparent;box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 9px 0 8px;gap:5px}
+  .pill.small{height:var(--h-sm);border-radius:var(--r-chip);background:transparent;box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 8px;gap:6px}
   .pill.small:hover{background:var(--k-fill);color:var(--ink-strong)}
   .pill.small svg{width:11px;height:11px;flex:none}
   .pill svg{width:12px;height:12px;flex:none}
@@ -605,7 +605,7 @@
   .pill:focus-visible,.toggle:focus-visible,.tab:focus-visible,.lane:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 
   /* toggle – the round tick */
-  .toggle{font-size:var(--fs-body);min-height:26px;gap:9px}
+  .toggle{font-size:var(--fs-body);min-height:26px;gap:8px}
   .toggle .box{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair);transition:background var(--t-snap) var(--e-snap),box-shadow var(--t-snap)}
   .toggle:hover .box{box-shadow:inset 0 0 0 1px var(--muted)}
   .toggle[aria-checked="true"] .box{background:var(--fill-ink);box-shadow:none}
@@ -624,7 +624,7 @@
   input[type=text],input[type=number]{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;padding:0 10px;font-size:var(--fs-body)}
   input[type=text]:hover,input[type=number]:hover{background:var(--k-fill-hover)}
   input[type=text]:focus,input[type=number]:focus,textarea:focus{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
-  textarea{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;padding:7px 10px;font-size:var(--fs-body);min-height:44px}
+  textarea{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;padding:8px 10px;font-size:var(--fs-body);min-height:44px}
   textarea:hover{background:var(--k-fill-hover)}
   select{height:var(--h-ctl);border-radius:var(--r-ctl);background-color:var(--k-fill);box-shadow:none;padding:0 28px 0 10px;font-size:var(--fs-body);background-position:right 9px center;background-size:12px}
   select:hover{background-color:var(--k-fill-hover)}
@@ -652,17 +652,17 @@
   .grip svg{width:6px;height:12px}
   .mthumb{width:44px;height:32px;border-radius:var(--r-sw)}
   .slot-top .mthumb{margin-right:0}
-  .media-list .slot-det{padding:10px 18px 2px 4px}
+  .media-list .slot-det{padding:10px 16px 2px 4px}
   .font-list{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
-  .font-list .slot{padding:7px 8px}
+  .font-list .slot{padding:8px}
   .font-row .sample{font-size:14px}
   .preset-list{gap:4px;margin:2px 0 12px}
-  .preset-list .slot{padding:7px 8px 7px 10px}
+  .preset-list .slot{padding:8px 8px 8px 10px}
   .preset-list .slot-name{font-weight:500}
   .preset-list .sub-head{margin:12px 0 4px}
   .preset-list .sub-head:first-child{margin-top:0}
   .preset-row .tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--r-chip);box-shadow:inset 0 0 0 1px var(--hair);font-size:11px;font-weight:500;color:var(--ink);margin:0}
-  .media-empty{border-radius:var(--r-ctl);padding:18px 12px}
+  .media-empty{border-radius:var(--r-ctl);padding:16px 12px}
   .img-row{gap:8px;margin-bottom:10px}
   .progress{height:4px;border-radius:2px;background:var(--k-fill)}
   .progress>i{border-radius:2px;transition:width var(--t-snap) linear}
@@ -756,7 +756,7 @@
     pointer-events:auto;cursor:ew-resize;font-weight:500;color:var(--ink-strong);line-height:1.2;white-space:normal}
   @media (hover:hover){.rng-box .q{display:none}}
   @media (hover:none){.rng-box .q{position:absolute;left:-24px;top:50%;margin-top:-7.5px}}
-  .media-list .slot-det{padding:10px 18px 4px 4px}
+  .media-list .slot-det{padding:10px 16px 4px 4px}
   .media-list .slot-det{--lc:84px}
   .colour-row>.q{position:absolute;left:calc(var(--lc) - 16px);top:50%;margin-top:-7.5px}
   .colour-row>.cx{grid-column:3}
@@ -765,7 +765,7 @@
   /* sections: no numbers – the title lines up with everything under it */
   .card-toggle .num{display:none}
   .card-toggle{padding:0 16px;min-height:48px}
-  .card-body{padding:2px calc(16px + var(--gutter)) 18px 16px}
+  .card-body{padding:2px calc(16px + var(--gutter)) 16px 16px}
   .scroll{gap:10px;padding:0 10px 10px}
   /* the change dot: blue, with room either side – it sits in the middle of the gutter */
   .cx{right:calc(-1 * var(--gutter))}
@@ -773,7 +773,7 @@
   .fold{margin-top:20px;padding-top:6px}
   /* one rule per edge: the group's own line, never the head's as well */
   .fold-head,.more-toggle{border-top:0}
-  .hint{padding-right:12px;margin:0 0 18px}
+  .hint{padding-right:12px;margin:0 0 16px}
   /* sheets speak the panel's language: the title as a section title, groups as labels, one rule between groups */
   .sheet .card-toggle{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);min-height:0;padding:0 0 14px;border:0}
   .sheet{padding:18px 18px 16px}
@@ -960,7 +960,7 @@
   .mthumb canvas{display:block;width:100%;height:100%}
   .slot-main{min-width:0}
   .slot-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .media-empty{font-size:var(--fs-small);color:var(--muted);border:1px dashed var(--hair);border-radius:var(--r-ctl,8px);padding:18px 12px;text-align:center;margin:0 0 10px}
+  .media-empty{font-size:var(--fs-small);color:var(--muted);border:1px dashed var(--hair);border-radius:var(--r-ctl,8px);padding:16px 12px;text-align:center;margin:0 0 10px}
   .slot-det .ctl:last-child{margin-bottom:6px}
   .num-row{display:flex;align-items:center;gap:6px}
   .num-row label.num{flex:1;display:flex;align-items:center;gap:6px;min-width:0}
@@ -980,7 +980,7 @@
   #cv{background:transparent}
   /* 0.2: the kind of motion, as tiles – 0.5: in the kit's terms, the chosen one white on grey */
   .kinds{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px}
-  .kind{border:0;background:var(--k-fill);box-shadow:none;color:var(--muted);border-radius:var(--r-ctl);padding:9px 4px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:12px;line-height:1;min-width:0;
+  .kind{border:0;background:var(--k-fill);box-shadow:none;color:var(--muted);border-radius:var(--r-ctl);padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;line-height:1;min-width:0;
     transition:background var(--t-snap),color var(--t-snap),box-shadow var(--t-snap),transform var(--t-snap) var(--e-snap)}
   .kind:hover{background:var(--k-fill-hover);color:var(--ink)}
   .kind:active{transform:scale(.97)}
@@ -991,8 +991,8 @@
   .kind[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:0 0 0 1px var(--k-raise-line);font-weight:500}
   .kind:focus-visible,.spot:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
   /* the overlay's place: a 3 × 3 pad */
-  .place{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,22px);gap:2px;background:var(--k-fill);border-radius:var(--r-ctl);padding:3px;width:max-content}
-  .spot{border:0;background:transparent;border-radius:var(--r-in);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap)}
+  .place{display:grid;grid-template-columns:repeat(3,30px);grid-template-rows:repeat(3,24px);gap:2px;background:var(--k-fill);border-radius:var(--r-ctl);padding:4px;width:max-content}
+  .spot{border:0;background:transparent;border-radius:var(--r-sw);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap)}
   .spot:hover{background:var(--k-fill-hover)}
   .spot i{width:5px;height:5px;border-radius:50%;background:var(--muted);opacity:.55}
   .spot:hover i{opacity:1}
@@ -1018,7 +1018,7 @@
   /* 0.6: the piece under the pointer lights its row; a layer's row sits in under its slide's */
   .media-list .slot.hover{background:var(--k-fill-hover);box-shadow:inset 0 0 0 1px var(--hair)}
   .media-list .slot.open.hover{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
-  .media-list .slot.layer{margin-left:18px;position:relative}
+  .media-list .slot.layer{margin-left:16px;position:relative}
   .media-list .slot.layer::before{content:'';position:absolute;left:-11px;top:-4px;height:28px;width:7px;border-left:1px solid var(--hair);border-bottom:1px solid var(--hair);border-bottom-left-radius:4px;pointer-events:none}
   /* 0.6: a clip's In and Out – the clip as frames, the part that plays lit */
   .trim{margin:0 0 12px}
@@ -1107,7 +1107,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 /* 0.10: Additionals – a quiet heading at the foot of the panel; open, the sections it holds sit under it as cards */
 
 /* a section's on and off: the box beside its name, in its head */
-.card.has-sw>h2>.card-toggle{padding-left:42px}
+.card.has-sw>h2>.card-toggle{padding-left:40px}
 .card>h2>.head-sw{position:absolute;left:16px;top:50%;margin-top:-8px;width:16px;height:16px;padding:0;min-height:0;z-index:1}
 .card>h2>.head-sw .box{margin:0}
 .card.off>h2>.card-toggle>span:first-child{color:var(--muted)}
@@ -1173,7 +1173,7 @@ body[data-theme="dark"]{--det-ctl:#3a3a3a;--det-ctl-hover:#414141;--det-track:#2
 #island .island-in{max-width:100%}
 #island #scrub,#island .scrubw{flex:none}
 .app.tight .topbar .stage-foot{display:none}
-.ticks{position:absolute;left:10px;right:10px;top:50%;height:10px;margin-top:-5px;pointer-events:none}
+.ticks{position:absolute;left:10px;right:10px;top:50%;height:12px;margin-top:-6px;pointer-events:none}
 .ticks i{position:absolute;top:0;width:1px;height:10px;margin-left:-.5px;background:color-mix(in srgb,var(--ink) 24%,transparent)}
 
 /* flat sheets for Safari 17 are in shared/components.css from 0.16 (every tool) */
