@@ -189,8 +189,8 @@ def main():
         pg.evaluate("document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(t=>t.click())"); time.sleep(.4)
         for _ in range(2):
             pg.evaluate("document.querySelectorAll('.fold-head[aria-expanded=\"false\"]').forEach(b=>b.click())"); time.sleep(.4)
-        start = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
-                            "return i?{k:i.closest('.ctl').dataset.k,v:i.value}:null})()")
+        was = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
+                          "return i?{k:i.closest('.ctl').dataset.k,v:i.value}:null})()")
         pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
                     "i.value=+i.value+(+i.step||1)*4;i.dispatchEvent(new Event('input',{bubbles:true}));"
                     "i.dispatchEvent(new Event('change',{bubbles:true}));})()"); time.sleep(.6)
@@ -200,8 +200,8 @@ def main():
         back = pg.evaluate("(()=>{const i=[...document.querySelectorAll('.card-body input[type=range]')].find(x=>x.offsetWidth>0);"
                            "return [i.value,document.querySelectorAll('.ctl.chg').length]})()")
         check('The change column: a moved row shows its dot, its section shows Reset, and the dot puts the row back',
-              lit[0] >= 1 and lit[1] >= 1 and lit[2] == 1 and back[0] == start['v'] and back[1] == 0,
-              f'{lit} then {back} (started {start})')
+              lit[0] >= 1 and lit[1] >= 1 and lit[2] == 1 and back[0] == was['v'] and back[1] == 0,
+              f'{lit} then {back} (started {was})')
         # a section Reset puts back everything shown in that section
         pg.evaluate("(()=>{const ins=[...document.querySelectorAll('.card-body input[type=range]')].filter(x=>x.offsetWidth>0).slice(0,2);"
                     "ins.forEach(i=>{i.value=+i.value+(+i.step||1)*3;i.dispatchEvent(new Event('input',{bubbles:true}));"
