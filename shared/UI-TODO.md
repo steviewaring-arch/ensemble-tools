@@ -1,5 +1,35 @@
 # UI stream – to do
 
+## The 25 November rollout (Steve's five steps, one at a time, each tested before it goes live)
+
+1. **The house check, widened** – done, below. 2. Tutti: break up Fine tuning. 3. Tempo onto the house style. 4. Rubato: menus, one "Stretch", change dots, kerning by drag, an audit. 5. Tutti: row notes instead of "?", and the house colour picker.
+
+### Done 25 Nov – `tests/corner_check.py` reads the whole house, not just corners
+
+It now reads **heights, type, colour and spacing** as well, resolving the kit's tokens in the page so a near-miss grey has nowhere to hide. Corners still fail the run; the other four report and fail only with `--strict`, so a tool still queued doesn't hold the suite red. Proved by planting a wrong colour, height and size in a page and watching it catch all three.
+
+**1,495 elements across the four tools. Corners 0. Colour 0** – every opaque background and text colour resolves to a kit token.
+
+**Heights – 8**
+- A choice group that wraps to two rows is 58 px, in Rubato (×2) and Tempo. Not a height fault as such: it wants a menu (step 4).
+- `segue: button.spot` 22 – the placement grid.
+- `tempo: button.toggle` 31.2 – a switch row half a pixel off 30.
+- `tutti: button.svgbtn.markbtn` 19.8, `tutti: input` 21, `tutti: input.stColor` 32 – the last still on `tokens.css`'s old `--h-ctl:32px` rather than the kit's 30.
+
+**Type – 3**
+- `rubato: button.st-btn` 14 px; `tempo: span` 18.8 px; `tempo: span.tt-name` 10.8 px. The house has five sizes and none of them is any of these.
+
+**Spacing – 48, and they fall into eight numbers**
+- **9 px** (15, all four tools) – `.pill.small`'s optical padding, Tutti's links, Segue's Kind tiles.
+- **3 px** (9, all four) – `.ctl-head`, Tempo's theme tiles, Tutti's rows.
+- **18 px** (8, all four) – `.card-body` and the hints.
+- **1 px** (5, all four) – `.brand`.
+- **7 px** (5) – the typable values and the text areas.
+- **5 px** (3) – `.pill.small` again.
+- **−5 px** `segue: span.ticks`, **37.2 px** `segue: span.sum`, **42 px** `segue: button.card-toggle`.
+
+Most of these are one declaration each, shared by every tool through the kit, so they are a handful of edits rather than 48.
+
 ## Done 13 Nov – Tutti 6.3: change dots, Reset, Undo and Redo; its settings audit
 
 Steve, 13 Nov: "Yes get started" (the Tutti plan, `claude/tutti-next-plan.md` in the Project – 6.3 first). The blue dot per row moved from where it started (each input's value when the page opened), click to put back; Reset chip on an open card, a dot on a shut card or group; Undo and Redo in the top bar and on ⌘Z / ⇧⌘Z. In `tutti/frame.js` over `snapState()`/`putState()` in `index.html`. 12 export hashes identical to 6.2; 90 of 90. `tests/audit/tutti.py`: none dead, every "no effect" explained (`tests/audit/README.md`). **Still open from C6:** row notes in place of Tutti's "?" (see History, 13 Nov).
