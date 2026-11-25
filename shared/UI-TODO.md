@@ -2,7 +2,7 @@
 
 ## The 25 November rollout (Steve's five steps, one at a time, each tested before it goes live)
 
-1. **The house check, widened** – done, below. 2. Tutti: break up Fine tuning. 3. Tempo onto the house style. 4. Rubato: menus, one "Stretch", change dots, kerning by drag, an audit. 5. Tutti: row notes instead of "?", and the house colour picker.
+1. **The house check, widened** – done, and widened again to everything behind a click. 2. Tutti: break up Fine tuning – done. 3. Tempo onto the house style – the picker is on the house looks (0.18.4); change dots, Reset and undo still to come. 4. Rubato: menus, one "Stretch", change dots, kerning by drag, an audit. 5. Tutti: row notes instead of "?", and the house colour picker.
 
 ### Done 25 Nov – the component page, at /ui/kit/
 
@@ -13,6 +13,65 @@ Every house part on one screen, built from `shared/tokens.css`, `components.css`
 Two cautions, learned the hard way building it:
 - A specimen that does not match the real markup gives false confidence. The first draft wrote the stepper's – and + as text where the tools use SVG icons, and duly "found" a type stray that was mine.
 - The "seen in the markup" column reads class attributes and the `el(tag, class)` helpers. Rubato and Tempo build most of their DOM through those helpers, so before it knew about them it called 142 live classes dead.
+
+### Done 25 Nov – the house check reads what you have to open
+
+It only ever read what was on screen. Everything behind a click went unchecked in every tool:
+closed popovers and menus, **both colour pickers** (they hang off `<body>`, outside the panel, so
+the selector never reached them), and **shut groups** – Tutti's new Jitter and Thresholds had never
+been read once. The green line said "corners 0, spacing 0" across 1,584 visible elements and
+nothing you had to open.
+
+It now opens the overlay layer (`.pop, .cpk, .cpick, .menu, [role=dialog]` – remembering how each
+one was and putting it back) and clicks every shut `.fold-head` twice over, in case opening one
+puts another on screen. **2,202 elements, up from 1,584**: a third of the UI had never been looked
+at. A stray found in there is marked *(behind a click)*, because it is the kind nobody spots by eye.
+
+What it found at once, all in Tempo's own colour picker: three `3px` corners, a choice-group track
+painted in Tempo's `--seg` instead of the house fill, and `1px` of padding on two buttons – which is
+**Chrome's default button padding showing through**, because neither reset it. A `padding:0` in the
+kit's button reset would stop that happening again anywhere.
+
+Two limits, so the green line is not over-read:
+- A revealed picker is not an *opened* one: anything built as it opens is not in the DOM. Tempo's
+  saved-colour swatches were absent, so their `3px` corners were caught by reading the CSS, not by
+  the check. Opening each picker for real is the next step.
+- It cannot tell a round button from a round dot – any radius of 25 or more passes as round. The
+  pipette being a circle broke "round is for dots, knobs and switches" and the check said nothing.
+
+### Rule gaps found 25 Nov – for Steve
+
+Four places where the tool is not so much wrong as the written rule has nothing to say. Flagged
+rather than bodged, per Steve: "house rules stuck to or flagged as something we need to adjust or
+add to."
+
+1. **Bars and ticks have no corner.** The ladder is 4·6·8·10·12, round only for dots, knobs and
+   switches. The kit itself rounds a bar to half its thickness in **seven** places – the slider tick
+   (3px wide, 2px radius), the drop indicator, the progress bar, the scrub track, a focus ring. That
+   is a consistent practice the ladder does not allow, and `corner_check` only agrees with it by
+   accident, because it drops anything under 4px. Proposed: **a bar or tick is rounded to half its
+   thickness**, a third category beside boxes and dots.
+2. **Type inside a preview has no size.** The scale is 11.5·12·12.5·13·15·20. Tempo's theme tiles
+   hold a ~9px mock-up of the clock, and its histogram axis sits at ~10px. Those are pictures of
+   content at small scale, not panel chrome, and nothing on the scale fits. Proposed: name them as
+   outside the scale rather than drag them onto it. (Tempo's three *real* labels that were on rem –
+   12.16, 13.12 and 12.8px – are now on the scale; the six that remain are all previews or an axis.)
+3. **`--r-card` is not the card radius, and is declared twice.** `tokens.css` says 6px, `kit.css`
+   says 8px, and kit loads later so 8px wins. The real card radius is a third token,
+   `--r-cardk:10px`, with `.card-body` hardcoding 10px beside it. Eight things use `var(--r-card)`
+   and not one is a card: a picker panel, Tempo's thumbs and theme tiles, Tutti's state rows, gif
+   module and markbox. Worth untangling before anything more is built on it.
+4. **Two house popovers, two materials.** `.pop` is flat `--k-card` with a keyline; `.cpk` is
+   translucent with a 24px blur and a 12/36 lift. Same role, different material. Tempo's picker is
+   matched to `.cpk` for now, because that is the picker three tools out of four show – but one of
+   the two should win.
+
+And one that is a decision rather than a gap: **the house colour picker cannot simply replace
+Tempo's.** Tempo's has RGB *and* CMYK, and 48 deliberately saved colours (`+`/`×`, kept across
+designs); the house one is RGB-only with 16 automatic recents. Step 3 asked for the house picker in
+Tempo, and giving it would delete CMYK and the saved-colour library from the one tool whose whole
+subject is colour. So Tempo keeps its workings and has been given the house looks, and the house
+picker wants a CMYK mode and saved colours before any colour-heavy tool adopts it wholesale.
 
 ### Done 25 Nov – Tutti 6.7: Fine tuning broken up
 

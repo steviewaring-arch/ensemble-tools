@@ -1,5 +1,33 @@
 # Changelog
 
+## 25 November 2026 – The house check reads what you have to open; Tempo 0.18.4
+
+- **The check had been half blind.** `tests/corner_check.py` only ever read what was on screen, so
+  everything behind a click went unchecked in every tool: closed popovers and menus, **both colour
+  pickers** (they hang off `<body>`, outside the panel, so the selector never reached them), and
+  **shut groups** – Tutti's Jitter and Thresholds had never been read once. It now opens the overlay
+  layer and every shut group first, and puts them back as they were. **2,202 elements, up from
+  1,584**: a third of the UI had never been looked at. A stray found there is marked *(behind a
+  click)*, because it is the kind nobody spots by eye.
+- **Tempo 0.18.4, the colour picker on the house looks.** Its panel is a surface (12 px) on the house
+  picker's material, not a card (8 px) on a flat one; RGB/CMYK is a house choice group (8 px track,
+  6 px pills, 26 px tall, the house fill, not Tempo's `--seg`); the number boxes take the corner of
+  anything inside a control; the pipette is a rounded square, because round is for dots, knobs and
+  switches; saved colours take the swatch corner and the house hairline. Three labels that were set
+  in `rem` (12.16, 13.12 and 12.8 px) are on the type scale.
+- **Chrome's own button padding was showing through** on two picker buttons that never reset it –
+  the `1px` the check reported. Worth a `padding:0` in the kit's button reset so it cannot happen
+  again anywhere; noted for the next kit change rather than slipped into this one.
+- **Tempo keeps its own picker's workings.** Step 3 asked for the house picker in Tempo; it has RGB
+  *and* CMYK and 48 deliberately saved colours against the house one's RGB and 16 automatic recents,
+  so swapping would have deleted both from the one tool whose subject is colour. The house picker
+  wants a CMYK mode and saved colours before a colour-heavy tool adopts it. In `shared/UI-TODO.md`
+  with three other rule gaps the sweep turned up.
+- **Tutti's version was in two places** – `const VERSION` and a literal in the markup that JS
+  overwrote – and had already drifted to 6.6.1. The markup no longer carries one.
+- Tests: Tempo 125 of 125, 42 of 42, 18 of 18; Tutti 105 of 105; the house check reads corners 0,
+  colour 0 across all five.
+
 ## 25 November 2026 – House tidy: one version list, internal pages out of search
 
 - **Segue and the UI review pages** (/ui/review/, /ui/review/round4/) carry `noindex` now, as Decentish already did – still reachable by their addresses, but kept out of search engines while they're internal. Take Segue's out (`build.py`) when it goes on the front page.

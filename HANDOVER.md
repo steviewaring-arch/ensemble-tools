@@ -6,7 +6,7 @@ Read this and `README.md` before changing anything. **Branches:** work on `main`
 - **Repo:** `ensemble-tools` – source of truth for Tutti, Rubato, Tempo, Segue and Decentish (Patch lives elsewhere – Dropbox and its own chat).
 - **Live:** https://steviewaring-arch.github.io/ensemble-tools/ – published by the *Publish the site* workflow (`.github/workflows/pages.yml`) on every push to `main`: it builds `docs/` plus Tempo's built-in fonts from the private `ensemble-tools-fonts` repo into `site/` and deploys that. A push only goes live if the workflow passes; a failed run leaves the last good site up. Listed on the front page: Tutti, Rubato, Tempo. Unlisted and kept out of search (noindex): Segue, Decentish, /ui/review/.
 - **Last combined app:** `reference/rubato-0.8.1.html` – byte-identical to the v0.8.1 Claude artifact (rechecked 6 October against the live artifact). Kept so the parity tests have something to compare against. Don't edit it.
-- **Versions (25 Nov) – the one list; update it with every release:** Tutti 6.7, Segue 1.3.2, Rubato 1.3.2, Tempo 0.18.3, Decentish 0.5. Rubato 0.9 is archived at /rubato/0.9/ (`archive/rubato-0.9.html`). Each release's detail is in `CHANGELOG.md`.
+- **Versions (25 Nov) – the one list; update it with every release:** Tutti 6.7, Segue 1.3.2, Rubato 1.3.2, Tempo 0.18.4, Decentish 0.5. Rubato 0.9 is archived at /rubato/0.9/ (`archive/rubato-0.9.html`). Each release's detail is in `CHANGELOG.md`.
 
 ## The component page (25 November)
 
@@ -17,7 +17,7 @@ Read this and `README.md` before changing anything. **Branches:** work on `main`
 Steve: "spotted this in the latest version of Tempo – corner discrepancy. Need to ensure we are super consistent across the board... Run the list from the Segue chat through too – functionality such as zoom etc. ensure all caught."
 
 - **Corners.** A row of choices that wraps on to a second row kept `calc(h/2 + 2)` = 17 px from before the kit, so 6 px pills sat inside a 17 px box, in Tempo and Rubato both. Read by machine, three more were off: Rubato's XY pad (14), Segue's placement spots (5), and every plain slider, still a lozenge. All four are on the ladder now – 4 · 6 · 8 · 10 · 12, round only for dots, knobs and switches.
-- **`tests/corner_check.py`** reads all 468 corners in the four tools and fails on a radius off the ladder or one that doesn't follow its parent. `shared/UI.md` has the nesting rule in words: inner = outer less the inset.
+- **`tests/corner_check.py`** – the house check. It reads corners, heights, type sizes, greys and spacing across all five tools (the four plus `/ui/kit/`), opening every shut group and the whole overlay layer first, so popovers, menus and both colour pickers are read too – **2,202 elements**. It fails on a corner off the ladder or one that doesn't follow its parent; the other four axes are reported, and fail only with `--strict`. A stray behind a click is marked as such. `shared/UI.md` has the nesting rule in words: inner = outer less the inset.
 - **Zoom in Tempo** – all four tools now share `shared/view.js`.
 - **Guides in Tutti, Rubato and Tempo** – `mountGuides` in the same file, laid over the canvas rather than drawn into it, so nothing reaches an export. Margin as a share of each way across, cells inside it, ⌘; to turn on. Segue keeps its own, because it also snaps pieces to them.
 - **The pop** – the small panel under a top-bar button – moved from `segue/app.css` into the kit, where the rest of the house parts are.

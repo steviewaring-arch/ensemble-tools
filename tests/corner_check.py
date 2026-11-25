@@ -44,7 +44,10 @@ SPACING = STEPS | {s + GUTTER for s in STEPS}
 APPS = ('segue', 'tutti', 'rubato', 'tempo', 'ui/kit')
 CONTROL_CLASS = ['pill', 'seg', 'rng-box', 'tab', 'lane', 'stp-g', 'ebtn', 'chip',
                  'toggle', 'card-toggle', 'fold-head', 'more-toggle', 'val-in', 'cx']
-DATA_CLASS = ['swatch', 'cswatch', 'tt-prev', 'sw', 'chip-pic', 'thumb', 'pic', 'feel-pic']
+# 'sample' – a font list draws each name in that font's own face, so its weight is the
+# font's, not a choice of ours (Segue's slot-name.sample came up as weight 800).
+DATA_CLASS = ['swatch', 'cswatch', 'tt-prev', 'sw', 'chip-pic', 'thumb', 'pic', 'feel-pic',
+              'sample']
 
 READ = r"""([CONTROL, DATA]) => {
   const rs = getComputedStyle(document.documentElement);
@@ -72,8 +75,24 @@ READ = r"""([CONTROL, DATA]) => {
   const name = e => e.tagName.toLowerCase() + (cls(e).length ? '.' + cls(e).slice(0, 3).join('.') : '');
   const num = v => Math.round((parseFloat(v) || 0) * 10) / 10;
 
+  /* Anything you have to open - a popover, a menu, the colour picker - is display:none until
+     you open it, and the pickers hang off <body>, outside the panel. So the whole overlay layer
+     went unread in every tool: it could drift as far as it liked and this check stayed green.
+     Open them (remembering how they were) so their corners, colour and type are read too. */
+  const OVERLAY = '.pop,.cpk,.cpick,.menu,[role="dialog"]';
+  const shut = [];
+  document.querySelectorAll(OVERLAY).forEach(o => {
+    const cs = getComputedStyle(o);
+    if (!(o.hasAttribute('hidden') || cs.display === 'none' || cs.visibility === 'hidden')) return;
+    shut.push([o, o.getAttribute('hidden'), o.style.cssText]);
+    o.removeAttribute('hidden');
+    o.style.display = 'block'; o.style.visibility = 'visible'; o.style.opacity = '1';
+    o.style.left = '20px'; o.style.top = '20px';
+  });
+
   const out = [];
-  document.querySelectorAll('.panel *, .island *, .pcap *, .topbar *, .pop *').forEach(e => {
+  document.querySelectorAll('.panel *, .island *, .pcap *, .topbar *, ' + OVERLAY + ', ' +
+                            OVERLAY.split(',').map(s => s + ' *').join(',')).forEach(e => {
     const cs = getComputedStyle(e);
     if (cs.visibility === 'hidden' || cs.opacity === '0' || cs.display === 'none') return;
     const b = e.getBoundingClientRect(); if (b.width < 4 || b.height < 4) return;
@@ -89,7 +108,7 @@ READ = r"""([CONTROL, DATA]) => {
                       CONTROL.some(x => c.includes(x));
     /* a file or colour input is a hit target behind something else, not a control */
     const isData = DATA.some(x => c.includes(x)) || e.type === 'color' || e.type === 'file' ||
-                   !!e.closest('[data-colour],.states,.sheet,.preset-list');
+                   e.type === 'range' || !!e.closest('[data-colour],.states,.sheet,.preset-list');
     const bgRaw = cs.backgroundColor, fgRaw = cs.color;
     /* see-through at all? then it is a tint over a surface, or nothing at all */
     const translucent = v => { const m = String(v).match(/[0-9.]+/g);
@@ -104,6 +123,7 @@ READ = r"""([CONTROL, DATA]) => {
       fg: (translucent(fgRaw) || e.style.color) ? null : key(fgRaw),
       fgTok: byColour[key(fgRaw)] || null,
       data: isData,
+      ov: !!e.closest(OVERLAY),
       pad: [cs.paddingTop, cs.paddingRight, cs.paddingBottom, cs.paddingLeft,
             cs.rowGap === 'normal' ? '0px' : cs.rowGap,
             cs.columnGap === 'normal' ? '0px' : cs.columnGap].map(num)
@@ -112,6 +132,10 @@ READ = r"""([CONTROL, DATA]) => {
              .map(num).filter(v => Math.abs(v) <= 24)
     });
   });
+  for (const [o, h, css] of shut) {
+    o.style.cssText = css;
+    if (h !== null) o.setAttribute('hidden', h);
+  }
   return out;
 }"""
 
@@ -133,11 +157,18 @@ def main():
             pg.evaluate("document.querySelectorAll('.card.collapsed>h2,.card.collapsed .card-toggle')"
                         ".forEach(b => b.click && b.click())")
             pg.wait_for_timeout(900)
+            # A shut group hides its body, so everything in it went unread: Tutti's Jitter and
+            # Thresholds had never been checked at all. Open every one of them, twice over in
+            # case opening one puts another on screen.
+            for _ in range(2):
+                pg.evaluate("document.querySelectorAll('.fold-head[aria-expanded=\"false\"],"
+                            ".more-toggle[aria-expanded=\"false\"]').forEach(b => b.click())")
+                pg.wait_for_timeout(500)
             rows = pg.evaluate(READ, [CONTROL_CLASS, DATA_CLASS])
             pg.close()
             n += len(rows)
             for x in rows:
-                at = f"{app}: {x['el']}"
+                at = f"{app}: {x['el']}" + (' (behind a click)' if x['ov'] else '')
                 if x['r'] and x['r'] < ROUND and x['r'] not in LADDER:
                     found['corner'].append(f"{at} has a {x['r']}px corner – off the ladder")
                 if x['r'] and x['pr'] and x['inset'] is not None and 0 <= x['inset'] <= 4 \
@@ -158,7 +189,7 @@ def main():
                 if x['hasText']:
                     if not near(x['size'], SIZES, 0.3):
                         found['type'].append(f"{at} sets {x['size']}px type")
-                    if x['weight'] not in WEIGHTS:
+                    if x['weight'] not in WEIGHTS and not x['data']:
                         found['type'].append(f"{at} sets weight {x['weight']}")
                 if x['bg'] and not x['bgTok'] and not x['data']:
                     found['colour'].append(f"{at} paints its own background rgb({x['bg']})")
