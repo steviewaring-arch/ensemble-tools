@@ -1,0 +1,1351 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>The house kit – components</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;700&display=swap" rel="stylesheet">
+<style>  /* Ensemble tool system – tokens v2 (UI stream, October 2026).
+     Colour, type, sizes, radii and space, light and dark. One weight of Aktiv Grotesk. */
+  :root{
+    --app:#ffffff; --ground:transparent; --card:#f6f6f4;
+    --btn:#ffffff; --btn-hover:#efeeeb; --seg:#ebeae7;
+    --ink:#2b2b2b; --ink-strong:#111111; --muted:#67656b;
+    --keyline:rgba(43,43,43,.10); --hair:rgba(43,43,43,.20);
+    --fill-ink:#2b2b2b; --on-ink:#ffffff; --focus:#4a7dff; --live:#e5372b;
+    --track:rgba(43,43,43,.12); --well:rgba(43,43,43,.045);
+    --shadow:none; --float:none; /* no drop shadows: surfaces are separated by hairlines and fills */
+    --face:"aktiv-grotesk","Aktiv Grotesk","Helvetica Neue",Arial,sans-serif;
+    /* type – four sizes, plus the header lock-up */
+    --fs-mark:22px; --fs-by:22px; --fs-title:16px; --fs-body:14px; --fs-small:12px;
+    /* heights */
+    --h-bar:44px; --h-lg:40px; --h-isl:36px; --h-ctl:32px; --h-chip:28px; --h-sm:26px;
+    /* radii – tight */
+    --r-frame:12px; --r-card:6px; --r-inner:4px;
+    /* space */
+    --gap:12px; --pw:300px;
+    box-sizing:border-box; color-scheme:light;
+  }
+  body[data-theme="dark"]{
+    --app:#1c1c1e; --card:#252529;
+    --btn:#36363c; --btn-hover:#404047; --seg:#303036;
+    --ink:#f2f1ee; --ink-strong:#ffffff; --muted:#a3a1a8;
+    --keyline:rgba(255,255,255,.10); --hair:rgba(255,255,255,.20);
+    --fill-ink:#f2f1ee; --on-ink:#1c1c1e;
+    --track:rgba(255,255,255,.15); --well:rgba(255,255,255,.04);
+    color-scheme:dark;
+  }
+
+  /* Ensemble tool system – components v2 (UI stream, October 2026).
+     The frame: the work fills the stage and fits the clear space; a frosted panel floats
+     on the left for making; chips, Preview and light/dark sit top right; the island at the
+     bottom holds what you do to the work and Export; Presets has its own capsule bottom right.
+     Preview fills the window with the work and leaves the controls where they are. */
+  *,*::before,*::after{box-sizing:inherit}
+  html{font-size:15px;height:100%}
+  html,body{margin:0}
+  body{height:100%;background:var(--app);color:var(--ink);font-family:var(--face);letter-spacing:-0.02em;line-height:1.25;-webkit-font-smoothing:antialiased;transition:background .2s}
+  button,input,textarea,select{font-family:var(--face);letter-spacing:-0.02em;color:inherit}
+  [hidden]{display:none!important}
+  /* one weight of Aktiv Grotesk throughout: emphasis is colour, never bold */
+  b,strong,h1,h2,h3,h4,th{font-weight:inherit}
+  .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .glass,.panel,.island,.pcap,.tools,.stage-foot span,.tip-free{background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4)}
+
+  /* ---------------- frame ---------------- */
+  .app{position:relative;width:100%;height:100%;overflow:hidden;background:var(--app);transition:background .2s}
+  .stage{position:absolute;inset:0;background:var(--app);transition:background .2s}
+  .view{position:absolute;left:calc(var(--gap)*2 + var(--pw));top:calc(var(--gap)*2 + var(--h-chip));right:var(--gap);bottom:calc(var(--gap)*2 + var(--h-bar));
+    display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;
+    transition:left .42s cubic-bezier(.2,.85,.25,1),top .42s cubic-bezier(.2,.85,.25,1),right .42s cubic-bezier(.2,.85,.25,1),bottom .42s cubic-bezier(.2,.85,.25,1)}
+  .app.preview .view{left:0;top:0;right:0;bottom:0}
+  #cv{display:block;box-shadow:0 0 0 1px var(--keyline)}
+  .app.preview #cv{box-shadow:none}
+  #cv.checker{background-color:#fff;background-image:linear-gradient(45deg,#ddd 25%,transparent 25%),linear-gradient(-45deg,#ddd 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#ddd 75%),linear-gradient(-45deg,transparent 75%,#ddd 75%);background-size:20px 20px;background-position:0 0,0 10px,10px -10px,-10px 0}
+
+  /* an open sheet holds dense controls: its surface goes almost solid so the work behind doesn't smudge the text */
+  .island:has(.sheet:not([hidden])),.pcap:has(.sheet:not([hidden])){background:color-mix(in srgb,var(--app) 97%,transparent)}
+  /* the panel – making. In Preview it slides away; the panel button (top left) brings it back over the work */
+  .panel{position:absolute;left:var(--gap);top:var(--gap);bottom:var(--gap);width:var(--pw);z-index:5;display:flex;flex-direction:column;min-height:0;
+    border-radius:var(--r-frame);box-shadow:0 0 0 1px var(--keyline);overflow:hidden}
+  .panel{transition:transform .42s cubic-bezier(.2,.85,.25,1),opacity .3s,visibility 0s}
+  .panel-btn{position:absolute;left:var(--gap);top:var(--gap);z-index:6;width:var(--h-chip);height:var(--h-chip);border:0;border-radius:999px;padding:0;cursor:pointer;
+    display:none;align-items:center;justify-content:center;color:var(--muted);box-shadow:0 0 0 1px var(--keyline);
+    background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);
+    transition:left .42s cubic-bezier(.2,.85,.25,1),color .14s}
+  .panel-btn:hover{color:var(--ink)}
+  .panel-btn[aria-expanded="true"]{color:var(--on-ink);background:var(--fill-ink);box-shadow:none}
+  .panel-btn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  .panel-btn svg{width:14px;height:14px}
+  @media (min-width:861px){
+    .app.preview .panel-btn{display:flex}
+    .app.preview:not(.peek) .panel{transform:translateX(calc(-100% - var(--gap)*2));opacity:0;visibility:hidden;pointer-events:none;
+      transition:transform .42s cubic-bezier(.2,.85,.25,1),opacity .3s,visibility 0s .42s}
+    .app.preview.peek .panel-btn{left:calc(var(--pw) + var(--gap)*2)}
+  }
+  .brand{flex:none;padding:16px 16px 12px;display:flex;flex-direction:column;gap:2px}
+  .brand .bline{font-size:var(--fs-mark);letter-spacing:-0.045em;line-height:1.05;color:var(--ink-strong);display:flex;align-items:baseline;gap:7px}
+  .brand .ver{font-size:var(--fs-mark);color:var(--muted);letter-spacing:-0.035em}
+  .brand .bline.caps{font-size:var(--fs-by);color:var(--muted);letter-spacing:-0.045em}
+  .tabs-host{flex:none;padding:0 8px 8px}
+  .scroll{flex:1;overflow-y:auto;min-height:0;padding:0 8px 8px;display:flex;flex-direction:column;gap:4px;scrollbar-width:thin;
+    -webkit-mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent 100%);mask-image:linear-gradient(to bottom,#000 calc(100% - 16px),transparent 100%)}
+  /* the panel's edge drags to widen it. No mark (it sat over the scrollbar and looked clunky – Steve, Segue 0.15): the pointer
+     turning to a resize arrow is the sign, and the strip is thin enough to stay clear of the scrollbar's thumb */
+  .resizer{position:absolute;top:0;bottom:0;right:0;width:4px;cursor:col-resize;z-index:3;touch-action:none}
+
+  /* section card (level 1) */
+  .card{background:var(--card);border-radius:var(--r-card);flex:none}
+  .card>h2{margin:0;font:inherit}
+  .card-toggle{all:unset;box-sizing:border-box;cursor:pointer;display:flex;width:100%;align-items:center;gap:8px;min-height:40px;padding:0 12px;
+    font-size:var(--fs-title);letter-spacing:-0.03em;color:var(--ink-strong);line-height:1.1;border-bottom:1px solid var(--keyline)}
+  .card-toggle>span:first-child{white-space:nowrap}
+  .card-toggle:focus-visible{outline:2px solid var(--focus);outline-offset:-2px;border-radius:var(--r-card)}
+  .card.collapsed .card-toggle{border-bottom-color:transparent}
+  .card-toggle .sum{margin-left:auto;min-width:0;font-size:var(--fs-small);color:var(--muted);letter-spacing:-0.005em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+  .card:not(.collapsed) .card-toggle .sum{display:none}
+  .chev{flex:none;width:14px;height:14px;color:var(--muted);display:inline-flex;margin-left:auto;transition:transform .2s}
+  .card.collapsed .card-toggle .sum:not(:empty)+.chev{margin-left:0}
+  .chev svg{width:100%;height:100%}
+  .card:not(.collapsed)>h2 .chev{transform:rotate(180deg)}
+  .card-body{padding:12px}
+  .card.collapsed .card-body{display:none}
+  .card-body>:last-child,.fold-body>:last-child,.more-body>:last-child{margin-bottom:0}
+  .card.drag{outline:2px dashed var(--fill-ink);outline-offset:-4px}
+
+  /* group (level 2): folds inside a card */
+  .fold-head,.more-toggle{all:unset;box-sizing:border-box;cursor:pointer;display:flex;width:100%;align-items:center;justify-content:space-between;gap:8px;min-height:34px;
+    border-top:1px solid var(--keyline);margin:4px 0 8px;font-size:var(--fs-small);color:var(--muted);letter-spacing:-0.005em}
+  .fold-head:hover,.more-toggle:hover{color:var(--ink)}
+  .fold-head:focus-visible,.more-toggle:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+  .fold-head>span:first-child,.more-toggle>span:first-child{white-space:nowrap}
+  .fold-head .sum,.more-toggle .sum{margin-left:auto;min-width:0;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right}
+  .fold-head[aria-expanded="true"] .sum,.more-toggle[aria-expanded="true"] .sum{display:none}
+  .fold-head .chev,.more-toggle .chev{margin-left:auto;font-size:0}
+  .fold-head[aria-expanded="false"] .sum:not(:empty)+.chev,.more-toggle[aria-expanded="false"] .sum:not(:empty)+.chev{margin-left:0}
+  .fold-head[aria-expanded="true"] .chev,.more-toggle[aria-expanded="true"] .chev{transform:rotate(180deg)}
+  .sub-head{font-size:var(--fs-small);color:var(--muted);margin:4px 0 8px;letter-spacing:-0.005em}
+
+  /* ---------------- controls ---------------- */
+  .ctl{margin:0 0 12px;min-width:0}
+  .ctl-head{display:flex;align-items:center;gap:6px;margin-bottom:8px;min-height:18px}
+  .ctl-head label,.ctl-head>span:first-child{font-size:var(--fs-body);color:var(--ink)}
+  .ctl-head .val{margin-left:auto;font-size:13px;color:var(--muted);min-width:48px;text-align:right;font-variant-numeric:tabular-nums}
+
+  /* slider – label and value inside the track; the fill carries the value; the tick steps aside under words */
+  .rng-box{position:relative;height:var(--h-ctl);border-radius:999px;background:var(--btn);box-shadow:inset 0 0 0 1px var(--keyline);overflow:hidden;--p:0}
+  .rng-fill{position:absolute;left:0;top:0;bottom:0;width:calc(var(--h-ctl)/2 + (100% - var(--h-ctl)/2) * var(--p));background:var(--track);border-radius:999px 0 0 999px;pointer-events:none}
+  .rng-tick{position:absolute;top:30%;bottom:30%;width:2px;margin-left:-3px;border-radius:2px;background:var(--ink);left:calc(var(--h-ctl)/2 + (100% - var(--h-ctl)/2) * var(--p));transition:opacity .15s,transform .15s;pointer-events:none}
+  .rng-tick.away{opacity:0;transform:scaleY(.4)}
+  .rng-box .ctl-head{position:absolute;inset:0;margin:0;padding:0 12px;pointer-events:none;z-index:2;min-height:0}
+  .rng-box .ctl-head label{pointer-events:none}
+  .rng-box .q{pointer-events:auto}
+  .rng-box input[type=range]{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize;z-index:1;border:0}
+  .rng-box:focus-within{outline:2px solid var(--focus);outline-offset:2px}
+  .rng-box:hover .rng-fill{background:color-mix(in srgb,var(--track),var(--ink) 6%)}
+  /* any range not upgraded (and the scrubber) */
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:var(--h-ctl);background:var(--btn);border:0;box-shadow:inset 0 0 0 1px var(--keyline);border-radius:999px;outline:none;margin:0;cursor:pointer;display:block}
+  input[type=range]::-webkit-slider-runnable-track{height:100%;background:transparent;border-radius:999px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--fill-ink);margin-top:calc((var(--h-ctl) - 14px)/2);cursor:pointer;border:0}
+  input[type=range]::-moz-range-track{height:100%;background:transparent}
+  input[type=range]::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--fill-ink);border:none;cursor:pointer}
+  input[type=range]:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+  /* segmented control – one row up to four short options, an even grid beyond */
+  .seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:2px;background:var(--seg);border-radius:999px;padding:3px}
+  /* more options than fit a row: wrap, and let the last row's options share its width – never one left on its own */
+  .seg.wrap,.btn-row.choice.wrap{display:flex;flex-wrap:wrap;border-radius:calc(var(--h-ctl)/2 + 2px)}
+  .seg.wrap>.pill,.btn-row.choice.wrap>.pill{flex:1 1 calc(100%/var(--cols,3) - 4px)}
+  .seg.wrap.loose>.pill,.btn-row.choice.wrap.loose>.pill{flex:1 1 auto;padding:0 12px}
+  .seg .pill{border:none;background:transparent;box-shadow:none;color:var(--muted);font-size:13.5px;height:calc(var(--h-ctl) - 6px);padding:0 8px;border-radius:999px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .seg .pill:hover{color:var(--ink);background:transparent}
+  .seg .pill[aria-pressed="true"]{background:var(--fill-ink);color:var(--on-ink)}
+  .tabs,.lanes{display:flex;background:var(--seg);border-radius:999px;padding:3px;gap:2px}
+  .tab,.lane{flex:1;border:none;background:transparent;color:var(--muted);font-size:13.5px;height:calc(var(--h-ctl) - 6px);padding:0 12px;border-radius:999px;cursor:pointer;transition:.14s;white-space:nowrap}
+  .tab[aria-pressed="true"],.lane[aria-pressed="true"]{background:var(--fill-ink);color:var(--on-ink)}
+
+  /* buttons */
+  .pill{background:var(--btn);color:var(--ink);border:0;box-shadow:inset 0 0 0 1px var(--keyline);height:var(--h-ctl);padding:0 14px;border-radius:999px;font-size:var(--fs-body);cursor:pointer;transition:background .14s,color .14s;text-align:center;line-height:1;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .pill:hover{background:var(--btn-hover)}
+  .pill.small{font-size:13px;color:var(--muted);height:var(--h-sm);padding:0 11px}
+  .pill.small:hover{color:var(--ink)}
+  .pill[aria-pressed="true"],.pill.primary{background:var(--fill-ink);color:var(--on-ink);box-shadow:none}
+  .pill[aria-pressed="true"]:hover{background:var(--fill-ink);color:var(--on-ink)}
+  .pill.primary:hover{opacity:.9;background:var(--fill-ink)}
+  .pill:disabled{opacity:.4;cursor:default}
+  .pill:focus-visible,.toggle:focus-visible,.tab:focus-visible,.lane:focus-visible,.tile:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  .btn-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .btn-row>.pill:not(.small){flex:1}
+  /* a row of single choices (colour themes) reads as the segmented control */
+  .btn-row.choice{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:2px;background:var(--seg);border-radius:999px;padding:3px}
+  .btn-row.choice>.pill{background:transparent;box-shadow:none;color:var(--muted);font-size:13.5px;height:calc(var(--h-ctl) - 6px);padding:0 8px;min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .btn-row.choice>.pill:hover{color:var(--ink)}
+  .btn-row.choice>.pill[aria-pressed="true"]{background:var(--fill-ink);color:var(--on-ink)}
+  /* a handful of one-off actions (colour presets) as an even grid */
+  .btn-row.pairs{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .btn-row.pairs>.pill{width:100%}
+
+  /* toggle – the round tick */
+  .toggle{display:flex;align-items:center;gap:8px;cursor:pointer;margin:0 0 8px;user-select:none;background:none;border:0;padding:0;width:100%;text-align:left;font-size:var(--fs-body);color:var(--ink);min-height:26px}
+  .toggle .box{width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;background:var(--seg);box-shadow:inset 0 0 0 1px var(--keyline)}
+  .toggle[aria-checked="true"] .box{background:var(--fill-ink);box-shadow:none}
+  .toggle[aria-checked="true"] .box::after{content:"";width:4px;height:8px;border:solid var(--on-ink);border-width:0 1.6px 1.6px 0;transform:translateY(-1px) rotate(45deg)}
+  .toggle-row{display:flex;align-items:center;gap:6px;margin:0 0 8px}
+  .toggle-row .toggle{margin:0;width:auto}
+  .switch-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+
+  /* colour, fields, menus */
+  .colour-row{display:flex;align-items:center;gap:8px;margin:0 0 10px;min-height:28px}
+  .colour-row label{font-size:var(--fs-body)}
+  .colour-row .cw{margin-left:auto;display:flex;align-items:center;gap:10px}
+  .colour-row .val{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;letter-spacing:0}
+  .cswatch{width:20px;height:20px;flex:none;box-shadow:inset 0 0 0 1px var(--hair);border-radius:var(--r-inner);position:relative;overflow:hidden}
+  .cswatch::after{content:'';position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 1px var(--hair);pointer-events:none} /* the hairline sits over the colour, so white on white still shows */
+  .cswatch input[type=color]{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:160%;height:160%;border:none;padding:0;cursor:pointer;background:none}
+  textarea{width:100%;background:var(--btn);border:0;box-shadow:inset 0 0 0 1px var(--keyline);border-radius:12px;color:var(--ink);font-size:var(--fs-body);padding:9px 12px;resize:vertical;min-height:56px;line-height:1.3}
+  input[type=text],input[type=number]{background:var(--btn);border:0;box-shadow:inset 0 0 0 1px var(--keyline);border-radius:999px;height:var(--h-ctl);padding:0 12px;font-size:var(--fs-body);color:var(--ink);width:100%;min-width:0}
+  input[type=text]::placeholder{color:var(--muted)}
+  textarea:focus-visible,input[type=text]:focus-visible,input[type=number]:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+  select{-webkit-appearance:none;appearance:none;width:100%;background:var(--btn) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3.5 5.5 7 9l3.5-3.5' fill='none' stroke='%2389878e' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 10px center/14px;
+    color:var(--ink);border:0;box-shadow:inset 0 0 0 1px var(--keyline);height:var(--h-ctl);padding:0 30px 0 12px;border-radius:999px;font-size:var(--fs-body);cursor:pointer}
+  select:hover{background-color:var(--btn-hover)}
+  select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  .colour-row select{width:auto;max-width:60%;margin-left:auto}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+
+  /* help */
+  .hint{font-size:12.5px;line-height:1.45;color:var(--muted);margin:2px 0 12px;letter-spacing:-0.005em}
+  .q{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:0;box-shadow:inset 0 0 0 1px var(--hair);background:none;color:var(--muted);font-family:var(--face);font-size:10px;line-height:1;padding:0;margin-left:2px;cursor:help;flex:none;font-style:normal;letter-spacing:0;transition:opacity .15s}
+  /* the "?" is drawn, not typed, so it sits dead centre in its circle whatever the font (13 Nov) */
+  .q{font-size:0!important;color:var(--muted)}
+  .q::before{content:'';width:8px;height:8px;background:currentColor;-webkit-mask:var(--q-glyph) center/contain no-repeat;mask:var(--q-glyph) center/contain no-repeat}
+  :root{--q-glyph:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3E%3Cpath d='M2.3 2.7a1.75 1.75 0 1 1 2.5 1.6c-.5.25-.8.6-.8 1.1v.2' fill='none' stroke='%23000' stroke-width='1.15' stroke-linecap='round'/%3E%3Ccircle cx='4' cy='7.2' r='.62'/%3E%3C/svg%3E")}
+  .q:hover,.q:focus-visible{box-shadow:inset 0 0 0 1px var(--ink);color:var(--ink)}
+  .q:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  @media (hover:hover){.q{opacity:0}.ctl:hover .q,.toggle-row:hover .q,.colour-row:hover .q,.ctl:focus-within .q,.toggle-row:focus-within .q,.colour-row:focus-within .q,.q:focus-visible{opacity:1}}
+  .colour-row .q{margin-left:4px}
+  .tip{position:fixed;left:0;top:0;pointer-events:none;background:var(--ink-strong);color:var(--app);padding:7px 10px;border-radius:8px;font-size:12px;letter-spacing:-0.005em;max-width:240px;line-height:1.4;z-index:60;opacity:0;transition:opacity .1s}
+  .tip.on{opacity:1}
+  details{margin-top:4px}
+  details summary{cursor:pointer;font-size:var(--fs-small);color:var(--muted);margin-bottom:6px;list-style:none;display:flex;align-items:center;gap:4px;width:fit-content}
+  details summary::-webkit-details-marker{display:none}
+  details summary::after{content:"";width:14px;height:14px;background:currentColor;transition:transform .2s;
+    -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3.5 5.5 7 9l3.5-3.5' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat;
+            mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3.5 5.5 7 9l3.5-3.5' fill='none' stroke='black' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/14px no-repeat}
+  details[open] summary::after{transform:rotate(180deg)}
+  details summary:hover{color:var(--ink)}
+  details .hint p{margin:8px 0}
+  details code{font-size:0.78rem;background:var(--btn);border:1px solid var(--keyline);padding:1px 6px;border-radius:6px;word-break:break-all}
+
+  /* lists: fonts, presets, picker */
+  .slot{display:block;padding:0 0 10px;margin-bottom:10px;border-bottom:1px solid var(--keyline)}
+  .slot:last-of-type{border-bottom:0}
+  .slot.drag{outline:2px dashed var(--fill-ink);outline-offset:4px;border-radius:8px}
+  .slot-top{display:flex;align-items:center;gap:6px}
+  .slot-main{flex:1;min-width:0}
+  .slot-label{color:var(--muted);font-size:12px;margin-bottom:4px}
+  .slot-name{font-size:var(--fs-body);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .slot-meta{color:var(--muted);font-size:12px;margin-top:3px}
+  .slot .toggle-row{margin:10px 0 0}
+  .pill.small.icon{width:var(--h-sm);padding:0;flex:none}
+  .pill.small.icon svg{width:12px;height:12px}
+  .img-row .slot-name.empty{white-space:normal;font-size:var(--fs-small);color:var(--muted)}
+  .preset-list{display:flex;flex-direction:column;gap:6px;margin:4px 0 12px}
+  .preset-item{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:var(--r-card);background:var(--btn);box-shadow:inset 0 0 0 1px var(--keyline)}
+  .preset-item span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13.5px}
+  .progress{height:4px;background:var(--seg);border-radius:999px;overflow:hidden;margin:4px 0 12px}
+  .progress>i{display:block;height:100%;width:0;background:var(--fill-ink);border-radius:999px}
+  .tfield{margin:0 0 12px}
+  .tfield-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;color:var(--muted);font-size:12px}
+  .pick-host{margin-top:6px}
+  .pick-row{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--keyline)}
+  .pick-ch{width:16px;flex:none;color:var(--muted);padding-top:13px;font-size:13px}
+  .tiles{display:flex;flex-wrap:wrap;gap:6px}
+  .tile{border:0;box-shadow:inset 0 0 0 1px var(--keyline);padding:0;border-radius:var(--r-inner);background:var(--btn);cursor:pointer;position:relative;width:38px;height:46px;display:block}
+  .tile canvas{display:block;width:36px;height:44px;margin:1px;pointer-events:none}
+  .tile[aria-pressed="true"]{background:var(--fill-ink);box-shadow:none}
+  .tile.rest::after{content:"";position:absolute;top:5px;right:5px;width:5px;height:5px;border-radius:50%;background:var(--on-ink)}
+  .img-row{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+  .img-row .slot-name{flex:1;min-width:0}
+  .axes{margin-top:12px}
+  .axes .ctl:last-child{margin-bottom:0}
+
+  /* ---------------- top right: chips, Preview, light and dark ---------------- */
+  .topbar{position:absolute;top:var(--gap);right:var(--gap);z-index:6;display:flex;align-items:center;gap:4px;max-width:calc(100% - var(--pw) - var(--gap)*4)}
+  .stage-foot{display:flex;gap:4px;align-items:center;min-width:0;font-size:var(--fs-small);color:var(--muted);font-variant-numeric:tabular-nums}
+  .stage-foot span{height:var(--h-chip);display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;box-shadow:0 0 0 1px var(--keyline);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;letter-spacing:-0.005em}
+  .stage-foot span:empty{display:none}
+  .tools{display:flex;gap:2px;padding:2px;border-radius:999px;box-shadow:0 0 0 1px var(--keyline);flex:none}
+  .tools button{width:24px;height:24px;border:none;background:transparent;color:var(--muted);cursor:pointer;border-radius:50%;display:flex;align-items:center;justify-content:center;padding:0;transition:.14s}
+  .tools button:hover{color:var(--ink);background:var(--btn-hover)}
+  .tools button[aria-pressed="true"]{color:var(--on-ink);background:var(--fill-ink)}
+  .tools button:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
+  .tools svg{width:14px;height:14px}
+
+  /* ---------------- the island – bottom centre ---------------- */
+  .island,.pcap{position:absolute;bottom:var(--gap);z-index:7;display:flex;flex-direction:column;border-radius:22px;overflow:hidden;
+    box-shadow:0 0 0 1px var(--keyline);min-width:0;
+    transition:left .42s cubic-bezier(.2,.85,.25,1),min-width .42s cubic-bezier(.2,.85,.25,1),opacity .3s}
+  .island{left:50%;transform:translateX(-50%)}
+  .pcap{right:var(--gap)}
+  .island.open,.pcap.open{min-width:340px}
+  .sheets{display:grid;grid-template-rows:0fr;transition:grid-template-rows .42s cubic-bezier(.2,.85,.25,1);contain:inline-size}
+  /* sheets that open flat, without the slide – Safari 17, where the slide can stick shut (see syncSheets) */
+  .flat-sheets .sheets{display:block;transition:none}
+  .flat-sheets .island:not(.open)>.sheets,.flat-sheets .pcap:not(.open)>.sheets{display:none}
+  .sheets>div{min-height:0;overflow:hidden}
+  .open>.sheets{grid-template-rows:1fr}
+  .sheet{padding:16px 16px 12px;border-bottom:1px solid var(--keyline);max-height:calc(100vh - 140px);overflow-y:auto;scrollbar-width:thin}
+  .sheet>h2{margin:0 0 12px;font:inherit}
+  .sheet-h{margin:0 0 12px;font-size:var(--fs-title);letter-spacing:-0.03em;line-height:1.1;color:var(--ink-strong)}
+  .sheet .card-toggle{pointer-events:none;border:0;padding:0;min-height:0}
+  .sheet .card-toggle .sum,.sheet .card-toggle .chev{display:none}
+  .sheet .card-body{padding:0}
+  .sheet .sub-head{border-top:1px solid var(--keyline);padding-top:12px;margin:14px 0 8px}
+  .sheet .card-body>.sub-head:first-child,.sheet>.sub-head:first-child{border-top:0;padding-top:0;margin-top:0}
+  .island-row{display:flex;justify-content:center;flex:none}
+  .island-in{display:flex;align-items:center;gap:4px;height:var(--h-bar);padding:0 4px;white-space:nowrap;width:max-content;flex:none}
+  .isl-main{display:flex;align-items:center;gap:4px}
+  .isl-main:empty,.isl-main:empty+.ep-div{display:none}
+  .isl-main .ctl{margin:0}
+  .isl-main .ctl-head{display:none}
+  .isl-main .seg{grid-auto-columns:auto}
+  .isl-main .seg .pill{height:30px;padding:0 12px;font-size:var(--fs-body)}
+  .ebtn{border:0;box-shadow:inset 0 0 0 1px var(--keyline);background:var(--btn);color:var(--ink);font-size:var(--fs-body);height:var(--h-isl);padding:0 14px;border-radius:999px;cursor:pointer;transition:.14s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+  .ebtn:hover{background:var(--btn-hover)}
+  .ebtn.primary{background:var(--fill-ink);color:var(--on-ink);box-shadow:none}
+  .ebtn.primary:hover{opacity:.9}
+  .ebtn:disabled{opacity:.4;cursor:default}
+  .ebtn:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+  .ebtn.icon{width:var(--h-isl);padding:0;justify-content:center;margin-left:-2px}
+  .ebtn.icon[aria-expanded="true"]{background:var(--fill-ink);color:var(--on-ink);box-shadow:none}
+  .ep-title{font-size:var(--fs-title);letter-spacing:-0.03em;color:var(--ink-strong);padding:0 4px 0 2px}
+  .ep-div{width:1px;height:20px;background:var(--keyline);margin:0 4px;flex:none}
+  .act-main{font-size:var(--fs-small);color:var(--muted);letter-spacing:-0.005em;font-variant-numeric:tabular-nums;min-width:78px;text-align:right;padding-right:4px}
+  #scrub{width:140px;height:var(--h-isl);background:transparent;box-shadow:none;margin:0 4px}
+  #scrub::-webkit-slider-runnable-track{height:4px;background:var(--seg);border-radius:2px;margin-top:0}
+  #scrub::-webkit-slider-thumb{width:12px;height:12px;margin-top:-4px}
+  #scrub::-moz-range-track{height:4px;background:var(--seg);border-radius:2px}
+  #scrub::-moz-range-thumb{width:12px;height:12px}
+  /* status lives in the island */
+  .status{display:none;align-items:center;gap:8px;padding:0 10px 0 12px;font-size:var(--fs-body);color:var(--ink);max-width:360px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;animation:islIn .3s ease}
+  .status.on{display:block;line-height:var(--h-isl)}
+  @keyframes islIn{from{opacity:0}to{opacity:1}}
+  .saver-only{display:none!important}
+  body.saver .saver-only{display:flex!important}
+  body.saver .studio-only{display:none!important}
+
+  /* Presets – bottom right, the island's height */
+  .pc-row{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:8px;height:var(--h-bar);padding:0 14px 0 6px;cursor:pointer;white-space:nowrap;flex:none;font-size:var(--fs-body);color:var(--ink)}
+  .pc-row:focus-visible{outline:2px solid var(--focus);outline-offset:-3px;border-radius:22px}
+  .pc-row .pc-ic{width:var(--h-isl);height:var(--h-isl);border-radius:50%;background:var(--btn);box-shadow:inset 0 0 0 1px var(--keyline);display:flex;align-items:center;justify-content:center;color:var(--muted);flex:none}
+  .pc-row .pc-ic svg{width:14px;height:14px}
+  .pc-row .pc-name{font-size:var(--fs-small);color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis}
+  .pc-row .chev{margin-left:0}
+  .pcap.open .pc-row .chev{transform:rotate(180deg)}
+
+  /* drop and the rest */
+  .drop{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:color-mix(in srgb,var(--app) 85%,transparent);font-size:1.4rem;letter-spacing:-0.03em;z-index:20;pointer-events:none}
+  .drop.on{display:flex}
+  .rand-pop{padding:16px 16px 12px;border-bottom:1px solid var(--keyline)}
+  .rp-title{font-size:var(--fs-title);letter-spacing:-0.03em;color:var(--ink-strong);margin-bottom:12px}
+  .rand-pop .lanes{margin-bottom:10px}
+  .rp-groups{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;margin:0 0 12px}
+  .rp-groups .toggle{margin:0}
+  .rand-pop .pill.primary{width:100%;height:40px}
+  .rand-pop .hint:last-child{margin:12px 0 0}
+
+  /* narrow windows: Presets keeps its icon; phones stack the stage over the panel */
+  @media (max-width:1180px){.pc-row .pc-t,.pc-row .pc-name{display:none}.pc-row{padding-right:10px}#scrub{width:100px}}
+  @media (max-width:860px){
+    html,body{height:auto}
+    .app{height:auto;overflow:visible;display:flex;flex-direction:column}
+    .stage{position:sticky;top:env(safe-area-inset-top,0px);height:min(60vh,560px);z-index:4;inset:auto;flex:none}
+    .view{left:var(--gap);top:calc(var(--gap)*2 + var(--h-chip));right:var(--gap);bottom:calc(var(--gap)*2 + var(--h-bar))}
+    .panel{position:static;width:auto!important;margin:var(--gap);box-shadow:0 0 0 1px var(--keyline)}
+    .scroll{overflow:visible;-webkit-mask-image:none;mask-image:none}
+    .resizer{display:none}
+    .topbar{max-width:calc(100% - var(--gap)*2)}
+    .island{position:fixed;bottom:calc(var(--gap) + env(safe-area-inset-bottom,0px));max-width:calc(100vw - var(--gap)*2)}
+    .island-row{overflow-x:auto;justify-content:flex-start;scrollbar-width:none}
+    .island-in{margin:0 auto}
+    /* Tempo and Rubato: the island runs along the bottom – its view controls scroll sideways,
+       Export stays put at its right end, and Presets shrinks to its icon beside it */
+    #island{left:var(--gap);right:var(--gap);transform:none;max-width:none}
+    .app:has(#pcap:not([hidden])) #island:not(.open){right:calc(var(--gap) + var(--h-bar) + 8px)}
+    #island .island-row{overflow:visible}
+    #island .island-in{width:auto;margin:0;min-width:0;flex:1 1 auto}
+    #islandMain{flex:1 1 auto;min-width:0;overflow-x:auto;scrollbar-width:none;border-radius:18px}
+    #islandMain::-webkit-scrollbar{display:none}
+    #islandMain.more{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 32px),transparent)}
+    #island .ep-div,#exportOpen{flex:none}
+    #island .status{flex:0 1 auto;min-width:0}
+    #scrub{width:84px}
+    .pcap{position:fixed;bottom:calc(var(--gap) + env(safe-area-inset-bottom,0px))}
+    .pc-row{padding:0 4px}
+    .pc-row .chev{display:none}
+    .pcap.open{left:var(--gap);z-index:9}
+    .pcap.open .pc-row{padding:0 14px 0 4px}
+    .pcap.open .pc-row .pc-t,.pcap.open .pc-row .chev{display:inline-flex}
+    .pcap.open .pc-row .chev{margin-left:auto}
+    #island.open{z-index:9}
+    .stage-foot span:nth-child(n+2){display:none}
+    .island.open,.pcap.open{min-width:min(340px,calc(100vw - 24px))}
+  }
+  /* Embedded: in an iframe on another page, a tool shows as a framed object on that page's
+     colour (html.embed, set in the page's head). ?app in its URL opts out – for a full-page
+     embed that should fill its iframe edge to edge. */
+  @media (min-width:861px){
+    html.embed,html.embed body{background:transparent}
+    html.embed body{padding:var(--gap)}
+    html.embed .app{border-radius:calc(var(--r-frame) + var(--gap));box-shadow:0 0 0 1px var(--keyline)}
+  }
+  @media (prefers-reduced-motion: reduce){*,*::before,*::after{transition:none!important;animation:none!important}}
+
+  /* Ensemble tool system – the kit, round 4 (UI stream, November 2026). On Segue first;
+     Tempo, Rubato and Tutti move onto it once it's signed off. It sits on top of tokens.css
+     and components.css and changes how things look, not where they are: the panel on the left,
+     the island at the bottom, Presets bottom right and the chips top right all stay put.
+
+     One corner logic. A rectangle's corner is the corner around it, less the space between:
+       surfaces – panel, island, Presets, sheets, tooltips – 12 px
+       controls – buttons, sliders, menus, fields, segmented tracks, rows – 8 px
+       anything set 2 px inside a control – the chosen option, the value you type – 6 px
+       chips (24 px high) – 6 px; thumbnails and swatches – 4 to 6 px
+     Only true dots are round: the tick, the change dot, the scrubber, the place pad's dots.
+
+     Two weights of Aktiv Grotesk: Medium (500) for section titles, the chosen option and
+     buttons; Regular for everything else. No drop shadows: hairlines and fills only.
+     Black is for the main action (Export, Download); a choice is shown white on grey. */
+  @property --p{syntax:'<number>';inherits:true;initial-value:0}
+  :root{
+    --fs-mark:20px; --fs-by:20px; --fs-title:15px; --fs-body:13px; --fs-small:12px;
+    --h-ctl:30px; --h-sm:24px; --h-chip:28px;
+    --r-frame:12px; --r-card:8px; --r-inner:6px;
+    --r-surface:12px; --r-ctl:8px; --r-in:6px; --r-chip:6px; --r-sw:4px;
+    /* One grey, and the tones under it. Steve's base (6 Nov) is #F6F5F4 – a touch warm; every other
+       grey is that colour darkened, so nothing on screen reads cool against it. Cards stay white. */
+    --k-panel:#f6f5f4; --k-card:#ffffff;
+    --k-fill:#f4f3f1; --k-fill-2:#e4e3e0; --k-fill-hover:#eeedeb; --k-raise:#ffffff; --k-raise-line:rgba(0,0,0,.13);
+    --k-num:#a6a6a6; --k-handle:#1d1d1f; --k-dot:#2f6bff;
+    --pw:320px;
+    /* motion: three curves, named for what they do */
+    --e-snap:cubic-bezier(.2,.8,.2,1); --e-smooth:cubic-bezier(.32,.72,0,1); --e-morph:cubic-bezier(.34,1.22,.64,1);
+    --t-snap:140ms; --t-smooth:360ms; --t-morph:420ms; --t-roll:260ms;
+    --gutter:20px; /* the change column on the right of every row */
+  }
+  body[data-theme="dark"]{
+    --k-panel:#1b1b1b; --k-card:#262626;
+    --k-fill:#313131; --k-fill-2:#434343; --k-fill-hover:#383838; --k-raise:#4b4b4b; --k-raise-line:rgba(255,255,255,.12);
+    --k-num:#767676; --k-handle:#ffffff; --k-dot:#6b95ff;
+  }
+  body{letter-spacing:-0.012em}
+  button,input,textarea,select{letter-spacing:-0.012em}
+
+  /* ---------------- the panel ---------------- */
+  .brand{padding:16px 16px 14px;gap:2px}
+  .brand .bline{font-size:var(--fs-mark);letter-spacing:-0.035em;line-height:1.08;gap:6px}
+  .brand .mark{font-weight:500}
+  .brand .ver{font-size:var(--fs-mark);letter-spacing:-0.03em}
+  .brand .bline.caps{font-size:var(--fs-by);letter-spacing:-0.035em}
+  .scroll{padding:0;gap:0}
+  .panel,.island,.pcap{border-radius:var(--r-surface)}
+  .panel{background:var(--k-panel);-webkit-backdrop-filter:none;backdrop-filter:none}
+
+  /* sections (level 1): hairlines, not boxes */
+  .card{background:transparent;border-radius:0;border-top:1px solid var(--keyline)}
+  .card-toggle{min-height:46px;padding:0 16px;gap:8px;font-size:var(--fs-title);font-weight:700;letter-spacing:-0.012em;border-bottom:0}
+  .card-toggle:focus-visible{border-radius:0;outline-offset:-3px}
+  .card>h2{position:relative}
+  .card-toggle .num{order:-1;flex:none;width:16px;font-size:var(--fs-title);font-weight:400;color:var(--k-num);font-variant-numeric:tabular-nums;letter-spacing:0}
+  .card-toggle .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--k-dot);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+  .card.collapsed.chg .card-toggle .cdot{transform:scale(1)}
+  .card-toggle .sum{display:none}
+  .card-toggle .chev,.card.collapsed .card-toggle .sum:not(:empty)+.chev{margin-left:auto}
+  h2>.pill.reset{position:absolute;right:38px;top:50%;margin-top:-12px;display:none}
+  .card.chg:not(.collapsed)>h2>.reset{display:inline-flex;animation:kitFade var(--t-smooth) var(--e-smooth)}
+  .card-toggle .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
+  .card:not(.collapsed)>h2 .chev{transform:none}
+  .card.collapsed>h2 .chev{transform:rotate(-90deg)}
+  /* open and shut with the Smooth curve */
+  .card-anim{display:grid;grid-template-rows:1fr;transition:grid-template-rows var(--t-smooth) var(--e-smooth)}
+  .card-anim>div{min-height:0;overflow:hidden}
+  .card.collapsed .card-anim{grid-template-rows:0fr}
+  .card.collapsed .card-anim .card-body{display:block}
+  .card-anim[hidden]{display:none!important}
+  .card-body{background:var(--k-card);border-radius:10px;margin:0 10px 12px;padding:14px calc(12px + var(--gutter)) 14px 12px;transition:opacity var(--t-smooth)}
+  .card:first-child{border-top:0}
+  .card.collapsed .card-anim .card-body{opacity:0}
+
+  /* groups (level 2) */
+  .fold{border-top:1px solid var(--keyline);margin:16px 0 0;padding-top:4px}
+  .card-body>.fold:first-child{border-top:0;margin-top:-6px;padding-top:0}
+  .fold-head,.more-toggle{min-height:38px;margin:0 0 6px;font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);letter-spacing:-0.008em}
+  .fold-head[aria-expanded="false"]{margin-bottom:0}
+  .fold-body{padding-bottom:4px}
+  .fold-head:hover{color:var(--ink-strong)}
+  .fold-head .sum,.more-toggle .sum{display:none}
+  .fold-head .chev{width:12px;height:12px;transition:transform var(--t-smooth) var(--e-smooth)}
+  .fold-head .cdot{flex:none;width:6px;height:6px;border-radius:50%;background:var(--k-dot);transform:scale(0);transition:transform var(--t-morph) var(--e-morph);margin-right:auto}
+  .fold-head.chg[aria-expanded="false"] .cdot{transform:scale(1)}
+  .fold-head>span:first-child{margin-right:0}
+  .fold-head[aria-expanded="true"] .chev{transform:none}
+  .fold-head[aria-expanded="false"] .chev{transform:rotate(-90deg)}
+  .sub-head{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);margin:4px 0 8px;letter-spacing:-0.008em}
+  .sheet .sub-head,.preset-list .sub-head{font-size:11.5px;color:var(--muted);margin:10px 0 8px}
+  body.kit-live .fold-body:not([hidden]),body.kit-live .card-body>.ctl:not([hidden]),body.kit-live .fold-body>.ctl:not([hidden]),
+  body.kit-live .card-body>.toggle-row:not([hidden]),body.kit-live .card-body>.colour-row:not([hidden]){animation:kitIn var(--t-smooth) var(--e-smooth)}
+  @keyframes kitIn{from{opacity:0;transform:translateY(-3px)}}
+  @keyframes kitFade{from{opacity:0}}
+
+  /* ---------------- rows and the change column ---------------- */
+  .ctl{margin:0 0 12px;position:relative}
+  .ctl-head{margin-bottom:6px;min-height:16px;gap:6px}
+  .ctl-head label,.ctl-head>span:first-child{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong)}
+  .toggle-row .toggle>span:last-child,.colour-row>label,.colour-row>span:first-child{font-weight:500;color:var(--ink-strong)}
+  .toggle-row,.colour-row{position:relative}
+  /* a red dot at the end of a row once it's moved from where it started; click it to put it back */
+  .cx{position:absolute;right:calc(-1 * var(--gutter) - 2px);top:0;width:var(--gutter);height:16px;border:0;padding:0;background:none;cursor:default;display:flex;align-items:center;justify-content:center;pointer-events:none}
+  .cx::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--k-dot);transform:scale(0);transition:transform var(--t-morph) var(--e-morph)}
+  .chg>.cx,.chg>.ctl-head>.cx{pointer-events:auto;cursor:pointer}
+  .chg>.cx::before,.chg>.ctl-head>.cx::before{transform:scale(1)}
+  .chg>.cx:hover::before,.chg>.ctl-head>.cx:hover::before{transform:scale(1.5)}
+  .cx:focus-visible{outline:2px solid var(--focus);outline-offset:0;border-radius:50%}
+  .ctl-head>.cx{position:absolute;top:0}
+  .ctl.rng>.cx,.ctl.stp>.cx{top:50%;margin-top:-8px}
+  .toggle-row>.cx,.colour-row>.cx{top:50%;margin-top:-8px}
+  .sheet .cx{display:none}
+
+  /* ---------------- the slider: label and value inside, a handle that never hides ---------------- */
+  .rng-box{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;--z:0;cursor:ew-resize;touch-action:none}
+  .rng-box:hover{background:var(--k-fill-hover)}
+  .rng-box:hover .rng-fill{background:var(--k-fill-2)}
+  .rng-box.ease{transition:--p var(--t-smooth) var(--e-smooth)}
+  .rng-fill{left:calc(5px + (100% - 10px) * min(var(--p),var(--z)));width:calc((100% - 10px) * max(var(--p) - var(--z),var(--z) - var(--p)));border-radius:0;background:var(--k-fill-2)}
+  .rng-box.from-start .rng-fill{left:0;width:calc(5px + (100% - 10px) * var(--p))}
+  .rng-tick{top:7px;bottom:7px;width:3px;margin-left:-1.5px;border-radius:2px;background:var(--k-handle);left:calc(5px + (100% - 10px) * var(--p));transition:transform var(--t-snap) var(--e-snap),background var(--t-snap),opacity var(--t-snap)}
+  .rng-tick.away{opacity:1;transform:none}
+  /* Where the handle would cross the words – the value, or a label inside the bar – it fades right out, so
+     nothing ever runs through a letter; the fill's edge still shows where it is (Steve, 20 Nov: "It should
+     fade, or even stop before the numbers" – replacing the faint-middle handle of 6 Nov, which still crossed
+     the letters). Every tool's slider decides "over" the same way: the words' own ink, 6 px clear. */
+  .rng-tick.split{opacity:0}
+  .rng-box:hover .rng-tick,.rng-box.drag .rng-tick{transform:scaleY(1.18)}
+  .rng-notch{position:absolute;bottom:0;width:1px;height:5px;margin-left:-.5px;background:var(--ink);opacity:.32;left:calc(5px + (100% - 10px) * var(--b,0));pointer-events:none}
+  .rng-box .ctl-head{padding:0 4px 0 10px}
+  .rng-box .ctl-head label{font-size:var(--fs-body);font-weight:400;color:var(--ink-strong)}
+  .rng-box input[type=range]{pointer-events:none}
+  body.kbd .rng-box:focus-within{outline:2px solid var(--focus);outline-offset:1px}
+  body:not(.kbd) select:focus,body:not(.kbd) button:focus,body:not(.kbd) [tabindex]:focus{outline:none}
+  .ctl .ctl-head .val{font-size:12.5px;color:var(--muted);min-width:0}
+  .ctl.chg .ctl-head .val{color:var(--ink-strong);font-weight:500}
+  .rng-box .val.typable{pointer-events:auto;padding:0 8px;margin:0 0 0 auto;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center}
+  .rng-box .val.typable:hover{background:var(--k-raise);color:var(--ink)}
+  .val.roll{animation:kitRoll var(--t-roll) var(--e-smooth)}
+  .val.roll.down{animation-name:kitRollDown}
+  @keyframes kitRoll{from{transform:translateY(55%);opacity:0}}
+  @keyframes kitRollDown{from{transform:translateY(-55%);opacity:0}}
+  .ctl .ctl-head .val .val-in,.val-in{pointer-events:auto;height:24px;border-radius:var(--r-in);background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line);font-size:12.5px}
+
+  /* a stepper, for small counts – Columns, Across, Down */
+  .ctl.stp .ctl-head{margin:0;min-height:var(--h-ctl)}
+  .stp-g{margin-left:auto;display:inline-flex;align-items:center;height:var(--h-ctl);padding:2px;border-radius:var(--r-ctl);background:var(--k-fill)}
+  .stp-g button{width:26px;height:26px;border:0;border-radius:var(--r-in);background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;transition:background var(--t-snap),color var(--t-snap)}
+  .stp-g button:hover:not(:disabled){background:var(--k-raise);color:var(--ink)}
+  .stp-g button:disabled{opacity:.35;cursor:default}
+  .stp-g button:focus-visible{outline:2px solid var(--focus);outline-offset:0}
+  .stp-g button svg{width:10px;height:10px}
+  .stp-g .val{min-width:28px!important;text-align:center!important;margin:0!important}
+  .stp-g .val.typable{padding:0 4px;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
+  .stp-g .val.typable:hover{background:var(--k-raise)}
+
+  /* ---------------- choosing one: white on grey, the white sliding to what you pick ---------------- */
+  .seg{position:relative;display:flex;gap:2px;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px}
+  .seg>.pill,.seg>.pill.small{flex:1 1 0;position:relative;z-index:1;height:calc(var(--h-ctl) - 4px);border-radius:var(--r-in);font-size:12.5px;font-weight:400;color:var(--muted);padding:0 6px;background:transparent;box-shadow:none;transition:color var(--t-snap)}
+  .seg>.pill:hover,.seg>.pill.small:hover{color:var(--ink);background:transparent}
+  .seg>.pill[aria-pressed="true"],.seg>.pill[aria-pressed="true"]:hover{background:transparent;color:var(--ink-strong);font-weight:500;box-shadow:none}
+  .seg>.hl{position:absolute;top:2px;bottom:2px;left:0;width:0;border-radius:var(--r-in);background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line);opacity:0;pointer-events:none;
+    transition:left var(--t-morph) var(--e-morph),width var(--t-morph) var(--e-morph),opacity var(--t-snap)}
+  .seg.hl-ready>.hl{opacity:1}
+  .seg:not(.hl-ready)>.pill[aria-pressed="true"]{background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line)}
+  .seg.wrap,.seg.loose{display:flex;flex-wrap:nowrap}
+  /* more than fits a row: a menu instead, the same height and corners */
+  .seg-menu{display:none}
+  .ctl.as-menu>.seg{display:none}
+  .ctl.as-menu>.seg-menu{display:block}
+  .tabs,.lanes{border-radius:var(--r-ctl);padding:2px;background:var(--k-fill)}
+  .tab,.lane{border-radius:var(--r-in);height:calc(var(--h-ctl) - 4px)}
+  .tab[aria-pressed="true"],.lane[aria-pressed="true"]{background:var(--k-raise);color:var(--ink-strong);box-shadow:0 0 0 1px var(--k-raise-line);font-weight:500}
+
+  /* ---------------- buttons ---------------- */
+  .pill{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:var(--fs-body);font-weight:500;color:var(--ink);padding:0 12px;transition:background var(--t-snap),color var(--t-snap),transform var(--t-snap) var(--e-snap)}
+  .pill:hover{background:var(--k-fill-hover)}
+  .pill:active:not(:disabled){transform:scale(.97)}
+  .pill.primary,.pill[aria-pressed="true"]{background:var(--fill-ink);color:var(--on-ink)}
+  .pill.primary:hover{background:var(--fill-ink);opacity:.9}
+  /* quiet actions: keyline chips with an icon */
+  .pill.small{height:var(--h-sm);border-radius:var(--r-chip);background:transparent;box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 8px;gap:6px}
+  .pill.small:hover{background:var(--k-fill);color:var(--ink-strong)}
+  .pill.small svg{width:11px;height:11px;flex:none}
+  .pill svg{width:12px;height:12px;flex:none}
+  .pill.small.icon{width:var(--h-sm);padding:0;color:var(--muted);box-shadow:none}
+  .pill.small.icon:hover{color:var(--ink);background:var(--k-fill-hover)}
+  .slot.open .pill.small.icon:hover{background:var(--k-fill)}
+  .pill.small.icon svg{width:10px;height:10px}
+  .btn-row{gap:6px}
+  /* a pair of plain actions (Move up, Move down; Download, Load) as even fills */
+  .btn-row.pairs{gap:6px}
+  .btn-row.pairs>.pill,.btn-row.pairs>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:12.5px;color:var(--ink);padding:0 10px}
+  .btn-row.pairs>.pill:hover,.save-row>.pill:hover{background:var(--k-fill-hover)}
+  .save-row>.pill,.save-row>.pill.small{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:12.5px;padding:0 14px}
+  .pill:focus-visible,.toggle:focus-visible,.tab:focus-visible,.lane:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+
+  /* toggle – the round tick */
+  .toggle{font-size:var(--fs-body);min-height:26px;gap:8px}
+  .toggle .box{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair);transition:background var(--t-snap) var(--e-snap),box-shadow var(--t-snap)}
+  .toggle:hover .box{box-shadow:inset 0 0 0 1px var(--muted)}
+  .toggle[aria-checked="true"] .box{background:var(--fill-ink);box-shadow:none}
+  .toggle[aria-checked="true"] .box::after{width:3.5px;height:7px;border-width:0 1.5px 1.5px 0}
+  body.kit-live .toggle[aria-checked="true"] .box::after{animation:kitTick var(--t-morph) var(--e-morph)}
+  @keyframes kitTick{from{transform:translateY(-1px) rotate(45deg) scale(.3);opacity:0}}
+  .toggle-row{margin:0 0 6px}
+
+  /* colour, fields, menus */
+  .colour-row{min-height:30px;margin:0 0 8px}
+  .colour-row label{font-size:var(--fs-body)}
+  .colour-row .cw{gap:6px}
+  .colour-row input.hexin{height:24px;width:76px;padding:0 8px;border-radius:var(--r-chip);background:var(--k-fill);box-shadow:none;font-size:12px;letter-spacing:0}
+  .cswatch{width:24px;height:24px;border-radius:var(--r-chip);box-shadow:none}
+  .cswatch::after{box-shadow:inset 0 0 0 1px var(--hair)}
+  input[type=text],input[type=number]{height:var(--h-ctl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;padding:0 10px;font-size:var(--fs-body)}
+  input[type=text]:hover,input[type=number]:hover{background:var(--k-fill-hover)}
+  input[type=text]:focus,input[type=number]:focus,textarea:focus{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line)}
+  textarea{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;padding:8px 10px;font-size:var(--fs-body);min-height:44px}
+  textarea:hover{background:var(--k-fill-hover)}
+  select{height:var(--h-ctl);border-radius:var(--r-ctl);background-color:var(--k-fill);box-shadow:none;padding:0 28px 0 10px;font-size:var(--fs-body);background-position:right 9px center;background-size:12px}
+  select:hover{background-color:var(--k-fill-hover)}
+  .num-row label.num span{font-size:12px}
+
+  /* help */
+  .hint{font-size:12px;line-height:1.45;margin:-2px 0 16px;color:var(--muted)}
+  .q{width:15px;height:15px;font-size:9.5px}
+  .tip{border-radius:var(--r-ctl);font-size:12px}
+
+  /* lists: media, fonts, presets – rows as soft fills; the open one raised white */
+  .slot{padding:0;margin:0;border-bottom:0}
+  .media-list{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
+  .media-list .slot,.font-list .slot,.preset-list .slot{background:var(--k-fill);border-radius:var(--r-ctl);padding:6px;transition:background var(--t-snap)}
+  .media-list .slot:hover,.font-list .slot:hover,.preset-list .slot:hover{background:var(--k-fill-hover)}
+  .media-list .slot.open,.preset-list .slot.on{background:var(--k-raise);box-shadow:0 0 0 1px var(--k-raise-line)}
+  /* moving a row (Segue 1.0): where it will land is a slim line in the gap above, the full width, in the focus colour */
+  .media-list .slot{position:relative}
+  .media-list .slot.over{box-shadow:none}
+  .media-list .slot.over::after{content:'';position:absolute;left:2px;right:2px;top:-4px;height:2px;border-radius:1px;background:var(--focus);pointer-events:none}
+  .slot-top{gap:8px}
+  .slot-name{font-size:var(--fs-body)}
+  .slot-meta{font-size:11.5px;margin-top:2px}
+  .grip{flex:none;width:10px;height:18px;color:var(--k-num);cursor:grab;display:flex;align-items:center;justify-content:center;margin:0 -2px 0 0}
+  .grip svg{width:6px;height:12px}
+  .mthumb{width:44px;height:32px;border-radius:var(--r-sw)}
+  .slot-top .mthumb{margin-right:0}
+  .media-list .slot-det{padding:10px 16px 2px 4px}
+  .font-list{display:flex;flex-direction:column;gap:4px;margin:0 0 10px}
+  .font-list .slot{padding:8px}
+  .font-row .sample{font-size:14px}
+  .preset-list{gap:4px;margin:2px 0 12px}
+  .preset-list .slot{padding:8px 8px 8px 10px}
+  .preset-list .slot-name{font-weight:500}
+  .preset-list .sub-head{margin:12px 0 4px}
+  .preset-list .sub-head:first-child{margin-top:0}
+  .preset-row .tag{display:inline-flex;align-items:center;height:20px;padding:0 7px;border-radius:var(--r-chip);box-shadow:inset 0 0 0 1px var(--hair);font-size:11px;font-weight:500;color:var(--ink);margin:0}
+  .media-empty{border-radius:var(--r-ctl);padding:16px 12px}
+  .img-row{gap:8px;margin-bottom:10px}
+  .progress{height:4px;border-radius:2px;background:var(--k-fill)}
+  .progress>i{border-radius:2px;transition:width var(--t-snap) linear}
+
+  /* ---------------- sheets ---------------- */
+  .sheet{padding:16px 16px 14px}
+  .sheet .card-toggle{font-size:var(--fs-title);font-weight:500;min-height:0;padding:0;margin-bottom:12px}
+  .sheet .card-toggle .num,.sheet .card-toggle .cdot,.sheet .card-toggle .reset{display:none!important}
+  .sheet .card-anim{display:block}
+  .sheet .card-body{padding:0;opacity:1}
+  .sheet .sub-head{margin:14px 0 6px;padding-top:12px}
+  .sheet .btn-row>.pill.primary{height:36px}
+  .sheets{transition:grid-template-rows var(--t-smooth) var(--e-smooth)}
+
+  /* ---------------- the island, Presets and the top bar ---------------- */
+  .island,.pcap{transition:left var(--t-smooth) var(--e-smooth),min-width var(--t-smooth) var(--e-smooth),opacity .3s}
+  .ebtn{height:var(--h-isl);border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none;font-size:var(--fs-body);font-weight:500;padding:0 14px;transition:background var(--t-snap),transform var(--t-snap) var(--e-snap)}
+  .ebtn:hover{background:var(--k-fill-hover)}
+  .ebtn:active{transform:scale(.97)}
+  .ebtn.primary{background:var(--fill-ink);color:var(--on-ink)}
+  .ebtn.primary[aria-expanded="true"]{opacity:1}
+  #play{min-width:64px;justify-content:center}
+  #scrub::-webkit-slider-runnable-track{height:3px;border-radius:2px;background:var(--k-fill-2)}
+  #scrub::-webkit-slider-thumb{width:12px;height:12px;margin-top:-4.5px;background:var(--k-handle)}
+  #scrub::-moz-range-track{height:3px;border-radius:2px;background:var(--k-fill-2)}
+  .act-main{font-size:12px}
+  .status{font-size:var(--fs-body)}
+  .status.on{display:flex;align-items:center;gap:10px;line-height:normal;height:var(--h-isl)}
+  .status>span:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}   /* the message gives way; what you can press never does */
+  .status .undo{all:unset;flex:none;cursor:pointer;font-weight:500;color:var(--ink-strong);box-shadow:inset 0 -1px 0 var(--hair);line-height:1.2}
+  .status .undo:hover{box-shadow:inset 0 -1px 0 var(--ink)}
+  .status .undo:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
+  .pc-row{padding:0 14px 0 4px}
+  .pc-row:focus-visible{border-radius:var(--r-surface)}
+  .pc-row .pc-ic{border-radius:var(--r-ctl);background:var(--k-fill);box-shadow:none}
+  .pc-row .pc-t{font-weight:500}
+  .stage-foot span{border-radius:var(--r-ctl);padding:0 10px}
+  .tools{border-radius:var(--r-ctl)}
+  .tools button{border-radius:var(--r-in)}
+  .panel-btn{border-radius:var(--r-ctl)}
+  .drop{font-weight:500}
+
+  @media (max-width:860px){
+    #islandMain{border-radius:var(--r-ctl)}
+    .card-body{padding-right:calc(16px + var(--gutter))}
+  }
+  @media (prefers-reduced-motion: reduce){.rng-box.ease{transition:none}}
+
+  /* ================= Structure (0.5.2) – one ladder of levels, one row grammar ==========     1 Section  – a white card on the panel's 4% grey: number and title (14, Bold), chevron, Reset when changed.
+     2 Group    – inside a card, under a hairline: title (13, Bold), chevron.
+     3 Setting  – one row: its label (13, Medium) in a fixed column on the left, its control on the right,
+                  30 px high. When the control needs the full width – choices that won't fit beside the label,
+                  tiles, a list, a text box – the label sits above and the control takes the width.
+     4 Detail   – belongs to one row (a slide's own settings, a note): inside or under that row.
+     Space on an 8 px step: 8 between settings, 6 from a label to the control under it, 16 before a group.
+     Corners step down with the levels: panel 12, card 10, control 8, inside a control 6, swatch 4. */
+  :root{--pw:360px;--lc:104px;--r-cardk:10px}
+  .scroll{padding:0 8px 8px;gap:8px}
+  .card{background:var(--k-card);border-radius:var(--r-cardk);border-top:0}
+  .card-toggle{min-height:46px;padding:0 12px}
+  .card-toggle:focus-visible{border-radius:var(--r-cardk)}
+  .card-body{background:none;border-radius:0;margin:0;padding:0 calc(12px + var(--gutter)) 14px 12px}
+  h2>.pill.reset{right:34px}
+  .sheet .card{background:none}
+
+  /* level 3 – a setting on one row: label column, then the control */
+  .ctl,.toggle-row,.colour-row{margin:0 0 8px}
+  .ctl.sel,.ctl.txt:not(.multi),.ctl.nums,.ctl.stp,.ctl.seg-inline,.ctl.as-menu,.colour-row{display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;min-height:var(--h-ctl)}
+  .ctl.sel>.ctl-head,.ctl.txt:not(.multi)>.ctl-head,.ctl.nums>.ctl-head,.ctl.stp>.ctl-head,.ctl.seg-inline>.ctl-head,.ctl.as-menu>.ctl-head{margin:0;min-width:0;position:static}
+  .ctl.seg-inline>.seg,.ctl.as-menu>.seg-menu{grid-column:2}
+  .ctl.stp>.stp-g{justify-self:start}
+  .ctl-head label,.ctl-head>span:first-child{white-space:normal;line-height:1.2}
+  /* the change dot sits level with a one-line row */
+  .ctl.sel .cx,.ctl.txt:not(.multi) .cx,.ctl.nums .cx,.ctl.seg-inline .cx,.ctl.as-menu .cx{top:50%;margin-top:-8px}
+  /* a full-width control: the label above it */
+  .ctl:not(.seg-inline):not(.as-menu)>.ctl-head{margin-bottom:6px}
+  /* switch: its words in the label column, the tick where every control starts */
+  .toggle-row .toggle{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;width:auto;min-height:var(--h-ctl);margin:0}
+  .toggle-row .toggle>span:last-child{order:-1;font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .toggle-row>.q{position:absolute;left:calc(var(--lc) + 34px);top:50%;margin-top:-7.5px}
+  /* colour: the hex field across the control column, the swatch at its end */
+  .colour-row>label{font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .colour-row .cw{margin:0;display:flex;gap:6px;min-width:0}
+  .colour-row input.hexin{flex:1;width:auto;min-width:0;height:var(--h-ctl);border-radius:var(--r-ctl);font-size:var(--fs-body)}
+  .colour-row .cswatch{width:var(--h-ctl);height:var(--h-ctl);border-radius:var(--r-ctl);flex:none}
+  /* the slider: its label in the label column (a press there drags it too), the bar in the control column */
+  .ctl.rng{padding-left:calc(var(--lc) + 10px)}
+  .rng-box{overflow:visible}
+  .rng-box.from-start .rng-fill{border-radius:var(--r-ctl) 0 0 var(--r-ctl)}
+  .rng-box .ctl-head label{position:absolute;left:calc(-1 * (var(--lc) + 10px));width:var(--lc);top:50%;transform:translateY(-50%);
+    pointer-events:auto;cursor:ew-resize;font-weight:500;color:var(--ink-strong);line-height:1.2;white-space:normal}
+  @media (hover:hover){.rng-box .q{display:none}}
+  @media (hover:none){.rng-box .q{position:absolute;left:-24px;top:50%;margin-top:-7.5px}}
+  .media-list .slot-det{padding:10px 16px 4px 4px}
+  .media-list .slot-det{--lc:84px}
+  .colour-row>.q{position:absolute;left:calc(var(--lc) - 16px);top:50%;margin-top:-7.5px}
+  .colour-row>.cx{grid-column:3}
+
+  /* ================= 0.5.3 – more room, one rule at a time, details as details ================= */
+  /* sections: no numbers – the title lines up with everything under it */
+  .card-toggle .num{display:none}
+  .card-toggle{padding:0 16px;min-height:48px}
+  .card-body{padding:2px calc(16px + var(--gutter)) 16px 16px}
+  .scroll{gap:10px;padding:0 10px 10px}
+  /* the change dot: blue, with room either side – it sits in the middle of the gutter */
+  .cx{right:calc(-1 * var(--gutter))}
+  .ctl,.toggle-row,.colour-row{margin:0 0 10px}
+  .fold{margin-top:20px;padding-top:6px}
+  /* one rule per edge: the group's own line, never the head's as well */
+  .fold-head,.more-toggle{border-top:0}
+  .hint{padding-right:12px;margin:0 0 16px}
+  /* sheets speak the panel's language: the title as a section title, groups as labels, one rule between groups */
+  .sheet .card-toggle{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);min-height:0;padding:0 0 14px;border:0}
+  .sheet{padding:18px 18px 16px}
+  .sheet .sub-head,.preset-list .sub-head{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);border-top:1px solid var(--keyline);padding-top:16px;margin:16px 0 10px}
+  .sheet .card-body>.sub-head:first-child,.preset-list>.sub-head:first-child{border-top:0;padding-top:0;margin-top:0}
+  /* a preset: its kind's picture and its name; the one in use white, its keyline inside so nothing clips it */
+  .preset-list{display:flex;flex-direction:column;gap:4px}
+  .preset-list .slot{padding:0}
+  .preset-list .slot-top{display:flex;align-items:center;gap:10px;min-height:40px;padding:0 10px 0 8px}
+  .preset-list .slot-main{flex:1;min-width:0;padding:0}
+  .preset-list .slot-name{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong)}
+  .pk{flex:none;width:34px;height:24px;color:var(--muted);display:flex;align-items:center;justify-content:center}
+  .pk svg{width:34px;height:24px;display:block;overflow:hidden}
+  .pk svg rect{fill:currentColor}.pk svg rect.dim{opacity:.38}.pk svg rect.line{fill:none;stroke:currentColor;stroke-width:1.2;opacity:.55}
+  .preset-list .slot.on .pk{color:var(--ink-strong)}
+  .media-list .slot.open,.preset-list .slot.on{box-shadow:inset 0 0 0 1px var(--k-raise-line)}
+  .preset-list .tag{font-size:11.5px;font-weight:500;height:22px;line-height:22px;padding:0 8px;border-radius:var(--r-chip);background:var(--k-fill);color:var(--ink)}
+  /* the Export sheet: Download sits at the foot of a sheet that keeps its height */
+  [data-sheet=export] .card-body{display:flex;flex-direction:column}
+  [data-sheet=export] .card-body>.btn-row{margin-top:auto}
+  /* details: what you'll get, as chips */
+  .xinfo{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 14px}
+  .xinfo .chip{display:inline-flex;align-items:center;height:24px;padding:0 9px;border-radius:var(--r-chip);background:var(--k-fill);font-size:12px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
+  .xinfo .chip:first-child{background:var(--k-raise);box-shadow:inset 0 0 0 1px var(--k-raise-line);color:var(--ink-strong)}
+  /* choices that won't fit one row: an even grid (Tempo, Rubato), the white following into its row */
+  /* a choice group on two rows is still a control, not a lozenge: components.css gave it
+     calc(h/2 + 2) = 17px from before the kit, which left 6px pills inside a 17px box
+     (Steve, 12 Nov: "corner discrepancy"). One ladder: 4 · 6 · 8 · 10 · 12. */
+  .seg.wrap,.btn-row.choice.wrap{border-radius:var(--r-ctl)}
+  /* a slider is a control, so it takes the control's corner – not a lozenge
+     (Steve, 5 Nov: "rounded corners, not lozenges. consistent corner logic").
+     The panel's sliders are .rng-box and already were; this catches the plain
+     ones the island uses for the play bar. */
+  input[type=range],input[type=range]::-webkit-slider-runnable-track{border-radius:var(--r-ctl)}
+  .rng-box input[type=range]{border-radius:inherit}
+  .seg.wrap{display:grid;grid-auto-flow:row;grid-template-columns:repeat(var(--cols),minmax(0,1fr))}
+  .seg.wrap>.pill{flex:none;min-width:0}
+  .seg.loose{display:flex;flex-direction:column}
+  .seg>.hl{top:2px;height:calc(100% - 4px)}
+  .sheet-h{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);letter-spacing:-0.012em;margin:0 0 14px}
+
+  /* groups without a wrapper (Tempo's folds, Rubato's More): the head carries the one rule */
+  .fold-head,.more-toggle{border-top:1px solid var(--keyline);margin-top:20px;padding-top:6px}
+  .fold>.fold-head{border-top:0;margin-top:0;padding-top:0}
+  .card-body>.fold-head:first-child,.card-body>.more-toggle:first-child{border-top:0;margin-top:0;padding-top:0}
+  /* Rubato's own parts in house terms: the stepper, the dial's label.
+     The dial starts where every other control starts – its name in the label column,
+     its value after it (Steve, 6 Nov: the dial was sitting in the label column). */
+  .dial-row{display:grid;grid-template-columns:var(--lc) auto minmax(0,1fr);column-gap:10px;align-items:center}
+  .dial-row>.dial-info,.dial-row>.dial-info>.ctl-head{display:contents}
+  .dial-row>.dial{grid-column:2;grid-row:1;justify-self:start}
+  .dial-row>.dial-info>.ctl-head>label{grid-column:1;grid-row:1;font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2;cursor:ns-resize}
+  .dial-row>.dial-info>.ctl-head>.val{grid-column:3;grid-row:1;justify-self:start;text-align:left}
+  .dial-row>.dial-info>.ctl-head>.q{grid-column:1;grid-row:1;justify-self:end;position:static;margin:0}
+  /* the stepper, and the dial's label */
+  .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
+  .st-label{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2}
+  .st-box{margin-left:0;justify-self:start;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px;gap:2px}
+  .st-btn{width:26px;height:26px;border-radius:var(--r-in);background:transparent;font-size:14px}
+  .st-btn:hover{background:var(--k-raise)}
+  .st-box .val{font-size:var(--fs-body);min-width:36px}
+  /* the island's choices keep their own widths (they scroll sideways on a phone) */
+  .isl-main .seg>.pill{flex:none;padding:0 12px}
+
+  /* thin scrollbars on every tool (Steve, 7 Nov): 6 px, a soft grey thumb that darkens under the pointer, no track.
+     Chrome and Safari draw them from the ::-webkit-scrollbar rules – which Chrome ignores wherever scrollbar-width
+     is set, so that's put back to auto there; Firefox, which has no such rules, keeps its own thin one. */
+  /* the thumb is 6 px, in a 16 px lane – 5 px clear either side of it (Steve, 9 Nov: "more space both sides of the
+     scrollbar"); the panel keeps that lane whether or not there's anything to scroll, so nothing moves when a section
+     opens and the scrollbar appears, and the sections' right edges stay put */
+  ::-webkit-scrollbar{width:16px;height:16px}
+  ::-webkit-scrollbar-track,::-webkit-scrollbar-corner{background:transparent}
+  ::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink) 20%,transparent);background-clip:padding-box;border:5px solid transparent;border-radius:8px;min-height:40px}
+  ::-webkit-scrollbar-thumb:hover{background-color:color-mix(in srgb,var(--ink) 40%,transparent)}
+  .scroll{overflow-y:scroll;scrollbar-gutter:stable;padding-right:0}
+  @supports selector(::-webkit-scrollbar){.scroll,.sheet{scrollbar-width:auto}}
+  @supports not selector(::-webkit-scrollbar){.scroll,.sheet,body{scrollbar-width:thin}}
+  #islandMain::-webkit-scrollbar,.island-row::-webkit-scrollbar{display:none}
+
+  /* a drag on a control never drags text, a row or a section out of the browser (Steve, 9 Nov) */
+  .panel,.island,.pcap,.topbar,.pop{-webkit-user-select:none;user-select:none}
+  .panel input,.panel textarea,.panel [contenteditable],.pop input,.island input{-webkit-user-select:text;user-select:text}
+  .panel img,.panel svg,.panel canvas{-webkit-user-drag:none}
+  /* House rule from Segue 1.0: the bottom line stays put – the island anchored bottom left, Presets bottom right
+     (their ids, so Tutti's own export bar keeps its place) */
+  @media (min-width:861px){
+    #island{transform:none}
+    #island .island-row{justify-content:flex-start}
+    #pcap .pc-row{justify-content:flex-end}
+  }
+
+  /* ============ House parts every tool takes (lifted out of Segue, 11 Nov) =====     These were written in Segue and proved there; they are the house's, not Segue's. */
+
+  /* 0.11: the pasteboard – very sparse, very faint dots round the canvas, so it's plain what's canvas and what isn't */
+  .view{background-image:radial-gradient(circle,color-mix(in srgb,var(--ink) 15%,transparent) 0 .75px,transparent 1.05px);background-size:24px 24px;background-position:center}
+  .app.preview .view{background-image:none}
+  .layer-sw{margin-bottom:12px}
+
+  /* 0.10: the view's zoom – the view scrolls when the canvas is bigger than it, the canvas
+     stays centred when it's smaller. The buttons are a keyline group in the top bar. */
+  .view>canvas,.view>.canvas-wrap{margin:auto;flex:none}
+  .view.zoomed{overflow:auto;justify-content:flex-start;align-items:flex-start;scrollbar-width:thin}
+  /* guides over the work (shared/view.js): the margin as one hairline box, the grid inside it.
+     Drawn over the canvas and never into it – no export has them. */
+  .guide-ov{position:absolute;pointer-events:none;z-index:2}
+  .guide-ov::before{content:"";position:absolute;inset:var(--gm-y) var(--gm-x);box-shadow:0 0 0 1px color-mix(in srgb,var(--k-dot) 55%,transparent)}
+  .guide-ov.has-grid::after{content:"";position:absolute;inset:var(--gm-y) var(--gm-x);
+    background-image:repeating-linear-gradient(to right,color-mix(in srgb,var(--k-dot) 28%,transparent) 0 1px,transparent 1px var(--gc)),
+                     repeating-linear-gradient(to bottom,color-mix(in srgb,var(--k-dot) 28%,transparent) 0 1px,transparent 1px var(--gr))}
+  .app.preview .guide-ov{display:none}
+  /* a small panel under its button: the card's surface, the panel's rows. Lifted out of Segue. */
+  .pop{position:absolute;top:calc(100% + 8px);right:0;width:300px;z-index:20;padding:14px calc(12px + var(--gutter)) 10px 14px;border-radius:var(--r-surface);
+    background:var(--k-card);box-shadow:0 0 0 1px var(--keyline);color:var(--ink);text-align:left;--lc:96px}
+  .pop[hidden]{display:none}
+  .pop-title{font-size:var(--fs-title);font-weight:700;color:var(--ink-strong);margin:0 0 12px}
+  .pop .hint{margin:8px 0 2px}
+  #guideTools{position:relative}
+  /* the pop's rows are the panel's rows: the name in the label column, the control beside it */
+  #guideTools .pop{width:300px;--lc:64px;padding:14px 14px 10px}
+  #guideTools .pop .ctl{display:grid;grid-template-columns:var(--lc) minmax(0,1fr);column-gap:10px;align-items:center;margin-bottom:8px}
+  #guideTools .pop .ctl-head{margin:0}
+  #guideTools .pop .ctl-head span{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong)}
+  #guideTools .pop .seg{flex-wrap:nowrap}
+  #guideTools .pop .seg>.pill{min-width:0;padding:0 4px}
+  .topbar .tools button:disabled{opacity:.35;cursor:default;background:transparent}
+  #zoomTools .zval{width:auto;min-width:44px;padding:0 6px;border-radius:var(--r-in);font-size:var(--fs-small);font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:0}
+  #zoomTools .zval[aria-pressed="true"]{background:transparent;color:var(--ink-strong)}
+  #zoomTools .zval:hover{background:var(--btn-hover)}
+
+  /* 0.16 – a switch that heads a group: the group's rule and weight, its box first. One way to turn anything optional on. */
+  .toggle-row.sw-grp{border-top:1px solid var(--keyline);margin:20px 0 6px;padding-top:6px}
+  .toggle-row.sw-grp .toggle{display:flex;gap:10px;align-items:center;min-height:38px;width:auto}
+  .toggle-row.sw-grp .toggle>span:last-child{order:0;font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);letter-spacing:-0.008em}
+  .toggle-row.sw-grp>.q{position:static;margin:0 0 0 2px}
+  .toggle-row.sw-grp:not(.on){margin-bottom:0}
+  .card-body>.toggle-row.sw-grp:first-child{border-top:0;margin-top:0;padding-top:0}
+
+  /* Export opens a sheet – the chevron says so – and becomes the progress while it works: its fill, the per cent and
+   the time left, so the sheet can be shut and the work carried on. Stop sits beside it, the same height. */
+  .ebtn.xopen .chev{width:10px;height:10px;color:var(--muted);transition:transform var(--t-smooth) var(--e-smooth)}
+  .ebtn.xopen[aria-expanded="true"] .chev{transform:rotate(180deg)}
+  .ebtn.xopen:hover .chev{color:var(--ink)}
+  .ebtn.run,.pill.xgo.run{position:relative;overflow:hidden;background:var(--k-fill);color:var(--ink);font-variant-numeric:tabular-nums;cursor:default}
+  .ebtn.run::before,.pill.xgo.run::before{content:'';position:absolute;left:0;top:0;bottom:0;width:var(--p,0%);background:var(--k-fill-hover);transition:width .2s linear}
+  .ebtn.run::after,.pill.xgo.run::after{content:'';position:absolute;left:0;bottom:0;height:2px;width:var(--p,0%);background:var(--fill-ink);transition:width .2s linear}
+  .ebtn.run>*,.pill.xgo.run{z-index:1}
+  .ebtn.run>.chev{display:none}
+  .pill.xgo.run>*{position:relative;z-index:1}
+  .xrun{display:flex;gap:6px}
+  .xrun .xgo{flex:1 1 auto}
+  .ctl.btn-row.xrun>.xstop{flex:none;height:var(--h-ctl);padding:0 13px}
+  .sheet .btn-row.xrun>.pill{height:36px}
+  #exportStop{flex:none}
+
+  /* the note: something finished while you were working elsewhere. It goes by itself; a click sends it sooner. */
+  .notice{position:absolute;right:var(--gap);top:calc(var(--gap)*2 + var(--h-chip));z-index:9;display:flex;align-items:center;gap:10px;max-width:320px;padding:10px 14px 10px 12px;border-radius:var(--r-surface);
+  background:color-mix(in srgb,var(--app) 92%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline),0 8px 28px rgba(0,0,0,.1);
+  cursor:pointer;animation:noteIn .32s var(--e-smooth)}
+  .notice.out{opacity:0;transform:translateY(-6px);transition:opacity .24s,transform .24s}
+  .notice .n-ic{flex:none;width:22px;height:22px;border-radius:50%;background:var(--fill-ink);color:var(--on-ink);display:flex;align-items:center;justify-content:center}
+  .notice.quiet .n-ic{background:var(--k-fill);color:var(--muted)}
+  .notice .n-ic svg{width:12px;height:12px}
+  .notice .n-tx{min-width:0;display:flex;flex-direction:column;gap:1px;line-height:1.3}
+  .notice .n-tx b{font-size:var(--fs-small);font-weight:500;color:var(--ink-strong)}
+  .notice .n-tx span{font-size:var(--fs-small);color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  @keyframes noteIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:none}}
+=======
+  /* 13 Nov – one kind of "?" everywhere: a circle, the same size, centred on the row's middle. Where a pointer can
+     hover and the row shows its own tip (Segue, Rubato, Tempo – html.row-tips), there's none at all. */
+  .q,.toggle-row>.q,.colour-row>.q{width:15px;height:15px;border-radius:50%}
+  @media (hover:hover){html.row-tips .q{display:none!important}}
+</style>
+<style>
+/* the page's own chrome – deliberately outside .panel/.island/.topbar/.pop so the
+   house check reads only the components, never this */
+  body{margin:0;background:var(--k-panel);color:var(--ink);font-family:'Inter Tight',system-ui,sans-serif}
+  .page{max-width:1180px;margin:0 auto;padding:40px 24px 80px}
+  .page h1{font-size:28px;letter-spacing:-.03em;margin:0 0 6px}
+  .page .lede{color:var(--muted);font-size:14px;max-width:62ch;margin:0 0 28px;line-height:1.5}
+  .page h2.sec{font-size:15px;font-weight:700;letter-spacing:-.01em;margin:40px 0 12px}
+  .frame{position:relative;height:760px;border-radius:var(--r-surface);overflow:hidden;
+    box-shadow:0 0 0 1px var(--keyline);background:var(--app,var(--k-panel))}
+  .frame .app{position:absolute;inset:0}
+  table.inv{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+  table.inv th,table.inv td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--keyline);vertical-align:top}
+  table.inv th{font-weight:500;color:var(--muted)}
+  table.inv code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px}
+  .count{color:var(--muted);font-size:13px;margin:0 0 4px}
+</style>
+</head><body>
+<div class="page">
+  <h1>The house kit</h1>
+  <p class="lede">Every component the tools share, in one place, built from
+  <code>shared/tokens.css</code>, <code>shared/components.css</code> and <code>shared/kit.css</code> –
+  the same files the tools load, in the same order. Nothing here is a drawing of a component;
+  they are the components. Refine them in the kit and every tool takes the change.</p>
+
+  <h2 class="sec">In the panel</h2>
+  <div class="frame"><div class="app" data-theme="light">
+  <aside class="panel" id="panelBox">
+    <div class="brand">
+      <div class="bline"><span class="mark">The house</span><span class="ver">kit</span></div>
+      <div class="bline caps">By ENSEMBLE</div>
+    </div>
+    <div class="scroll" id="panel" aria-label="Components">
+
+      <section class="card" data-id="surfaces" data-spec="card card-toggle card-body sum chev">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>A section</span><span class="sum">what is set</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <p class="hint">A section is a white card whose head says what is set inside it when it is shut. This is a hint – the quiet line under a control. The blue dot on the row above marks a setting changed from where it started; clicking it puts the setting back.</p>
+        </div>
+      </section>
+
+      <section class="card" data-id="rows" data-spec="ctl rng rng-box rng-fill rng-tick ctl-head val typable cx">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Rows</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <div class="ctl rng">
+            <div class="rng-box" style="--p:.42"><span class="rng-fill"></span><span class="rng-tick"></span>
+              <div class="ctl-head"><label>A slider</label><span class="val typable">42%</span></div>
+              <input type="range" min="0" max="100" value="42" aria-label="A slider">
+            </div>
+          </div>
+          <div class="ctl rng">
+            <div class="rng-box chg" style="--p:.7"><span class="rng-fill"></span><span class="rng-tick"></span>
+              <div class="ctl-head"><label>Changed</label><span class="val typable">70%</span>
+                <button class="cx" type="button" aria-label="Put back"></button></div>
+              <input type="range" min="0" max="100" value="70" aria-label="Changed">
+            </div>
+          </div>
+          <div class="ctl stp">
+            <div class="ctl-head"><span>Stepper</span>
+              <span class="stp-g"><button type="button" aria-label="Fewer"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button><span class="val typable">6</span><button type="button" aria-label="More"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8M6 2v8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" data-id="choices" data-spec="seg pill hl tabs tab lane lanes">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Choices</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <div class="ctl seg-inline">
+            <div class="ctl-head"><span>One of a few</span></div>
+            <div class="seg" role="group" aria-label="One of a few">
+              <button class="pill" type="button" aria-pressed="true">First</button>
+              <button class="pill" type="button" aria-pressed="false">Second</button>
+              <button class="pill" type="button" aria-pressed="false">Third</button>
+            </div>
+          </div>
+          <div class="ctl sel">
+            <div class="ctl-head"><label for="kitsel">Too many to show</label></div>
+            <select id="kitsel"><option>A menu, once the choices will not fit</option><option>Another</option></select>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" data-id="switches" data-spec="toggle toggle-row box sw-grp fold fold-head fold-body cdot">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Switches and groups</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <div class="toggle-row"><button class="toggle" type="button" role="switch" aria-checked="false"><span class="box"><i></i></span><span>A switch, off</span></button></div>
+          <div class="toggle-row on"><button class="toggle" type="button" role="switch" aria-checked="true"><span class="box"><i></i></span><span>A switch, on</span></button></div>
+          <div class="toggle-row sw-grp on"><button class="toggle" type="button" role="switch" aria-checked="true"><span class="box"><i></i></span><span>A switch that heads what it turns on</span></button></div>
+          <div class="fold">
+            <button class="fold-head" type="button" aria-expanded="true"><span>A group</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+            <div class="fold-body">
+              <p class="hint">A group is a hairline and a title that says what it holds. There is no level below this one.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" data-id="buttons" data-spec="pill small primary btn-row ebtn chip colour-row cswatch hexin cw">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Buttons and colour</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <div class="ctl btn-row">
+            <button class="pill" type="button">A button</button>
+            <button class="pill primary" type="button">The main action</button>
+          </div>
+          <div class="ctl btn-row">
+            <button class="pill small" type="button">A chip</button>
+            <button class="pill small" type="button">Another</button>
+          </div>
+          <div class="colour-row"><label class="lbl" for="kitcol">Colour</label><i class="q" data-tip="A colour is a hex field and a swatch.">?</i>
+            <div class="cw"><input class="hexin" id="kithex" type="text" value="#F6F5F4" aria-label="Colour – hex"><span class="cswatch"><input type="color" id="kitcol" value="#f6f5f4"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card collapsed" data-id="shut" data-spec="collapsed">
+        <h2><button class="card-toggle" type="button" aria-expanded="false"><span>A shut section</span><span class="sum">says what is set</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body"><p class="hint">Not shown until it is opened.</p></div>
+      </section>
+
+    </div>
+    <div class="resizer" aria-hidden="true"></div>
+  </aside>
+
+  <main class="stage">
+    <div class="view" id="view"><canvas width="420" height="300" aria-label="The pasteboard, with the canvas on it"></canvas></div>
+  </main>
+
+  <div class="topbar" data-spec="topbar tools zval">
+    <div class="stage-foot"><span>420 × 300 px</span></div>
+    <div class="tools"><button type="button" aria-label="Undo"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M5.2 3.3 2.6 5.9l2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.9h5.6a2.9 2.9 0 0 1 0 5.8H6.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button></div>
+    <div class="tools" id="zoomTools">
+      <button type="button" aria-label="Zoom out"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button class="zval" type="button">Fit</button>
+      <button type="button" aria-label="Zoom in"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7M7 3.5v7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+  </div>
+
+  <div class="island" data-spec="island ebtn isl-main">
+    <div class="island-row"><div class="island-in">
+      <div class="isl-main">
+        <button class="ebtn" type="button">A bottom-line button</button>
+        <button class="ebtn primary" type="button">Export</button>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="pop" data-spec="pop pop-title" style="right:24px;top:58px">
+    <div class="pop-title">A pop</div>
+    <div class="ctl"><div class="ctl-head"><span>Margin</span></div>
+      <div class="seg" role="group" aria-label="Margin">
+        <button class="pill" type="button" aria-pressed="false">None</button>
+        <button class="pill" type="button" aria-pressed="true">5%</button>
+        <button class="pill" type="button" aria-pressed="false">8%</button>
+      </div></div>
+    <p class="hint">The small panel under a top-bar button.</p>
+  </div>
+</div>
+</div>
+
+  <h2 class="sec">What is not in the kit</h2>
+  <p class="count">191 classes are the house's. These 238 belong to one tool
+  only – each is a component that cannot be refined from the kit, so this is the queue.
+  The last column is read from the built markup and from the <code>el(tag, class)</code> helpers;
+  a class a tool composes at run time can be alive without showing here, so a blank is worth a
+  look rather than proof of dead code.</p>
+  <table class="inv"><tr><th>Class</th><th>Defined in</th><th>Seen in the markup of</th></tr>
+  <tr><td><code>.auto</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.chip-b</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.chip-val</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.chip-x</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.chips</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.d-hub</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.d-needle</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.d-ring</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.d-wedge</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.dest-grid</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.dest-n</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.dest-name</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.dest-pt</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.dest-row</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.dest-t</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.dests</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.from</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.hold</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.in</code></td><td>Rubato only</td><td>Segue</td></tr>
+<tr><td><code>.kbtn</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.kern-list</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.khint</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.kval</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.lbar</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.lbar-h</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.lbar-legend</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.lg</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.lseg</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.p-axis</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.p-dot</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.p-shape</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.pad</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.pair-fill</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.pair-h</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.pair-track</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.seed-row</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.tb-font</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.tb-name</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.tb-size</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.tblock</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.tblock-head</code></td><td>Rubato only</td><td>Rubato</td></tr>
+<tr><td><code>.thumb</code></td><td>Rubato only</td><td>Rubato, Tempo</td></tr>
+<tr><td><code>.thumbs</code></td><td>Rubato only</td><td>Rubato, Tempo</td></tr>
+<tr><td><code>.to</code></td><td>Rubato only</td><td>not in the markup</td></tr>
+<tr><td><code>.arrow</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.det-arrows</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.det-end</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.dragging</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.editing</code></td><td>Segue only</td><td>Segue, Rubato, Tempo</td></tr>
+<tr><td><code>.enl</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.err-note</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.feel-pic</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.first</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.flash</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.fp-base</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.fp-cap</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.fp-curve</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.grab</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.grabbing</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.has-sw</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.head-sw</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.held</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.hover</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.img-in</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.img-lab</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.in</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.kind</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.kinds</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.labelled</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.layer</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.muted</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.no-dots</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.off</code></td><td>Segue only</td><td>Segue, Tempo</td></tr>
+<tr><td><code>.path-pic</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.pd-a</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.pd-b</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.pd-bg</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.pd-f</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.pd-o</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.pd-out</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.place</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.pp-dot</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.pp-line</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.pp-stop</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.proj-acts</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.proj-btn</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.proj-field</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.proj-ic</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.proj-list</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.proj-name</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.proj-pop</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.proj-row</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.proj-state</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.proj-thumb</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.projbar</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.scrubw</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.selhint</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.spot</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.squeezed</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.strip</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.strip-g</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.ticks</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.tight</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.tight-bar</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.tp-a</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.tp-b</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.tp-bg</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.tp-go</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.tp-o</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.trans-pic</code></td><td>Segue only</td><td>not in the markup</td></tr>
+<tr><td><code>.trim</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.trim-bar</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.trim-chips</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.trim-frame</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.trim-frames</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.trim-h</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.trim-head</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.trim-strip</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.trim-win</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.way</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.x</code></td><td>Segue only</td><td>Segue</td></tr>
+<tr><td><code>.cp-add</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-drop</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-grid</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-hex</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-l</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-mode</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-modes</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-nb</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-note</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-now</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-rg</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-row</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-sl</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-sliders</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-sub</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-sw</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cp-x</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.cpick</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.dev-list</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.dev-meta</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.dev-name</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.dev-row</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.dev-text</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.hour-strip</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.hs-axis</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.hs-cell</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.in</code></td><td>Tempo only</td><td>Segue</td></tr>
+<tr><td><code>.inline</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.layer-eye</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.layer-foot</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.layer-list</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.layer-mv</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.layer-name</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.layer-row</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.look</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.look-line</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.mine</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.now</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.off</code></td><td>Tempo only</td><td>Segue, Tempo</td></tr>
+<tr><td><code>.p-status</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.picking</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.picking-colour</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.row-chev</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.sw-dot</code></td><td>Tempo only</td><td>not in the markup</td></tr>
+<tr><td><code>.sw-set</code></td><td>Tempo only</td><td>not in the markup</td></tr>
+<tr><td><code>.theme-grid</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.theme-tile</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.thumb</code></td><td>Tempo only</td><td>Rubato, Tempo</td></tr>
+<tr><td><code>.thumbs</code></td><td>Tempo only</td><td>Rubato, Tempo</td></tr>
+<tr><td><code>.tt-clock</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.tt-dial</code></td><td>Tempo only</td><td>not in the markup</td></tr>
+<tr><td><code>.tt-name</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.tt-prev</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.tt-small</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.tt-stack</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.tt-tick</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.tt-type</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.tt-words</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.up</code></td><td>Tempo only</td><td>Tempo</td></tr>
+<tr><td><code>.active</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.btn</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.busy</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.cancel</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.cap-activity</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.cap-choose</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.card-tools</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.count</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.cxm</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.edge</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.edges</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.empty-s</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.emptymark</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.ep-sublabel</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.file</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.fmt</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.fontpick</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.gifmod</code></td><td>Tutti only</td><td>not in the markup</td></tr>
+<tr><td><code>.grow</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.idx</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.inner</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.lane-panel</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.lbl</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.lead-q</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.live-dot</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.markbox</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.marks</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.markseg</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.meta</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.mixgrp</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.mk</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.on-left</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.own</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.pp</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.ppdot</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.pre</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.rec</code></td><td>Tutti only</td><td>not in the markup</td></tr>
+<tr><td><code>.rec-btn</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.row</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.run-wrap</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.seg2</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.set</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.show</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.spin</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.state</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.steps</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.stop</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.stop-ic</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.sttext</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.subttl</code></td><td>Tutti only</td><td>not in the markup</td></tr>
+<tr><td><code>.subttl-row</code></td><td>Tutti only</td><td>not in the markup</td></tr>
+<tr><td><code>.svg-note</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.svgbtn</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.svgprev</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.swatch</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.txt-wrap</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.typegrp</code></td><td>Tutti only</td><td>Tutti</td></tr>
+<tr><td><code>.working</code></td><td>Tutti only</td><td>Tutti</td></tr>
+  </table>
+</div>
+</body></html>

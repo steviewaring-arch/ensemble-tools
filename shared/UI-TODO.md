@@ -4,6 +4,16 @@
 
 1. **The house check, widened** – done, below. 2. Tutti: break up Fine tuning. 3. Tempo onto the house style. 4. Rubato: menus, one "Stretch", change dots, kerning by drag, an audit. 5. Tutti: row notes instead of "?", and the house colour picker.
 
+### Done 25 Nov – the component page, at /ui/kit/
+
+Every house part on one screen, built from `shared/tokens.css`, `components.css` and `kit.css` – the same files the tools load, in the same order – so it cannot drift into a parallel truth. `ui/kit/body.html` is the only hand-written part; `ui/kit/make.py` runs from `build.py` after the tools. **`tests/corner_check.py` reads it as a fifth tool**, which is the point: a component only gets checked when a panel happens to show it, and the wrapped choice group that sat at 17px for weeks appears in two panels out of four.
+
+**The inventory it generates is the refactor queue.** 424 classes in all: **191 are the house's**, and **238 belong to one tool** – Segue 75, Tutti 58, Tempo 55, Rubato 41. Those are the components that cannot be refined from the kit. Of the 238, 209 are visibly in the markup and 29 are not, which is a dead-code list worth a look rather than proof.
+
+Two cautions, learned the hard way building it:
+- A specimen that does not match the real markup gives false confidence. The first draft wrote the stepper's – and + as text where the tools use SVG icons, and duly "found" a type stray that was mine.
+- The "seen in the markup" column reads class attributes and the `el(tag, class)` helpers. Rubato and Tempo build most of their DOM through those helpers, so before it knew about them it called 142 live classes dead.
+
 ### Done 25 Nov – Tutti 6.7: Fine tuning broken up
 
 Steve: "Fine tuning: break it up... No exceptions to the naming rule from here on."

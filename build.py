@@ -250,6 +250,12 @@ def main():
         shutil.rmtree(os.path.join(DOCS, 'ui'), ignore_errors=True)
         shutil.copytree(ui, os.path.join(DOCS, 'ui'))
         print('ui: docs/ui/ (UI stream pages, unlisted)')
+    # the component page: built from the kit itself, after the tools, so it can say
+    # which of them each component is on screen in (ui/kit/make.py)
+    sys.path.insert(0, os.path.join(ROOT, 'ui', 'kit'))
+    import make as kitpage
+    n_house, n_own = kitpage.build(DOCS)
+    print(f'ui/kit: docs/ui/kit/ ({n_house} house classes, {n_own} belonging to one tool)')
     shutil.copyfile(os.path.join(ROOT, 'shared/home.html'), os.path.join(DOCS, 'index.html'))
     open(os.path.join(DOCS, '.nojekyll'), 'w').close()
     private_site()

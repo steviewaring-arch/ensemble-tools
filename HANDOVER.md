@@ -8,6 +8,10 @@ Read this and `README.md` before changing anything. **Branches:** work on `main`
 - **Last combined app:** `reference/rubato-0.8.1.html` – byte-identical to the v0.8.1 Claude artifact (rechecked 6 October against the live artifact). Kept so the parity tests have something to compare against. Don't edit it.
 - **Versions (25 Nov) – the one list; update it with every release:** Tutti 6.7, Segue 1.3.2, Rubato 1.3.2, Tempo 0.18.3, Decentish 0.5. Rubato 0.9 is archived at /rubato/0.9/ (`archive/rubato-0.9.html`). Each release's detail is in `CHANGELOG.md`.
 
+## The component page (25 November)
+
+`/ui/kit/` – every house part on one screen, built from the kit itself by `ui/kit/make.py` during `build.py`, so refining the kit updates it for free. `tests/corner_check.py` reads it as a fifth tool, so components no panel currently shows still get checked. The page ends with an inventory: 191 classes are the house's, 238 belong to one tool only (Segue 75, Tutti 58, Tempo 55, Rubato 41) – that list is the queue for bringing parts into the kit.
+
 ## One corner logic, and the rest of the list (13 November)
 
 Steve: "spotted this in the latest version of Tempo – corner discrepancy. Need to ensure we are super consistent across the board... Run the list from the Segue chat through too – functionality such as zoom etc. ensure all caught."

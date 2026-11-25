@@ -1,0 +1,132 @@
+<div class="app" data-theme="light">
+  <aside class="panel" id="panelBox">
+    <div class="brand">
+      <div class="bline"><span class="mark">The house</span><span class="ver">kit</span></div>
+      <div class="bline caps">By ENSEMBLE</div>
+    </div>
+    <div class="scroll" id="panel" aria-label="Components">
+
+      <section class="card" data-id="surfaces" data-spec="card card-toggle card-body sum chev">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>A section</span><span class="sum">what is set</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <p class="hint">A section is a white card whose head says what is set inside it when it is shut. This is a hint – the quiet line under a control. The blue dot on the row above marks a setting changed from where it started; clicking it puts the setting back.</p>
+        </div>
+      </section>
+
+      <section class="card" data-id="rows" data-spec="ctl rng rng-box rng-fill rng-tick ctl-head val typable cx">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Rows</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <div class="ctl rng">
+            <div class="rng-box" style="--p:.42"><span class="rng-fill"></span><span class="rng-tick"></span>
+              <div class="ctl-head"><label>A slider</label><span class="val typable">42%</span></div>
+              <input type="range" min="0" max="100" value="42" aria-label="A slider">
+            </div>
+          </div>
+          <div class="ctl rng">
+            <div class="rng-box chg" style="--p:.7"><span class="rng-fill"></span><span class="rng-tick"></span>
+              <div class="ctl-head"><label>Changed</label><span class="val typable">70%</span>
+                <button class="cx" type="button" aria-label="Put back"></button></div>
+              <input type="range" min="0" max="100" value="70" aria-label="Changed">
+            </div>
+          </div>
+          <div class="ctl stp">
+            <div class="ctl-head"><span>Stepper</span>
+              <span class="stp-g"><button type="button" aria-label="Fewer"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button><span class="val typable">6</span><button type="button" aria-label="More"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8M6 2v8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg></button></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" data-id="choices" data-spec="seg pill hl tabs tab lane lanes">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Choices</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <div class="ctl seg-inline">
+            <div class="ctl-head"><span>One of a few</span></div>
+            <div class="seg" role="group" aria-label="One of a few">
+              <button class="pill" type="button" aria-pressed="true">First</button>
+              <button class="pill" type="button" aria-pressed="false">Second</button>
+              <button class="pill" type="button" aria-pressed="false">Third</button>
+            </div>
+          </div>
+          <div class="ctl sel">
+            <div class="ctl-head"><label for="kitsel">Too many to show</label></div>
+            <select id="kitsel"><option>A menu, once the choices will not fit</option><option>Another</option></select>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" data-id="switches" data-spec="toggle toggle-row box sw-grp fold fold-head fold-body cdot">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Switches and groups</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <div class="toggle-row"><button class="toggle" type="button" role="switch" aria-checked="false"><span class="box"><i></i></span><span>A switch, off</span></button></div>
+          <div class="toggle-row on"><button class="toggle" type="button" role="switch" aria-checked="true"><span class="box"><i></i></span><span>A switch, on</span></button></div>
+          <div class="toggle-row sw-grp on"><button class="toggle" type="button" role="switch" aria-checked="true"><span class="box"><i></i></span><span>A switch that heads what it turns on</span></button></div>
+          <div class="fold">
+            <button class="fold-head" type="button" aria-expanded="true"><span>A group</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
+            <div class="fold-body">
+              <p class="hint">A group is a hairline and a title that says what it holds. There is no level below this one.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card" data-id="buttons" data-spec="pill small primary btn-row ebtn chip colour-row cswatch hexin cw">
+        <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Buttons and colour</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body">
+          <div class="ctl btn-row">
+            <button class="pill" type="button">A button</button>
+            <button class="pill primary" type="button">The main action</button>
+          </div>
+          <div class="ctl btn-row">
+            <button class="pill small" type="button">A chip</button>
+            <button class="pill small" type="button">Another</button>
+          </div>
+          <div class="colour-row"><label class="lbl" for="kitcol">Colour</label><i class="q" data-tip="A colour is a hex field and a swatch.">?</i>
+            <div class="cw"><input class="hexin" id="kithex" type="text" value="#F6F5F4" aria-label="Colour – hex"><span class="cswatch"><input type="color" id="kitcol" value="#f6f5f4"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card collapsed" data-id="shut" data-spec="collapsed">
+        <h2><button class="card-toggle" type="button" aria-expanded="false"><span>A shut section</span><span class="sum">says what is set</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
+        <div class="card-body"><p class="hint">Not shown until it is opened.</p></div>
+      </section>
+
+    </div>
+    <div class="resizer" aria-hidden="true"></div>
+  </aside>
+
+  <main class="stage">
+    <div class="view" id="view"><canvas width="420" height="300" aria-label="The pasteboard, with the canvas on it"></canvas></div>
+  </main>
+
+  <div class="topbar" data-spec="topbar tools zval">
+    <div class="stage-foot"><span>420 × 300 px</span></div>
+    <div class="tools"><button type="button" aria-label="Undo"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M5.2 3.3 2.6 5.9l2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.9h5.6a2.9 2.9 0 0 1 0 5.8H6.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button></div>
+    <div class="tools" id="zoomTools">
+      <button type="button" aria-label="Zoom out"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button class="zval" type="button">Fit</button>
+      <button type="button" aria-label="Zoom in"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7M7 3.5v7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+  </div>
+
+  <div class="island" data-spec="island ebtn isl-main">
+    <div class="island-row"><div class="island-in">
+      <div class="isl-main">
+        <button class="ebtn" type="button">A bottom-line button</button>
+        <button class="ebtn primary" type="button">Export</button>
+      </div>
+    </div></div>
+  </div>
+
+  <div class="pop" data-spec="pop pop-title" style="right:24px;top:58px">
+    <div class="pop-title">A pop</div>
+    <div class="ctl"><div class="ctl-head"><span>Margin</span></div>
+      <div class="seg" role="group" aria-label="Margin">
+        <button class="pill" type="button" aria-pressed="false">None</button>
+        <button class="pill" type="button" aria-pressed="true">5%</button>
+        <button class="pill" type="button" aria-pressed="false">8%</button>
+      </div></div>
+    <p class="hint">The small panel under a top-bar button.</p>
+  </div>
+</div>

@@ -38,7 +38,10 @@ WEIGHTS = {400, 500, 700}
 STEPS = {0, 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 32}
 GUTTER = 20
 SPACING = STEPS | {s + GUTTER for s in STEPS}
-APPS = ('segue', 'tutti', 'rubato', 'tempo')
+# ui/kit is the component page: every house part on one screen, including the ones
+# no tool happens to show. That is where a stray hides – the wrapped choice group
+# sat at 17px for weeks and appears in two panels out of four.
+APPS = ('segue', 'tutti', 'rubato', 'tempo', 'ui/kit')
 CONTROL_CLASS = ['pill', 'seg', 'rng-box', 'tab', 'lane', 'stp-g', 'ebtn', 'chip',
                  'toggle', 'card-toggle', 'fold-head', 'more-toggle', 'val-in', 'cx']
 DATA_CLASS = ['swatch', 'cswatch', 'tt-prev', 'sw', 'chip-pic', 'thumb', 'pic', 'feel-pic']
