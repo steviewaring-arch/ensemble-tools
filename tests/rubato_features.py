@@ -127,7 +127,8 @@ def main():
         check('Dial drags', S()['fRot'] > 10)
         v0 = S()['fRot']; pg.locator('.dial[aria-label="Tilt"][aria-valuemax="45"]').press('Shift+ArrowDown'); check('Dial keys, Shift for bigger steps', abs(S()['fRot'] - (v0 - 5)) < 1e-6)
         pg.locator('.dial-row:visible label', has_text='Tilt').dblclick(); check('Double-click resets', S()['fRot'] == 0)
-        btn(pg, 'Cycles per loop up').first.click(); check('Stepper', S()['fCycles'] == 2)
+        # the house stepper came over from Segue with its labels: "More - X", not "X up"
+        btn(pg, 'More – Cycles per loop').first.click(); check('Stepper', S()['fCycles'] == 2)
         pd = box(pg.locator('.pad').first); pg.mouse.click(pd['x'] + pd['width'] * .9, pd['y'] + pd['height'] * .1)
         st = S(); check('Path pad sets rise and drift together', st['fX'] > 20 and st['fY'] > 40, f"drift {st['fX']}, rise {st['fY']}")
         btn(pg, 'Set text in Lora Regular').click(); time.sleep(.3)
