@@ -762,7 +762,7 @@ def main():
         left = [k for k in u0 if u0[k] != u2[k]]
         check('Undo: three settled changes are three steps, and undoing them puts every control back',
               len(changed) == 3 and undo_on is True and not left,
-              f'{len(changed)} changed, undo button {undo_on}, {len(left)} left differing {left[:3]}')
+              f'changed {changed}, undo button {undo_on}, {len(left)} left differing {left[:6]}')
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     failed = [r for r in results if not r[0]]
