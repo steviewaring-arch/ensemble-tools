@@ -256,6 +256,16 @@ both).
   wraps is a label to rewrite; the explanation goes in its tooltip.
 - **Hints** are 12 px grey, one or two short lines, with room after them and a
   right margin that keeps lines short. If it needs more, it's a tooltip.
+- **A label belongs to its control.** The label carries `for` and the control
+  carries the matching `id`, so pressing the label works the control and a screen
+  reader reads the name out. Where one label can't own the control – two fields
+  on a row, a control built in a loop, a row with no label at all – the control
+  carries its own `aria-label`, worded the way the row reads: `Highlights – colour`,
+  `More – Cycles per loop`, `Custom ratio – width`.
+- **The `?` sits beside the label, not inside it.** Inside a label that carries
+  `for`, pressing `?` would also press the control behind it. `qMark` in the
+  shared core appends it as the label's sibling; a tool writing its own rows does
+  the same, or stops the `?` press from carrying through.
 
 ## Controls
 
@@ -496,6 +506,10 @@ Open with Steve: his sampled base grey
    control typed, clicked, dragged, reset and undone; the Export bar in every format;
    a phone. Labels and accessible names are the contract with the tests – rename one
    only with its test.
+   The house check (`tests/corner_check.py`) reads every tool and the kit together and
+   **fails** on a control with no name, the way it fails on a stray corner. It counts
+   anything a person can reach, so a slider's invisible input over a drawn track counts
+   too – opacity says nothing about whether a control can be reached.
 2. **Audit the settings by machine** – `tests/audit/` is the model: for every preset
    and every state a setting can show in, change it to its other values and compare
    frames of the output with before. A setting that never changes anything is dead; a

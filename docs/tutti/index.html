@@ -1236,31 +1236,31 @@
       </div>
       <div class="hint" id="srcName">No source loaded</div>
       <div id="typeBlock">
-        <textarea id="typeText" placeholder="Type here…" style="margin-top:14px">Tutti</textarea>
+        <textarea id="typeText" placeholder="Type here…" style="margin-top:14px" aria-label="Words">Tutti</textarea>
         <div class="file" style="margin-top:12px"><label class="btn" for="fontIn">Upload typeface</label>
           <input id="fontIn" type="file" accept=".ttf,.otf,.woff,.woff2,font/*"></div>
         <div class="hint" id="fontName" style="margin-top:14px">Using Aktiv Grotesk</div>
-        <div class="row" style="margin-top:16px"><label class="lbl">Size</label><span class="val" id="tsizeV">220</span></div>
+        <div class="row" style="margin-top:16px"><label class="lbl" for="tsize">Size</label><span class="val" id="tsizeV">220</span></div>
         <input type="range" id="tsize" min="40" max="600" step="1" value="220">
-        <div class="row"><label class="lbl">Line height</label><span class="val" id="tlhV">1.00</span></div>
+        <div class="row"><label class="lbl" for="tlh">Line height</label><span class="val" id="tlhV">1.00</span></div>
         <input type="range" id="tlh" min="0.7" max="2" step="0.05" value="1">
         <div class="row" style="margin-bottom:6px"><label class="lbl">Align</label></div>
         <div class="seg" id="alignSeg">
           <button data-a="left">Left</button><button data-a="center" class="on">Centre</button><button data-a="right">Right</button>
         </div>
-        <div class="row" style="margin-top:16px"><label class="lbl">Tracking<i class="q" data-tip="Space between letters (uniform tracking). Pair-specific kerning comes from the font itself.">?</i></label><span class="val" id="trackV">0</span></div>
+        <div class="row" style="margin-top:16px"><label class="lbl" for="track">Tracking<i class="q" data-tip="Space between letters (uniform tracking). Pair-specific kerning comes from the font itself.">?</i></label><span class="val" id="trackV">0</span></div>
         <input type="range" id="track" min="-20" max="80" step="1" value="0">
         <div class="toggle" id="tGrad" style="margin-top:4px"><div class="box"></div><span>Gradient fill<i class="q" data-tip="Fills the type with a tonal gradient so the bands sweep across the word.">?</i></span></div>
-        <div class="row" id="gAngleRow" style="display:none"><label class="lbl">Gradient angle</label><span class="val" id="gAngleV">0°</span></div>
+        <div class="row" id="gAngleRow" style="display:none"><label class="lbl" for="gAngle">Gradient angle</label><span class="val" id="gAngleV">0°</span></div>
         <input type="range" id="gAngle" min="0" max="360" step="1" value="0" style="display:none">
         <div class="fold">
         <button class="fold-head" type="button" data-group="warp" aria-expanded="true"><span>Warp</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
         <div class="fold-body">
-        <div class="row"><label class="lbl">Width</label><span class="val" id="twidthV">1.00×</span></div>
+        <div class="row"><label class="lbl" for="twidth">Width</label><span class="val" id="twidthV">1.00×</span></div>
         <input type="range" id="twidth" min="0.4" max="2" step="0.01" value="1">
-        <div class="row"><label class="lbl">Height</label><span class="val" id="theightV">1.00×</span></div>
+        <div class="row"><label class="lbl" for="theight">Height</label><span class="val" id="theightV">1.00×</span></div>
         <input type="range" id="theight" min="0.4" max="2" step="0.01" value="1">
-        <div class="row"><label class="lbl">Slant</label><span class="val" id="tslantV">0°</span></div>
+        <div class="row"><label class="lbl" for="tslant">Slant</label><span class="val" id="tslantV">0°</span></div>
         <input type="range" id="tslant" min="-40" max="40" step="1" value="0">
         </div>
         </div>
@@ -1271,9 +1271,9 @@
     <section class="card" data-id="canvas">
       <h2><button class="card-toggle" type="button" aria-expanded="true"><span>Canvas</span><span class="sum"></span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button></h2>
       <div class="card-body">
-      <div class="row"><label class="lbl">Colour<i class="q" data-tip="The base colour the marks sit on – baked into your PNG and SVG exports.">?</i></label>
+      <div class="row"><label class="lbl" for="bgColor">Colour<i class="q" data-tip="The base colour the marks sit on – baked into your PNG and SVG exports.">?</i></label>
         <div class="cswatch" id="bgSwatch"><input type="color" id="bgColor" value="#ffffff"></div></div>
-      <div class="row"><label class="lbl">Format<i class="q" data-tip="Shape of the canvas. Custom W:H is handy for type – set a tall poster or a wide banner.">?</i></label>
+      <div class="row"><label class="lbl" for="aspect">Format<i class="q" data-tip="Shape of the canvas. Custom W:H is handy for type – set a tall poster or a wide banner.">?</i></label>
         <select id="aspect" style="max-width:170px;margin-left:auto">
           <option value="orig">Original</option><option value="1">1 : 1</option>
           <option value="0.8">4 : 5</option><option value="1.7778">16 : 9</option>
@@ -1281,17 +1281,17 @@
         </select></div>
       <div class="row" id="customAR"><label class="lbl">W : H</label>
         <div style="margin-left:auto;display:flex;gap:6px;align-items:center">
-          <input class="num" id="arW" type="number" min="1" value="3"><span style="color:var(--muted)">:</span>
-          <input class="num" id="arH" type="number" min="1" value="4"></div></div>
-      <div class="row"><label class="lbl">Grid<i class="q" data-tip="How many cells across. Higher = finer detail and more marks.">?</i></label><span class="val" id="gridV">72</span></div>
+          <input class="num" id="arW" type="number" min="1" value="3" aria-label="Custom ratio – width"><span style="color:var(--muted)">:</span>
+          <input class="num" id="arH" type="number" min="1" value="4" aria-label="Custom ratio – height"></div></div>
+      <div class="row"><label class="lbl" for="grid">Grid<i class="q" data-tip="How many cells across. Higher = finer detail and more marks.">?</i></label><span class="val" id="gridV">72</span></div>
       <input type="range" id="grid" min="16" max="180" step="1" value="72">
-      <div class="row"><label class="lbl">Resolution<i class="q" data-tip="Pixel size of the output. Higher = sharper PNG / SVG export.">?</i></label>
+      <div class="row"><label class="lbl" for="res">Resolution<i class="q" data-tip="Pixel size of the output. Higher = sharper PNG / SVG export.">?</i></label>
         <select id="res" style="max-width:148px;margin-left:auto">
           <option value="1200">Standard</option><option value="2000">High</option><option value="2800">Max</option>
         </select></div>
-      <div class="row"><label class="lbl">Scale<i class="q" data-tip="How big the source is within the frame.">?</i></label><span class="val" id="zoomV">1.00×</span></div>
+      <div class="row"><label class="lbl" for="zoom">Scale<i class="q" data-tip="How big the source is within the frame.">?</i></label><span class="val" id="zoomV">1.00×</span></div>
       <input type="range" id="zoom" min="1" max="3" step="0.01" value="1">
-      <div class="row"><label class="lbl">Source blur<i class="q" data-tip="Softens the source before it's sampled – spreads flat areas like type or logos across more tonal bands.">?</i></label><span class="val" id="sblurV">0</span></div>
+      <div class="row"><label class="lbl" for="sblur">Source blur<i class="q" data-tip="Softens the source before it's sampled – spreads flat areas like type or logos across more tonal bands.">?</i></label><span class="val" id="sblurV">0</span></div>
       <input type="range" id="sblur" min="0" max="40" step="1" value="0">
       </div>
     </section>
@@ -1301,17 +1301,17 @@
       <div class="card-body">
       <div class="card-tools"><a id="randomAll" title="New shapes and settings, at random">Randomise</a></div>
       <div class="row grow"><label class="lbl">Style<i class="q" data-tip="Marks: a shape in each cell. Type: words stretched along each run of one tone, edge to edge on the grid.">?</i></label><div class="seg" id="styleSeg" role="group" aria-label="Style"><button type="button" data-v="marks" class="on">Marks</button><button type="button" data-v="type">Type</button></div></div>
-      <div class="row grow"><label class="lbl">Look<i class="q" data-tip="A starting point for this style – it sets a few things at once, and Undo takes it back.">?</i></label><select id="looks"></select></div>
+      <div class="row grow"><label class="lbl" for="looks">Look<i class="q" data-tip="A starting point for this style – it sets a few things at once, and Undo takes it back.">?</i></label><select id="looks"></select></div>
       <div class="toggle on" id="tFill"><div class="box"></div><span>Solid fill<i class="q" data-tip="Fill each mark, or draw it as an outline.">?</i></span></div>
       <div class="toggle" id="tInvert"><div class="box"></div><span>Invert<i class="q" data-tip="Swap highlights and shadows – for light marks on a dark ground.">?</i></span></div>
       <div class="toggle on only-marks" id="tScale"><div class="box"></div><span>Size by tone<i class="q" data-tip="Let mark size follow tone: darker areas get bigger marks.">?</i></span></div>
-      <div class="row only-marks" style="margin-top:8px"><label class="lbl">Smallest<i class="q" data-tip="The smallest a mark can shrink to in the lightest areas.">?</i></label><span class="val" id="minV">8%</span></div>
+      <div class="row only-marks" style="margin-top:8px"><label class="lbl" for="minsize">Smallest<i class="q" data-tip="The smallest a mark can shrink to in the lightest areas.">?</i></label><span class="val" id="minV">8%</span></div>
       <input type="range" id="minsize" min="0" max="100" step="1" value="8">
-      <div class="row only-marks"><label class="lbl">Size<i class="q" data-tip="Scales every mark. Above 1× marks spill past their cell and overlap their neighbours.">?</i></label><span class="val" id="ssizeV">1.00×</span></div>
+      <div class="row only-marks"><label class="lbl" for="ssize">Size<i class="q" data-tip="Scales every mark. Above 1× marks spill past their cell and overlap their neighbours.">?</i></label><span class="val" id="ssizeV">1.00×</span></div>
       <input type="range" id="ssize" min="0.2" max="3" step="0.01" value="1">
-      <div class="row"><label class="lbl">Opacity<i class="q" data-tip="Mark transparency. Drop it alongside overlap for dense, textural builds.">?</i></label><span class="val" id="opV">100%</span></div>
+      <div class="row"><label class="lbl" for="opacity">Opacity<i class="q" data-tip="Mark transparency. Drop it alongside overlap for dense, textural builds.">?</i></label><span class="val" id="opV">100%</span></div>
       <input type="range" id="opacity" min="10" max="100" step="1" value="100">
-      <div class="row only-marks"><label class="lbl">Rotation<i class="q" data-tip="Base angle applied to every mark.">?</i></label><span class="val" id="rotV">0°</span></div>
+      <div class="row only-marks"><label class="lbl" for="rot">Rotation<i class="q" data-tip="Base angle applied to every mark.">?</i></label><span class="val" id="rotV">0°</span></div>
       <input type="range" id="rot" min="0" max="360" step="1" value="0">
       <div class="toggle-row sw-grp only-marks" id="mixRow"><div class="toggle" id="tMix"><div class="box"></div><span>Mixed<i class="q" data-tip="Some marks span several cells – 2×2 up to 5×5, or a bar – always on the grid. A big mark is the band's mark scaled, or a Big mark you choose in Mapping.">?</i></span></div></div>
       <div class="mixgrp only-marks" id="mixGrp" hidden>
@@ -1319,9 +1319,9 @@
         <div class="row"><label class="lbl">Squares</label><div class="seg multi" id="mixSq" role="group" aria-label="Squares"><button type="button" data-s="2">2×2</button><button type="button" data-s="3">3×3</button><button type="button" data-s="4">4×4</button><button type="button" data-s="5">5×5</button></div></div>
         <div class="row"><label class="lbl">Bars<i class="q" data-tip="Long marks, either way round. A dot becomes a capsule; an SVG mark is stretched to fit.">?</i></label><div class="seg multi" id="mixBar" role="group" aria-label="Bars"><button type="button" data-s="1x2">1×2</button><button type="button" data-s="1x3">1×3</button><button type="button" data-s="2x3">2×3</button></div></div>
         <div class="row"><label class="lbl">In bars<i class="q" data-tip="What a band's mark does in a bar. Repeat: the mark at its own shape, once per square along the bar. Stretch: one mark drawn out along it. A dot is a capsule either way.">?</i></label><div class="seg" id="mixBarsSeg" role="group" aria-label="Marks in bars"><button type="button" data-v="repeat" class="on">Repeat</button><button type="button" data-v="stretch">Stretch</button></div></div>
-        <div class="row"><label class="lbl">Amount<i class="q" data-tip="From one or two big marks to as many as will fit.">?</i></label><span class="val" id="mixAmtV">50%</span></div>
+        <div class="row"><label class="lbl" for="mixAmt">Amount<i class="q" data-tip="From one or two big marks to as many as will fit.">?</i></label><span class="val" id="mixAmtV">50%</span></div>
         <input type="range" id="mixAmt" min="0" max="100" step="1" value="50">
-        <div class="row"><label class="lbl">Where<i class="q" data-tip="Even: only where every cell under a block shares one band, so big marks sit in flat areas. Further right lets them cross more bands.">?</i></label><span class="val" id="mixWhereV">Even tone</span></div>
+        <div class="row"><label class="lbl" for="mixWhere">Where<i class="q" data-tip="Even: only where every cell under a block shares one band, so big marks sit in flat areas. Further right lets them cross more bands.">?</i></label><span class="val" id="mixWhereV">Even tone</span></div>
         <input type="range" id="mixWhere" min="0" max="100" step="1" value="0">
       </div>
       <div class="mixgrp typegrp only-type" id="typeGrp">
@@ -1329,14 +1329,14 @@
         <div class="row"><label class="lbl">Text<i class="q" data-tip="Per tone: each band has its own words, set in Mapping. Running: one passage runs through every stretch in reading order. Words take turns; a single letter is a word too.">?</i></label><div class="seg" id="tModeSeg" role="group" aria-label="Text"><button type="button" data-v="tone" class="on">Per tone</button><button type="button" data-v="run">Running</button></div></div>
         <textarea id="tRun" rows="2" spellcheck="false" aria-label="Running text" placeholder="Words to run through the picture">TUTTI</textarea>
         <div class="row"><label class="lbl">Fit<i class="q" data-tip="Stretch: each word is drawn out to fill its stretch exactly. Keep shape: true letter shapes, repeated along the stretch and cut at its end.">?</i></label><div class="seg" id="tFitSeg" role="group" aria-label="Fit"><button type="button" data-v="stretch" class="on">Stretch</button><button type="button" data-v="keep">Keep shape</button></div></div>
-        <div class="row"><label class="lbl">Shortest<i class="q" data-tip="The fewest cells a stretch can have. Shorter runs join the longer one beside them.">?</i></label><span class="val" id="tMinV">2 cells</span></div>
+        <div class="row"><label class="lbl" for="tMin">Shortest<i class="q" data-tip="The fewest cells a stretch can have. Shorter runs join the longer one beside them.">?</i></label><span class="val" id="tMinV">2 cells</span></div>
         <input type="range" id="tMin" min="1" max="12" step="1" value="2">
-        <div class="row"><label class="lbl">Longest<i class="q" data-tip="The most cells one word stretches over. A longer run is shared out between several words.">?</i></label><span class="val" id="tMaxV">12 cells</span></div>
+        <div class="row"><label class="lbl" for="tMax">Longest<i class="q" data-tip="The most cells one word stretches over. A longer run is shared out between several words.">?</i></label><span class="val" id="tMaxV">12 cells</span></div>
         <input type="range" id="tMax" min="2" max="61" step="1" value="12">
         <div class="row"><label class="lbl">Case</label><div class="seg" id="tCaseSeg" role="group" aria-label="Case"><button type="button" data-v="as" class="on">As typed</button><button type="button" data-v="upper">ABC</button><button type="button" data-v="lower">abc</button></div></div>
-        <div class="row"><label class="lbl">Letters<i class="q" data-tip="Letter spacing: one gap between every letter, the same in every word however far it's drawn out, and between neighbouring words. 0 butts them – no space, not a hairline.">?</i></label><span class="val" id="tLetterV">8%</span></div>
+        <div class="row"><label class="lbl" for="tLetter">Letters<i class="q" data-tip="Letter spacing: one gap between every letter, the same in every word however far it's drawn out, and between neighbouring words. 0 butts them – no space, not a hairline.">?</i></label><span class="val" id="tLetterV">8%</span></div>
         <input type="range" id="tLetter" min="0" max="60" step="1" value="8">
-        <div class="row"><label class="lbl">Lines<i class="q" data-tip="Line spacing: the gap between rows (or columns) of words. 0 butts them.">?</i></label><span class="val" id="tLineV">0%</span></div>
+        <div class="row"><label class="lbl" for="tLine">Lines<i class="q" data-tip="Line spacing: the gap between rows (or columns) of words. 0 butts them.">?</i></label><span class="val" id="tLineV">0%</span></div>
         <input type="range" id="tLine" min="0" max="60" step="1" value="0">
         <div class="row"><label class="lbl">Font</label><div class="fontpick"><span class="hint" id="tFontName">Aktiv Grotesk</span><label class="btn small" for="tFontIn">Upload</label><a id="tFontReset" hidden>Aktiv</a></div></div>
         <input id="tFontIn" type="file" accept=".ttf,.otf,.woff,.woff2,font/*" hidden>
@@ -1345,9 +1345,9 @@
       <div class="fold only-marks">
       <button class="fold-head" type="button" data-group="jitter" aria-expanded="false"><span>Jitter</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div class="fold-body" hidden>
-        <div class="row"><label class="lbl">Angle<i class="q" data-tip="Randomises each mark’s angle for a hand-made feel.">?</i></label><span class="val" id="rjV">0%</span></div>
+        <div class="row"><label class="lbl" for="rjit">Angle<i class="q" data-tip="Randomises each mark’s angle for a hand-made feel.">?</i></label><span class="val" id="rjV">0%</span></div>
         <input type="range" id="rjit" min="0" max="100" step="1" value="0">
-        <div class="row"><label class="lbl">Position<i class="q" data-tip="Nudges each mark off its grid point by a random amount.">?</i></label><span class="val" id="pjV">0%</span></div>
+        <div class="row"><label class="lbl" for="pjit">Position<i class="q" data-tip="Nudges each mark off its grid point by a random amount.">?</i></label><span class="val" id="pjV">0%</span></div>
         <input type="range" id="pjit" min="0" max="100" step="1" value="0">
       </div>
       </div>
@@ -1368,7 +1368,7 @@
       <button class="fold-head" type="button" data-group="thresholds" aria-expanded="false"><span>Thresholds</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
       <div class="fold-body" hidden>
         <div class="card-tools"><i class="q lead-q" data-tip="Where the tonal bands fall. Drag to push contrast into highlights or shadows.">?</i><a id="resetEdges" title="Space the thresholds evenly again">Even</a></div>
-        <div class="row"><label class="lbl">Shift<i class="q" data-tip="Shifts every threshold at once – pushes the whole image toward highlights or shadows.">?</i></label><span class="val" id="tlevV">0</span></div>
+        <div class="row"><label class="lbl" for="tlev">Shift<i class="q" data-tip="Shifts every threshold at once – pushes the whole image toward highlights or shadows.">?</i></label><span class="val" id="tlevV">0</span></div>
         <input type="range" id="tlev" min="-40" max="40" step="1" value="0">
         <div class="edges" id="edges"></div>
       </div>
@@ -1813,7 +1813,7 @@ function mountGuides(o){
   paint();
   return{draw,paint};
 }
-const VERSION="6.7.4", MAXB=7, MINB=2;
+const VERSION="6.7.5", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,
@@ -1878,6 +1878,9 @@ if(alignSeg) alignSeg.querySelectorAll('button').forEach(b=>b.onclick=()=>{
   function hide(){ tip.style.opacity='0'; tip.style.display='none'; }
   document.addEventListener('mouseover',e=>{ const q=e.target.closest&&e.target.closest('.q'); if(q)show(q); });
   document.addEventListener('mouseout',e=>{ const q=e.target.closest&&e.target.closest('.q'); if(q)hide(); });
+  /* the ? sits inside its row's label, and the label now points at the control.
+     Without this, pressing ? would also press the control behind it. */
+  document.addEventListener('click',e=>{ const q=e.target.closest&&e.target.closest('.q'); if(q)e.preventDefault(); });
 })();
 const srcBtns=()=>[$('fileLabel'),$('camBtn'),$('typeBtn')];
 function setActive(el){ srcBtns().forEach(b=>b&&b.classList.remove('active')); if(el)el.classList.add('active'); }
@@ -1946,7 +1949,7 @@ function buildStates(){
     const st=S.states[i];
     const row=document.createElement('div'); row.className='state';
     row.innerHTML='<div class="idx">'+(i+1)+'</div>'+
-      '<div class="swatch"><input type="color" value="'+st.color+'" data-i="'+i+'" class="stColor"></div>'+
+      '<div class="swatch"><input type="color" value="'+st.color+'" data-i="'+i+'" class="stColor" aria-label="'+names[i]+' – colour"></div>'+
       '<div class="meta"><b>'+names[i]+'</b></div>'+
       (S.style==='type'?(S.tMode==='tone'?'<input class="sttext" type="text" data-i="'+i+'" value="'+(st.text||'').replace(/"/g,'&quot;')+'" spellcheck="false" aria-label="'+names[i]+' – words">':''):
       '<img class="svgprev" data-i="'+i+'" alt="">'+
@@ -1987,7 +1990,7 @@ function buildEdgeUI(){
   S.edges.forEach((e,k)=>{
     const d=document.createElement('div'); d.className='edge';
     d.innerHTML='<label>Edge '+(k+1)+'<span id="edV'+k+'">'+Math.round(e*100)+'</span></label>'+
-      '<input type="range" min="1" max="99" step="1" value="'+Math.round(e*100)+'" data-k="'+k+'" class="edgeR">';
+      '<input type="range" min="1" max="99" step="1" value="'+Math.round(e*100)+'" data-k="'+k+'" class="edgeR" aria-label="Edge '+(k+1)+'">';
     edgesEl.appendChild(d);
   });
   document.querySelectorAll('.edgeR').forEach(r=>r.oninput=e=>{

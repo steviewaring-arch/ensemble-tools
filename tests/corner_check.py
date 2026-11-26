@@ -139,7 +139,25 @@ READ = r"""([CONTROL, DATA]) => {
     o.style.cssText = css;
     if (h !== null) o.setAttribute('hidden', h);
   }
-  return out;
+  const bare = [];
+  document.querySelectorAll('.panel input, .panel select, .panel textarea, .panel button, ' +
+                            '.island input, .island select, .island textarea, .island button, ' +
+                            '.topbar input, .topbar select, .topbar textarea, .topbar button')
+    .forEach(e => {
+      if (e.type === 'hidden' || e.hasAttribute('hidden')) return;
+      const cs = getComputedStyle(e);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return;
+      const b = e.getBoundingClientRect();
+      if (b.width < 4 || b.height < 4) return;          /* no box, no reaching it */
+      if (e.getAttribute('aria-label') || e.getAttribute('aria-labelledby')) return;
+      if (e.id && document.querySelector('label[for="' + CSS.escape(e.id) + '"]')) return;
+      if (e.closest('label') || e.title) return;
+      if (e.tagName === 'BUTTON' && e.textContent.trim()) return;
+      /* say which one, or the report is no use in a panel of 28 sliders */
+      bare.push(name(e) + (e.id ? '#' + e.id : '') +
+                (e.type && e.type !== 'text' ? ' (' + e.type + ')' : ''));
+    });
+  return {out, bare};
 }"""
 
 
@@ -150,7 +168,7 @@ def near(v, allowed, slack=0.6):
 def main():
     strict = '--strict' in sys.argv
     url = start()
-    found = {k: [] for k in ('corner', 'height', 'type', 'colour', 'space')}
+    found = {k: [] for k in ('corner', 'height', 'type', 'colour', 'space', 'name')}
     n = 0
     with sync_playwright() as pw:
         br = pw.chromium.launch()
@@ -167,7 +185,10 @@ def main():
                 pg.evaluate("document.querySelectorAll('.fold-head[aria-expanded=\"false\"],"
                             ".more-toggle[aria-expanded=\"false\"]').forEach(b => b.click())")
                 pg.wait_for_timeout(500)
-            rows = pg.evaluate(READ, [CONTROL_CLASS, DATA_CLASS])
+            got = pg.evaluate(READ, [CONTROL_CLASS, DATA_CLASS])
+            rows, bare = got['out'], got['bare']
+            for b in bare:
+                found['name'].append(f'{app}: {b} has no name to read out')
             pg.close()
             n += len(rows)
             for x in rows:
@@ -205,16 +226,17 @@ def main():
         br.close()
 
     label = {'corner': 'Corners', 'height': 'Heights', 'type': 'Type',
-             'colour': 'Colour', 'space': 'Spacing'}
-    for k in ('corner', 'height', 'type', 'colour', 'space'):
+             'colour': 'Colour', 'space': 'Spacing', 'name': 'Names'}
+    for k in ('corner', 'height', 'type', 'colour', 'space', 'name'):
         rows = sorted(set(found[k]))
-        hard = (k == 'corner' or strict) and rows
+        hard = (k in ('corner', 'name') or strict) and rows
         print(f'\n{"FAIL" if hard else "    "} {label[k]}: {len(rows)} '
               f'{"stray" if len(rows) == 1 else "strays"}')
         for line in rows:
             print('       ' + line)
     print(f'\n{n} elements read across {len(APPS)} tools.')
-    hard = found['corner'] if not strict else [v for vs in found.values() for v in vs]
+    hard = (found['corner'] + found['name']) if not strict \
+        else [v for vs in found.values() for v in vs]
     return 1 if hard else 0
 
 
