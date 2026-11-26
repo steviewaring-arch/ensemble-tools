@@ -668,7 +668,9 @@
   .stp-g button:disabled{opacity:.35;cursor:default}
   .stp-g button:focus-visible{outline:2px solid var(--focus);outline-offset:0}
   .stp-g button svg{width:10px;height:10px}
-  .stp-g .val{min-width:28px!important;text-align:center!important;margin:0!important}
+  /* the number a stepper shows: said once here, or each tool inherits whatever its own .val
+     rule happens to be - Tutti read 13px against Segue's 15px for the same control. */
+  .stp-g .val{min-width:28px!important;text-align:center!important;margin:0!important;font-size:15px}
   .stp-g .val.typable{padding:0 4px;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
   .stp-g .val.typable:hover{background:var(--k-raise)}
 
@@ -939,12 +941,9 @@
   .dial-row>.dial-info>.ctl-head>.val{grid-column:3;grid-row:1;justify-self:start;text-align:left}
   .dial-row>.dial-info>.ctl-head>.q{grid-column:1;grid-row:1;justify-self:end;position:static;margin:0}
   /* the stepper, and the dial's label */
-  .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
+  /* the stepper's row; the box inside it is the house .stp-g */
   .st-label{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2}
-  .st-box{margin-left:0;justify-self:start;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px;gap:2px}
-  .st-btn{width:26px;height:26px;border-radius:var(--r-in);background:transparent;font-size:var(--fs-body)}
-  .st-btn:hover{background:var(--k-raise)}
-  .st-box .val{font-size:var(--fs-body);min-width:36px}
+  .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
   /* the island's choices keep their own widths (they scroll sideways on a phone) */
   .isl-main .seg>.pill{flex:none;padding:0 12px}
 
@@ -1068,7 +1067,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.20.1</span></div>
+      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.20.2</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>

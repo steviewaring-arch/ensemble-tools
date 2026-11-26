@@ -7,13 +7,6 @@
   .more-body{padding-bottom:2px}
   /* stepper: counts */
   .stepper{display:flex;align-items:center;gap:8px}
-  .st-label{font-size:0.95rem;color:var(--ink);cursor:default}
-  .st-box{margin-left:auto;display:flex;align-items:center;background:var(--seg);border-radius:999px;padding:3px;gap:2px}
-  .st-btn{width:30px;height:28px;border:0;border-radius:999px;background:var(--btn);color:var(--ink);font-size:1rem;line-height:1;cursor:pointer;padding:0}
-  .st-btn:hover{background:var(--btn-hover)}
-  .st-btn:disabled{opacity:.35;cursor:default}
-  .st-btn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
-  .st-box .val{min-width:44px;text-align:center;font-size:0.88rem;color:var(--ink);font-variant-numeric:tabular-nums;padding:0 4px}
   /* dial: angles */
   .dial-row{display:flex;align-items:center;gap:12px}
   .dial{flex:none;width:48px;height:48px;border-radius:50%;cursor:ns-resize;touch-action:none;outline:none}

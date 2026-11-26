@@ -14,6 +14,29 @@ Two cautions, learned the hard way building it:
 - A specimen that does not match the real markup gives false confidence. The first draft wrote the stepper's – and + as text where the tools use SVG icons, and duly "found" a type stray that was mine.
 - The "seen in the markup" column reads class attributes and the `el(tag, class)` helpers. Rubato and Tempo build most of their DOM through those helpers, so before it knew about them it called 142 live classes dead.
 
+### Done 26 Nov – one stepper (Tutti 6.7.3, Rubato 1.4.3)
+
+Third of the four. A count you step through was built **three** ways across four tools: Segue's
+`.stp-g` with SVG icons, Tutti's `.steps` with a text `–`, Rubato's `.st-box`/`.st-btn` with a text
+`−`. Tempo has none. Steve took the recommendation: Segue's.
+
+What made it worth doing is not the markup but what sat behind it - **the kit held two further
+blocks of CSS whose only job was to drag the other two back toward the house**: three rules
+patching Tutti's `.steps` and four patching Rubato's `.st-box`. Rules written to make a thing that
+is not the house part look like the house part. Both tools are on `.stp-g` now and all of that is
+gone: 7 rules out of the kit, the `.steps` block out of Tutti's frame, 640 bytes out of Rubato's
+app.css.
+
+**The kit never said how big a stepper's number is**, so each tool inherited whatever its own
+`.val` rule happened to be - Segue 15px, Rubato 15px once its own rule went, Tutti 13px from a
+blanket `.val{font-size:13px}` in its frame. Measured Segue first, since it is the model: 15px
+across its 17 steppers. The kit says it once now, and all 28 steppers in the three tools come out
+identical - 30px box, 8px corner, 15px number, 26px buttons at 6px, icons.
+
+A glyph takes its weight and size from the typeface, which is how `.st-btn` was sitting at 14px
+and off the scale while looking roughly right. An icon does not, which is the reason the house
+stepper uses one - written into `UI.md` so the next one does not start with a `+`.
+
 ### Done 26 Nov – one declaration per token, one material for anything that opens
 
 Steve, 26 Nov: "Goal is to streamline moving forward." Four places where the kit disagreed with

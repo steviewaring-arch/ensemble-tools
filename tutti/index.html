@@ -165,7 +165,7 @@
       <div class="toggle only-marks" id="tKeepSvg"><div class="box"></div><span>Own colours<i class="q" data-tip="When on, an uploaded SVG mark keeps its own colours instead of being recoloured to the band colour – for multi-colour marks.">?</i></span></div>
       <div id="states"></div>
       <div class="stepper"><span>Bands</span>
-        <div class="steps"><button id="bandMinus">–</button><span class="count" id="bandCount">6</span><button id="bandPlus">+</button></div>
+        <div class="stp-g"><button id="bandMinus" type="button" aria-label="Fewer bands"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button><span class="val" id="bandCount">6</span><button id="bandPlus" type="button" aria-label="More bands"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div>
       </div>
       <div class="fold">
       <button class="fold-head" type="button" data-group="thresholds" aria-expanded="false"><span>Thresholds</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
@@ -256,7 +256,7 @@
 <script>
 /*{{shared-gif}}*/
 /*{{shared-view}}*/
-const VERSION="6.7.2", MAXB=7, MINB=2;
+const VERSION="6.7.3", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,

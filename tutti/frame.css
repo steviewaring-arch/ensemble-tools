@@ -67,11 +67,6 @@
   .svgprev{width:20px;height:20px;flex:none;box-shadow:inset 0 0 0 1px var(--keyline);border-radius:var(--r-inner);background:#fff;object-fit:contain;padding:2px;display:none}
   .stepper{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:10px;border-top:1px solid var(--keyline)}
   .stepper>span{font-size:var(--fs-body);color:var(--ink)}
-  .steps{display:flex;align-items:center;gap:2px;background:var(--seg);border-radius:999px;padding:3px}
-  .steps button{width:26px;height:26px;border:0;padding:0;border-radius:50%;background:transparent;color:var(--ink);font-size:15px;line-height:1;cursor:pointer;transition:.14s}
-  .steps button:hover{background:var(--btn)}
-  .steps button:disabled{opacity:.35;cursor:default}
-  .steps .count{font-size:var(--fs-body);min-width:28px;text-align:center;font-variant-numeric:tabular-nums;color:var(--ink)}
 
   /* Advanced */
   .edges{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -186,9 +181,6 @@
   .state .meta b{font-weight:500;color:var(--ink-strong)}
   .stepper{border-top:0;padding-top:0;margin-top:10px}
   .stepper>span{font-weight:500;color:var(--ink-strong)}
-  .steps{background:var(--k-fill);border-radius:var(--r-ctl);padding:2px}
-  .steps button{border-radius:var(--r-in)}
-  .steps button:hover{background:var(--k-raise)}
   /* groups inside a card: a Bold title, one rule */
   .subttl{font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);margin:0 0 10px}
   .gifmod{background:var(--k-fill);border-radius:var(--r-ctl)}

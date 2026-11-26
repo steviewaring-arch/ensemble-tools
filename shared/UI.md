@@ -361,6 +361,18 @@ family wherever they appear – same height, shape, type and numerals – with t
 over the work keeping a keyline, since they sit on the picture. The first chip (the
 size) is white; the rest grey. A chip's sentence goes in its tooltip.
 
+## The stepper
+
+A count you step through – bands, blocks, columns – is one control everywhere: a grey box with
+the house corner, a pair of **icon** buttons either side of the number, 26px each inside a 30px
+box, and the number at 15px. Not a glyph. A `−` or `+` set as type takes its weight and size from
+the typeface, which is exactly how one of the three ended up off the type scale while looking
+roughly right; an icon does not.
+
+It was built three ways for four tools – Segue's with icons, Tutti's and Rubato's each with their
+own markup and glyphs – and the kit carried two further blocks of CSS whose only job was to drag
+those two back toward the house. All three are Segue's now and that CSS has gone (26 Nov).
+
 ## Anything that opens over the panel
 
 One material, so a thing that opens reads as the same kind of thing wherever it opens: the card

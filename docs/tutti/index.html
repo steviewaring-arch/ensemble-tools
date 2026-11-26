@@ -556,7 +556,9 @@
   .stp-g button:disabled{opacity:.35;cursor:default}
   .stp-g button:focus-visible{outline:2px solid var(--focus);outline-offset:0}
   .stp-g button svg{width:10px;height:10px}
-  .stp-g .val{min-width:28px!important;text-align:center!important;margin:0!important}
+  /* the number a stepper shows: said once here, or each tool inherits whatever its own .val
+     rule happens to be - Tutti read 13px against Segue's 15px for the same control. */
+  .stp-g .val{min-width:28px!important;text-align:center!important;margin:0!important;font-size:15px}
   .stp-g .val.typable{padding:0 4px;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
   .stp-g .val.typable:hover{background:var(--k-raise)}
 
@@ -827,12 +829,9 @@
   .dial-row>.dial-info>.ctl-head>.val{grid-column:3;grid-row:1;justify-self:start;text-align:left}
   .dial-row>.dial-info>.ctl-head>.q{grid-column:1;grid-row:1;justify-self:end;position:static;margin:0}
   /* the stepper, and the dial's label */
-  .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
+  /* the stepper's row; the box inside it is the house .stp-g */
   .st-label{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2}
-  .st-box{margin-left:0;justify-self:start;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px;gap:2px}
-  .st-btn{width:26px;height:26px;border-radius:var(--r-in);background:transparent;font-size:var(--fs-body)}
-  .st-btn:hover{background:var(--k-raise)}
-  .st-box .val{font-size:var(--fs-body);min-width:36px}
+  .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
   /* the island's choices keep their own widths (they scroll sideways on a phone) */
   .isl-main .seg>.pill{flex:none;padding:0 12px}
 
@@ -1015,11 +1014,6 @@
   .svgprev{width:20px;height:20px;flex:none;box-shadow:inset 0 0 0 1px var(--keyline);border-radius:var(--r-inner);background:#fff;object-fit:contain;padding:2px;display:none}
   .stepper{display:flex;align-items:center;justify-content:space-between;margin-top:8px;padding-top:10px;border-top:1px solid var(--keyline)}
   .stepper>span{font-size:var(--fs-body);color:var(--ink)}
-  .steps{display:flex;align-items:center;gap:2px;background:var(--seg);border-radius:999px;padding:3px}
-  .steps button{width:26px;height:26px;border:0;padding:0;border-radius:50%;background:transparent;color:var(--ink);font-size:15px;line-height:1;cursor:pointer;transition:.14s}
-  .steps button:hover{background:var(--btn)}
-  .steps button:disabled{opacity:.35;cursor:default}
-  .steps .count{font-size:var(--fs-body);min-width:28px;text-align:center;font-variant-numeric:tabular-nums;color:var(--ink)}
 
   /* Advanced */
   .edges{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -1134,9 +1128,6 @@
   .state .meta b{font-weight:500;color:var(--ink-strong)}
   .stepper{border-top:0;padding-top:0;margin-top:10px}
   .stepper>span{font-weight:500;color:var(--ink-strong)}
-  .steps{background:var(--k-fill);border-radius:var(--r-ctl);padding:2px}
-  .steps button{border-radius:var(--r-in)}
-  .steps button:hover{background:var(--k-raise)}
   /* groups inside a card: a Bold title, one rule */
   .subttl{font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);margin:0 0 10px}
   .gifmod{background:var(--k-fill);border-radius:var(--r-ctl)}
@@ -1371,7 +1362,7 @@
       <div class="toggle only-marks" id="tKeepSvg"><div class="box"></div><span>Own colours<i class="q" data-tip="When on, an uploaded SVG mark keeps its own colours instead of being recoloured to the band colour – for multi-colour marks.">?</i></span></div>
       <div id="states"></div>
       <div class="stepper"><span>Bands</span>
-        <div class="steps"><button id="bandMinus">–</button><span class="count" id="bandCount">6</span><button id="bandPlus">+</button></div>
+        <div class="stp-g"><button id="bandMinus" type="button" aria-label="Fewer bands"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button><span class="val" id="bandCount">6</span><button id="bandPlus" type="button" aria-label="More bands"><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></button></div>
       </div>
       <div class="fold">
       <button class="fold-head" type="button" data-group="thresholds" aria-expanded="false"><span>Thresholds</span><span class="chev"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 5.5 7 9l3.5-3.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg></span></button>
@@ -1758,7 +1749,7 @@ function mountGuides(o){
   paint();
   return{draw,paint};
 }
-const VERSION="6.7.2", MAXB=7, MINB=2;
+const VERSION="6.7.3", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,

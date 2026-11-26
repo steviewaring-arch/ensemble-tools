@@ -414,13 +414,6 @@
   .more-body{padding-bottom:2px}
   /* stepper: counts */
   .stepper{display:flex;align-items:center;gap:8px}
-  .st-label{font-size:0.95rem;color:var(--ink);cursor:default}
-  .st-box{margin-left:auto;display:flex;align-items:center;background:var(--seg);border-radius:999px;padding:3px;gap:2px}
-  .st-btn{width:30px;height:28px;border:0;border-radius:999px;background:var(--btn);color:var(--ink);font-size:1rem;line-height:1;cursor:pointer;padding:0}
-  .st-btn:hover{background:var(--btn-hover)}
-  .st-btn:disabled{opacity:.35;cursor:default}
-  .st-btn:focus-visible{outline:2px solid var(--focus);outline-offset:1px}
-  .st-box .val{min-width:44px;text-align:center;font-size:0.88rem;color:var(--ink);font-variant-numeric:tabular-nums;padding:0 4px}
   /* dial: angles */
   .dial-row{display:flex;align-items:center;gap:12px}
   .dial{flex:none;width:48px;height:48px;border-radius:50%;cursor:ns-resize;touch-action:none;outline:none}
@@ -665,7 +658,9 @@
   .stp-g button:disabled{opacity:.35;cursor:default}
   .stp-g button:focus-visible{outline:2px solid var(--focus);outline-offset:0}
   .stp-g button svg{width:10px;height:10px}
-  .stp-g .val{min-width:28px!important;text-align:center!important;margin:0!important}
+  /* the number a stepper shows: said once here, or each tool inherits whatever its own .val
+     rule happens to be - Tutti read 13px against Segue's 15px for the same control. */
+  .stp-g .val{min-width:28px!important;text-align:center!important;margin:0!important;font-size:15px}
   .stp-g .val.typable{padding:0 4px;border-radius:var(--r-in);line-height:24px;height:24px;display:inline-flex;align-items:center;justify-content:center}
   .stp-g .val.typable:hover{background:var(--k-raise)}
 
@@ -936,12 +931,9 @@
   .dial-row>.dial-info>.ctl-head>.val{grid-column:3;grid-row:1;justify-self:start;text-align:left}
   .dial-row>.dial-info>.ctl-head>.q{grid-column:1;grid-row:1;justify-self:end;position:static;margin:0}
   /* the stepper, and the dial's label */
-  .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
+  /* the stepper's row; the box inside it is the house .stp-g */
   .st-label{font-size:var(--fs-body);font-weight:500;color:var(--ink-strong);line-height:1.2}
-  .st-box{margin-left:0;justify-self:start;background:var(--k-fill);border-radius:var(--r-ctl);padding:2px;gap:2px}
-  .st-btn{width:26px;height:26px;border-radius:var(--r-in);background:transparent;font-size:var(--fs-body)}
-  .st-btn:hover{background:var(--k-raise)}
-  .st-box .val{font-size:var(--fs-body);min-width:36px}
+  .stepper{display:grid;grid-template-columns:var(--lc) auto;column-gap:10px;align-items:center;min-height:var(--h-ctl)}
   /* the island's choices keep their own widths (they scroll sideways on a phone) */
   .isl-main .seg>.pill{flex:none;padding:0 12px}
 
@@ -1065,7 +1057,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Rubato</span><span class="ver">1.4.2</span></div>
+      <div class="bline"><span class="mark">Rubato</span><span class="ver">1.4.3</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -2509,9 +2501,12 @@ const resetKeys=(...ks)=>{const o={};ks.forEach(k=>o[k]=D[k]);Object.assign(S,o)
 
 function addStepper(parent,d){
   d.group=d.group||curGroup;d.t='range';
-  const w=el('div','ctl stepper'),lb=el('span','st-label',d.label),box=el('div','st-box');
-  const minus=el('button','st-btn','−'),val=el('span','val'),plus=el('button','st-btn','+');
-  minus.type=plus.type='button';minus.setAttribute('aria-label',d.label+' down');plus.setAttribute('aria-label',d.label+' up');
+  /* the house stepper (Segue's): one box, one pair of icons. A glyph takes its weight and size
+     from the typeface, which is how .st-btn ended up off the type scale; an icon does not. */
+  const w=el('div','ctl stepper'),lb=el('span','st-label',d.label),box=el('div','stp-g');
+  const minus=el('button'),val=el('span','val'),plus=el('button');
+  minus.type=plus.type='button';minus.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';plus.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  minus.setAttribute('aria-label','Fewer – '+d.label);plus.setAttribute('aria-label','More – '+d.label);
   lb.title='Double-click to reset';lb.ondblclick=()=>set(d.k,D[d.k]);
   const go=dir=>set(d.k,clamp(roundTo(S[d.k]+dir*d.step,d.step),d.min,d.max));
   minus.onclick=()=>go(-1);plus.onclick=()=>go(1);

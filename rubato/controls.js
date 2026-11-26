@@ -31,9 +31,12 @@ const resetKeys=(...ks)=>{const o={};ks.forEach(k=>o[k]=D[k]);Object.assign(S,o)
 
 function addStepper(parent,d){
   d.group=d.group||curGroup;d.t='range';
-  const w=el('div','ctl stepper'),lb=el('span','st-label',d.label),box=el('div','st-box');
-  const minus=el('button','st-btn','−'),val=el('span','val'),plus=el('button','st-btn','+');
-  minus.type=plus.type='button';minus.setAttribute('aria-label',d.label+' down');plus.setAttribute('aria-label',d.label+' up');
+  /* the house stepper (Segue's): one box, one pair of icons. A glyph takes its weight and size
+     from the typeface, which is how .st-btn ended up off the type scale; an icon does not. */
+  const w=el('div','ctl stepper'),lb=el('span','st-label',d.label),box=el('div','stp-g');
+  const minus=el('button'),val=el('span','val'),plus=el('button');
+  minus.type=plus.type='button';minus.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';plus.innerHTML='<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M6 2v8M2 6h8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  minus.setAttribute('aria-label','Fewer – '+d.label);plus.setAttribute('aria-label','More – '+d.label);
   lb.title='Double-click to reset';lb.ondblclick=()=>set(d.k,D[d.k]);
   const go=dir=>set(d.k,clamp(roundTo(S[d.k]+dir*d.step,d.step),d.min,d.max));
   minus.onclick=()=>go(-1);plus.onclick=()=>go(1);
