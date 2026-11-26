@@ -14,6 +14,44 @@ Two cautions, learned the hard way building it:
 - A specimen that does not match the real markup gives false confidence. The first draft wrote the stepper's – and + as text where the tools use SVG icons, and duly "found" a type stray that was mine.
 - The "seen in the markup" column reads class attributes and the `el(tag, class)` helpers. Rubato and Tempo build most of their DOM through those helpers, so before it knew about them it called 142 live classes dead.
 
+### Done 26 Nov – one colour picker (Segue 1.3.6, Tutti 6.7.4, Rubato 1.4.4, Tempo 0.21)
+
+Last of the four, and the only one that ends a duplication rather than tidying one.
+
+On Tuesday step 3 asked for the house picker in Tempo and I refused: Tempo's had RGB **and** CMYK
+and 48 deliberately saved colours against the house one's RGB and 16 automatic recents, so the
+swap would have deleted both from the one tool whose whole subject is colour. The answer was never
+to swap but to merge.
+
+`shared/colour.js` gains a **CMYK mode** on a house seg, remembered across sessions - the
+conversion is Tempo's own, brought over unchanged, a way of thinking in ink rather than a print
+profile - and a **saved-colour library**, `+` to keep one and `×` to forget it. Deliberate, as
+against "In use", which is only what the page happens to be using at the time.
+
+So the house picker is a **superset**, not a compromise: everything Tempo's had, plus the shade
+field and the In use row Tempo's never did. Nothing was lost, which is what made merging the right
+answer and swapping the wrong one.
+
+**The library is the house's, not a tool's.** `ens:swatches` on the origin, so a palette built in
+Tempo is there in Tutti. Anyone's existing Tempo colours carry over the first time they open it -
+planted a Tempo-era library and watched the migration rather than trusting it.
+
+Tempo drops its own: **70 lines of JS and 3.4KB of CSS**, and `picker=False` out of `build.py`
+with it. Both pickers attached the same way - a capture-phase click on `input[type=color]` - so
+removing Tempo's lets the house one take over with no wiring at all.
+
+**What the failing check turned out to be.** Tempo's suite went red on "a saved colour is kept",
+and it took four runs to find, every one of them worth it. Not quota (6KB used, writes fine). Not
+the handler. The **dropper swallows the next real click for 400ms**, on purpose, so that picking a
+colour does not also press whatever sits under the pointer - and the check clicked Save at about
+that boundary. It passed every way I tried it by hand because a synthetic `.click()` goes around
+the real click path entirely. The guard is right and the test now waits it out, with the reason
+written beside it. Loosening the assertion instead would have left a real 400ms deaf spot after
+the dropper unrecorded.
+
+That closes the four. What is left on the list is the big one: **238 components still belong to a
+single tool** against 191 in the kit, so more than half still cannot be refined from one place.
+
 ### Done 26 Nov – one stepper (Tutti 6.7.3, Rubato 1.4.3)
 
 Third of the four. A count you step through was built **three** ways across four tools: Segue's

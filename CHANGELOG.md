@@ -1,5 +1,24 @@
 # Changelog
 
+## 26 November 2026 – One colour picker (Segue 1.3.6, Tutti 6.7.4, Rubato 1.4.4, Tempo 0.21)
+
+- **Merged rather than swapped.** On Tuesday step 3 asked for the house picker in Tempo and it was
+  refused: Tempo's had RGB *and* CMYK and 48 deliberately saved colours against the house one's RGB
+  and 16 automatic recents, so the swap would have deleted both from the one tool whose subject is
+  colour. `shared/colour.js` now has a CMYK mode (Tempo's own conversion, unchanged) and a
+  saved-colour library with `+` and `×`. The house picker is a superset, not a compromise – it also
+  keeps the shade field and the In use row Tempo's never had.
+- **The library is the house's, not a tool's** – `ens:swatches` on the origin, so a palette built in
+  Tempo is there in Tutti. Existing Tempo colours carry over the first time it opens; the migration
+  was watched, not assumed.
+- **Tempo drops its own:** 70 lines of JS and 3.4KB of CSS, and `picker=False` out of `build.py`.
+  Both pickers attached the same way, so removing Tempo's needed no wiring at all.
+- **One failing check, four runs, worth every one.** Not quota, not the handler: the dropper
+  swallows the next real click for 400ms on purpose, so picking a colour does not also press what
+  is under the pointer – and the check clicked Save at that boundary. It passed by hand every time
+  because a synthetic click goes around the real click path. The test waits it out now; loosening
+  the assertion would have hidden a real 400ms deaf spot.
+
 ## 26 November 2026 – One declaration per token; one material for anything that opens
 
 - **Nine tokens were declared twice with different values.** `tokens.css` and `kit.css` both set
