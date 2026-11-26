@@ -18,6 +18,12 @@
   enough there, the screensaver has to be told or the canvas keeps what it had.
 - Three settled changes undo as three steps with every control back where it was: 115 of them in
   Tempo, 40 in Rubato, checked one by one. That sweep is now in both suites.
+- **Found on the way: Tempo's state and its panel do not agree.** `S` keeps raw arithmetic while a
+  range input clamps to its `step`, so they drift – `ssDialKMFrom` holds 0.8200000000000001 where
+  the panel reads 0.82, `ssDialCentreR` holds 13.2 where the panel reads 13. Undo restores the
+  state it saved, the panel re-syncs, and the dial rows deriving from those values land a step
+  away. The fault is the rounding and it wants fixing where Tempo sets the value, not papered over
+  in the shared layer; the check reports it rather than hiding it.
 - **A test that lied.** Undo was first checked by comparing the canvas before and after, and it
   reported failure in both tools – including Rubato, whose restore was already proven. Both
   canvases animate, so two snapshots never match and the test could only fail. Reading every

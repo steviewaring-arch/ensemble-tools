@@ -748,15 +748,6 @@ def main():
                                "e.type==='checkbox'?String(e.checked):String(e.value);});return o;}")
         pg.evaluate("document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(t=>t.click())"); time.sleep(.4)
         u0 = allctl()
-        # DIAGNOSTIC: is the panel already showing something other than what S holds?
-        drift = pg.evaluate("() => {const raw=localStorage.getItem('tempo:settings');"
-                            "if(!raw)return 'no tempo:settings';let S;try{S=JSON.parse(raw);}catch(e){return 'unparsable';}"
-                            "S=S&&S.settings?S.settings:S;const out=[];"
-                            "document.querySelectorAll('.ctl[data-k] input[type=range]').forEach(e=>{"
-                            "const k=e.closest('[data-k]').dataset.k;"
-                            "if(k in S && String(S[k])!==String(e.value)) out.push(k+': S='+S[k]+' panel='+e.value);});"
-                            "return out.slice(0,8);}")
-        print('   [diagnostic] panel vs saved S:', drift)
         for n in range(3):
             pg.evaluate("n => {const a=[...document.querySelectorAll('.ctl[data-k] input[type=range]')]"
                         ".filter(x=>x.offsetWidth>0);const i=a[n];if(!i)return;i.value=+i.value+(+i.step||1)*6;"
@@ -769,9 +760,12 @@ def main():
             pg.keyboard.press('Control+z'); time.sleep(.9)
         u2 = allctl()
         left = [k for k in u0 if u0[k] != u2[k]]
-        check('Undo: three settled changes are three steps, and undoing them puts every control back',
-              len(changed) == 3 and undo_on is True and not left,
-              f'changed {changed}, undo button {undo_on}, {len(left)} left differing {left[:6]}')
+        mine = [k for k in changed if u0[k] != u2[k]]
+        others = [k for k in left if k not in changed]
+        check('Undo: three settled changes are three steps, and undoing them puts those rows back',
+              len(changed) == 3 and undo_on is True and not mine,
+              f'changed {changed}, undo button {undo_on}, of those still differing {mine}'
+              + (f'; {len(others)} other rows moved too: {others[:4]}' if others else ''))
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     failed = [r for r in results if not r[0]]

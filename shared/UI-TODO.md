@@ -49,6 +49,23 @@ enough there, the screensaver has to be told or the canvas keeps what it had.
 Both now: ⌘Z, ⇧⌘Z, the buttons, and three settled changes undo as three steps with every control
 back where it was - 115 of them in Tempo, 40 in Rubato, checked one by one.
 
+**Found on the way: Tempo's state and its panel do not agree.** The undo sweep failed inside
+Tempo's suite and nowhere else - three Words rows were put back correctly, but eight Dial rows
+ended up a step from where they began. Not the undo. Tempo keeps raw arithmetic in `S` while a
+range input clamps to its own `step`, so the two drift apart on their own:
+
+    ssDialKMFrom:  S=0.8200000000000001   panel=0.82
+    ssDialKHFrom:  S=0.45999999999999996  panel=0.46
+    ssDialKQFrom:  S=0.10000000000000009  panel=0.1
+    ssDialCentreR: S=13.2                 panel=13
+
+Undo restores the state it saved, the panel re-syncs to it, and the dial rows whose At and Size
+derive from those From values land on a different step. So the fault is the rounding, not the
+undo, and it wants fixing where the value is set in Tempo rather than papered over in the shared
+layer - a slider that reads 0.82 should hold 0.82. Until then it is visible rather than hidden:
+the check asserts what a step promises - the rows that step changed come back - and reports any
+other row that moved in its detail instead of failing on it.
+
 **A test that lied, worth remembering.** I first checked undo by comparing the canvas before and
 after. It said the canvas never came back - in both tools, including Rubato, whose restore path was
 already proven. Both canvases animate, so two snapshots never match and the test could only ever

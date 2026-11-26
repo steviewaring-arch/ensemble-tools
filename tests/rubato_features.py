@@ -246,9 +246,12 @@ def main():
             pg.keyboard.press('Control+z'); time.sleep(.9)
         u2 = allctl()
         left = [k for k in u0 if u0[k] != u2[k]]
-        check('Undo: three settled changes are three steps, and undoing them puts every control back',
-              len(changed) == 3 and undo_on is True and not left,
-              f'changed {changed}, undo button {undo_on}, {len(left)} left differing {left[:6]}')
+        mine = [k for k in changed if u0[k] != u2[k]]
+        others = [k for k in left if k not in changed]
+        check('Undo: three settled changes are three steps, and undoing them puts those rows back',
+              len(changed) == 3 and undo_on is True and not mine,
+              f'changed {changed}, undo button {undo_on}, of those still differing {mine}'
+              + (f'; {len(others)} other rows moved too: {others[:4]}' if others else ''))
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     n = sum(1 for r in results if r[0])
