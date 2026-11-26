@@ -748,6 +748,16 @@ def main():
                                "e.type==='checkbox'?String(e.checked):String(e.value);});return o;}")
         pg.evaluate("document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(t=>t.click())"); time.sleep(.4)
         u0 = allctl()
+        # DIAGNOSTIC: is the panel already showing something other than what S holds?
+        drift = pg.evaluate("() => {let raw=null;for(const k of Object.keys(localStorage)){"
+                            "if(/tempo/i.test(k)&&/save|state|auto/i.test(k)){raw=localStorage.getItem(k);break;}}"
+                            "if(!raw)return 'no autosave found';let S;try{S=JSON.parse(raw);}catch(e){return 'unparsable';}"
+                            "S=S&&S.settings?S.settings:S;const out=[];"
+                            "document.querySelectorAll('.ctl[data-k] input[type=range]').forEach(e=>{"
+                            "const k=e.closest('[data-k]').dataset.k;"
+                            "if(k in S && String(S[k])!==String(e.value)) out.push(k+': S='+S[k]+' panel='+e.value);});"
+                            "return out.slice(0,8);}")
+        print('   [diagnostic] panel vs saved S:', drift)
         for n in range(3):
             pg.evaluate("n => {const a=[...document.querySelectorAll('.ctl[data-k] input[type=range]')]"
                         ".filter(x=>x.offsetWidth>0);const i=a[n];if(!i)return;i.value=+i.value+(+i.step||1)*6;"
