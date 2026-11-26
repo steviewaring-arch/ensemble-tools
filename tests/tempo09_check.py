@@ -169,17 +169,15 @@ def main():
         check('…and its dropper picks from the preview where the browser has none of its own',
               pk.is_visible() and pk.get_by_role('textbox', name='Hex', exact=True).input_value().upper() == bgpx.upper(),
               pk.get_by_role('textbox', name='Hex', exact=True).input_value() + ' vs ' + bgpx)
-        # both, or the library migrates Tempo's own back in and this is not a clean slate
+        # The dropper swallows the next real click for 400ms, on purpose, so that picking a colour
+        # does not also press whatever sits under the pointer. Wait it out: clicking inside that
+        # window is eaten and the save never happens. (A synthetic .click() goes around it, which is
+        # why this looked fine every way I tried it by hand.)
+        time.sleep(.6)
+        # both keys, or the library migrates Tempo's own back in and this is not a clean slate
         pg.evaluate("localStorage.removeItem('ens:swatches');localStorage.removeItem('tempo:swatches')")
         pg.get_by_role('button', name='Save this colour').click(); pg.keyboard.press('Escape'); time.sleep(.2)
         kept = pg.evaluate("JSON.parse(localStorage.getItem('ens:swatches')||'[]')")
-        probe = pg.evaluate("() => {const b=document.querySelector('.cpk'),a=document.querySelector('.cpk-add');"
-                            "const r=a?a.getBoundingClientRect():null;"
-                            "const out={box:!!b,hidden:b?b.hidden:null,add:!!a,"
-                            "addBox:r?[Math.round(r.x),Math.round(r.y),Math.round(r.width)]:null,"
-                            "onclick:!!(a&&a.onclick),libs:document.querySelectorAll('.cpk-lib').length};"
-                            "if(a){a.click();out.afterJsClick=localStorage.getItem('ens:swatches');}return out;}")
-        print('   [probe]', probe)
         check('…and a saved colour is kept, in the library every tool shares',
               len(kept) == 1 and kept[0].upper() == bgpx.upper(), json.dumps(kept))
         # 4. every hour: tick themes, in order; each lasts n hours; the strip shows the day
