@@ -18,14 +18,14 @@
     --track:rgba(43,43,43,.12); --well:rgba(43,43,43,.045);
     --shadow:none; --float:none; /* no drop shadows: surfaces are separated by hairlines and fills */
     --face:"aktiv-grotesk","Aktiv Grotesk","Helvetica Neue",Arial,sans-serif;
-    /* type – four sizes, plus the header lock-up */
-    --fs-mark:22px; --fs-by:22px; --fs-title:16px; --fs-body:14px; --fs-small:12px;
-    /* heights */
-    --h-bar:44px; --h-lg:40px; --h-isl:36px; --h-ctl:32px; --h-chip:28px; --h-sm:26px;
-    /* radii – tight */
-    --r-frame:12px; --r-card:6px; --r-inner:4px;
-    /* space */
-    --gap:12px; --pw:300px;
+    /* type – the sizes the kit does not set; the rest are the kit's (see shared/kit.css) */
+    --fs-small:12px;
+    /* heights – --h-ctl and --h-sm are the kit's */
+    --h-bar:44px; --h-lg:40px; --h-isl:36px; --h-chip:28px;
+    /* radii – --r-card and --r-inner are the kit's */
+    --r-frame:12px;
+    /* space – --pw is the kit's */
+    --gap:12px;
     box-sizing:border-box; color-scheme:light;
   }
   body[data-theme="dark"]{
@@ -1532,7 +1532,7 @@ function gifFrame(buf,w,h,idx,delay){
 (()=>{
 if(window.EnsColour)return;
 const CSS=`
-.cpk{position:fixed;z-index:2000;width:236px;box-sizing:border-box;padding:10px;border-radius:var(--r-surface,14px);background:color-mix(in srgb,var(--app,#fff) 96%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline,rgba(43,43,43,.1)),0 12px 36px rgba(0,0,0,.14);font-family:var(--face,"Helvetica Neue",Arial,sans-serif);color:var(--ink,#2b2b2b);-webkit-user-select:none;user-select:none;letter-spacing:0}
+.cpk{position:fixed;z-index:2000;width:236px;box-sizing:border-box;padding:10px;border-radius:var(--r-surface,14px);background:var(--k-card,#fff);box-shadow:0 0 0 1px var(--keyline,rgba(43,43,43,.1));font-family:var(--face,"Helvetica Neue",Arial,sans-serif);color:var(--ink,#2b2b2b);-webkit-user-select:none;user-select:none;letter-spacing:0}
 .cpk[hidden]{display:none}
 .cpk-sv{position:relative;height:136px;border-radius:var(--r-ctl,8px);cursor:crosshair;touch-action:none;overflow:hidden;box-shadow:inset 0 0 0 1px var(--keyline,rgba(43,43,43,.1))}
 .cpk-sv::before,.cpk-sv::after{content:'';position:absolute;inset:0;pointer-events:none}
@@ -1758,7 +1758,7 @@ function mountGuides(o){
   paint();
   return{draw,paint};
 }
-const VERSION="6.7.1", MAXB=7, MINB=2;
+const VERSION="6.7.2", MAXB=7, MINB=2;
 
 const S={
   kind:null, baseName:null, aspect:'orig', arW:3, arH:4, zoom:1, grid:72, res:1200,

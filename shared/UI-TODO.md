@@ -14,6 +14,45 @@ Two cautions, learned the hard way building it:
 - A specimen that does not match the real markup gives false confidence. The first draft wrote the stepper's – and + as text where the tools use SVG icons, and duly "found" a type stray that was mine.
 - The "seen in the markup" column reads class attributes and the `el(tag, class)` helpers. Rubato and Tempo build most of their DOM through those helpers, so before it knew about them it called 142 live classes dead.
 
+### Done 26 Nov – one declaration per token, one material for anything that opens
+
+Steve, 26 Nov: "Goal is to streamline moving forward." Four places where the kit disagreed with
+itself were put to him; these are the first two.
+
+**Nine tokens were declared twice, with different values.** `tokens.css` and `kit.css` both set
+them, and the kit loads last in every tool, so the kit's value has always won and the ones in
+`tokens.css` were dead - but anyone reading that file would believe body text is 14px when it is
+13px, or that the panel is 300px when it is 360px:
+
+| | tokens.css said | the kit says |
+|---|---|---|
+| `--fs-body` | 14px | **13px** |
+| `--fs-title` | 16px | **15px** |
+| `--fs-mark`, `--fs-by` | 22px | **20px** |
+| `--h-ctl` | 32px | **30px** |
+| `--h-sm` | 26px | **24px** |
+| `--r-card` | 6px | **8px** |
+| `--r-inner` | 4px | **6px** |
+| `--pw` | 300px | **360px** |
+
+The dead ones are gone and each token is declared once. No visual change, by construction - the
+kit's values were already the live ones. Checked first that every tool page loads the kit and that
+Decentish uses none of these, so nothing was left without a value.
+
+**One material for anything that opens** (Steve: flat). There were two: `.pop`, flat with the card
+colour and a hairline, in all four tools; and the colour picker, frosted with a 24px blur and a
+lift. Same job, two looks. The picker - the house one and Tempo's - now takes `.pop`'s material,
+and the rule is written into `UI.md` so it cannot drift back.
+
+The one place blur survives is **the note** (`.notice`), the line that says something finished
+while you were working elsewhere. It is not anchored to anything and it goes by itself, so it
+stays frosted to be legible wherever it lands over the work. Named in `UI.md` as the single
+exception, so anything else reaching for blur is drifting rather than following.
+
+Still to come from the same list: one stepper (three of them across four tools - Segue's SVG
+icons win), and one colour picker (CMYK and saved colours into the house one, then Tempo adopts
+it and its own goes).
+
 ### Done 26 Nov – undo across the house, and a correction (Rubato 1.4.1, Tempo 0.20)
 
 **First, a correction.** I said last night that Tutti had none of the change column and would need

@@ -6,7 +6,7 @@ Read this and `README.md` before changing anything. **Branches:** work on `main`
 - **Repo:** `ensemble-tools` – source of truth for Tutti, Rubato, Tempo, Segue and Decentish (Patch lives elsewhere – Dropbox and its own chat).
 - **Live:** https://steviewaring-arch.github.io/ensemble-tools/ – published by the *Publish the site* workflow (`.github/workflows/pages.yml`) on every push to `main`: it builds `docs/` plus Tempo's built-in fonts from the private `ensemble-tools-fonts` repo into `site/` and deploys that. A push only goes live if the workflow passes; a failed run leaves the last good site up. Listed on the front page: Tutti, Rubato, Tempo. Unlisted and kept out of search (noindex): Segue, Decentish, /ui/review/.
 - **Last combined app:** `reference/rubato-0.8.1.html` – byte-identical to the v0.8.1 Claude artifact (rechecked 6 October against the live artifact). Kept so the parity tests have something to compare against. Don't edit it.
-- **Versions (25 Nov) – the one list; update it with every release:** Tutti 6.7.1, Segue 1.3.3, Rubato 1.4.1, Tempo 0.20, Decentish 0.5. Rubato 0.9 is archived at /rubato/0.9/ (`archive/rubato-0.9.html`). Each release's detail is in `CHANGELOG.md`.
+- **Versions (25 Nov) – the one list; update it with every release:** Tutti 6.7.2, Segue 1.3.4, Rubato 1.4.2, Tempo 0.20.1, Decentish 0.5. Rubato 0.9 is archived at /rubato/0.9/ (`archive/rubato-0.9.html`). Each release's detail is in `CHANGELOG.md`.
 
 ## The component page (25 November)
 

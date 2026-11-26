@@ -1,5 +1,19 @@
 # Changelog
 
+## 26 November 2026 – One declaration per token; one material for anything that opens
+
+- **Nine tokens were declared twice with different values.** `tokens.css` and `kit.css` both set
+  them and the kit loads last, so the kit's value has always won – but the file said body text is
+  14px when it is 13px, `--h-ctl` 32px when it is 30px, the panel 300px when it is 360px. The dead
+  declarations are gone and each token is declared once. No visual change by construction; checked
+  first that every tool page loads the kit and that Decentish uses none of them.
+- **One material for anything that opens.** There were two: `.pop`, flat with the card colour and a
+  hairline, in all four tools, and the colour picker, frosted with a 24px blur and a lift. The
+  pickers now take `.pop`'s material and the rule is in `UI.md`. The one place blur survives is the
+  note (`.notice`), which is not anchored to anything and goes by itself – named as the single
+  exception so anything else reaching for blur is drifting.
+- Segue 1.3.4, Tutti 6.7.2, Rubato 1.4.2, Tempo 0.20.1.
+
 ## 26 November 2026 – Undo across the house (Rubato 1.4.1, Tempo 0.20)
 
 - **A correction first.** Tutti was said to have none of the change column; it has had the whole

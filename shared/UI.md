@@ -361,6 +361,19 @@ family wherever they appear – same height, shape, type and numerals – with t
 over the work keeping a keyline, since they sit on the picture. The first chip (the
 size) is white; the rest grey. A chip's sentence goes in its tooltip.
 
+## Anything that opens over the panel
+
+One material, so a thing that opens reads as the same kind of thing wherever it opens: the card
+colour with a hairline round it, the surface corner, and no shadow – `.pop` is the model, and the
+colour picker and any menu take the same. No blur, no lift. Two materials for one job is how the
+house stops looking like one house, and for a while there were two: a flat popover in every tool
+and a frosted colour picker on top of it (Steve, 26 Nov: flat).
+
+The one exception is **the note** (`.notice`) – the line that says something finished while you
+were working elsewhere. It is not anchored to anything and it goes by itself, so it is frosted to
+stay legible wherever it lands over the work. That is the only place blur is used, and anything
+else that reaches for it is drifting.
+
 ## Drawings that move
 
 A drawing that stands for a choice – a preset's picture, a Kind's tile, a transition's

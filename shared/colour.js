@@ -6,7 +6,7 @@
 (()=>{
 if(window.EnsColour)return;
 const CSS=`
-.cpk{position:fixed;z-index:2000;width:236px;box-sizing:border-box;padding:10px;border-radius:var(--r-surface,14px);background:color-mix(in srgb,var(--app,#fff) 96%,transparent);-webkit-backdrop-filter:blur(24px) saturate(1.4);backdrop-filter:blur(24px) saturate(1.4);box-shadow:0 0 0 1px var(--keyline,rgba(43,43,43,.1)),0 12px 36px rgba(0,0,0,.14);font-family:var(--face,"Helvetica Neue",Arial,sans-serif);color:var(--ink,#2b2b2b);-webkit-user-select:none;user-select:none;letter-spacing:0}
+.cpk{position:fixed;z-index:2000;width:236px;box-sizing:border-box;padding:10px;border-radius:var(--r-surface,14px);background:var(--k-card,#fff);box-shadow:0 0 0 1px var(--keyline,rgba(43,43,43,.1));font-family:var(--face,"Helvetica Neue",Arial,sans-serif);color:var(--ink,#2b2b2b);-webkit-user-select:none;user-select:none;letter-spacing:0}
 .cpk[hidden]{display:none}
 .cpk-sv{position:relative;height:136px;border-radius:var(--r-ctl,8px);cursor:crosshair;touch-action:none;overflow:hidden;box-shadow:inset 0 0 0 1px var(--keyline,rgba(43,43,43,.1))}
 .cpk-sv::before,.cpk-sv::after{content:'';position:absolute;inset:0;pointer-events:none}
