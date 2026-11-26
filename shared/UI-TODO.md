@@ -470,6 +470,31 @@ Every suite green against the baselines on main, `tests/corner_check.py` include
 
 ## History
 
+- **26 Nov (later):** the single-tool count, first pass. 218 → 208 by clearing nine
+  rules whose markup had gone: Segue's `.tp-a/.tp-b/.tp-o`, Tempo's `.sw-set/.sw-dot`
+  and the two rules the picker merge stranded, Tutti's `.subttl/.subttl-row/.gifmod`.
+  Proved inert by diffing every computed style of every element against the build
+  before – 0 differences in Tutti and Segue.
+  Tempo's `.colour-row{cursor:pointer}` was worse than dead: it still promised the
+  whole row was clickable when only the swatch was. **A colour row now opens its
+  picker from anywhere that is not another control**, so Tempo keeps its target and
+  the others gain one; Segue's hex stays a field you type in. The only computed style
+  that moved in Tempo was `cursor`, on 135 rows.
+  The kit's colour row carried Tutti's `.lbl` and wrote its `?` as an `<i>`; both now
+  match what `qMark` builds. `tests/dead_css.py` added to catch both directions.
+  Verified live in all four, and Tutti in `?embed` and `?app` on desktop and phone.
+
+  **Next, and the actual prize:** `.thumb` is defined in *both* Rubato and Tempo –
+  same name, same component, diverged. Tempo is on the house way (hairline inset
+  shadow, `--r-card`); Rubato is still on `border:1px solid` and a literal `12px`.
+  `corner_check` cannot see it, because 12 is on the ladder. The grid around it is
+  built seven times under seven names (`.thumbs` ×2, `.theme-grid`, `.hour-strip`,
+  `.kinds`, `.trim-frames`, `.marks`) with min widths 76/80/96/40 and five gaps –
+  76 against 80 for the same kind of tile is drift, not design. The tiles sit inside
+  a sheet, so the radius wants setting from the nesting rule, not from either tool's
+  current number. Related: `.lbl` is Tutti's own name for a plain `<label>` the house
+  already styles.
+
 - **26 Nov:** Tutti 6.7.5 – every control a person can reach now says what it is.
   Tutti had 41 with no name (28 sliders, 7 colours, 3 menus, 2 fields, the words box);
   the other three had none, because the shared core sets `lb.htmlFor` and Tutti writes
