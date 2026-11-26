@@ -173,6 +173,10 @@ def main():
         pg.evaluate("localStorage.removeItem('ens:swatches');localStorage.removeItem('tempo:swatches')")
         pg.get_by_role('button', name='Save this colour').click(); pg.keyboard.press('Escape'); time.sleep(.2)
         kept = pg.evaluate("JSON.parse(localStorage.getItem('ens:swatches')||'[]')")
+        probe = pg.evaluate("() => {let n=0;for(const k of Object.keys(localStorage))n+=k.length+(localStorage.getItem(k)||'').length;"
+                            "let w='ok';try{localStorage.setItem('ens:probe','x'.repeat(2000));localStorage.removeItem('ens:probe');}catch(e){w=e.name;}"
+                            "return {kb:Math.round(n/1024),write:w,keys:Object.keys(localStorage).length};}")
+        print('   [probe]', probe)
         check('…and a saved colour is kept, in the library every tool shares',
               len(kept) == 1 and kept[0].upper() == bgpx.upper(), json.dumps(kept))
         # 4. every hour: tick themes, in order; each lasts n hours; the strip shows the day
