@@ -169,10 +169,12 @@ def main():
         check('…and its dropper picks from the preview where the browser has none of its own',
               pk.is_visible() and pk.get_by_role('textbox', name='Hex', exact=True).input_value().upper() == bgpx.upper(),
               pk.get_by_role('textbox', name='Hex', exact=True).input_value() + ' vs ' + bgpx)
-        pg.evaluate("localStorage.removeItem('ens:swatches')")
+        # both, or the library migrates Tempo's own back in and this is not a clean slate
+        pg.evaluate("localStorage.removeItem('ens:swatches');localStorage.removeItem('tempo:swatches')")
         pg.get_by_role('button', name='Save this colour').click(); pg.keyboard.press('Escape'); time.sleep(.2)
+        kept = pg.evaluate("JSON.parse(localStorage.getItem('ens:swatches')||'[]')")
         check('…and a saved colour is kept, in the library every tool shares',
-              len(pg.evaluate("JSON.parse(localStorage.getItem('ens:swatches')||'[]')")) == 1)
+              len(kept) == 1 and kept[0].upper() == bgpx.upper(), json.dumps(kept))
         # 4. every hour: tick themes, in order; each lasts n hours; the strip shows the day
         colour().get_by_role('group', name='Colours').get_by_role('button', name='Every hour').click(); time.sleep(.3)
         strip0 = colour().locator('.hs-cell').count()
