@@ -1305,12 +1305,15 @@ with sync_playwright() as p:
     check('A video can be the background (1.0), and every Font menu ends with Add a font…', bv == ['video', True, True] and fm.startswith('+ Add a font'), f'{bv} {fm}')
     q.evaluate("segue.clearPic('bg');document.querySelector('#panel section.card[data-id=canvas]').scrollIntoView()"); time.sleep(.3)
     q.click('#c_bg'); time.sleep(.3)
-    cp1 = q.evaluate("[!!document.querySelector('.cpk:not([hidden])'),!!document.querySelector('.cpk-eye'),document.querySelectorAll('.cpk-f input').length]")
+    # the picker holds both sets of fields and shows one, so count what is on screen, not the DOM
+    cp1 = q.evaluate("[!!document.querySelector('.cpk:not([hidden])'),!!document.querySelector('.cpk-eye'),"
+                     "[...document.querySelectorAll('.cpk-f input')].filter(i=>i.offsetParent!==null).length,"
+                     "[...document.querySelectorAll('.cpk-seg button')].map(b=>b.textContent)]")
     q.fill('.cpk-f input >> nth=0', '#102030'); time.sleep(.2); a1 = q.evaluate("segue.S.bg")
     q.fill('.cpk-f input >> nth=1', '200'); time.sleep(.2); a2 = q.evaluate("segue.S.bg")
     q.keyboard.press('Enter'); time.sleep(.2); a3 = q.evaluate("[!!document.querySelector('.cpk:not([hidden])'),segue.S.bg]")
-    check('The colour picker is the house’s own (1.0): a colour swatch opens it rather than the browser’s; it has a pipette, a hex field and R, G and B to type into, and each sets the colour as you type',
-          cp1 == [True, True, 4] and a1 == '#102030' and a2 == '#C82030' and a3 == [False, '#C82030'], f'{cp1} {a1} {a2} {a3}')
+    check('The colour picker is the house’s own: a colour swatch opens it rather than the browser’s; it has a pipette, a hex field, R G and B to type into – and CMYK beside them (26 Nov) – and each sets the colour as you type',
+          cp1 == [True, True, 4, ['RGB', 'CMYK']] and a1 == '#102030' and a2 == '#C82030' and a3 == [False, '#C82030'], f'{cp1} {a1} {a2} {a3}')
     bl = q.evaluate("""()=>{const r=e=>{const b=document.querySelector(e).getBoundingClientRect();return [Math.round(b.left),Math.round(b.top),Math.round(b.width)];},v=document.querySelector('#view').getBoundingClientRect();
       const o={left:Math.round(document.querySelector('#island').getBoundingClientRect().left-v.left),order:r('#island')[0]<r('#projBox')[0]&&r('#projBox')[0]<r('#pcap')[0],right:Math.round(v.right-document.querySelector('#pcap').getBoundingClientRect().right)};
       o.before=[r('#play'),r('#exportOpen'),r('#pcapOpen .pc-ic')];o.scroll=getComputedStyle(document.documentElement).overflowY;return o;}""")
