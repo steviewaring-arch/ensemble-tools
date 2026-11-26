@@ -470,6 +470,24 @@ Every suite green against the baselines on main, `tests/corner_check.py` include
 
 ## History
 
+- **26 Nov:** Tutti 6.7.5 – every control a person can reach now says what it is.
+  Tutti had 41 with no name (28 sliders, 7 colours, 3 menus, 2 fields, the words box);
+  the other three had none, because the shared core sets `lb.htmlFor` and Tutti writes
+  its own rows. 27 labels took `for`, the other seven took an `aria-label` worded the
+  way the row reads. A label that owns its control forwards a press, so Tutti's
+  "Colour" now opens the house picker like the other three, and the `?` inside those
+  labels had to be stopped from pressing the control behind it.
+  The house check gained a **Names** axis that *fails* rather than reports. It needed a
+  pass of its own: the element walk skips opacity 0, and the kit draws a slider as a
+  track with an invisible input over it, which hid 28 of the 41 from it.
+  **Correction:** I had been reading the house check through `tail`, which cut the Type
+  and Colour lines off above "Spacing: 0 strays", and reporting it clean. Two strays
+  were real – the kit's States card still showed Rubato's old `.st-box`/`.st-btn`
+  stepper after its CSS was deleted, so the specimen drew a native button. Fixed; the
+  card shows the stepper the tools build. Four Heights strays remain and are the known
+  work: three choice grids on two rows wanting menus (Rubato ×2, Tempo) and one Tempo
+  switch whose label runs to two lines.
+
 - **13 Nov:** Tutti 6.4 – Mixed sizes (a switch group in Shape), the house set of marks and big marks in a drawer under each band row, all drawn from one placement list.
 - **13 Nov:** Tutti 6.3 – change dots, Reset, Undo and Redo; its settings audit; marks redrawn for a new cell size.
 - **13 Nov:** Segue 1.2 – Blur behind fixed; no "?" marks where rows explain themselves (Rubato 1.3.1, Tempo 0.18.2); Tutti's "?" centred. Tutti could take row notes too (then lose its "?") – part of C6.
