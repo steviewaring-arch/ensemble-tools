@@ -173,9 +173,12 @@ def main():
         pg.evaluate("localStorage.removeItem('ens:swatches');localStorage.removeItem('tempo:swatches')")
         pg.get_by_role('button', name='Save this colour').click(); pg.keyboard.press('Escape'); time.sleep(.2)
         kept = pg.evaluate("JSON.parse(localStorage.getItem('ens:swatches')||'[]')")
-        probe = pg.evaluate("() => {let n=0;for(const k of Object.keys(localStorage))n+=k.length+(localStorage.getItem(k)||'').length;"
-                            "let w='ok';try{localStorage.setItem('ens:probe','x'.repeat(2000));localStorage.removeItem('ens:probe');}catch(e){w=e.name;}"
-                            "return {kb:Math.round(n/1024),write:w,keys:Object.keys(localStorage).length};}")
+        probe = pg.evaluate("() => {const b=document.querySelector('.cpk'),a=document.querySelector('.cpk-add');"
+                            "const r=a?a.getBoundingClientRect():null;"
+                            "const out={box:!!b,hidden:b?b.hidden:null,add:!!a,"
+                            "addBox:r?[Math.round(r.x),Math.round(r.y),Math.round(r.width)]:null,"
+                            "onclick:!!(a&&a.onclick),libs:document.querySelectorAll('.cpk-lib').length};"
+                            "if(a){a.click();out.afterJsClick=localStorage.getItem('ens:swatches');}return out;}")
         print('   [probe]', probe)
         check('…and a saved colour is kept, in the library every tool shares',
               len(kept) == 1 and kept[0].upper() == bgpx.upper(), json.dumps(kept))
