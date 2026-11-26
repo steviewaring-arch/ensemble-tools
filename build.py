@@ -46,14 +46,14 @@ PREVIEW = []   # e.g. ('tutti', 'next', 'preview/tutti-next.html') – Tutti 6.5
 # the exported page), and the app files that go inside the shared wrapper.
 APPS = {
     'rubato': dict(
-        title='Rubato – by Ensemble', version='1.4.3',
+        title='Rubato – by Ensemble', version='1.4.4',
         body='rubato/app.html', css='rubato/app.css',
         tagged=[('rubato-engine', 'rubato/engine.js')],
         before='shared/gif.js',
         parts=['rubato/controls.js', 'rubato/stage.js', 'rubato/app.js', 'rubato/export.js'],
     ),
     'tempo': dict(
-        title='Tempo – by Ensemble', version='0.20.2',
+        title='Tempo – by Ensemble', version='0.21',
         body='tempo/app.html', css='tempo/app.css',
         tagged=[('tempo-engine', 'tempo/engine.js'), ('tempo-saver', 'tempo/saver.js'),
                 ('tempo-mac', 'tempo/mac/packager.js'), ('tempo-win', 'tempo/win/host.js'),
@@ -61,7 +61,6 @@ APPS = {
         before='shared/gif.js',
         # promo.js: internal promo tools – remove before Tempo goes public (HANDOVER)
         parts=['tempo/app.js', 'tempo/promo.js'],
-        picker=False,   # Tempo has its own picker (RGB and CMYK sliders, saved colours) – not two at once
 
     ),
 }
@@ -70,7 +69,7 @@ APPS = {
 # does: the shared core is still tied to Rubato's settings and type engine. It takes the
 # shared GIF encoder and Tempo's copy of mp4-muxer (MIT).
 SEGUE = dict(
-    title='Segue – by Ensemble', version='1.3.5',
+    title='Segue – by Ensemble', version='1.3.6',
     body='segue/app.html', css='segue/app.css',
     tagged=[('segue-engine', 'segue/engine.js'), ('segue-mp4', 'tempo/vendor/mp4-muxer.js')],
     before='shared/gif.js',
@@ -103,8 +102,10 @@ def build_app(name, cfg):
     for sid, path in cfg['tagged']:
         scripts += f'<script id="{sid}">\n{strip1(read(path))}\n</script>\n'
     main = (read(cfg['before']) + '\n\n' if cfg['before'] else '')
-    if cfg.get('picker', True):
-        main += read('shared/colour.js') + '\n'   # the house colour picker (Segue 1.0) – a colour swatch opens it, not the browser's
+    # the house colour picker (Segue 1.0) - a colour swatch opens it, not the browser's. Every tool
+    # takes it now: it gained CMYK and a saved-colour library on 26 Nov, which were Tempo's reasons
+    # for keeping one of its own.
+    main += read('shared/colour.js') + '\n'
     main += "(()=>{\n'use strict';\nconst $=s=>document.querySelector(s);\n"
     main += f"const APP='{name}';\n"
     main += read('shared/core.js') + read('shared/view.js')

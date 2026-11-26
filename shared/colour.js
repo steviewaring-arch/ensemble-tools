@@ -31,6 +31,20 @@ const CSS=`
 .cpk-used span{display:block;font-size:11px;color:var(--muted,#67656b);margin-bottom:6px}
 .cpk-sws{display:flex;gap:6px;flex-wrap:wrap}
 .cpk-sw{all:unset;box-sizing:border-box;width:20px;height:20px;border-radius:var(--r-sw,5px);box-shadow:inset 0 0 0 1px var(--hair,rgba(43,43,43,.2));cursor:pointer}
+.cpk-seg{display:flex;gap:2px;margin-top:10px;padding:2px;border-radius:var(--r-ctl,8px);background:var(--k-fill,rgba(43,43,43,.06))}
+.cpk-seg button{all:unset;box-sizing:border-box;flex:1;height:26px;display:flex;align-items:center;justify-content:center;border-radius:var(--r-in,6px);font-size:12.5px;color:var(--muted,#67656b);cursor:pointer}
+.cpk-seg button[aria-pressed="true"]{background:var(--k-raise,#fff);color:var(--ink-strong,#1a1a1a);font-weight:500;box-shadow:0 0 0 1px var(--k-raise-line,rgba(0,0,0,.13))}
+.cpk-seg button:focus-visible{outline:2px solid var(--focus,#4a7dff);outline-offset:-2px}
+.cpk-f[data-mode="cmyk"]{grid-template-columns:1.4fr 1fr 1fr 1fr 1fr}
+.cpk-f[data-mode="rgb"] .cpk-cmyk,.cpk-f[data-mode="cmyk"] .cpk-rgb{display:none}
+.cpk-lib{margin-top:10px;padding-top:10px;border-top:1px solid var(--keyline,rgba(43,43,43,.1))}
+.cpk-lib span{display:block;font-size:11px;color:var(--muted,#67656b);margin-bottom:6px}
+.cpk-add{all:unset;box-sizing:border-box;width:20px;height:20px;border-radius:var(--r-sw,5px);box-shadow:inset 0 0 0 1px var(--keyline,rgba(43,43,43,.1));display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted,#67656b);cursor:pointer}
+.cpk-add:hover{background:var(--k-fill,rgba(43,43,43,.06))}
+.cpk-add:focus-visible{outline:2px solid var(--focus,#4a7dff);outline-offset:2px}
+.cpk-hold{position:relative;flex:none}
+.cpk-x{position:absolute;top:-5px;right:-5px;width:13px;height:13px;border-radius:50%;background:var(--fill-ink,#2b2b2b);color:var(--on-ink,#fff);font-size:9px;line-height:13px;text-align:center;cursor:pointer;opacity:0;transition:opacity .12s}
+.cpk-hold:hover .cpk-x,.cpk-x:focus-visible{opacity:1}
 .cpk-tip{position:fixed;z-index:2001;left:50%;top:14px;transform:translateX(-50%);padding:0 12px;height:28px;line-height:28px;border-radius:14px;background:var(--fill-ink,#2b2b2b);color:var(--on-ink,#fff);font-family:var(--face,"Helvetica Neue",Arial,sans-serif);font-size:12px;pointer-events:none;white-space:nowrap}
 html.cpk-picking,html.cpk-picking *{cursor:crosshair!important}
 `;
@@ -42,8 +56,22 @@ const parse=s=>{s=String(s||'').trim().replace(/^#/,'');if(/^[0-9a-f]{3}$/i.test
 function rgb2hsv(r,g,b){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;
   if(d){h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360;}return[h,mx?d/mx:0,mx];}
 function hsv2rgb(h,s,v){const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c;const [r,g,b]=h<60?[c,x,0]:h<120?[x,c,0]:h<180?[0,c,x]:h<240?[0,x,c]:h<300?[x,0,c]:[c,0,x];return[(r+m)*255,(g+m)*255,(b+m)*255];}
+/* CMYK, brought over from Tempo: a way of thinking in ink, not a print profile */
+function cmykOf([r,g,b]){r/=255;g/=255;b/=255;const k=1-Math.max(r,g,b);
+  if(k>=1)return[0,0,0,100];return[(1-r-k)/(1-k),(1-g-k)/(1-k),(1-b-k)/(1-k),k].map(x=>Math.round(x*100));}
+const rgbOfCmyk=([c,m,y,k])=>[c,m,y].map(x=>255*(1-x/100)*(1-k/100));
+/* The saved colours are the house's, not a tool's: one library behind every tool on this origin,
+   so a palette built in Tempo is there in Tutti. Tempo's own 48 come across the first time. */
+const LIB=()=>{try{const v=JSON.parse(localStorage.getItem('ens:swatches')||'null');if(Array.isArray(v))return v;}catch(e){}
+  try{const old=JSON.parse(localStorage.getItem('tempo:swatches')||'null');
+    if(Array.isArray(old)&&old.length){localStorage.setItem('ens:swatches',JSON.stringify(old.slice(0,48)));return old.slice(0,48);}}catch(e){}
+  return[];};
+const putLib=v=>{try{localStorage.setItem('ens:swatches',JSON.stringify(v.slice(0,48)));}catch(e){}};
+
 const EYE='<svg viewBox="0 0 14 14" aria-hidden="true"><path d="m8.2 3.4 2.4 2.4M9.3 2.3a1.55 1.55 0 0 1 2.4 2.4L10 6.4 7.6 4zM7.9 4.9 3.3 9.5l-.8 2 2-.8 4.6-4.6" fill="none" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-let box=null,sv,dot,hue,knob,now,eye,fHex,fR,fG,fB,used,sws,target=null,h=0,s=0,v=0,start='',picking=null;
+let box=null,sv,dot,hue,knob,now,eye,fHex,fR,fG,fB,fC,fM,fY,fK,fWrap,seg,lib,libRow,used,sws,
+    target=null,h=0,s=0,v=0,start='',picking=null;
+let mode=(()=>{try{return localStorage.getItem('ens:pickmode')==='cmyk'?'cmyk':'rgb';}catch(e){return'rgb';}})();
 function make(){const st=el('style');st.textContent=CSS;document.head.append(st);
   box=el('div','cpk');box.hidden=true;box.setAttribute('role','dialog');box.setAttribute('aria-label','Colour');
   sv=el('div','cpk-sv');dot=el('div','cpk-dot');sv.append(dot);
@@ -51,15 +79,31 @@ function make(){const st=el('style');st.textContent=CSS;document.head.append(st)
   now=el('div','cpk-now');hue=el('div','cpk-hue');knob=el('i');hue.append(knob);row.append(eye,now,hue);
   const f=el('div','cpk-f');const field=(name,max)=>{const l=el('label'),i=el('input');i.type='text';i.spellcheck=false;i.autocomplete='off';i.inputMode=max?'numeric':'text';i.maxLength=max?3:7;i.setAttribute('aria-label',name);const t=el('span');t.textContent=name;l.append(i,t);f.append(l);return i;};
   fHex=field('Hex');fR=field('R',255);fG=field('G',255);fB=field('B',255);
+  fC=field('C',100);fM=field('M',100);fY=field('Y',100);fK=field('K',100);
+  for(const i of [fR,fG,fB])i.parentElement.className='cpk-rgb';
+  for(const i of [fC,fM,fY,fK])i.parentElement.className='cpk-cmyk';
+  fWrap=f;f.dataset.mode=mode;
+  /* RGB or CMYK: the same colour, said two ways. One set of fields is shown at a time. */
+  seg=el('div','cpk-seg');seg.setAttribute('role','group');seg.setAttribute('aria-label','Sliders');
+  for(const [k,t] of [['rgb','RGB'],['cmyk','CMYK']]){const b=el('button');b.type='button';b.textContent=t;
+    b.setAttribute('aria-pressed',String(mode===k));
+    b.onclick=()=>{mode=k;try{localStorage.setItem('ens:pickmode',k);}catch(e){}
+      for(const x of seg.children)x.setAttribute('aria-pressed',String(x.textContent.toLowerCase()===k));
+      fWrap.dataset.mode=k;paint();};
+    seg.append(b);}
   used=el('div','cpk-used');const ut=el('span');ut.textContent='In use';sws=el('div','cpk-sws');used.append(ut,sws);
-  box.append(sv,row,f,used);document.body.append(box);
+  lib=el('div','cpk-lib');const lt=el('span');lt.textContent='Saved colours';libRow=el('div','cpk-sws');lib.append(lt,libRow);
+  box.append(sv,row,seg,f,used,lib);document.body.append(box);
   const drag=(node,fn)=>{node.addEventListener('pointerdown',e=>{e.preventDefault();node.setPointerCapture(e.pointerId);fn(e);const mv=ev=>fn(ev),up=()=>{node.removeEventListener('pointermove',mv);node.removeEventListener('pointerup',up);node.removeEventListener('pointercancel',up);};
     node.addEventListener('pointermove',mv);node.addEventListener('pointerup',up);node.addEventListener('pointercancel',up);});};
   drag(sv,e=>{const r=sv.getBoundingClientRect();s=clamp((e.clientX-r.left)/r.width,0,1);v=1-clamp((e.clientY-r.top)/r.height,0,1);push();});
   drag(hue,e=>{const r=hue.getBoundingClientRect();h=clamp((e.clientX-r.left)/r.width,0,1)*360;if(h>=360)h=359.9;push();});
   fHex.addEventListener('input',()=>{const c=parse(fHex.value);if(c){[h,s,v]=keepHue(rgb2hsv(...c));push(fHex);}});
   for(const i of [fR,fG,fB])i.addEventListener('input',()=>{const c=[fR,fG,fB].map(x=>parseInt(x.value,10));if(c.every(n=>n>=0&&n<=255)){[h,s,v]=keepHue(rgb2hsv(...c));push(i);}});
-  for(const i of [fHex,fR,fG,fB]){i.addEventListener('blur',()=>paint());i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();close(true);}e.stopPropagation();if(e.key==='Escape')close(false);});i.addEventListener('focus',()=>i.select());}
+  for(const i of [fC,fM,fY,fK])i.addEventListener('input',()=>{
+    const c=[fC,fM,fY,fK].map(x=>parseInt(x.value,10));
+    if(c.every(n=>n>=0&&n<=100)){[h,s,v]=keepHue(rgb2hsv(...rgbOfCmyk(c)));push(i);}});
+  for(const i of [fHex,fR,fG,fB,fC,fM,fY,fK]){i.addEventListener('blur',()=>paint());i.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();close(true);}e.stopPropagation();if(e.key==='Escape')close(false);});i.addEventListener('focus',()=>i.select());}
   for(const [i,k] of [[fR,0],[fG,1],[fB,2]])i.addEventListener('keydown',e=>{if(e.key!=='ArrowUp'&&e.key!=='ArrowDown')return;e.preventDefault();const c=hsv2rgb(h,s,v).map(Math.round);c[k]=clamp(c[k]+(e.key==='ArrowUp'?1:-1)*(e.shiftKey?10:1),0,255);[h,s,v]=keepHue(rgb2hsv(...c));push();});
   eye.addEventListener('click',pipette);
   document.addEventListener('pointerdown',e=>{if(!box||box.hidden||picking)return;if(box.contains(e.target)||e.target===target)return;close(true);},true);
@@ -70,7 +114,9 @@ const keepHue=([nh,ns,nv])=>[ns<.004||nv<.004?h:nh,nv<.004?s:ns,nv];
 const hexNow=()=>toHex(...hsv2rgb(h,s,v));
 function paint(skip){const [r,g,b]=hsv2rgb(h,s,v).map(Math.round),hex=toHex(r,g,b);
   sv.style.background=`hsl(${h} 100% 50%)`;dot.style.left=s*100+'%';dot.style.top=(1-v)*100+'%';knob.style.left=h/360*100+'%';now.style.background=hex;
-  if(skip!==fHex)fHex.value=hex;if(skip!==fR)fR.value=r;if(skip!==fG)fG.value=g;if(skip!==fB)fB.value=b;}
+  if(skip!==fHex)fHex.value=hex;if(skip!==fR)fR.value=r;if(skip!==fG)fG.value=g;if(skip!==fB)fB.value=b;
+  const ink=cmykOf([r,g,b]);const CM=[fC,fM,fY,fK];
+  for(let i=0;i<4;i++)if(skip!==CM[i])CM[i].value=ink[i];}
 function push(skip){paint(skip);if(!target)return;const hex=hexNow();if(target.value.toUpperCase()===hex)return;target.value=hex;target.dispatchEvent(new Event('input',{bubbles:true}));}
 function place(){const r=target.getBoundingClientRect(),w=box.offsetWidth,hh=box.offsetHeight,m=8;
   let x=clamp(r.right-w,m,innerWidth-w-m),y=r.bottom+m;if(y+hh>innerHeight-m)y=r.top-m-hh;if(y<m)y=clamp(innerHeight-hh-m,m,innerHeight);
@@ -80,7 +126,25 @@ function swatches(){const seen=new Set(),list=[];
   let rec=[];try{rec=JSON.parse(localStorage.getItem('ens:colours')||'[]');}catch(e){}
   for(const c of rec)if(parse(c)&&!seen.has(c)){seen.add(c);list.push(c);}
   sws.textContent='';for(const c of list.slice(0,16)){const b=el('button','cpk-sw');b.type='button';b.style.background=c;b.title=c;b.setAttribute('aria-label',c);b.onclick=()=>{[h,s,v]=keepHue(rgb2hsv(...parse(c)));push();};sws.append(b);}
-  used.hidden=!list.length;}
+  used.hidden=!list.length;
+  drawLib();}
+/* Saved colours: put there on purpose and kept, as against "In use", which is only what the page
+   happens to be using. Tempo's reason for its own picker, now the house's. */
+function drawLib(){
+  libRow.textContent='';
+  for(const c of LIB()){
+    const hold=el('span','cpk-hold'),b=el('button','cpk-sw');
+    b.type='button';b.style.background=c;b.title=c;b.setAttribute('aria-label','Use '+c);
+    b.onclick=()=>{take(c);};
+    const x=el('button','cpk-x');x.type='button';x.textContent='\u00d7';
+    x.setAttribute('aria-label','Forget '+c);
+    x.onclick=e=>{e.stopPropagation();putLib(LIB().filter(k=>k!==c));drawLib();};
+    hold.append(b,x);libRow.append(hold);}
+  const add=el('button','cpk-add');add.type='button';add.textContent='+';
+  add.setAttribute('aria-label','Save this colour');add.title='Save this colour';
+  add.onclick=()=>{const hex=hexNow(),cur=LIB();
+    if(!cur.includes(hex))putLib([hex,...cur]);drawLib();};
+  libRow.append(add);}
 function open(input){if(!box)make();if(target&&target!==input)close(true);target=input;start=String(input.value||'#000000').toUpperCase();
   const c=parse(start)||[0,0,0];[h,s,v]=rgb2hsv(...c);swatches();box.hidden=false;paint();place();}
 function close(keep){if(!box||box.hidden)return;const t=target;box.hidden=true;target=null;if(!t)return;

@@ -147,29 +147,32 @@ def main():
         wt = pg.evaluate("[JSON.parse(localStorage.getItem('tempo:wthemes')||'[]'),JSON.parse(localStorage.getItem('tempo:dthemes')||'[]'),JSON.parse(localStorage.getItem('tempo:tthemes')||'[]')]")
         check('A theme can be copied to the other designs, its colours matched by role', all(len(x) == 1 and x[0]['name'] == 'Ink' and x[0]['bg'].upper() == '#654321' for x in wt) and wt[0][0]['ink'].upper() == '#123456', json.dumps(wt[0]))
         pg.locator('#c_ssP2').click(); time.sleep(.3)
-        check('Clicking a colour opens Tempo’s own picker, with saved colours', pg.locator('.cpick').is_visible() and pg.get_by_role('button', name='Save this colour').count() == 1)
-        pk = pg.locator('.cpick')
-        pk.get_by_role('textbox', name='Hex').fill('#336699'); time.sleep(.1)
-        rgbv = [pk.get_by_role('textbox', name=n + ' value').input_value() for n in ('Red', 'Green', 'Blue')]
-        pk.get_by_role('slider', name='Red').fill('255'); time.sleep(.1)
-        hx1 = pk.get_by_role('textbox', name='Hex').input_value()
-        pk.get_by_role('button', name='CMYK').click(); time.sleep(.1)
-        cm = [pk.get_by_role('textbox', name=n + ' value').input_value() for n in ('Cyan', 'Magenta', 'Yellow', 'Black')]
-        pk.get_by_role('slider', name='Black').fill('100'); time.sleep(.1)
-        hx2 = pk.get_by_role('textbox', name='Hex').input_value()
-        pk.get_by_role('textbox', name='Hex').fill('#f0a'); pk.get_by_role('textbox', name='Hex').press('Tab'); time.sleep(.1)
+        check('Clicking a colour opens the house picker, with its saved colours',
+              pg.locator('.cpk').is_visible() and pg.get_by_role('button', name='Save this colour').count() == 1)
+        pk = pg.locator('.cpk')
+        pk.get_by_role('textbox', name='Hex', exact=True).fill('#336699'); time.sleep(.15)
+        rgbv = [pk.get_by_role('textbox', name=n, exact=True).input_value() for n in ('R', 'G', 'B')]
+        pk.get_by_role('button', name='CMYK', exact=True).click(); time.sleep(.15)
+        cm = [pk.get_by_role('textbox', name=n, exact=True).input_value() for n in ('C', 'M', 'Y', 'K')]
+        pk.get_by_role('textbox', name='Hex', exact=True).fill('#f0a')
+        pk.get_by_role('textbox', name='Hex', exact=True).press('Tab'); time.sleep(.15)
         hx3 = pg.locator('#c_ssP2').evaluate("e=>(e.matches('input[type=color]')?e:(e.closest('.colour-row')||e).querySelector('input[type=color]')).value")
-        check('The picker: RGB and CMYK sliders and values, the hex (short hex too), on a plain panel',
-              rgbv == ['51', '102', '153'] and hx1 == '#FF6699' and cm == ['0', '60', '40', '0'] and hx2 == '#000000' and hx3.lower() == '#ff00aa'
-              and pk.evaluate("b=>getComputedStyle(b).backgroundColor") not in ('rgba(0, 0, 0, 0)', 'transparent'), json.dumps([rgbv, hx1, cm, hx2, hx3]))
-        pk.get_by_role('button', name='RGB').click()
+        check('The house picker: RGB and CMYK both, the hex (short hex too), on a plain panel',
+              rgbv == ['51', '102', '153'] and cm == ['67', '33', '0', '40'] and hx3.lower() == '#ff00aa'
+              and pk.evaluate("b=>getComputedStyle(b).backgroundColor") not in ('rgba(0, 0, 0, 0)', 'transparent'),
+              json.dumps([rgbv, cm, hx3]))
+        pk.get_by_role('button', name='RGB', exact=True).click()
         bgpx = pg.evaluate("(()=>{const c=document.getElementById('cv'),d=c.getContext('2d').getImageData(5,5,1,1).data;return '#'+[d[0],d[1],d[2]].map(v=>v.toString(16).padStart(2,'0')).join('').toUpperCase();})()")
         pg.evaluate("delete window.EyeDropper; window.EyeDropper=undefined")
         pk.get_by_role('button', name='Pick a colour').click(); time.sleep(.1)
-        cvb = pg.locator('#cv').bounding_box(); pg.mouse.click(cvb['x'] + 3, cvb['y'] + 3); time.sleep(.2)
-        check('…and its dropper picks from the preview where the browser has none of its own', pk.is_visible() and pk.get_by_role('textbox', name='Hex').input_value() == bgpx, json.dumps([bgpx, pk.get_by_role('textbox', name='Hex').input_value()]))
+        cvb = pg.locator('#cv').bounding_box(); pg.mouse.click(cvb['x'] + 3, cvb['y'] + 3); time.sleep(.3)
+        check('…and its dropper picks from the preview where the browser has none of its own',
+              pk.is_visible() and pk.get_by_role('textbox', name='Hex', exact=True).input_value().upper() == bgpx.upper(),
+              pk.get_by_role('textbox', name='Hex', exact=True).input_value() + ' vs ' + bgpx)
+        pg.evaluate("localStorage.removeItem('ens:swatches')")
         pg.get_by_role('button', name='Save this colour').click(); pg.keyboard.press('Escape'); time.sleep(.2)
-        check('…and a saved colour is kept for every design', len(pg.evaluate("JSON.parse(localStorage.getItem('tempo:swatches')||'[]')")) == 1)
+        check('…and a saved colour is kept, in the library every tool shares',
+              len(pg.evaluate("JSON.parse(localStorage.getItem('ens:swatches')||'[]')")) == 1)
         # 4. every hour: tick themes, in order; each lasts n hours; the strip shows the day
         colour().get_by_role('group', name='Colours').get_by_role('button', name='Every hour').click(); time.sleep(.3)
         strip0 = colour().locator('.hs-cell').count()
