@@ -992,7 +992,7 @@
   .seg button:hover{color:var(--ink)}
   .seg button.on{background:var(--fill-ink);color:var(--on-ink)}
   .q{margin-left:6px}
-  @media (hover:hover){.row:hover .q,.toggle:hover .q,.subttl:hover .q,.card-tools:hover .q,.q:hover{opacity:1}}
+  @media (hover:hover){.row:hover .q,.toggle:hover .q,.card-tools:hover .q,.q:hover{opacity:1}}
 
   /* the quiet actions a card carries (Randomise, Random, Reset shapes) */
   .card-tools{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap;margin:-4px 0 8px}
@@ -1021,15 +1021,7 @@
   .edge label{font-size:12px;color:var(--muted);display:flex;justify-content:space-between}
   .edge>input[type=range]{margin:4px 0 10px;height:24px}
   .edge>input[type=range]::-webkit-slider-thumb{margin-top:5px}
-  .subttl{font-size:var(--fs-small);color:var(--muted);margin:4px 0 10px;letter-spacing:-0.005em}
-  .subttl-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-  .subttl-row .subttl{margin:0}
-  .subttl-row a{font-size:13px;color:var(--muted);cursor:pointer;text-decoration:none;padding:0 8px;border-radius:999px;height:var(--h-sm);display:inline-flex;align-items:center}
-  .subttl-row a:hover{color:var(--ink);background:var(--well)}
   .hint{margin-top:10px}
-  .gifmod{background:var(--seg);border-radius:var(--r-card);padding:12px;margin-top:10px}
-  .gifmod .subttl{margin:0 0 8px}
-  .gifmod .split{margin-top:0}
 
   /* the island: Export grows into a sheet; recording shows in the island itself */
   #islMain:has(> #vidCtl[style*="display: none"]),#islMain:has(> #vidCtl[style*="display: none"])+.ep-div,#islMain:has(> #vidCtl[style*="display:none"]),#islMain:has(> #vidCtl[style*="display:none"])+.ep-div{display:none}
@@ -1114,8 +1106,8 @@
   .seg button.on,.seg2.on,.lane.on{background:var(--k-raise);color:var(--ink-strong);font-weight:500;box-shadow:0 0 0 1px var(--k-raise-line)}
   .seg2.on:hover{color:var(--ink-strong)}
   /* quiet actions: keyline chips */
-  .card-tools a,.subttl-row a{height:24px;border-radius:var(--r-chip);box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 8px}
-  .card-tools a:hover,.subttl-row a:hover{background:var(--k-fill);color:var(--ink-strong)}
+  .card-tools a{height:24px;border-radius:var(--r-chip);box-shadow:inset 0 0 0 1px var(--hair);font-size:12px;font-weight:500;color:var(--ink);padding:0 8px}
+  .card-tools a:hover{background:var(--k-fill);color:var(--ink-strong)}
   .svgbtn{border-radius:var(--r-chip);font-size:11.5px;font-weight:500}
   /* the view's zoom sizes the canvas itself, so nothing may clamp it (kit: .view.zoomed scrolls) */
   .canvas-wrap{max-width:none;max-height:none}
@@ -1129,8 +1121,6 @@
   .stepper{border-top:0;padding-top:0;margin-top:10px}
   .stepper>span{font-weight:500;color:var(--ink-strong)}
   /* groups inside a card: a Bold title, one rule */
-  .subttl{font-size:var(--fs-body);font-weight:700;color:var(--ink-strong);margin:0 0 10px}
-  .gifmod{background:var(--k-fill);border-radius:var(--r-ctl)}
   /* Export: labels as everywhere, Ping-pong as a switch */
   .ep-sublabel{font-weight:500;color:var(--ink-strong)}
   .pp .ppdot{width:16px;height:16px;background:transparent;box-shadow:inset 0 0 0 1px var(--hair)}
@@ -1141,7 +1131,6 @@
   .cxm>.cx{top:50%;margin-top:-8px}
   .txt-wrap{position:relative;margin-top:14px}
   .txt-wrap>textarea{margin-top:0!important;display:block}
-
 
   /* 6.4: Mixed sizes – a switch that heads its group (the kit's .sw-grp) */
   .mixgrp{padding-top:2px}
@@ -1689,6 +1678,18 @@ function pipette(){if(picking){endPick();return;}
 /* every colour input opens this, not the browser's */
 document.addEventListener('click',e=>{const t=e.target&&e.target.closest?e.target.closest('input[type="color"]'):null;if(!t||t.disabled||t.dataset.native!=null)return;
   e.preventDefault();if(target===t&&box&&!box.hidden){close(true);return;}open(t);},true);
+/* A colour row opens its own picker from anywhere that is not another control.
+   Tempo had this on its 135 colour rows before the pickers were merged, and it is
+   the better target on a phone. A real control keeps its own job - Segue's hex is
+   a field you type in, the ? shows a tip - and a label already forwards its press
+   to the input natively, so neither is counted here. */
+document.addEventListener('click',e=>{
+  const t=e.target;if(!t||!t.closest)return;
+  const row=t.closest('.colour-row');if(!row)return;
+  if(t.closest('button,input,select,textarea,a,label,[role="button"],.q'))return;
+  const inp=row.querySelector('input[type="color"]');
+  if(!inp||inp.disabled||inp.dataset.native!=null)return;
+  e.preventDefault();if(target===inp&&box&&!box.hidden){close(true);return;}open(inp);},true);
 window.EnsColour={open,close,get isOpen(){return!!box&&!box.hidden;}};
 })();
 /* The view's zoom – a house part, lifted out of Segue 0.10 (11 November).

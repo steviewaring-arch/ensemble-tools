@@ -1060,9 +1060,6 @@
 .path-pic .pp-stop.first{opacity:1}
 .path-pic .pp-line{fill:none;stroke:var(--ill-1);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .trans-pic .tp-bg{fill:var(--k-raise);stroke:var(--hair);stroke-width:1}
-.trans-pic .tp-a{fill:var(--ill-2)}
-.trans-pic .tp-b{fill:var(--ill-1)}
-.trans-pic .tp-o{fill:none;stroke:var(--ill-1);stroke-width:1;stroke-dasharray:2 2}
 .trans-pic .tp-go{fill:none;stroke:var(--ill-1);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
 .preset-row .pk{width:44px;height:30px}
 .preset-row .pk svg{width:44px;height:30px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--hair)}
@@ -4290,6 +4287,18 @@ function pipette(){if(picking){endPick();return;}
 /* every colour input opens this, not the browser's */
 document.addEventListener('click',e=>{const t=e.target&&e.target.closest?e.target.closest('input[type="color"]'):null;if(!t||t.disabled||t.dataset.native!=null)return;
   e.preventDefault();if(target===t&&box&&!box.hidden){close(true);return;}open(t);},true);
+/* A colour row opens its own picker from anywhere that is not another control.
+   Tempo had this on its 135 colour rows before the pickers were merged, and it is
+   the better target on a phone. A real control keeps its own job - Segue's hex is
+   a field you type in, the ? shows a tip - and a label already forwards its press
+   to the input natively, so neither is counted here. */
+document.addEventListener('click',e=>{
+  const t=e.target;if(!t||!t.closest)return;
+  const row=t.closest('.colour-row');if(!row)return;
+  if(t.closest('button,input,select,textarea,a,label,[role="button"],.q'))return;
+  const inp=row.querySelector('input[type="color"]');
+  if(!inp||inp.disabled||inp.dataset.native!=null)return;
+  e.preventDefault();if(target===inp&&box&&!box.hidden){close(true);return;}open(inp);},true);
 window.EnsColour={open,close,get isOpen(){return!!box&&!box.hidden;}};
 })();
 

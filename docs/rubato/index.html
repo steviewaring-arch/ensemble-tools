@@ -1828,6 +1828,18 @@ function pipette(){if(picking){endPick();return;}
 /* every colour input opens this, not the browser's */
 document.addEventListener('click',e=>{const t=e.target&&e.target.closest?e.target.closest('input[type="color"]'):null;if(!t||t.disabled||t.dataset.native!=null)return;
   e.preventDefault();if(target===t&&box&&!box.hidden){close(true);return;}open(t);},true);
+/* A colour row opens its own picker from anywhere that is not another control.
+   Tempo had this on its 135 colour rows before the pickers were merged, and it is
+   the better target on a phone. A real control keeps its own job - Segue's hex is
+   a field you type in, the ? shows a tip - and a label already forwards its press
+   to the input natively, so neither is counted here. */
+document.addEventListener('click',e=>{
+  const t=e.target;if(!t||!t.closest)return;
+  const row=t.closest('.colour-row');if(!row)return;
+  if(t.closest('button,input,select,textarea,a,label,[role="button"],.q'))return;
+  const inp=row.querySelector('input[type="color"]');
+  if(!inp||inp.disabled||inp.dataset.native!=null)return;
+  e.preventDefault();if(target===inp&&box&&!box.hidden){close(true);return;}open(inp);},true);
 window.EnsColour={open,close,get isOpen(){return!!box&&!box.hidden;}};
 })();
 

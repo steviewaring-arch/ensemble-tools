@@ -473,8 +473,17 @@ what works in Safari), **Hex and R, G, B to type into**, and the colours already
 use in the piece, so colours can be matched rather than guessed. Its surface,
 corners and fields are the kit's. It takes the place of the native picker on every
 `<input type="color">` just by being included: the input stays what the tool reads.
-Segue, Rubato and Tutti use it; Tempo has its own (RGB and CMYK sliders, saved
-colours) – the two should become one (see `UI-TODO.md`).
+All four tools use it (26 Nov): Tempo's own picker was merged into it rather than
+swapped out, so it also carries **C, M, Y, K beside R, G, B** – one set on screen at a
+time, which set it opens on remembered – and a library of saved colours every tool
+shares.
+
+**A colour row opens its picker from anywhere that is not another control** – the
+swatch, its label, the hex readout, the row's own space. A real control keeps its own
+job: Segue's hex is a field you type in, and the "?" shows its note. Only the swatch
+says so with a cursor, the way a label is clickable without advertising it. Tempo had
+this across its 135 colour rows before the merge; it is the better target on a phone,
+so it became the house's rather than being dropped.
 
 Open with Steve: his sampled base grey
 `#F6F5F4` (a touch warm) as the reference the other tones derive from – see

@@ -109,9 +109,6 @@
 .path-pic .pp-stop.first{opacity:1}
 .path-pic .pp-line{fill:none;stroke:var(--ill-1);stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 .trans-pic .tp-bg{fill:var(--k-raise);stroke:var(--hair);stroke-width:1}
-.trans-pic .tp-a{fill:var(--ill-2)}
-.trans-pic .tp-b{fill:var(--ill-1)}
-.trans-pic .tp-o{fill:none;stroke:var(--ill-1);stroke-width:1;stroke-dasharray:2 2}
 .trans-pic .tp-go{fill:none;stroke:var(--ill-1);stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
 .preset-row .pk{width:44px;height:30px}
 .preset-row .pk svg{width:44px;height:30px;border-radius:3px;box-shadow:inset 0 0 0 1px var(--hair)}

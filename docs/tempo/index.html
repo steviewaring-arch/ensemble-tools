@@ -424,8 +424,6 @@
   .toggle.inline{width:auto;margin:0 0 0 6px;flex:none}
   .btn-row>input[type=text]{flex:1}
   /* colour themes */
-  .sw-set{flex:none;display:inline-flex;gap:4px}
-  .sw-dot{width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 1px var(--keyline)}
   /* Presets in their sheet */
   .sheet .thumbs{grid-template-columns:repeat(auto-fill,minmax(92px,1fr))}
   .slot-main[role=button]{cursor:pointer}
@@ -461,10 +459,8 @@
   .dev-text{display:flex;flex-direction:column;flex:1;min-width:0}
   .dev-name{font-size:var(--fs-body);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .dev-meta{font-size:11.5px;color:var(--muted)}
-  /* the colour picker (0.9.2) */
-  .colour-row{cursor:pointer}
-  .colour-row.picking .cswatch{box-shadow:0 0 0 2px var(--focus)}
-  #cv.picking-colour{cursor:crosshair}
+  /* the colour picker lives in shared/colour.js; the swatch carries its own
+     cursor there, so the row no longer claims to be clickable all over */
   /* the dial's Layers card (0.10): top of the list in front */
   .layer-list{display:flex;flex-direction:column;gap:2px;margin:0 0 10px}
   .layer-row{display:grid;grid-template-columns:28px 1fr 28px 28px;align-items:center;gap:4px;min-height:32px;padding:0 2px 0 4px;border-radius:var(--r-inner);background:var(--btn);box-shadow:inset 0 0 0 1px var(--keyline)}
@@ -4766,6 +4762,18 @@ function pipette(){if(picking){endPick();return;}
 /* every colour input opens this, not the browser's */
 document.addEventListener('click',e=>{const t=e.target&&e.target.closest?e.target.closest('input[type="color"]'):null;if(!t||t.disabled||t.dataset.native!=null)return;
   e.preventDefault();if(target===t&&box&&!box.hidden){close(true);return;}open(t);},true);
+/* A colour row opens its own picker from anywhere that is not another control.
+   Tempo had this on its 135 colour rows before the pickers were merged, and it is
+   the better target on a phone. A real control keeps its own job - Segue's hex is
+   a field you type in, the ? shows a tip - and a label already forwards its press
+   to the input natively, so neither is counted here. */
+document.addEventListener('click',e=>{
+  const t=e.target;if(!t||!t.closest)return;
+  const row=t.closest('.colour-row');if(!row)return;
+  if(t.closest('button,input,select,textarea,a,label,[role="button"],.q'))return;
+  const inp=row.querySelector('input[type="color"]');
+  if(!inp||inp.disabled||inp.dataset.native!=null)return;
+  e.preventDefault();if(target===inp&&box&&!box.hidden){close(true);return;}open(inp);},true);
 window.EnsColour={open,close,get isOpen(){return!!box&&!box.hidden;}};
 })();
 
