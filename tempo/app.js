@@ -1023,6 +1023,10 @@ const savePresets=()=>{LS.set('presets',PRESETS);presetVer++;};
    light up every row in the panel as changed. */
 const baseSnap=()=>{const o={};for(const k of tempoKeys())if(k in S)o[k]=S[k];return o;};
 function appBaseline(){const b=LS.get('basis');return b&&typeof b==='object'?b:null;}
+/* Putting a state back is not just writing the keys: the screensaver has to be told, or undo
+   moves the control and leaves the canvas as it was. The same tail as opening a preset. */
+function appRestore(o){for(const k of tempoKeys())if(k in o)S[k]=o[k];
+  refreshAll();applyStyles();themesRefresh();ssDirty=true;autosave();}
 const setActive=(id,builtin)=>{ACTIVE=id?{id,builtin:!!builtin,sig:sigNow()}:null;LS.set('active',ACTIVE);
   const basis=ACTIVE?baseSnap():null;LS.set('basis',basis);
   if(typeof startFrom==='function')startFrom(basis);};

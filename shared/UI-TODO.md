@@ -14,6 +14,46 @@ Two cautions, learned the hard way building it:
 - A specimen that does not match the real markup gives false confidence. The first draft wrote the stepper's – and + as text where the tools use SVG icons, and duly "found" a type stray that was mine.
 - The "seen in the markup" column reads class attributes and the `el(tag, class)` helpers. Rubato and Tempo build most of their DOM through those helpers, so before it knew about them it called 142 live classes dead.
 
+### Done 26 Nov – undo across the house, and a correction (Rubato 1.4.1, Tempo 0.20)
+
+**First, a correction.** I said last night that Tutti had none of the change column and would need
+its own pass. Wrong: Tutti has had the whole thing for some time, in its own `frame.js` - `CTL`,
+`c.moved(p)`, dots on rows, cards and group heads, a `shown()` guard for rows that are off screen,
+and `restore()` for putting back. 55 dots and 5 section Resets, all working. I read "Tutti does not
+load shared/core.js", which is true, and concluded it had nothing, which did not follow. Measured
+before building this time, which is how it was caught.
+
+So an audit of all four, run rather than remembered:
+
+| | dots | section Resets | Undo button | ⌘Z |
+|---|---|---|---|---|
+| Segue | 161 | 8 | yes | yes |
+| Tutti | 55 | 5 | yes | yes |
+| Rubato | 102 | 9 | yes | **no** |
+| Tempo | 291 | 25 | **no** | **no** |
+
+**Rubato's undo was wired but deaf.** The buttons went in with 1.3 and `undoStack`, `putState()`
+and `paintHistory()` were all there and correct - but `pushUndo()` was only ever called for the
+chunky things: loading a preset, adding or removing a block, resetting kerning, randomising the
+seed. Moving a setting recorded nothing, so the Undo button sat disabled however much you changed,
+and there was no ⌘Z handler anywhere in the tool.
+
+**So undo went in the shared layer too**, beside the change column in `shared/core-end.js`, because
+`set()` is the one funnel both tools pass through. A settled change is one step: a drag is one step
+and not forty, because the state is held as it was before the drag and only filed once it stops.
+Rubato keeps its own stack and buttons and this feeds those rather than standing a second stack
+beside them; Tempo had neither, so it gets the stack here, the house Undo and Redo buttons copied
+from Rubato's top bar, and `appRestore()` to say how a state is put back - writing the keys is not
+enough there, the screensaver has to be told or the canvas keeps what it had.
+
+Both now: ⌘Z, ⇧⌘Z, the buttons, and three settled changes undo as three steps with every control
+back where it was - 115 of them in Tempo, 40 in Rubato, checked one by one.
+
+**A test that lied, worth remembering.** I first checked undo by comparing the canvas before and
+after. It said the canvas never came back - in both tools, including Rubato, whose restore path was
+already proven. Both canvases animate, so two snapshots never match and the test could only ever
+fail. Reading every control instead is deterministic, and that is what went into the suites.
+
 ### Done 25 Nov – the change column in Rubato and Tempo (Rubato 1.4, Tempo 0.19)
 
 The one house part three tools out of four still lacked. Segue has had it since 1.0: a blue dot on

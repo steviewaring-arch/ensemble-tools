@@ -226,6 +226,29 @@ def main():
             check('A section Reset puts back every row shown in it, and leaves the other sections alone',
                   b4[0] >= 1 and af[0] == 0 and (b4[1] - b4[0]) == (af[1] - af[0]),
                   f'{sec}: {b4[0]} -> {af[0]} in it, {b4[1]-b4[0]} -> {af[1]-af[0]} elsewhere')
+        # ---- undo (shared, in core-end.js): a settled change is one step, and a step puts
+        # everything back. Reading every control beats comparing the canvas, which animates. ----
+        def allctl():
+            return pg.evaluate("() => {const o={};document.querySelectorAll('.ctl[data-k] input').forEach(e=>{"
+                               "const w=e.closest('[data-k]');o[w.dataset.k+':'+e.type]="
+                               "e.type==='checkbox'?String(e.checked):String(e.value);});return o;}")
+        pg.evaluate("document.querySelectorAll('#panel .card.collapsed .card-toggle').forEach(t=>t.click())"); time.sleep(.4)
+        u0 = allctl()
+        for n in range(3):
+            pg.evaluate("n => {const a=[...document.querySelectorAll('.ctl[data-k] input[type=range]')]"
+                        ".filter(x=>x.offsetWidth>0);const i=a[n];if(!i)return;i.value=+i.value+(+i.step||1)*6;"
+                        "i.dispatchEvent(new Event('input',{bubbles:true}));"
+                        "i.dispatchEvent(new Event('change',{bubbles:true}));}", n); time.sleep(.9)
+        u1 = allctl()
+        changed = [k for k in u0 if u0[k] != u1[k]]
+        undo_on = pg.evaluate("() => {const b=document.querySelector('#undoBtn');return b?!b.disabled:null;}")
+        for _ in range(3):
+            pg.keyboard.press('Control+z'); time.sleep(.9)
+        u2 = allctl()
+        left = [k for k in u0 if u0[k] != u2[k]]
+        check('Undo: three settled changes are three steps, and undoing them puts every control back',
+              len(changed) == 3 and undo_on is True and not left,
+              f'{len(changed)} changed, undo button {undo_on}, {len(left)} left differing {left[:3]}')
         check('No page errors', not errs, '; '.join(errs[:3]))
         b.close()
     n = sum(1 for r in results if r[0])

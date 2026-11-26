@@ -1,5 +1,28 @@
 # Changelog
 
+## 26 November 2026 – Undo across the house (Rubato 1.4.1, Tempo 0.20)
+
+- **A correction first.** Tutti was said to have none of the change column; it has had the whole
+  thing for some time in its own `frame.js` – dots, section Resets, a guard for rows off screen,
+  and putting back. It does not load `shared/core.js`, which is true, but that did not mean it had
+  nothing. Measured this time before building.
+- **Rubato's undo was wired but deaf.** The buttons, the stack and `putState()` all went in with
+  1.3 and were correct, but `pushUndo()` was only called for chunky things – loading a preset,
+  adding a block, resetting kerning. Moving a setting recorded nothing, so the button sat disabled
+  however much you changed, and no ⌘Z handler existed anywhere in the tool.
+- **Undo is now shared**, beside the change column in `shared/core-end.js`, because `set()` is the
+  one funnel both tools pass through. A settled change is one step: a drag is one step and not
+  forty, because the state is held as it was before the drag and filed once it stops. Rubato keeps
+  its own stack and this feeds it rather than standing a second one beside it. Tempo gets the
+  stack, the house Undo and Redo buttons, and an `appRestore()` – writing the keys back is not
+  enough there, the screensaver has to be told or the canvas keeps what it had.
+- Three settled changes undo as three steps with every control back where it was: 115 of them in
+  Tempo, 40 in Rubato, checked one by one. That sweep is now in both suites.
+- **A test that lied.** Undo was first checked by comparing the canvas before and after, and it
+  reported failure in both tools – including Rubato, whose restore was already proven. Both
+  canvases animate, so two snapshots never match and the test could only fail. Reading every
+  control is deterministic; that is what went in.
+
 ## 25 November 2026 – The change column in Rubato and Tempo (Rubato 1.4, Tempo 0.19)
 
 - **The house part three tools out of four lacked.** A blue dot on any row that has moved from

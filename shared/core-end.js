@@ -119,3 +119,67 @@ function paintChanges(){
    which is right for a tool whose starting point is simply its defaults. */
 columnReady=true;
 addDots();startFrom(typeof appBaseline==='function'?appBaseline():null);
+
+/* ---------------- undo ----------------
+   A settled change is one step: a drag is one step and not forty, because the state is held as
+   it was before the drag began and only filed once the dragging stops. Tutti has worked this way
+   since 6.x and it is the behaviour to match.
+
+   Rubato already keeps a stack, the buttons and putState(); it simply never recorded a setting -
+   pushUndo() is called for adding a block or loading a preset and nothing else, which is why its
+   Undo button sat disabled however much you moved. So this feeds Rubato's own stack rather than
+   keeping a second one beside it. Tempo had none of it, so it gets the stack here and says how to
+   put a state back with appRestore(). */
+var histReady=false;                      /* var: set() calls noteChange before this file runs */
+const HKEYS=()=>Object.keys(D);
+const histSnap=()=>{const o={};for(const k of HKEYS())if(k in S)o[k]=S[k];return JSON.stringify(o);};
+const ownU=[],ownR=[];
+const uStack=()=>typeof undoStack!=='undefined'?undoStack:ownU;
+const rStack=()=>typeof redoStack!=='undefined'?redoStack:ownR;
+const histPaint=()=>{
+  if(typeof paintHistory==='function')return paintHistory();
+  const u=document.querySelector('#undoBtn'),r=document.querySelector('#redoBtn');
+  if(u){u.disabled=!uStack().length;u.title=u.disabled?'Nothing to undo':'Undo \u2013 \u2318Z';}
+  if(r){r.disabled=!rStack().length;r.title=r.disabled?'Nothing to redo':'Redo \u2013 \u21e7\u2318Z';}};
+const histPut=o=>{
+  if(typeof appRestore==='function')return appRestore(o);
+  if(typeof putState==='function')return putState(JSON.stringify(o));
+  for(const k of HKEYS())if(k in o)S[k]=o[k];refreshAll();};
+
+let pre=null,preT=0;
+function noteChange(){if(!histReady)return;if(pre===null)pre=histSnap();preT=Date.now();}
+function fileStep(){
+  if(pre===null)return;
+  if(Date.now()-preT<500)return;                 /* still moving - wait for it to settle */
+  const was=pre;pre=null;
+  if(was===histSnap())return;                    /* moved and put back again: not a step */
+  const u=uStack();u.push(was);if(u.length>30)u.shift();rStack().length=0;histPaint();}
+setInterval(fileStep,250);
+
+function histGo(from,to,verb){
+  fileStep();
+  const s=from.pop();if(!s){if(typeof toast==='function')toast('Nothing to '+verb);return;}
+  to.push(histSnap());histPut(JSON.parse(s));histPaint();
+  if(typeof paintChanges==='function')paintChanges();
+  if(typeof toast==='function')toast(verb[0].toUpperCase()+verb.slice(1));}
+const histUndo=()=>histGo(uStack(),rStack(),'undo');
+const histRedo=()=>histGo(rStack(),uStack(),'redo');
+
+/* Rubato wires its own buttons to its own undo(); leave those alone and only take the ones
+   nobody has claimed, so Tempo's work and Rubato's keep their single stack. */
+(function(){
+  const u=document.querySelector('#undoBtn'),r=document.querySelector('#redoBtn');
+  if(u&&!u.onclick)u.onclick=histUndo;
+  if(r&&!r.onclick)r.onclick=histRedo;
+})();
+window.addEventListener('keydown',e=>{
+  if(!(e.metaKey||e.ctrlKey)||e.altKey)return;
+  const k=e.key.toLowerCase();if(k!=='z'&&k!=='y')return;
+  const t=e.target,typing=t&&(t.tagName==='TEXTAREA'||t.isContentEditable||
+    (t.tagName==='INPUT'&&/text|number|search/.test(t.type)));
+  if(typing)return;
+  e.preventDefault();
+  if(e.shiftKey||k==='y'){if(typeof redo==='function')redo();else histRedo();}
+  else {if(typeof undo==='function')undo();else histUndo();}
+},true);
+histReady=true;histPaint();

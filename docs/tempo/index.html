@@ -1068,7 +1068,7 @@
   </main>
   <aside class="panel" id="panelBox">
     <div class="brand">
-      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.19</span></div>
+      <div class="bline"><span class="mark">Tempo</span><span class="ver">0.20</span></div>
       <div class="bline caps">By ENSEMBLE</div>
     </div>
     <div class="scroll" id="panel" aria-label="Controls"></div>
@@ -1077,7 +1077,12 @@
   <button class="panel-btn" id="panelBtn" type="button" aria-expanded="false" aria-controls="panelBox" aria-label="Show the panel"><svg viewBox="0 0 14 14" aria-hidden="true"><rect x="1.8" y="2.5" width="10.4" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M5.2 2.5v9" stroke="currentColor" stroke-width="1.3"/></svg></button>
   <div class="topbar">
     <div class="stage-foot"><span id="dims"></span><span id="when">Your local time</span><span id="note"></span></div>
-    <!-- the house top bar (from Segue 0.10): zoom, with Actual size. View settings live here. -->
+    <!-- the house top bar (from Segue 0.10): undo and redo, then zoom. View settings live here. -->
+    <div class="tools" id="historyTools">
+      <button id="undoBtn" type="button" aria-label="Undo – ⌘Z" title="Undo – ⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M5.2 3.3 2.6 5.9l2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 5.9h5.6a2.9 2.9 0 0 1 0 5.8H6.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+      <button id="redoBtn" type="button" aria-label="Redo – ⇧⌘Z" title="Redo – ⇧⌘Z"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="m8.8 3.3 2.6 2.6-2.6 2.6" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/><path d="M11 5.9H5.4a2.9 2.9 0 0 0 0 5.8h2.2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
+    </div>
+    <!-- zoom, with Actual size -->
     <div class="tools" id="zoomTools">
       <button id="zoomOut" type="button" aria-label="Zoom out – ⌘−" title="Zoom out – ⌘−"><svg viewBox="0 0 14 14" aria-hidden="true"><path d="M3.5 7h7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg></button>
       <button id="zoomVal" class="zval" type="button" aria-label="Zoom – click for 100% or to fit" title="Click for 100%, again to fit – ⌘0 fits">Fit</button>
@@ -4877,6 +4882,7 @@ const panel=$('#panel');const controls=[];
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
 const PICKER_KEYS=['vMode','baseSlot','seq'];
 function set(k,v,silent){
+  if(typeof noteChange==='function')noteChange();   /* undo: hold the state as it was, before this */
   if(k==='fit'&&v==='manual'&&S.fit!=='manual')S.size=+eng.lastSize().toFixed(1);
   S[k]=v;if(PICKER_KEYS.includes(k)){optCache.clear();schedulePicker(0);}
   dirty=true;autosave();if(!silent)refreshAll();else if(typeof paintChanges==='function')paintChanges();
@@ -6345,6 +6351,10 @@ const savePresets=()=>{LS.set('presets',PRESETS);presetVer++;};
    light up every row in the panel as changed. */
 const baseSnap=()=>{const o={};for(const k of tempoKeys())if(k in S)o[k]=S[k];return o;};
 function appBaseline(){const b=LS.get('basis');return b&&typeof b==='object'?b:null;}
+/* Putting a state back is not just writing the keys: the screensaver has to be told, or undo
+   moves the control and leaves the canvas as it was. The same tail as opening a preset. */
+function appRestore(o){for(const k of tempoKeys())if(k in o)S[k]=o[k];
+  refreshAll();applyStyles();themesRefresh();ssDirty=true;autosave();}
 const setActive=(id,builtin)=>{ACTIVE=id?{id,builtin:!!builtin,sig:sigNow()}:null;LS.set('active',ACTIVE);
   const basis=ACTIVE?baseSnap():null;LS.set('basis',basis);
   if(typeof startFrom==='function')startFrom(basis);};
@@ -7226,6 +7236,70 @@ function paintChanges(){
    which is right for a tool whose starting point is simply its defaults. */
 columnReady=true;
 addDots();startFrom(typeof appBaseline==='function'?appBaseline():null);
+
+/* ---------------- undo ----------------
+   A settled change is one step: a drag is one step and not forty, because the state is held as
+   it was before the drag began and only filed once the dragging stops. Tutti has worked this way
+   since 6.x and it is the behaviour to match.
+
+   Rubato already keeps a stack, the buttons and putState(); it simply never recorded a setting -
+   pushUndo() is called for adding a block or loading a preset and nothing else, which is why its
+   Undo button sat disabled however much you moved. So this feeds Rubato's own stack rather than
+   keeping a second one beside it. Tempo had none of it, so it gets the stack here and says how to
+   put a state back with appRestore(). */
+var histReady=false;                      /* var: set() calls noteChange before this file runs */
+const HKEYS=()=>Object.keys(D);
+const histSnap=()=>{const o={};for(const k of HKEYS())if(k in S)o[k]=S[k];return JSON.stringify(o);};
+const ownU=[],ownR=[];
+const uStack=()=>typeof undoStack!=='undefined'?undoStack:ownU;
+const rStack=()=>typeof redoStack!=='undefined'?redoStack:ownR;
+const histPaint=()=>{
+  if(typeof paintHistory==='function')return paintHistory();
+  const u=document.querySelector('#undoBtn'),r=document.querySelector('#redoBtn');
+  if(u){u.disabled=!uStack().length;u.title=u.disabled?'Nothing to undo':'Undo \u2013 \u2318Z';}
+  if(r){r.disabled=!rStack().length;r.title=r.disabled?'Nothing to redo':'Redo \u2013 \u21e7\u2318Z';}};
+const histPut=o=>{
+  if(typeof appRestore==='function')return appRestore(o);
+  if(typeof putState==='function')return putState(JSON.stringify(o));
+  for(const k of HKEYS())if(k in o)S[k]=o[k];refreshAll();};
+
+let pre=null,preT=0;
+function noteChange(){if(!histReady)return;if(pre===null)pre=histSnap();preT=Date.now();}
+function fileStep(){
+  if(pre===null)return;
+  if(Date.now()-preT<500)return;                 /* still moving - wait for it to settle */
+  const was=pre;pre=null;
+  if(was===histSnap())return;                    /* moved and put back again: not a step */
+  const u=uStack();u.push(was);if(u.length>30)u.shift();rStack().length=0;histPaint();}
+setInterval(fileStep,250);
+
+function histGo(from,to,verb){
+  fileStep();
+  const s=from.pop();if(!s){if(typeof toast==='function')toast('Nothing to '+verb);return;}
+  to.push(histSnap());histPut(JSON.parse(s));histPaint();
+  if(typeof paintChanges==='function')paintChanges();
+  if(typeof toast==='function')toast(verb[0].toUpperCase()+verb.slice(1));}
+const histUndo=()=>histGo(uStack(),rStack(),'undo');
+const histRedo=()=>histGo(rStack(),uStack(),'redo');
+
+/* Rubato wires its own buttons to its own undo(); leave those alone and only take the ones
+   nobody has claimed, so Tempo's work and Rubato's keep their single stack. */
+(function(){
+  const u=document.querySelector('#undoBtn'),r=document.querySelector('#redoBtn');
+  if(u&&!u.onclick)u.onclick=histUndo;
+  if(r&&!r.onclick)r.onclick=histRedo;
+})();
+window.addEventListener('keydown',e=>{
+  if(!(e.metaKey||e.ctrlKey)||e.altKey)return;
+  const k=e.key.toLowerCase();if(k!=='z'&&k!=='y')return;
+  const t=e.target,typing=t&&(t.tagName==='TEXTAREA'||t.isContentEditable||
+    (t.tagName==='INPUT'&&/text|number|search/.test(t.type)));
+  if(typing)return;
+  e.preventDefault();
+  if(e.shiftKey||k==='y'){if(typeof redo==='function')redo();else histRedo();}
+  else {if(typeof undo==='function')undo();else histUndo();}
+},true);
+histReady=true;histPaint();
 })();
 </script>
 </body>

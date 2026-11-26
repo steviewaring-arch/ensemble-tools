@@ -251,6 +251,7 @@ const panel=$('#panel');const controls=[];
 function el(tag,cls,txt){const e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
 const PICKER_KEYS=['vMode','baseSlot','seq'];
 function set(k,v,silent){
+  if(typeof noteChange==='function')noteChange();   /* undo: hold the state as it was, before this */
   if(k==='fit'&&v==='manual'&&S.fit!=='manual')S.size=+eng.lastSize().toFixed(1);
   S[k]=v;if(PICKER_KEYS.includes(k)){optCache.clear();schedulePicker(0);}
   dirty=true;autosave();if(!silent)refreshAll();else if(typeof paintChanges==='function')paintChanges();
